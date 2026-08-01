@@ -1,0 +1,90 @@
+The updated plan is nearly approved, but three final data-integrity corrections are required before Phase 1 begins.
+
+Do not write code yet.
+
+1. PREVENT DUPLICATE GRAFT COST STORAGE
+
+Do not store the same graft financial amount in both:
+
+- implants.graft_cost
+- and case_charges
+
+There must be one financial source of truth.
+
+Keep the following clinical or legacy implant fields:
+
+- graft_value
+- graft_procedure_type
+- graft_note
+
+Remove graft_cost from the implants table as a financial source.
+
+All graft-related monetary amounts must be stored as case_charges records using a charge type such as:
+
+زراعة عظم
+
+To associate a charge with a specific implant when needed, add an optional nullable implant_id foreign key to case_charges.
+
+A graft charge linked to an implant must still belong to the same implant case.
+
+Validate this relationship on the backend.
+
+Financial reports and case totals must read graft costs only from case_charges.
+
+2. DO NOT STORE MUTABLE DERIVED FINANCIAL TOTALS
+
+Do not store paid_amount, outstanding_balance, final_case_total, or payment_percentage as ordinary mutable source-of-truth columns.
+
+The financial source-of-truth records are:
+
+- implant_cases.base_treatment_amount
+- case_charges
+- case_discounts
+- valid non-voided payments
+
+Calculate:
+
+Final Case Total =
+Base Treatment Amount
++ Sum of Charges
+- Sum of Discounts
+
+Paid Amount =
+Sum of valid non-voided Payments
+
+Outstanding Balance =
+Final Case Total - Paid Amount
+
+Payment Percentage =
+Paid Amount / Final Case Total, with safe zero-total handling
+
+Calculate these values in queries or a database view.
+
+Do not allow users to edit calculated totals directly.
+
+Do not introduce cached totals in the initial version.
+
+If performance later requires caching or materialization, it must be proposed separately with a consistency strategy and explicit approval.
+
+3. NON-SAUDI MOBILE NUMBER HANDLING
+
+For non-Saudi mobile numbers:
+
+- preserve mobile_number exactly as entered for display,
+- normalize separators and punctuation safely,
+- only treat the result as an international WhatsApp number when an explicit country code is present.
+
+Do not guess a foreign country code from a local-looking number.
+
+If a non-Saudi number does not include a country code, show a clear Arabic validation message requesting the complete number with country code.
+
+Do not make mobile_normalized unique because different patients may legitimately share a family contact number.
+
+After updating the plans:
+
+- confirm these three corrections explicitly,
+- state whether any ambiguity remains,
+- stop,
+- and wait for approval.
+
+Do not begin Phase 1 yet.
