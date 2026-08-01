@@ -1,0 +1,2401 @@
+CRITICAL EXECUTION RULES — READ THIS ENTIRE SPECIFICATION BEFORE DOING ANY WORK
+
+You are building a real production application, not a visual demo, mockup, prototype, landing page, or open-ended creative project.
+
+This written specification is the single source of truth.
+
+You must follow it exactly.
+
+You must NOT:
+
+- invent features,
+- remove requirements,
+- rename business fields,
+- change workflows,
+- add unnecessary pages,
+- add unnecessary modules,
+- simplify business logic,
+- introduce a large sidebar,
+- introduce a patient portal,
+- introduce inventory management,
+- introduce accounting modules beyond the financial tracking specified here,
+- introduce AI features,
+- introduce public registration,
+- introduce email or SMS features,
+- introduce WhatsApp Business API,
+- introduce dark mode,
+- add complicated onboarding,
+- add excessive animations,
+- or make product decisions that were not explicitly requested.
+
+Do not creatively reinterpret the requirements.
+
+Do not redesign previously approved functionality unless:
+
+1. a confirmed bug requires it,
+2. a security issue requires it,
+3. or the user explicitly approves the change.
+
+If any requirement is unclear, technically unsafe, conflicting, or incomplete:
+
+- stop,
+- explain the exact ambiguity,
+- ask one focused question,
+- and wait for an answer.
+
+Do not silently choose an interpretation.
+
+Do not begin coding immediately.
+
+FIRST, work in Plan Mode and return a complete implementation plan containing:
+
+1. Database schema and relationships.
+2. Database constraints.
+3. Application routes.
+4. API endpoints.
+5. Authentication and session design.
+6. Role and permission model.
+7. Main pages and components.
+8. Guided tour and help workflow.
+9. Patient and implant workflows.
+10. Financial calculation rules.
+11. Follow-up workflow.
+12. WhatsApp link workflow.
+13. Dashboard calculations.
+14. Testing plan.
+15. Security plan.
+16. Production deployment plan.
+17. Any ambiguity you detected.
+
+After producing the plan, STOP.
+
+Do not implement anything until the plan receives explicit approval.
+
+After approval, implement the project in phases.
+
+At the end of every phase:
+
+1. Stop adding new functionality.
+2. Run TypeScript type checking.
+3. Run linting.
+4. Run database migration checks.
+5. Run relevant automated tests.
+6. Run the production build.
+7. Test the completed workflow manually in Preview.
+8. Inspect browser console errors.
+9. Inspect server errors.
+10. Fix all discovered issues.
+11. Create a checkpoint.
+12. Provide a concise completion report.
+13. Wait for approval before starting the next phase.
+
+The following are mandatory acceptance requirements:
+
+- No TypeScript errors.
+- No build errors.
+- No browser console errors.
+- No server errors.
+- No broken routes.
+- No nonfunctional buttons.
+- No fake filters.
+- No fake charts.
+- No hard-coded dashboard values.
+- No placeholder actions.
+- No lost records after refresh.
+- No patient data stored in localStorage.
+- No patient data stored in JSON files.
+- No patient data stored in the deployment filesystem.
+- No secrets committed in source code.
+- No real patient data generated or seeded.
+- No public access to internal pages.
+- No onboarding tour that blocks normal application use.
+- No onboarding tour appearing repeatedly after completion.
+- No major design or workflow changes without approval.
+
+Correctness, data integrity, usability, and stability are more important than speed or creativity.
+
+==================================================
+1. APPLICATION IDENTITY
+==================================================
+
+Build a production-ready Arabic web application named:
+
+نظام متابعة زراعة الأسنان – د. همام
+
+English internal name:
+
+Dental Implant Follow-up System
+
+The application is used by:
+
+- Dr. Homam.
+- The doctor’s assistant.
+- An administrator.
+
+The doctor and assistant are not highly technical.
+
+The application must therefore be extremely simple, clear, forgiving, and fast to use.
+
+The main workflow must require minimal typing.
+
+All visible user interface text must be Arabic.
+
+The application direction must be full RTL.
+
+Code, API names, database names, and technical documentation may be written in English.
+
+Use the attached clinic logo in:
+
+- the login page,
+- the main header,
+- printed summaries,
+- PDF exports where applicable.
+
+Do not create a marketing website.
+
+The public-facing application should only contain a login page.
+
+All patient, implant, financial, and follow-up information must be protected behind authentication.
+
+==================================================
+2. REQUIRED TECHNOLOGY STACK
+==================================================
+
+Use the following stable technology stack:
+
+Frontend:
+
+- React.
+- TypeScript.
+- Vite.
+- Tailwind CSS.
+- shadcn/ui.
+- React Query / TanStack Query.
+- React Hook Form.
+- Zod.
+- Recharts.
+- Lucide icons.
+
+Backend:
+
+- Node.js.
+- Express.
+- TypeScript.
+- Zod validation.
+- Centralized error handling.
+
+Database:
+
+- PostgreSQL.
+- Drizzle ORM.
+- Drizzle migrations.
+
+Authentication:
+
+- Server-side session authentication.
+- Secure HTTP-only cookies.
+- Password hashing using a secure supported algorithm.
+- Session expiration.
+- Logout.
+- Login rate limiting.
+- Role-based authorization.
+
+For the guided tour, use one lightweight and stable solution compatible with React.
+
+Preferred options:
+
+- Driver.js,
+- or a small custom implementation using existing components.
+
+Do not add a large or complicated onboarding framework.
+
+Do not add multiple overlapping tour libraries.
+
+Use stable package versions.
+
+Do not use experimental packages unless absolutely necessary.
+
+Do not replace PostgreSQL with:
+
+- SQLite,
+- localStorage,
+- JSON files,
+- browser IndexedDB,
+- or filesystem storage.
+
+Read DATABASE_URL from environment variables.
+
+Do not expose DATABASE_URL to the frontend.
+
+The server must listen on:
+
+- host: 0.0.0.0
+- port: process.env.PORT
+
+Create:
+
+GET /api/health
+
+It should return a simple safe health response without exposing sensitive information.
+
+==================================================
+3. DESIGN SYSTEM
+==================================================
+
+Create a custom design named:
+
+Calm Clinical Workspace
+
+This is not copied from any external dashboard.
+
+The design direction must be:
+
+- clinical,
+- calm,
+- premium,
+- minimal,
+- highly readable,
+- Arabic-first,
+- and optimized for daily operational use.
+
+Use:
+
+- 85% clinical minimalism.
+- 15% premium dental identity.
+
+The application should feel like a modern private-clinic workspace, not a corporate ERP and not a generic admin template.
+
+Do not use a large sidebar.
+
+Use a top navigation layout.
+
+Do not use glassmorphism.
+
+Do not use large decorative gradients.
+
+Do not use 3D tooth illustrations.
+
+Do not use excessive animations.
+
+Do not use dark backgrounds.
+
+Do not use excessive rounded corners.
+
+Do not use many different colors.
+
+Do not make every card a different color.
+
+Use visual hierarchy, spacing, typography, and subtle borders rather than decoration.
+
+==================================================
+4. DESIGN COLORS
+==================================================
+
+Use the following color system:
+
+Main background:
+#F5F8FA
+
+Card background:
+#FFFFFF
+
+Primary navy:
+#17384D
+
+Primary teal:
+#0F766E
+
+Secondary cyan:
+#1FA9B8
+
+Very light teal background:
+#ECF8F6
+
+Very light blue background:
+#EEF6FA
+
+Primary text:
+#172B36
+
+Secondary text:
+#667985
+
+Borders:
+#DEE7EC
+
+Muted background:
+#F0F4F6
+
+WhatsApp only:
+#25D366
+
+Status colors:
+
+Completed / successful:
+#15803D
+
+Scheduled / upcoming:
+#2563EB
+
+Under follow-up:
+#D97706
+
+Delayed / action required:
+#DC2626
+
+Postponed / inactive:
+#64748B
+
+Use red only for:
+
+- confirmed delays,
+- failed implants,
+- overdue follow-ups,
+- destructive actions,
+- or serious validation warnings.
+
+Do not use red simply because a patient has an outstanding balance.
+
+==================================================
+5. TYPOGRAPHY AND SPACING
+==================================================
+
+Use:
+
+Tajawal
+
+Fallback:
+
+IBM Plex Sans Arabic, sans-serif
+
+Recommended sizes:
+
+- Main page title: 24–28px.
+- Section title: 18–20px.
+- Normal text: 16px.
+- Field labels: 14–15px.
+- KPI values: 28–34px.
+- Table text: 14–15px.
+
+Use:
+
+- clear spacing,
+- generous form spacing,
+- button height between 44px and 48px,
+- card radius around 10px to 12px,
+- subtle borders,
+- very subtle shadows.
+
+Important actions must always include:
+
+- an icon,
+- and a visible Arabic text label.
+
+Do not use an icon alone for important actions.
+
+Examples:
+
+- إضافة حالة جديدة
+- حفظ التعديلات
+- إضافة زرعة
+- إضافة دفعة
+- إرسال واتساب
+- طباعة الملخص
+
+The help icon is an exception because a universally recognized question mark icon may appear alone, but it must have:
+
+- an Arabic tooltip,
+- an accessible label,
+- and a clear help menu when clicked.
+
+==================================================
+6. MAIN APPLICATION LAYOUT
+==================================================
+
+Use one clean top header.
+
+Header contents:
+
+Right side:
+
+- clinic logo,
+- application name.
+
+Center:
+
+- main navigation tabs.
+
+Left side:
+
+- question mark help icon,
+- notification icon,
+- current user name,
+- role,
+- settings icon when permitted,
+- logout button.
+
+Main navigation must contain only:
+
+1. الرئيسية
+2. المرضى
+3. المالية
+
+Do not create a large sidebar.
+
+Settings and user management must be accessible through a small settings menu for authorized users only.
+
+Use a centered desktop content container with a maximum readable width.
+
+On tablets and mobile devices:
+
+- stack cards vertically,
+- preserve RTL,
+- convert wide tables into responsive cards where appropriate,
+- keep primary actions easy to reach.
+
+==================================================
+7. HELP ICON AND GUIDED TOUR
+==================================================
+
+Add a small question mark icon in the top header.
+
+The icon must:
+
+- be visible on every authenticated page,
+- use a clear question mark symbol,
+- have the Arabic tooltip:
+  المساعدة والجولة التعريفية
+- have an accessible aria-label,
+- not visually compete with notifications or the main actions.
+
+When the user clicks the question mark icon, open a small menu containing exactly:
+
+1. ابدأ الجولة التعريفية
+2. مساعدة سريعة
+3. شرح الاختصارات
+
+Do not create a full support center.
+
+Do not create a large help module.
+
+Do not create a chatbot.
+
+Do not create video tutorials.
+
+--------------------------------------------------
+7.1 FIRST LOGIN WELCOME
+--------------------------------------------------
+
+On a user’s first successful login, show a small, simple welcome dialog.
+
+Arabic content:
+
+مرحبًا بك في نظام متابعة زراعة الأسنان
+
+يمكنك أخذ جولة تعريفية قصيرة للتعرف على أهم أجزاء النظام.
+تستغرق الجولة أقل من دقيقة، ويمكنك تشغيلها لاحقًا من علامة الاستفهام.
+
+Buttons:
+
+- ابدأ الجولة
+- تخطي الآن
+
+The dialog must:
+
+- appear only once per user unless manually restarted,
+- not block the user permanently,
+- allow immediate skipping,
+- not appear again after the user completes or skips it,
+- be responsive,
+- support full RTL.
+
+Store onboarding status in the database as a user preference.
+
+Do not store patient information in onboarding preferences.
+
+Suggested fields:
+
+- user_id
+- onboarding_status
+- onboarding_completed_at
+- onboarding_skipped_at
+- updated_at
+
+Possible onboarding status values:
+
+- not_started
+- completed
+- skipped
+
+The user must always be able to restart the tour from the question mark icon.
+
+--------------------------------------------------
+7.2 MAIN GUIDED TOUR
+--------------------------------------------------
+
+Create one main guided tour with exactly six steps.
+
+Do not create a long or complicated tour.
+
+Each step must:
+
+- highlight one visible interface element,
+- display a short Arabic title,
+- display one or two short Arabic sentences,
+- provide:
+  - السابق
+  - التالي
+  - تخطي الجولة
+- show progress such as:
+  2 من 6
+- support Escape to close,
+- allow clicking outside only when safe,
+- preserve RTL,
+- work on desktop and tablet.
+
+On mobile, the tour must scroll the highlighted element into view.
+
+The six tour steps are:
+
+STEP 1 — Main navigation
+
+Target:
+The top navigation tabs.
+
+Title:
+التنقل الرئيسي
+
+Description:
+استخدم هذه التابات للانتقال بين الرئيسية، المرضى، والتقارير المالية.
+
+STEP 2 — Global patient search
+
+Target:
+The global search field.
+
+Title:
+البحث عن مريض
+
+Description:
+ابحث باستخدام اسم المريض، رقم الملف، أو رقم الجوال.
+
+STEP 3 — New implant case
+
+Target:
+The button:
+تسجيل حالة زراعة جديدة
+
+Title:
+إضافة حالة جديدة
+
+Description:
+ابدأ من هنا لتسجيل مريض جديد أو إضافة حالة زراعة لمريض موجود.
+
+STEP 4 — Dashboard cards
+
+Target:
+The operational overview cards.
+
+Title:
+ملخص العمل اليومي
+
+Description:
+تعرض هذه البطاقات المواعيد والمتابعات والحالات الجاهزة والمتأخرة.
+
+STEP 5 — Patient workspace
+
+Target:
+A visible patient workspace example only when a patient is open.
+
+Title:
+ملف المريض
+
+Description:
+داخل ملف المريض ستجد البيانات، الزرعات، الدفعات، المتابعة، والملخص.
+
+If no patient is open during the tour:
+
+- do not create a fake patient,
+- do not open a real patient automatically,
+- explain the patient workspace through the Patients tab target instead.
+
+STEP 6 — Help and WhatsApp
+
+Target:
+The question mark icon or a visible WhatsApp action when available.
+
+Title:
+المساعدة والتواصل
+
+Description:
+يمكنك إعادة تشغيل الجولة من علامة الاستفهام، وفتح واتساب برسالة جاهزة من ملف المريض.
+
+Final screen:
+
+Title:
+انتهت الجولة
+
+Description:
+أصبحت الآن جاهزًا لاستخدام النظام. يمكنك إعادة الجولة في أي وقت من علامة الاستفهام.
+
+Button:
+ابدأ العمل
+
+--------------------------------------------------
+7.3 QUICK HELP
+--------------------------------------------------
+
+When selecting:
+
+مساعدة سريعة
+
+Open a small dialog containing only short operational instructions:
+
+- لإضافة حالة: اضغط تسجيل حالة زراعة جديدة.
+- للبحث: استخدم الاسم أو رقم الملف أو الجوال.
+- لإضافة زرعة: افتح ملف المريض ثم تاب الزرعات.
+- لتسجيل دفعة: افتح تاب الدفعات.
+- لإضافة متابعة: افتح تاب المتابعة.
+- لإرسال واتساب: افتح ملف المريض ثم اضغط إرسال واتساب.
+
+Do not create long documentation inside this dialog.
+
+--------------------------------------------------
+7.4 ABBREVIATION HELP
+--------------------------------------------------
+
+When selecting:
+
+شرح الاختصارات
+
+Show a small searchable dialog explaining only the interface labels.
+
+Include:
+
+- System — نظام الزرعة
+- site — رقم السن أو الموقع
+- SIZE — مقاس الزرعة
+- Q — قيمة محفوظة كما في السجل الأصلي
+- Former — قيمة محفوظة كما في السجل الأصلي
+- Graft — معلومات ترقيع العظم حسب إدخال المستخدم
+- Pros — مدة أو مرحلة التركيب
+- DIRECT — إجراء مباشر
+- IMMED — إجراء فوري
+
+Important:
+
+Do not invent unsupported medical definitions for:
+
+- Q,
+- Former,
+- Graft,
+- Pros.
+
+Use neutral wording.
+
+Also place small information tooltips beside these legacy fields inside forms.
+
+The tooltips must be short and not open another guided tour.
+
+==================================================
+8. DASHBOARD DESIGN
+==================================================
+
+The dashboard must be calm and simple.
+
+It must not display too many cards.
+
+Use this exact structure:
+
+SECTION A — Welcome and quick action
+
+Display:
+
+- صباح الخير or مساء الخير based on time.
+- A short line showing today’s date.
+- A large global search field.
+- A clear primary button:
+  + تسجيل حالة زراعة جديدة
+
+Search by:
+
+- patient name,
+- file number,
+- mobile number.
+
+SECTION B — Operational overview
+
+Display exactly four operational cards:
+
+1. مواعيد اليوم
+2. تحتاج متابعة
+3. جاهزة للتركيب
+4. متأخرة عن المتابعة
+
+Each card must show:
+
+- count,
+- short explanation,
+- status-colored icon,
+- clickable action.
+
+Clicking a card must open the relevant filtered patient or follow-up list.
+
+SECTION C — Financial overview
+
+Display exactly four financial cards:
+
+1. المقبوض اليوم
+2. المقبوض هذا الشهر
+3. إجمالي المتبقي
+4. قيمة الحالات هذا الشهر
+
+Each card must show:
+
+- value in Saudi Riyal,
+- short context,
+- clickable action.
+
+Do not label case value as collected revenue.
+
+SECTION D — Daily workspace
+
+Use a two-column desktop layout.
+
+Right column, approximately 60%:
+
+- مهام اليوم والمتابعات
+
+Left column, approximately 40%:
+
+- التحصيل المالي
+
+On smaller screens, stack them vertically.
+
+Daily task card fields:
+
+- patient name,
+- file number,
+- task type,
+- time,
+- current status,
+- open patient button,
+- WhatsApp button when appropriate.
+
+Financial chart card:
+
+- one clean bar chart,
+- display collected payments,
+- allow:
+  - last 7 days,
+  - current month,
+  - previous month.
+
+Do not display more than one financial chart on the main dashboard.
+
+SECTION E — Patients requiring communication
+
+Display a compact list:
+
+- patient name,
+- reason for contact,
+- due date,
+- suggested WhatsApp template,
+- preview button,
+- WhatsApp button.
+
+Do not overload the dashboard with:
+
+- large tables,
+- more than eight KPI cards,
+- multiple pie charts,
+- inventory information,
+- expenses,
+- purchases,
+- or irrelevant analytics.
+
+==================================================
+9. ORIGINAL LEGACY DATA FIELDS
+==================================================
+
+The existing legacy document uses the following original fields:
+
+- NAME + MOBILE
+- AGE
+- DATE
+- FILE
+- System
+- site
+- SIZE
+- Q
+- Former
+- Graft
+- COST
+- Pros
+- NOTE
+
+Preserve these terms where applicable.
+
+Display Arabic helper labels while retaining the original legacy term.
+
+Examples:
+
+- نظام الزرعة — System
+- رقم السن / الموقع — site
+- المقاس — SIZE
+- القيمة — Q
+- Former
+- Graft
+- مدة التركيب — Pros
+- الملاحظات — NOTE
+
+Do not invent medical definitions for:
+
+- Q
+- Former
+- Graft
+- Pros
+
+The user must be able to preserve legacy values exactly.
+
+==================================================
+10. DATABASE SCHEMA
+==================================================
+
+Design a normalized relational PostgreSQL schema.
+
+At minimum, include the following tables:
+
+1. users
+2. sessions
+3. user_preferences
+4. patients
+5. implant_cases
+6. implants
+7. payments
+8. case_charges
+9. case_discounts
+10. followups
+11. communications
+12. whatsapp_templates
+13. implant_system_options
+14. lookup_options
+15. application_settings
+16. audit_logs
+
+Recommended relationships:
+
+- A user has one user preference record.
+- A patient can have multiple implant cases.
+- An implant case belongs to one patient.
+- An implant case can have multiple implants.
+- An implant case can have multiple payments.
+- An implant case can have multiple charges.
+- An implant case can have multiple discounts.
+- An implant case can have multiple follow-ups.
+- A patient or implant case can have multiple communications.
+- Users create and update records.
+- Audit logs reference the acting user.
+
+Use:
+
+- UUID primary keys where appropriate.
+- created_at.
+- updated_at.
+- created_by.
+- updated_by where useful.
+- archived_at for soft deletion.
+- version or safe update strategy where appropriate.
+
+Important constraints:
+
+- Patient file number must be unique among active patients.
+- Payment amounts must be positive.
+- Charge amounts must be non-negative.
+- Discount amounts must be non-negative.
+- Implant site must be valid or explicitly marked custom.
+- A patient cannot be physically deleted through the normal UI.
+- Important financial records should not be silently overwritten.
+- Each user must have at most one active user preference record.
+
+Use database transactions for multi-step financial writes.
+
+==================================================
+11. AUTHENTICATION AND FIRST-RUN SETUP
+==================================================
+
+There must be no public signup.
+
+Create a secure first-run setup.
+
+When no Admin user exists:
+
+- show an initial Admin setup screen,
+- require a secret setup key,
+- read the key from:
+  INITIAL_SETUP_KEY
+- create the first Admin securely,
+- permanently disable the first-run setup once the first Admin exists.
+
+Do not hard-code any username or password.
+
+Password requirements:
+
+- minimum 10 characters,
+- require a reasonable combination of characters,
+- show Arabic validation messages.
+
+Login security:
+
+- rate-limit failed attempts,
+- secure HTTP-only cookies,
+- SameSite protection,
+- secure cookies in production,
+- session expiration,
+- logout,
+- no user enumeration,
+- generic login failure messages.
+
+After a successful first login:
+
+- load user preferences,
+- show the onboarding welcome dialog only when onboarding status is not_started.
+
+==================================================
+12. USER ROLES
+==================================================
+
+Create exactly three roles:
+
+ADMIN
+
+Permissions:
+
+- full access,
+- user management,
+- roles and permissions,
+- settings,
+- all patient and implant data,
+- all financial data,
+- audit logs,
+- exports,
+- templates.
+
+DOCTOR
+
+Permissions:
+
+- view and edit patients,
+- create and edit implant cases,
+- create and edit implants,
+- create and edit clinical follow-ups,
+- approve medical notes,
+- use medical WhatsApp templates,
+- view financial summaries only if explicitly enabled.
+
+ASSISTANT
+
+Permissions:
+
+- create and update patient basic information,
+- create implant cases,
+- add and update implants,
+- schedule follow-ups,
+- record communication results,
+- use approved WhatsApp templates,
+- record payments only if the Admin enables this permission,
+- cannot manage users,
+- cannot access audit logs,
+- cannot permanently delete records,
+- cannot change system-wide settings.
+
+Implement authorization on the backend, not only in the frontend.
+
+All roles may:
+
+- access the question mark help menu,
+- start the guided tour,
+- view quick help,
+- view abbreviation explanations.
+
+==================================================
+13. PATIENT MANAGEMENT
+==================================================
+
+Patient fields:
+
+- file_number
+- full_name
+- mobile_number
+- age
+- administrative_note
+- status
+- created_at
+- updated_at
+- archived_at
+
+Required:
+
+- file number,
+- patient name.
+
+File number must be unique.
+
+When entering an existing file number, do not create a duplicate.
+
+Show an Arabic dialog:
+
+هذا المريض مسجل مسبقًا.
+هل تريد فتح ملفه وإضافة حالة جديدة؟
+
+Provide:
+
+- فتح ملف المريض
+- إلغاء
+
+Search must work by:
+
+- full name,
+- partial name,
+- file number,
+- mobile number.
+
+Use normalization suitable for Arabic search where practical.
+
+Do not expose patient data in public metadata or frontend source.
+
+==================================================
+14. PATIENT WORKSPACE
+==================================================
+
+When opening a patient, display a focused workspace.
+
+Use internal top tabs:
+
+1. البيانات
+2. الزرعات
+3. الدفعات
+4. المتابعة
+5. الملخص
+
+Keep a compact patient header visible:
+
+- patient name,
+- file number,
+- mobile number,
+- age,
+- current treatment status,
+- latest procedure date,
+- next follow-up.
+
+Primary actions:
+
+- حفظ التعديلات
+- حفظ وإغلاق
+- إرسال واتساب
+- طباعة الملخص
+
+Warn the user before leaving with unsaved changes.
+
+Do not create an excessively long single form.
+
+Use tabs and simple card sections while keeping the workflow within the patient workspace.
+
+==================================================
+15. IMPLANT CASE
+==================================================
+
+A patient may have multiple implant cases.
+
+Implant case fields:
+
+- patient_id
+- procedure_date
+- treating_doctor
+- referring_doctor
+- case_status
+- pros_value
+- expected_prosthetic_date
+- general_note
+- legacy_cost_note
+- is_reimplantation
+- reimplantation_reason
+- source_case_id when applicable
+- created_by
+- updated_by
+- created_at
+- updated_at
+- archived_at
+
+Default treating doctor:
+
+د. همام
+
+Allow it to be changed by authorized users.
+
+Case status options:
+
+- حالة جديدة
+- تمت الزراعة
+- مرحلة الالتئام
+- تحت المتابعة
+- يحتاج تواصل
+- جاهز للتركيب
+- تم تحديد موعد التركيب
+- تم تركيب مؤقت
+- تحويل المؤقت إلى دائم
+- تم التركيب
+- مؤجل
+- لم يحضر
+- منقطع
+- زرعة فاشلة
+- يحتاج إعادة زراعة
+- تمت إعادة الزراعة
+- استكمال العلاج في عيادة أخرى
+- مكتمل
+
+Pros field:
+
+Display:
+
+مدة التركيب — Pros
+
+Suggested values:
+
+- 2M
+- 3M
+- قيمة مخصصة
+
+When selecting 2M or 3M:
+
+- suggest an expected date based on the procedure date,
+- allow manual editing,
+- do not force the calculated date.
+
+==================================================
+16. IMPLANT ENTRY
+==================================================
+
+Each implant must be a separate database record.
+
+Do not store multiple implant sites, sizes, systems, Q values, Former values, or Graft values in one text field.
+
+Each implant belongs to one implant case.
+
+Provide an interactive FDI tooth chart:
+
+Upper:
+
+18 17 16 15 14 13 12 11 | 21 22 23 24 25 26 27 28
+
+Lower:
+
+48 47 46 45 44 43 42 41 | 31 32 33 34 35 36 37 38
+
+The user should:
+
+1. click a tooth number,
+2. open an Add Implant dialog,
+3. enter implant information,
+4. save,
+5. see an implant card.
+
+Implant fields:
+
+- implant_case_id
+- site
+- system
+- diameter
+- length
+- q_value
+- former_value
+- graft_value
+- graft_procedure_type
+- graft_cost
+- graft_note
+- procedure_tags
+- implant_status
+- implant_note
+- created_by
+- updated_by
+- created_at
+- updated_at
+- archived_at
+
+System field:
+
+Use a searchable combobox.
+
+Initial suggested options based on legacy records:
+
+- ROT / Root
+- Bio
+- Neodent
+- Neoss
+- Ora
+- KOR
+- Ritt
+- MegaGen
+- Mediden
+- Other
+
+Allow Admin users to add or disable implant systems from settings.
+
+Do not hard-code the list permanently.
+
+SIZE:
+
+Use two decimal number fields:
+
+- Diameter
+- Length
+
+Display:
+
+3.5 × 10 mm
+
+Support decimal values such as:
+
+- 3.5
+- 3.75
+- 4.2
+- 4.6
+- 4.8
+- 5.0
+- 5.5
+- 6.0
+- 7.75
+- 8
+- 8.5
+- 9
+- 10
+- 10.5
+- 11.5
+- 12
+- 13
+- 14
+- 15
+
+Do not limit the user only to these values.
+
+Q:
+
+Do not rename or medically reinterpret Q.
+
+Use a searchable combobox that supports custom values.
+
+Suggested values:
+
+- 0
+- 5
+- 10
+- 15
+- 20
+- 25
+- 30
+- 35
+- 40
+- 45
+- 50
+- 70
+- 75
+- 80
+
+Former:
+
+Former is not a Boolean.
+
+Use a searchable editable combobox.
+
+Suggested values:
+
+- N
+- Y
+- M17
+- M30
+- MST
+- ST
+- MU15
+- MU17
+- MU30
+- MUST
+- Other custom value
+
+Graft:
+
+Use a searchable editable combobox.
+
+Suggested values:
+
+- N
+- Y
+- ALLO
+- Other custom value
+
+When Graft is Y or another positive custom value, optionally show:
+
+- graft procedure type,
+- graft cost,
+- graft note.
+
+Procedure tags:
+
+Allow multiple tags.
+
+Suggested tags:
+
+- DIRECT
+- IMMED
+- FLAPLESS
+- Sas101
+- R.R
+- F
+- مؤقت
+- مخصص
+
+Allow free-text implant notes.
+
+Implant status:
+
+- مزروعة
+- مرحلة الالتئام
+- جاهزة للتركيب
+- تم تركيب مؤقت
+- تم التركيب
+- فاشلة
+- تحتاج إعادة
+- تمت إعادة الزراعة
+- مؤرشفة
+
+After saving, display a card showing:
+
+- tooth number,
+- system,
+- size,
+- Q,
+- Former,
+- Graft,
+- tags,
+- implant status.
+
+Card actions:
+
+- تعديل
+- نسخ البيانات لسن آخر
+- أرشفة
+
+Provide a button:
+
+نسخ بيانات الزرعة وإضافة سن آخر
+
+This should copy:
+
+- system,
+- size,
+- Q,
+- Former,
+- Graft,
+- tags,
+
+but require the user to select a new site.
+
+==================================================
+17. FINANCIAL MODEL
+==================================================
+
+Do not use one unstructured COST text field as the main financial model.
+
+Keep an optional legacy field:
+
+ملاحظة مالية قديمة — Legacy Cost Note
+
+Use the following financial model:
+
+Base Treatment Amount
++ Sum of Additional Charges
+- Sum of Discounts
+= Final Case Total
+
+Sum of valid Payment Transactions
+= Paid Amount
+
+Final Case Total
+- Paid Amount
+= Outstanding Balance
+
+Collected Revenue for a period must equal:
+
+Sum of valid payments whose payment_date is inside the selected period.
+
+Do not calculate collected revenue from:
+
+- case creation date,
+- procedure date,
+- treatment total,
+- or expected payments.
+
+Case financial summary:
+
+- قيمة العلاج الأساسية
+- الرسوم الإضافية
+- الخصومات
+- الإجمالي النهائي
+- المدفوع
+- المتبقي
+- نسبة السداد
+- حالة الدفع
+
+Payment status:
+
+- لم يدفع
+- مدفوع جزئيًا
+- مدفوع بالكامل
+- رصيد زائد
+- مؤجل ماليًا
+
+If paid amount is greater than case total:
+
+- show a clear warning,
+- mark as overpaid,
+- do not silently alter totals.
+
+==================================================
+18. ADDITIONAL CHARGES
+==================================================
+
+Additional charges must be separate transactions.
+
+Charge fields:
+
+- implant_case_id
+- charge_type
+- description
+- amount
+- charge_date
+- note
+- created_by
+- created_at
+
+Suggested charge types:
+
+- زراعة عظم
+- رفع جيب أنفي
+- مؤقت
+- إعادة زراعة
+- إجراء إضافي
+- ضريبة
+- أخرى
+
+Allow Admin users to manage charge types in settings.
+
+==================================================
+19. DISCOUNTS
+==================================================
+
+Discounts must be separate records.
+
+Discount fields:
+
+- implant_case_id
+- amount
+- discount_date
+- reason
+- approved_by
+- created_by
+- created_at
+
+Do not allow a discount to silently overwrite the original treatment amount.
+
+Show:
+
+- original amount,
+- additions,
+- discounts,
+- final amount.
+
+==================================================
+20. PAYMENTS
+==================================================
+
+Each payment must be a separate transaction.
+
+Payment fields:
+
+- implant_case_id
+- amount
+- payment_date
+- payment_label
+- payment_method
+- reference_number
+- note
+- created_by
+- created_at
+- voided_at
+- voided_by
+- void_reason
+
+Payment labels:
+
+- دفعة أولى
+- دفعة ثانية
+- دفعة كاملة
+- دفعة إضافية
+- أخرى
+
+Payment methods:
+
+- شبكة
+- نقدي
+- تحويل
+- تمارا
+- أخرى
+
+Do not allow users to manually type the total paid amount.
+
+Calculate paid amount from valid payment records.
+
+Do not permanently delete payments.
+
+Use a controlled void action requiring:
+
+- confirmation,
+- reason,
+- authorized role,
+- audit log.
+
+==================================================
+21. FINANCE PAGE
+==================================================
+
+Create a simple finance page.
+
+It must not look like a complex accounting system.
+
+Top filters:
+
+- اليوم
+- أمس
+- هذا الأسبوع
+- هذا الشهر
+- الشهر الماضي
+- فترة مخصصة
+- المريض
+- رقم الملف
+- طريقة الدفع
+- حالة الدفع
+- نظام الزرعة
+
+Financial KPI cards:
+
+- المقبوض خلال الفترة
+- قيمة الحالات خلال الفترة
+- الرسوم الإضافية
+- الخصومات
+- إجمالي المتبقي
+- عدد الدفعات
+- عدد المرضى أصحاب المبالغ المتبقية
+
+Charts:
+
+Use only two charts on the finance page:
+
+1. Collected payments over time.
+2. Payment method distribution or case value versus collected payments.
+
+For a monthly range:
+
+- group collection by day.
+
+For a yearly or long range:
+
+- group collection by month.
+
+Payments table:
+
+- التاريخ
+- المريض
+- رقم الملف
+- رقم الحالة
+- وصف الدفعة
+- المبلغ
+- طريقة الدفع
+- المستخدم
+
+Clicking the patient must open the patient workspace.
+
+Exports:
+
+- CSV or Excel.
+- printable financial summary.
+- PDF summary.
+
+Exports must respect current filters.
+
+Do not export unrelated patient clinical notes in financial reports.
+
+==================================================
+22. FOLLOW-UP MANAGEMENT
+==================================================
+
+Follow-ups must be structured records.
+
+Follow-up fields:
+
+- implant_case_id
+- patient_id
+- followup_type
+- scheduled_at
+- status
+- result
+- note
+- requires_contact
+- contact_due_at
+- next_appointment_at
+- assigned_user_id
+- created_by
+- created_at
+- updated_at
+
+Follow-up types:
+
+- متابعة بعد العملية
+- تقييم ثبات الزرعة
+- أشعة
+- جاهزية للتركيب
+- موعد تركيب
+- متابعة المؤقت
+- تحويل المؤقت إلى دائم
+- متابعة زراعة العظم
+- متابعة رفع الجيب الأنفي
+- متابعة زرعة فاشلة
+- إعادة زراعة
+- متابعة مالية
+- تواصل عام
+- أخرى
+
+Follow-up statuses:
+
+- مجدولة
+- تمت
+- لم يحضر
+- مؤجلة
+- لا يوجد رد
+- تحتاج إعادة تواصل
+- ملغاة
+
+Dashboard rules:
+
+- today’s scheduled follow-ups appear in مواعيد اليوم.
+- past incomplete follow-ups appear in متأخرة عن المتابعة.
+- records with requires_contact appear in تحتاج متابعة.
+- cases marked ready for prosthetic work appear in جاهزة للتركيب.
+
+Do not rely only on free-text notes to determine follow-up status.
+
+==================================================
+23. WHATSAPP WORKFLOW
+==================================================
+
+Do not use WhatsApp Business API.
+
+Use a standard WhatsApp deep link.
+
+The workflow must work with:
+
+- WhatsApp mobile application,
+- WhatsApp desktop application where supported,
+- WhatsApp Web.
+
+Workflow:
+
+1. User clicks إرسال واتساب.
+2. Display the reason for communication.
+3. Suggest a matching approved template.
+4. Display a message preview.
+5. Allow the user to edit the message.
+6. Validate the mobile number.
+7. Open WhatsApp with the number and encoded message.
+8. Return to the application.
+9. Ask the user to record the communication result.
+
+The application must not claim that it knows:
+
+- whether the message was actually sent,
+- delivered,
+- read,
+- or replied to.
+
+It only knows:
+
+- the WhatsApp link was opened,
+- and the result manually recorded by the user.
+
+Saudi number normalization:
+
+If number begins with:
+
+05XXXXXXXX
+
+Convert to:
+
+9665XXXXXXXX
+
+If number begins with:
+
++966
+
+Remove only the plus sign for the WhatsApp URL.
+
+Support other international numbers without incorrectly forcing them into Saudi format.
+
+Show an error if the number is missing or clearly invalid.
+
+Communication result options:
+
+- تم فتح واتساب
+- تم التواصل
+- لا يوجد رد
+- أكد الموعد
+- طلب تغيير الموعد
+- سيتم التواصل لاحقًا
+- رقم غير صحيح
+
+==================================================
+24. WHATSAPP TEMPLATES
+==================================================
+
+Create editable WhatsApp templates.
+
+Templates must be manageable by Admin.
+
+Template 1 — Appointment reminder:
+
+أهلًا {{patientName}}،
+نذكركم بموعدكم في مجمع السن الرقمي الطبي يوم {{date}} الساعة {{time}}.
+لتأكيد الموعد أو طلب تغييره يرجى الرد على الرسالة.
+
+Template 2 — Implant follow-up:
+
+أهلًا {{patientName}}،
+حان موعد المتابعة لدى د. همام.
+نرجو التواصل معنا لتحديد الموعد المناسب.
+
+Template 3 — Continue treatment:
+
+أهلًا {{patientName}}،
+نود إبلاغكم بأن موعد استكمال المرحلة القادمة من العلاج أصبح متاحًا.
+نرجو التواصل معنا لتحديد الموعد المناسب.
+
+Template 4 — Missed appointment:
+
+أهلًا {{patientName}}،
+لاحظنا عدم تمكنكم من الحضور إلى موعدكم.
+نرجو التواصل معنا لإعادة جدولة الموعد.
+
+Template 5 — Post-procedure follow-up:
+
+أهلًا {{patientName}}،
+نطمئن على حالتكم بعد الإجراء.
+في حال وجود أي استفسار أو ملاحظة، يرجى التواصل معنا.
+
+Template 6 — General financial reminder:
+
+أهلًا {{patientName}}،
+نود تذكيركم بوجود مبلغ متبقٍ ضمن خطة العلاج.
+للمزيد من التفاصيل أو التنسيق يرجى التواصل مع الاستقبال.
+
+Do not include by default:
+
+- tooth number,
+- implant system,
+- diagnosis,
+- detailed medical information,
+- treatment notes,
+- exact balance amount.
+
+Allow the authorized user to manually add information after previewing the message.
+
+==================================================
+25. COMMUNICATION LOG
+==================================================
+
+Communication log fields:
+
+- patient_id
+- implant_case_id
+- template_id
+- communication_reason
+- rendered_message
+- opened_at
+- communication_result
+- result_note
+- user_id
+- created_at
+
+Display a timeline in the patient workspace:
+
+- date,
+- reason,
+- user,
+- result,
+- short note.
+
+Do not store or scrape the patient’s complete WhatsApp conversation.
+
+==================================================
+26. PATIENT SUMMARY
+==================================================
+
+Create a clean printable patient case summary.
+
+Include:
+
+- clinic logo,
+- patient name,
+- file number,
+- age,
+- procedure date,
+- treating doctor,
+- case status,
+- implant list,
+- implant site,
+- system,
+- size,
+- Q,
+- Former,
+- Graft,
+- Pros,
+- follow-up dates,
+- payment summary,
+- general note when authorized.
+
+Provide:
+
+- print,
+- PDF export.
+
+Do not include:
+
+- passwords,
+- audit logs,
+- internal security information.
+
+==================================================
+27. OPERATIONAL STATISTICS
+==================================================
+
+Create database-driven statistics:
+
+- number of patients,
+- number of implant cases,
+- number of actual implant records,
+- implants by system,
+- implants by site,
+- number of DIRECT tags,
+- number of IMMED tags,
+- number of Graft cases,
+- failed implants,
+- reimplantations,
+- ready-for-prosthetic cases,
+- completed cases.
+
+Count implants from the implants table.
+
+Do not count:
+
+- patients,
+- cases,
+- or rows of a legacy document
+
+as the number of implants.
+
+Extract month and year from actual dates.
+
+Do not store month as duplicated text unless required for display.
+
+==================================================
+28. SETTINGS
+==================================================
+
+Admin-only settings:
+
+- clinic name,
+- logo,
+- default doctor,
+- clinic mobile number,
+- address,
+- implant systems,
+- Q suggestions,
+- Former suggestions,
+- Graft suggestions,
+- WhatsApp templates,
+- payment methods,
+- charge types,
+- follow-up types,
+- notification settings,
+- date format,
+- currency.
+
+Currency:
+
+Saudi Riyal — SAR
+
+Settings must be editable from the UI without modifying source code.
+
+Do not allow Admin settings to remove the help icon or guided tour completely.
+
+Admin may update help text only if the implementation supports it safely.
+
+==================================================
+29. AUDIT LOG
+==================================================
+
+Create an Admin-only audit log.
+
+Log at minimum:
+
+- successful login,
+- failed login where safe,
+- logout,
+- patient creation,
+- patient update,
+- patient archival,
+- case creation,
+- case update,
+- implant creation,
+- implant update,
+- implant archival,
+- payment creation,
+- payment voiding,
+- charge creation,
+- discount creation,
+- follow-up creation,
+- follow-up update,
+- WhatsApp link opening,
+- communication result recording,
+- user creation,
+- role change,
+- settings change.
+
+Optionally log onboarding completion without recording private user activity details.
+
+Audit records should include:
+
+- user,
+- action,
+- entity type,
+- entity ID,
+- timestamp,
+- safe change summary.
+
+Do not store:
+
+- plaintext passwords,
+- session tokens,
+- secrets,
+- full sensitive payloads.
+
+==================================================
+30. USABILITY REQUIREMENTS
+==================================================
+
+The doctor and assistant are not technical users.
+
+Therefore:
+
+- minimize free typing,
+- use searchable dropdowns,
+- use sensible defaults,
+- use large buttons,
+- show clear Arabic validation,
+- show confirmation dialogs,
+- show success notifications,
+- show error notifications,
+- show loading states,
+- show empty states,
+- warn before unsaved changes are lost,
+- provide duplicate implant copying,
+- calculate financial totals automatically,
+- keep the guided tour optional and short.
+
+Empty states must include a clear next action.
+
+Examples:
+
+لا توجد حالات مسجلة بعد.
+ابدأ بإضافة أول حالة زراعة.
+
+لا توجد متابعات مستحقة اليوم.
+
+لا توجد دفعات خلال الفترة المحددة.
+
+Do not display technical error messages directly to users.
+
+Log safe technical details on the server while showing a clear Arabic error message.
+
+==================================================
+31. DATA PRIVACY AND SECURITY
+==================================================
+
+Treat all patient data as sensitive.
+
+Requirements:
+
+- authentication required for all internal routes,
+- backend authorization,
+- no patient data in localStorage,
+- no sensitive information in URLs,
+- no patient data in server startup logs,
+- no full patient payloads in error logs,
+- no public API endpoints returning patient data,
+- secure cookies,
+- rate limiting,
+- input validation,
+- output escaping,
+- parameterized database queries through ORM,
+- safe CORS policy,
+- secure headers,
+- CSRF protection or a sound same-site session strategy,
+- safe file handling if logo upload is implemented.
+
+Do not send real patient data to third-party analytics.
+
+Do not add third-party tracking scripts.
+
+Do not add public analytics.
+
+The guided tour must use DOM element identifiers and generic help text only.
+
+Do not send patient names, mobile numbers, medical details, financial values, or form contents to the guided tour library.
+
+==================================================
+32. LIVE DEPLOYMENT ON REPLIT
+==================================================
+
+Prepare the application for a live Replit deployment.
+
+Use:
+
+- Replit PostgreSQL / SQL Database,
+- production environment variables,
+- production-safe build commands.
+
+Required environment variables:
+
+- DATABASE_URL
+- SESSION_SECRET
+- INITIAL_SETUP_KEY
+- NODE_ENV
+
+Optional environment variables only when needed:
+
+- APP_BASE_URL
+
+Do not commit secret values.
+
+Create:
+
+- database migrations,
+- production build command,
+- production start command,
+- health endpoint,
+- proper error handling.
+
+Use an appropriate server deployment such as:
+
+- Autoscale Deployment,
+- or Reserved VM.
+
+Do not use Static Deployment for the full application.
+
+The application must persist data after:
+
+- refresh,
+- restart,
+- and deployment update.
+
+Use separate development and production database environments where possible.
+
+Prepare the application for a custom domain later.
+
+Do not publish a development database containing test patients as production data.
+
+==================================================
+33. DEVELOPMENT PHASES
+==================================================
+
+After the implementation plan is approved, implement exactly in these phases.
+
+PHASE 1 — Foundation
+
+- project structure,
+- design system,
+- PostgreSQL schema,
+- migrations,
+- authentication,
+- first-run Admin setup,
+- roles and permissions,
+- main layout,
+- Arabic RTL,
+- help icon,
+- user preferences,
+- first-login welcome dialog,
+- guided tour structure,
+- patient creation,
+- patient search,
+- patient workspace shell.
+
+Stop, test, checkpoint, and wait for approval.
+
+PHASE 2 — Implant cases and implants
+
+- implant case creation,
+- case statuses,
+- FDI tooth chart,
+- implant entry,
+- implant cards,
+- duplicate implant workflow,
+- configurable implant options,
+- abbreviation tooltips.
+
+Stop, test, checkpoint, and wait for approval.
+
+PHASE 3 — Financial tracking
+
+- base treatment amount,
+- charges,
+- discounts,
+- payments,
+- financial calculations,
+- payment status,
+- patient payment tab,
+- finance page,
+- financial filters,
+- exports.
+
+Stop, test, checkpoint, and wait for approval.
+
+PHASE 4 — Follow-up and WhatsApp
+
+- follow-up scheduling,
+- follow-up statuses,
+- communication tasks,
+- WhatsApp template preview,
+- WhatsApp deep links,
+- mobile normalization,
+- communication result recording,
+- communication timeline.
+
+Stop, test, checkpoint, and wait for approval.
+
+PHASE 5 — Dashboard and reports
+
+- operational KPI cards,
+- financial KPI cards,
+- daily tasks,
+- communication list,
+- financial chart,
+- operational statistics,
+- printable patient summary,
+- PDF exports,
+- complete and verify all six guided tour targets.
+
+Stop, test, checkpoint, and wait for approval.
+
+PHASE 6 — Administration and production readiness
+
+- user management,
+- settings,
+- audit logs,
+- security review,
+- guided tour responsive testing,
+- responsive application testing,
+- production database,
+- deployment configuration,
+- health endpoint,
+- final build,
+- final acceptance tests.
+
+Stop and provide the final deployment checklist.
+
+==================================================
+34. ACCEPTANCE TESTS
+==================================================
+
+Before declaring the application complete, test all of the following:
+
+AUTHENTICATION
+
+1. First Admin setup works only when no Admin exists.
+2. Invalid setup key is rejected.
+3. First-run setup is disabled after Admin creation.
+4. Login works.
+5. Invalid login is safely rejected.
+6. Logout works.
+7. Sessions expire correctly.
+8. Protected routes cannot be accessed anonymously.
+
+HELP AND GUIDED TOUR
+
+9. The question mark icon appears on every authenticated page.
+10. The Arabic tooltip appears correctly.
+11. Clicking the icon shows exactly:
+    - ابدأ الجولة التعريفية
+    - مساعدة سريعة
+    - شرح الاختصارات
+12. First-login welcome appears only for a new user.
+13. The user can start the tour.
+14. The user can skip the tour.
+15. The welcome does not appear again after completion.
+16. The welcome does not appear again after skipping.
+17. The tour can be restarted from the question mark icon.
+18. The tour contains exactly six main steps.
+19. Previous and next controls work.
+20. Progress text works.
+21. Escape closes the tour safely.
+22. The tour works in RTL.
+23. The tour scrolls targets into view on mobile.
+24. Missing optional targets do not crash the tour.
+25. The tour never creates a fake patient.
+26. Tour completion is saved per user.
+27. One user’s tour status does not affect another user.
+28. Quick help content opens correctly.
+29. Abbreviation explanations open correctly.
+30. Legacy field tooltips do not invent medical definitions.
+
+PATIENTS
+
+31. Create a patient.
+32. Search by name.
+33. Search by file number.
+34. Search by mobile number.
+35. Duplicate file number is blocked.
+36. Existing patient dialog opens correctly.
+37. Patient can be archived without permanent deletion.
+38. Archived patient does not appear in active results unless requested.
+
+CASES AND IMPLANTS
+
+39. Create an implant case.
+40. Add one implant.
+41. Add multiple implants to one case.
+42. Use different systems for different implants.
+43. Use different sizes for different implants.
+44. Use custom Q.
+45. Use custom Former.
+46. Use custom Graft.
+47. Copy implant data to another tooth.
+48. Confirm the original implant is not overwritten.
+49. Mark an implant failed.
+50. Create a reimplantation workflow.
+
+FINANCE
+
+51. Add a base treatment value.
+52. Add a bone graft charge.
+53. Add another additional charge.
+54. Add a discount.
+55. Add a first payment.
+56. Add a second payment.
+57. Confirm final total calculation.
+58. Confirm paid amount calculation.
+59. Confirm outstanding amount calculation.
+60. Confirm collected revenue uses payment date.
+61. Confirm overpayment warning works.
+62. Confirm voiding a payment requires a reason.
+63. Confirm financial dashboard updates from database values.
+
+FOLLOW-UP
+
+64. Add a follow-up.
+65. Confirm it appears on the correct day.
+66. Confirm overdue follow-up appears as delayed.
+67. Confirm ready-for-prosthetic case appears in the dashboard.
+68. Confirm missed appointment status works.
+69. Confirm follow-up can be reassigned.
+
+WHATSAPP
+
+70. Enter a Saudi mobile number beginning with 05.
+71. Confirm correct conversion to 9665.
+72. Preview an Arabic WhatsApp template.
+73. Confirm variables render correctly.
+74. Confirm WhatsApp link opens.
+75. Confirm the system does not claim delivery or read status.
+76. Record a communication result.
+77. Confirm communication appears in the patient timeline.
+
+PERMISSIONS
+
+78. Admin can manage users.
+79. Doctor can access clinical data.
+80. Assistant cannot access user management.
+81. Assistant cannot access audit logs.
+82. Assistant payment access follows the configured permission.
+83. Backend APIs reject unauthorized actions.
+84. All roles can access help and the guided tour.
+
+RESPONSIVE DESIGN
+
+85. Test desktop.
+86. Test tablet.
+87. Test mobile.
+88. Confirm Arabic RTL alignment.
+89. Confirm tables remain usable.
+90. Confirm dialogs fit the screen.
+91. Confirm primary buttons remain accessible.
+92. Confirm guided tour overlays fit mobile screens.
+93. Confirm tour text does not overflow.
+
+PRODUCTION
+
+94. Run TypeScript check.
+95. Run linting.
+96. Run automated tests.
+97. Run production build.
+98. Test /api/health.
+99. Test production start.
+100. Confirm data persists after restart.
+101. Confirm no secrets are in source control.
+102. Confirm no real patient data exists in seed data.
+103. Confirm no console errors.
+104. Confirm no server errors.
+105. Confirm no nonfunctional buttons.
+
+==================================================
+35. FINAL OUTPUT REQUIRED FROM REPLIT
+==================================================
+
+After the approved implementation is complete, provide:
+
+1. A summary of implemented features.
+2. Database table list.
+3. Database relationships.
+4. Required environment variables.
+5. Development commands.
+6. Production build command.
+7. Production start command.
+8. Migration command.
+9. First Admin setup instructions.
+10. Guided tour behavior and restart instructions.
+11. Deployment instructions.
+12. Custom domain readiness notes.
+13. Security checklist.
+14. Test results.
+15. Known limitations, if any.
+16. Confirmation that no real patient data was added.
+
+Do not declare the project complete while:
+
+- tests are failing,
+- the build is failing,
+- console errors exist,
+- server errors exist,
+- buttons are nonfunctional,
+- the guided tour is broken,
+- the tour repeatedly appears after completion,
+- or required workflows are incomplete.
+
+Begin by returning the implementation plan only.
+
+Do not write code yet.
