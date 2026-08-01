@@ -1,0 +1,165 @@
+The implementation plan is generally approved, but the following corrections are mandatory before Phase 1 begins.
+
+Do not write code yet.
+
+Please update the plan and confirm each correction explicitly.
+
+1. BASE TREATMENT AMOUNT
+
+Add base_treatment_amount to implant_cases as proposed.
+
+All monetary database columns must use PostgreSQL NUMERIC/DECIMAL types, preferably:
+
+numeric(12,2)
+
+Do not use float, real, or double precision for:
+
+- treatment amounts,
+- payments,
+- charges,
+- discounts,
+- balances,
+- graft costs,
+- or financial calculations.
+
+Perform financial calculations using safe decimal handling.
+
+2. REMOVE OPENAPI CODE GENERATION
+
+Do not introduce OpenAPI code generation or generated React Query hooks in the initial project.
+
+This was not requested and adds unnecessary complexity.
+
+Use:
+
+- shared Zod schemas,
+- shared TypeScript types where appropriate,
+- clear Express API endpoints,
+- React Query,
+- and explicit typed request helpers.
+
+Keep the API architecture simple, maintainable, and strongly typed.
+
+3. PATIENT FILE NUMBER UNIQUENESS
+
+Patient file_number must remain globally unique across both active and archived patient records.
+
+Do not allow a new patient to reuse the file number of an archived patient.
+
+If an entered file number belongs to an archived patient, show an Arabic dialog such as:
+
+هذا الملف موجود ولكنه مؤرشف.
+هل تريد فتحه أو استعادته؟
+
+Provide authorized actions to:
+
+- open the archived patient,
+- restore the patient,
+- or cancel.
+
+Do not create another patient with the same file number.
+
+4. LIGHTWEIGHT NOTIFICATIONS ONLY
+
+The proposed lightweight notification dropdown is approved with the following restrictions:
+
+- Do not create a separate notification system.
+- Do not create a notifications table in the initial version.
+- Do not add background workers.
+- Do not add email, SMS, browser push, or external notifications.
+
+Generate the dropdown contents directly from existing database records:
+
+- due follow-ups,
+- overdue follow-ups,
+- cases requiring contact,
+- and relevant ready-for-treatment cases.
+
+The dropdown must remain small and operational.
+
+5. PDF AND PRINTING
+
+For patient and financial reports:
+
+- first implement professional RTL print styles,
+- support browser Print and Save as PDF,
+- ensure the clinic logo and Arabic layout print correctly.
+
+Do not add a heavy PDF dependency unless direct PDF generation is required and Arabic rendering is verified.
+
+If a direct PDF library is added later, acceptance tests must verify:
+
+- connected Arabic characters,
+- correct RTL direction,
+- correct Arabic font rendering,
+- correct page breaks,
+- no clipped tables,
+- logo rendering,
+- and correct filtered data.
+
+This belongs to Phase 5, not Phase 1.
+
+6. DATE AND TIME DATABASE TYPES
+
+Use appropriate PostgreSQL types.
+
+Use date for date-only business values such as:
+
+- procedure_date,
+- payment_date,
+- charge_date,
+- discount_date.
+
+Use timestamptz for time-sensitive values such as:
+
+- scheduled_at,
+- next_appointment_at,
+- contact_due_at,
+- opened_at,
+- session expiry,
+- created_at,
+- updated_at,
+- audit timestamps.
+
+Use the Saudi Arabia timezone for user-facing date and time display while storing time-sensitive timestamps safely.
+
+7. MOBILE NUMBER NORMALIZATION
+
+Keep both:
+
+- mobile_number: the original user-facing value,
+- mobile_normalized: a normalized value used for searching and WhatsApp.
+
+Normalize supported Saudi formats consistently, including:
+
+- 05XXXXXXXX
+- +9665XXXXXXXX
+- 9665XXXXXXXX
+
+Do not overwrite the original display value.
+
+Apply validation and normalization on the backend.
+
+8. FINANCIAL DATABASE SAFETY
+
+Add database-level constraints where practical.
+
+At minimum:
+
+- payment amount must be greater than zero,
+- charge amount must be zero or greater,
+- discount amount must be zero or greater,
+- base treatment amount must be zero or greater.
+
+Use database transactions for any operation that writes multiple related financial records.
+
+9. PHASE CONTROL
+
+After updating the implementation plan:
+
+- stop,
+- summarize the changes,
+- identify whether any new ambiguity remains,
+- and wait for explicit approval.
+
+Do not begin Phase 1 until the updated plan is approved.
