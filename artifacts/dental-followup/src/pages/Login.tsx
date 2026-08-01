@@ -111,10 +111,10 @@ export default function Login() {
               {login.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جاري الدخول...
+                  <span>جاري الدخول...</span>
                 </>
               ) : (
-                "تسجيل الدخول"
+                <span>تسجيل الدخول</span>
               )}
             </Button>
           </form>

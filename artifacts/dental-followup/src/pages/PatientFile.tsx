@@ -308,14 +308,14 @@ export default function PatientFile() {
                       ) : (
                         <Save className="h-4 w-4 mr-2 ml-2" />
                       )}
-                      حفظ التعديلات
+                      <span>حفظ التعديلات</span>
                     </Button>
                   </div>
                 ) : (
                   <div className="pt-6 border-t border-border mt-8 flex justify-end">
                     <Button onClick={handleRestore} disabled={restorePatient.isPending} className="btn-primary">
                       {restorePatient.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2 ml-2" /> : <RefreshCw className="h-4 w-4 mr-2 ml-2" />}
-                      استعادة الملف
+                      <span>استعادة الملف</span>
                     </Button>
                   </div>
                 )}
@@ -349,7 +349,7 @@ export default function PatientFile() {
           </DialogHeader>
           <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
             <Button onClick={handleArchive} disabled={archivePatient.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto px-6 h-[46px] rounded-[10px]">
-              {archivePatient.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : "نعم، أرشفة"}
+              {archivePatient.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>نعم، أرشفة</span>}
             </Button>
             <Button variant="outline" onClick={() => setShowArchiveConfirm(false)} className="btn-outline w-full sm:w-auto">
               إلغاء

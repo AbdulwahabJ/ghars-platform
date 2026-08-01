@@ -158,10 +158,10 @@ export default function Setup() {
               {setup.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جاري الإعداد...
+                  <span>جاري الإعداد...</span>
                 </>
               ) : (
-                "إتمام الإعداد"
+                <span>إتمام الإعداد</span>
               )}
             </Button>
           </form>

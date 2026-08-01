@@ -229,7 +229,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
                   ) : (
                     <>
                       <Plus className="h-5 w-5" />
-                      حفظ وتسجيل المريض
+                      <span>حفظ وتسجيل المريض</span>
                     </>
                   )}
                 </Button>
@@ -276,7 +276,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
           </DialogHeader>
           <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
             <Button onClick={handleRestorePatient} disabled={restorePatient.isPending} className="btn-primary w-full sm:w-auto">
-              {restorePatient.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : "استعادة الملف"}
+              {restorePatient.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>استعادة الملف</span>}
             </Button>
             <Button variant="outline" onClick={() => setDuplicateStatus(null)} className="btn-outline w-full sm:w-auto">
               إلغاء
