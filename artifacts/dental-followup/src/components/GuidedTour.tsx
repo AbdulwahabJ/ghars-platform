@@ -175,6 +175,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
           </DialogHeader>
           <div className="space-y-3 mt-4 text-foreground">
             <p><strong>لإضافة مريض:</strong> اضغط تسجيل حالة زراعة جديدة.</p>
+            <p><strong>لإضافة حالة:</strong> اضغط تسجيل حالة زراعة جديدة.</p>
+            <p><strong>لإضافة زرعة:</strong> افتح ملف المريض ثم تاب الزرعات.</p>
             <p><strong>للبحث عن مريض:</strong> استخدم الاسم أو رقم الملف أو رقم الجوال.</p>
             <p><strong>لفتح ملف مريض:</strong> اضغط على سطر المريض في قائمة المرضى أو نتائج البحث.</p>
             <p><strong>لتعديل بيانات المريض:</strong> افتح ملف المريض، عدّل الحقول، ثم اضغط حفظ التعديلات.</p>

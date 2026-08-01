@@ -1,0 +1,234 @@
+import { useState } from "react";
+import { Archive, Copy, Loader2, Pencil } from "lucide-react";
+import { REIMPLANTABLE_STATUSES, type Implant } from "@workspace/shared";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useArchiveImplant } from "@/hooks/use-implant-cases";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+function formatSize(implant: Implant): string | null {
+  if (implant.diameter == null && implant.length == null) return null;
+  const d = implant.diameter == null ? "—" : String(implant.diameter);
+  const l = implant.length == null ? "—" : String(implant.length);
+  return `${d} × ${l} mm`;
+}
+
+function statusVariant(implant: Implant): string {
+  if (implant.status === "archived") {
+    return "bg-muted text-muted-foreground border-border";
+  }
+  if (
+    (REIMPLANTABLE_STATUSES as readonly string[]).includes(
+      implant.implantStatus,
+    )
+  ) {
+    return "bg-destructive/10 text-destructive border-destructive/30";
+  }
+  return "bg-primary/10 text-primary border-primary/30";
+}
+
+interface ImplantCardProps {
+  implant: Implant;
+  patientId: string;
+  /** Case archived or patient archived — hides all actions. */
+  readOnly?: boolean;
+  canArchive: boolean;
+  onEdit: (implant: Implant) => void;
+  onCopy: (implant: Implant) => void;
+}
+
+export function ImplantCard({
+  implant,
+  patientId,
+  readOnly,
+  canArchive,
+  onEdit,
+  onCopy,
+}: ImplantCardProps) {
+  const { toast } = useToast();
+  const archiveImplant = useArchiveImplant();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const isArchived = implant.status === "archived";
+
+  const handleArchive = () => {
+    archiveImplant.mutate(
+      { id: implant.id, patientId },
+      {
+        onSuccess: () => {
+          toast({ title: "تمت أرشفة الزرعة" });
+          setShowConfirm(false);
+        },
+        onError: (err: Error) =>
+          toast({
+            variant: "destructive",
+            title: "خطأ",
+            description: err.message || "تعذر أرشفة الزرعة.",
+          }),
+      },
+    );
+  };
+
+  const size = formatSize(implant);
+  const detailRows: Array<[string, string | null]> = [
+    ["System", implant.system],
+    ["SIZE", size],
+    ["Q", implant.qValue],
+    ["Former", implant.formerValue],
+    ["Graft", implant.graftValue],
+  ];
+  const graftIsPositive =
+    Boolean(implant.graftValue) &&
+    implant.graftValue!.trim().toUpperCase() !== "N";
+
+  return (
+    <div
+      className={cn(
+        "bg-card border border-border rounded-2xl p-4 shadow-sm space-y-3",
+        isArchived && "opacity-70",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+            {implant.site}
+          </div>
+          <div>
+            <p className="font-bold text-foreground leading-tight">
+              {implant.system || "زرعة"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              السن {implant.site}
+            </p>
+          </div>
+        </div>
+        <Badge className={cn("border", statusVariant(implant))} variant="outline">
+          {isArchived ? "مؤرشفة" : implant.implantStatus}
+        </Badge>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+        {detailRows.map(([label, value]) =>
+          value ? (
+            <div key={label} className="flex justify-between gap-2 min-w-0">
+              <dt className="text-muted-foreground shrink-0">{label}</dt>
+              <dd className="font-semibold text-foreground truncate" dir="ltr">
+                {value}
+              </dd>
+            </div>
+          ) : null,
+        )}
+      </dl>
+
+      {graftIsPositive && (implant.graftProcedureType || implant.graftNote) && (
+        <div className="text-sm bg-muted/50 rounded-lg p-2.5 space-y-1">
+          {implant.graftProcedureType && (
+            <p>
+              <span className="text-muted-foreground">نوع إجراء الترقيع: </span>
+              {implant.graftProcedureType}
+            </p>
+          )}
+          {implant.graftNote && (
+            <p>
+              <span className="text-muted-foreground">ملاحظة الترقيع: </span>
+              {implant.graftNote}
+            </p>
+          )}
+        </div>
+      )}
+
+      {implant.procedureTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {implant.procedureTags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="font-normal">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {implant.implantNote && (
+        <p className="text-sm text-muted-foreground leading-relaxed border-t border-border pt-2">
+          <span className="font-semibold text-foreground">NOTE: </span>
+          {implant.implantNote}
+        </p>
+      )}
+
+      {!readOnly && !isArchived && (
+        <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="btn-outline h-9"
+            onClick={() => onEdit(implant)}
+          >
+            <Pencil className="h-3.5 w-3.5 ml-1.5" />
+            تعديل
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="btn-outline h-9"
+            onClick={() => onCopy(implant)}
+          >
+            <Copy className="h-3.5 w-3.5 ml-1.5" />
+            نسخ البيانات لسن آخر
+          </Button>
+          {canArchive && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 text-destructive border-destructive hover:bg-destructive/10"
+              onClick={() => setShowConfirm(true)}
+            >
+              <Archive className="h-3.5 w-3.5 ml-1.5" />
+              أرشفة
+            </Button>
+          )}
+        </div>
+      )}
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-destructive">
+              تأكيد أرشفة الزرعة
+            </DialogTitle>
+            <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
+              هل أنت متأكد من رغبتك في أرشفة زرعة السن {implant.site}؟ ستبقى
+              بياناتها محفوظة في السجل ولن يتم حذفها.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
+            <Button
+              onClick={handleArchive}
+              disabled={archiveImplant.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto px-6 h-[46px] rounded-[10px]"
+            >
+              {archiveImplant.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <span>نعم، أرشفة</span>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirm(false)}
+              className="btn-outline w-full sm:w-auto"
+            >
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

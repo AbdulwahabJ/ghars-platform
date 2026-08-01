@@ -10,6 +10,7 @@ import { Loader2, Archive, RefreshCw, Save, AlertCircle, ArrowRight, Info } from
 import { useToast } from "@/hooks/use-toast";
 import { PatientUpdate } from "@workspace/shared";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ImplantsTab } from "@/components/implants/ImplantsTab";
 import {
   Dialog,
   DialogContent,
@@ -309,6 +310,8 @@ export default function PatientFile() {
                 )}
               </div>
             </div>
+          ) : activeTab === "implants" ? (
+            <ImplantsTab patient={patient} />
           ) : (
             <div className="flex flex-col items-center justify-center p-12 text-center h-[400px]">
               <div className="h-20 w-20 bg-primary/5 rounded-full flex items-center justify-center mb-6">

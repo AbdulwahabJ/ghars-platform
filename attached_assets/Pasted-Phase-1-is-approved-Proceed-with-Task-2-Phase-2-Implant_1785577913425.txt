@@ -1,0 +1,165 @@
+Phase 1 is approved.
+
+Proceed with Task #2 — Phase 2: Implant cases and implants only.
+
+Use the preserved approved Phase 2 specification in:
+
+.local/tasks/phase-2-implants.md
+
+Follow the original full specification and all previously approved corrections exactly.
+
+Do not begin or partially implement:
+
+- Phase 3 financial tracking,
+- Phase 4 follow-up or WhatsApp,
+- Phase 5 dashboard data or reports,
+- Phase 6 administration, settings, users, or deployment.
+
+Do not redesign the approved Phase 1 interface.
+
+Preserve the current database and all existing records.
+
+Do not:
+
+- reset,
+- truncate,
+- reseed,
+- recreate,
+- or delete the current database.
+
+PHASE 2 REQUIRED SCOPE
+
+Implement:
+
+1. Implant case creation for an existing patient.
+2. Multiple implant cases per patient.
+3. Case status management.
+4. Treating doctor and optional referring doctor.
+5. Procedure date.
+6. Pros value:
+   - 2M
+   - 3M
+   - custom
+7. Suggested but editable expected prosthetic date.
+8. Reimplantation fields and source-case relationship.
+9. Interactive RTL FDI tooth chart.
+10. One separate database record per implant.
+11. Add Implant dialog.
+12. Implant cards.
+13. Edit and archive implant actions.
+14. Copy implant data to another tooth while requiring a new site.
+15. Configurable implant-system options.
+16. Custom values for System, Q, Former, and Graft where allowed.
+17. Multiple procedure tags.
+18. Legacy-field labels and neutral explanatory tooltips.
+19. Implant statuses.
+20. Proper Phase 2 audit events.
+
+LEGACY FIELD RULES
+
+Preserve these original fields and names:
+
+- System
+- site
+- SIZE
+- Q
+- Former
+- Graft
+- Pros
+- NOTE
+
+Do not invent or change their medical meanings.
+
+Each implant must store independently:
+
+- site,
+- system,
+- diameter,
+- length,
+- q_value,
+- former_value,
+- graft_value,
+- graft_procedure_type,
+- graft_note,
+- procedure_tags,
+- implant_status,
+- implant_note.
+
+Do not store multiple implants in one text field.
+
+FINANCIAL BOUNDARY
+
+Do not implement Phase 3 financial functionality.
+
+The existing base_treatment_amount schema field may remain, but do not create payment, charge, discount, financial-total, or financial-report interfaces in Phase 2.
+
+Do not add graft monetary amounts to the implants table.
+
+Any future graft cost belongs only to case_charges in Phase 3.
+
+USER EXPERIENCE
+
+The doctor and assistant are non-technical.
+
+Use:
+
+- clear Arabic labels,
+- searchable comboboxes,
+- large buttons,
+- minimal typing,
+- sensible defaults,
+- responsive RTL layouts,
+- clear validation,
+- unsaved-change warnings,
+- confirmation before archive actions.
+
+The FDI chart must work on:
+
+- desktop,
+- tablet,
+- mobile.
+
+Selected teeth and teeth with recorded implants must be visually distinguishable without excessive colors.
+
+PHASE 2 TESTING
+
+Before declaring Phase 2 complete:
+
+1. Run database migrations safely.
+2. Run TypeScript type checking.
+3. Run ESLint.
+4. Run all existing automated tests.
+5. Add focused Phase 2 API/unit tests.
+6. Run the production build.
+7. Test the complete workflow in Preview.
+8. Inspect and fix browser console errors.
+9. Inspect and fix server errors.
+10. Confirm all existing Phase 1 functionality still works.
+11. Confirm all existing database records remain intact.
+12. Create a stable checkpoint.
+13. Provide a detailed Phase 2 completion report.
+14. Stop and wait for approval.
+
+Required Phase 2 test scenarios:
+
+- create one implant case,
+- create multiple cases for one patient,
+- add one implant,
+- add multiple implants to one case,
+- use different systems and sizes,
+- use decimal diameter and length,
+- use custom Q,
+- use custom Former,
+- use custom Graft,
+- add multiple procedure tags,
+- copy implant data to a different tooth,
+- verify the original implant is unchanged,
+- prevent duplicate active implant site inside the same case unless explicitly allowed by a documented reimplantation workflow,
+- edit an implant,
+- archive an implant,
+- mark an implant as failed,
+- create and link a reimplantation case,
+- verify role authorization,
+- verify RTL and mobile responsiveness.
+
+Do not begin Phase 3.

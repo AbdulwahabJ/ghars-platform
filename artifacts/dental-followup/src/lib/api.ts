@@ -6,8 +6,16 @@
  * explicit helpers are consumed by React Query on the frontend.
  */
 import type {
+  CaseListResponse,
   FileNumberCheckResponse,
   HealthResponse,
+  Implant,
+  ImplantCase,
+  ImplantCaseInput,
+  ImplantCaseUpdate,
+  ImplantInput,
+  ImplantOptionsResponse,
+  ImplantUpdate,
   LoginInput,
   MeResponse,
   Patient,
@@ -125,6 +133,44 @@ export const api = {
     }),
   restorePatient: (id: string) =>
     request<{ patient: Patient }>(`/patients/${id}/restore`, {
+      method: "POST",
+    }),
+
+  // Phase 2 — implant cases & implants
+  getImplantOptions: () =>
+    request<ImplantOptionsResponse>("/implant-options"),
+  listImplantCases: (patientId: string) =>
+    request<CaseListResponse>(`/patients/${patientId}/implant-cases`),
+  createImplantCase: (patientId: string, input: ImplantCaseInput) =>
+    request<{ case: ImplantCase }>(`/patients/${patientId}/implant-cases`, {
+      method: "POST",
+      json: input,
+    }),
+  updateImplantCase: (id: string, input: ImplantCaseUpdate) =>
+    request<{ case: ImplantCase }>(`/implant-cases/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  archiveImplantCase: (id: string) =>
+    request<{ case: ImplantCase }>(`/implant-cases/${id}/archive`, {
+      method: "POST",
+    }),
+  restoreImplantCase: (id: string) =>
+    request<{ case: ImplantCase }>(`/implant-cases/${id}/restore`, {
+      method: "POST",
+    }),
+  createImplant: (caseId: string, input: ImplantInput) =>
+    request<{ implant: Implant }>(`/implant-cases/${caseId}/implants`, {
+      method: "POST",
+      json: input,
+    }),
+  updateImplant: (id: string, input: ImplantUpdate) =>
+    request<{ implant: Implant }>(`/implants/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  archiveImplant: (id: string) =>
+    request<{ implant: Implant }>(`/implants/${id}/archive`, {
       method: "POST",
     }),
 };
