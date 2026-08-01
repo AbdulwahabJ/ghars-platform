@@ -1,0 +1,92 @@
+The Phase 1 plan is approved subject to the following final implementation requirements.
+
+These are clarifications within the approved scope, not new features.
+
+1. USER-LEVEL PERMISSION OVERRIDES
+
+The database foundation must support the two previously approved configurable permissions:
+
+- Doctor financial visibility.
+- Assistant payment-recording permission.
+
+Add a simple maintainable permission model now, such as explicit user-level boolean permission overrides or an equivalent minimal structure.
+
+Do not build the full user-management UI in Phase 1; that remains Phase 6.
+
+Backend authorization must later be able to distinguish:
+
+- a DOCTOR who may view financial summaries,
+- a DOCTOR who may not,
+- an ASSISTANT who may record payments,
+- an ASSISTANT who may not.
+
+Do not rely only on the role name for these two permissions.
+
+2. USER PREFERENCES UNIQUENESS
+
+user_preferences must have exactly one row per user.
+
+Enforce this using:
+
+UNIQUE(user_id)
+
+Do not use an “active preference row” pattern and do not allow multiple preference records for the same user.
+
+3. REPLIT PROXY AND SECURE SESSION HANDLING
+
+Because the application runs behind the Replit reverse proxy, configure Express proxy handling correctly.
+
+Use an appropriately limited trust-proxy configuration such as:
+
+app.set("trust proxy", 1)
+
+Ensure:
+
+- secure session cookies work in production,
+- rate limiting resolves the client address safely,
+- arbitrary forwarded headers are not blindly trusted,
+- development remains usable over local HTTP,
+- production cookies are HTTP-only, Secure, SameSite, and scoped safely.
+
+Do not disable secure-cookie behavior merely to make development easier.
+
+4. CSRF AND SAME-ORIGIN PROTECTION
+
+SameSite cookies alone are not the entire CSRF strategy.
+
+For state-changing requests, implement a clear same-origin protection strategy using either:
+
+- validated Origin and Host checks appropriate for the deployment domain,
+- or a compatible CSRF-token mechanism.
+
+Do not apply CSRF protection to the health endpoint.
+
+Document the chosen approach in the Phase 1 completion report and test that legitimate frontend requests work while cross-origin mutation requests are rejected.
+
+5. CLINIC LOGO ASSET
+
+Copy the attached clinic logo into the application using a safe simple internal filename such as:
+
+clinic-logo.png
+
+Do not keep the long Arabic upload filename as the runtime asset path.
+
+Preserve image quality and aspect ratio.
+Do not redraw or modify the clinic logo.
+
+You may now implement Phase 1 only.
+
+Do not begin Phase 2.
+
+At completion:
+
+- run type checking,
+- run linting,
+- validate migrations,
+- run tests,
+- run the production build,
+- test Preview,
+- inspect browser and server errors,
+- create a checkpoint,
+- report the implemented schema and security behavior,
+- and stop for approval.
