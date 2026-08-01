@@ -1,0 +1,197 @@
+Phase 1 is visually and functionally promising, but it is not yet approved for Phase 2.
+
+Perform a Phase 1 hardening and UI-fix pass only.
+
+Do not begin Phase 2.
+Do not change the approved architecture or redesign the application.
+Do not delete or modify the existing Admin account or the two current patient records.
+Do not clear, reset, truncate, or reseed the current database.
+
+1. VERSIONED DRIZZLE MIGRATIONS
+
+The absence of versioned SQL migrations is not acceptable.
+
+Configure Drizzle Kit to generate and retain versioned SQL migration files and migration metadata.
+
+Create a baseline migration representing the current complete 16-table schema.
+
+Important safety requirements:
+
+- Do not blindly apply a baseline migration against the existing database if it would attempt to recreate existing tables.
+- Do not drop, reset, truncate, or recreate the current database.
+- Do not lose the existing Admin account, patients, sessions, preferences, or audit records.
+- Validate the generated migrations by running them from zero against an isolated disposable PostgreSQL database or isolated temporary test environment.
+- Confirm that a completely empty database can be built successfully using the migration command alone.
+- Document the exact generate and migrate commands.
+- Add the migration files to source control.
+
+The existing development database must remain intact.
+
+2. ESLINT
+
+Add a stable ESLint configuration suitable for:
+
+- React,
+- TypeScript,
+- Node/Express,
+- and the shared workspace libraries.
+
+Add clear scripts such as:
+
+- lint
+- lint:fix
+
+Do not disable meaningful rules merely to obtain a passing result.
+
+Run lint across the complete workspace and fix all legitimate errors.
+
+The final result must contain:
+
+- zero ESLint errors,
+- no broad eslint-disable comments,
+- and no ignored application directories except generated output and dependencies.
+
+3. AUTOMATED REGRESSION TESTS
+
+Create a small maintainable automated Phase 1 regression suite.
+
+Use suitable stable tooling such as:
+
+- Vitest,
+- Supertest for API tests,
+- and Playwright for essential UI smoke tests.
+
+At minimum, automate tests for:
+
+A. First-run setup:
+- invalid setup key is rejected,
+- weak password is rejected,
+- first Admin can be created,
+- setup is permanently rejected after a user exists.
+
+B. Authentication:
+- login succeeds with valid credentials,
+- invalid login returns a generic failure,
+- protected endpoints reject anonymous access,
+- logout invalidates the session.
+
+C. CSRF / same-origin protection:
+- legitimate same-origin mutation succeeds,
+- cross-origin mutation is rejected.
+
+D. Patients:
+- patient creation succeeds,
+- duplicate active file number is rejected,
+- duplicate archived file number is rejected with the correct conflict type,
+- archived patient can be restored,
+- file number remains globally unique.
+
+E. Concurrency:
+- two simultaneous requests attempting to create the same file number result in only one patient record.
+
+F. Mobile normalization:
+- 05XXXXXXXX becomes 9665XXXXXXXX,
+- +9665XXXXXXXX is accepted,
+- Arabic digits are normalized,
+- a foreign local number without a country code is rejected,
+- the original display value remains preserved.
+
+G. Onboarding:
+- welcome appears for a new user,
+- completion or skipping is saved per user,
+- it does not appear again automatically,
+- the guided tour can still be manually restarted.
+
+Tests must be repeatable and must not depend on the current real development records.
+
+Use isolated test data and clean it safely.
+
+4. HIDE FUTURE-PHASE WHATSAPP ACTIONS
+
+WhatsApp belongs to Phase 4.
+
+During the current version:
+
+- hide the إرسال واتساب button from the patient workspace,
+- do not leave it active, disabled, or placeholder,
+- do not create a fake WhatsApp action.
+
+Restore it only when Phase 4 is implemented and functional.
+
+5. MAKE QUICK HELP TRUTHFUL TO THE CURRENT PHASE
+
+The current quick-help dialog describes implants, payments, follow-ups, and WhatsApp even though those features are not active.
+
+During Phase 1, show only help for currently functional features:
+
+- adding a patient,
+- searching for a patient,
+- opening a patient file,
+- editing patient data,
+- archiving and restoring a patient,
+- restarting the guided tour.
+
+Do not describe future functionality as currently available.
+
+The quick-help content may be expanded in later phases when those features become functional.
+
+6. FIX SEARCH RESULT CLIPPING
+
+The global search result dropdown is visually clipped by the dashboard hero container and overlaps the following section incorrectly.
+
+Fix the component so that:
+
+- the result panel is fully visible,
+- it is not cut by parent overflow,
+- it appears above the next dashboard section,
+- z-index is correct,
+- multiple results can be displayed,
+- long Arabic names do not overflow,
+- keyboard selection remains usable,
+- clicking outside closes the results,
+- and mobile behavior remains usable.
+
+Do not solve this by assigning an excessive fixed height to the dashboard hero.
+
+Use a robust popover, portal, or correct overflow strategy.
+
+7. SMALL UI CONSISTENCY FIXES
+
+Without redesigning the interface:
+
+- slightly enlarge the clinic logo in the header while preserving its aspect ratio,
+- use one consistent modal close-button style,
+- give patient rows a clear hover/click affordance,
+- verify the العودة للقائمة link is not clipped under the header at any supported width.
+
+8. FINAL VERIFICATION
+
+After completing the corrections:
+
+- run TypeScript type checking,
+- run ESLint,
+- run all automated tests,
+- run the production build,
+- validate the baseline migration on an empty isolated database,
+- test Preview on desktop, tablet, and mobile,
+- inspect browser console errors,
+- inspect server errors,
+- preserve all current user-created data,
+- create a new stable checkpoint,
+- and provide a completion report.
+
+The report must include:
+
+- migration file paths,
+- migration validation result,
+- lint command and result,
+- automated test command and result,
+- number of passing tests,
+- screenshots or descriptions of the corrected search dropdown,
+- confirmation that WhatsApp actions are hidden,
+- confirmation that existing database data was preserved,
+- and the new checkpoint commit.
+
+Stop after the Phase 1 hardening pass.
+
+Do not begin Phase 2.

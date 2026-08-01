@@ -44,6 +44,33 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
+/**
+ * PostgreSQL unique-constraint violation (SQLSTATE 23505). Drizzle may wrap
+ * the driver error (e.g. DrizzleQueryError), so walk the `cause` chain.
+ */
+function isUniqueViolation(err: unknown): boolean {
+  let current: unknown = err;
+  for (let depth = 0; depth < 5 && typeof current === "object" && current !== null; depth++) {
+    const candidate = current as { code?: unknown; cause?: unknown };
+    if (candidate.code === "23505") return true;
+    current = candidate.cause;
+  }
+  return false;
+}
+
+function respondDuplicate(
+  res: Parameters<typeof parseOrRespond>[2],
+  conflict: PatientRow,
+): void {
+  res.status(409).json({
+    error: conflict.archivedAt
+      ? "رقم الملف يعود لمريض مؤرشف."
+      : "هذا المريض مسجل مسبقًا.",
+    code: conflict.archivedAt ? DUPLICATE_ARCHIVED : DUPLICATE_ACTIVE,
+    patientId: conflict.id,
+  });
+}
+
 /** File numbers are stored with Latin digits so Arabic-digit input matches. */
 function canonicalFileNumber(value: string): string {
   return toEnglishDigits(value).trim();
@@ -164,31 +191,39 @@ router.post("/patients", async (req, res) => {
 
   const existing = await findByFileNumber(fileNumber);
   if (existing) {
-    res.status(409).json({
-      error: existing.archivedAt
-        ? "رقم الملف يعود لمريض مؤرشف."
-        : "هذا المريض مسجل مسبقًا.",
-      code: existing.archivedAt ? DUPLICATE_ARCHIVED : DUPLICATE_ACTIVE,
-      patientId: existing.id,
-    });
+    respondDuplicate(res, existing);
     return;
   }
 
   const user = req.currentUser!;
-  const [created] = await db
-    .insert(patientsTable)
-    .values({
-      fileNumber,
-      fullName: input.fullName,
-      fullNameNormalized: normalizeArabicSearchText(input.fullName),
-      mobileNumber: mobile.mobileNumber,
-      mobileNormalized: mobile.mobileNormalized,
-      age: input.age,
-      administrativeNote: input.administrativeNote,
-      createdBy: user.id,
-      updatedBy: user.id,
-    })
-    .returning();
+  let created: PatientRow | undefined;
+  try {
+    [created] = await db
+      .insert(patientsTable)
+      .values({
+        fileNumber,
+        fullName: input.fullName,
+        fullNameNormalized: normalizeArabicSearchText(input.fullName),
+        mobileNumber: mobile.mobileNumber,
+        mobileNormalized: mobile.mobileNormalized,
+        age: input.age,
+        administrativeNote: input.administrativeNote,
+        createdBy: user.id,
+        updatedBy: user.id,
+      })
+      .returning();
+  } catch (err) {
+    // Concurrent create with the same file number: the pre-check above
+    // cannot close this race; the unique constraint is the source of truth.
+    if (isUniqueViolation(err)) {
+      const conflict = await findByFileNumber(fileNumber);
+      if (conflict) {
+        respondDuplicate(res, conflict);
+        return;
+      }
+    }
+    throw err;
+  }
   if (!created) {
     res.status(500).json({ error: "تعذر إنشاء ملف المريض.", code: "INTERNAL" });
     return;
@@ -256,13 +291,7 @@ router.patch("/patients/:id", async (req, res) => {
         )
         .limit(1);
       if (conflict) {
-        res.status(409).json({
-          error: conflict.archivedAt
-            ? "رقم الملف يعود لمريض مؤرشف."
-            : "هذا المريض مسجل مسبقًا.",
-          code: conflict.archivedAt ? DUPLICATE_ARCHIVED : DUPLICATE_ACTIVE,
-          patientId: conflict.id,
-        });
+        respondDuplicate(res, conflict);
         return;
       }
       updates.fileNumber = fileNumber;
@@ -308,11 +337,23 @@ router.patch("/patients/:id", async (req, res) => {
   updates.updatedBy = user.id;
   updates.updatedAt = new Date();
 
-  const [updated] = await db
-    .update(patientsTable)
-    .set(updates)
-    .where(eq(patientsTable.id, id))
-    .returning();
+  let updated: PatientRow | undefined;
+  try {
+    [updated] = await db
+      .update(patientsTable)
+      .set(updates)
+      .where(eq(patientsTable.id, id))
+      .returning();
+  } catch (err) {
+    if (isUniqueViolation(err) && updates.fileNumber) {
+      const conflict = await findByFileNumber(updates.fileNumber);
+      if (conflict && conflict.id !== id) {
+        respondDuplicate(res, conflict);
+        return;
+      }
+    }
+    throw err;
+  }
   if (!updated) {
     res.status(500).json({ error: "تعذر حفظ التعديلات.", code: "INTERNAL" });
     return;

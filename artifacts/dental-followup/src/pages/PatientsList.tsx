@@ -8,6 +8,7 @@ import { Search, Plus, UserX, Loader2, ChevronLeft, ChevronRight } from "lucide-
 import { useDebounce } from "@/hooks/use-debounce";
 import { NewPatientDialog } from "@/components/patients/NewPatientDialog";
 import { formatSaudiDate } from "@/lib/datetime";
+import { Patient } from "@workspace/shared";
 
 export default function PatientsList() {
   const [, setLocation] = useLocation();
@@ -112,10 +113,11 @@ export default function PatientsList() {
                       <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-40">رقم الجوال</th>
                       <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-40">تاريخ الإضافة</th>
                       <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-24">الحالة</th>
+                      <th className="px-2 py-4 w-10"><span className="sr-only">فتح الملف</span></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {data.items.map((patient: any) => (
+                    {data.items.map((patient: Patient) => (
                       <tr 
                         key={patient.id} 
                         onClick={() => handleRowClick(patient.id)}
@@ -135,6 +137,9 @@ export default function PatientsList() {
                           }`}>
                             {patient.status === 'active' ? 'نشط' : 'مؤرشف'}
                           </span>
+                        </td>
+                        <td className="px-2 py-4 text-left">
+                          <ChevronLeft className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </td>
                       </tr>
                     ))}

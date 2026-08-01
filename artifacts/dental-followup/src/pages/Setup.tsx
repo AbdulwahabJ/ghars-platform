@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { setupInputSchema, SetupInput } from "@workspace/shared";
+import { setupInputSchema } from "@workspace/shared";
 import { useAuth } from "@/hooks/use-auth";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { Loader2 } from "lucide-react";
 // Extend schema for password confirmation
 const setupFormSchema = setupInputSchema.extend({
   confirmPassword: z.string()
-}).refine((data: any) => data.password === data.confirmPassword, {
+}).refine((data) => data.password === data.confirmPassword, {
   message: "كلمة المرور غير متطابقة",
   path: ["confirmPassword"],
 });
@@ -55,7 +55,7 @@ export default function Setup() {
         });
         setLocation("/login");
       },
-      onError: (error: any) => {
+      onError: (error: Error) => {
         toast({
           variant: "destructive",
           title: "خطأ",

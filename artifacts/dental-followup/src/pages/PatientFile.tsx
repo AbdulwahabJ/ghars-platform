@@ -6,7 +6,7 @@ import { formatSaudiDate } from "@/lib/datetime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Phone, Archive, RefreshCw, Save, AlertCircle, ArrowRight, Info } from "lucide-react";
+import { Loader2, Archive, RefreshCw, Save, AlertCircle, ArrowRight, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PatientUpdate } from "@workspace/shared";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -55,7 +55,7 @@ export default function PatientFile() {
     }
   }, [patient]);
 
-  const handleFieldChange = (field: keyof PatientUpdate, value: any) => {
+  const handleFieldChange = <K extends keyof PatientUpdate>(field: K, value: PatientUpdate[K]) => {
     setFormData((prev: PatientUpdate) => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };
@@ -67,7 +67,7 @@ export default function PatientFile() {
         toast({ title: "تم حفظ التعديلات بنجاح" });
         setIsDirty(false);
       },
-      onError: (err: any) => {
+      onError: (err: Error) => {
         toast({ variant: "destructive", title: "خطأ", description: err.message || "فشل حفظ التعديلات" });
       }
     });
@@ -190,18 +190,6 @@ export default function PatientFile() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            {patient.mobileNormalized && (
-              <Button 
-                variant="outline" 
-                onClick={() => window.open(`https://wa.me/${patient.mobileNormalized}`, '_blank')}
-                className="btn-outline border-whatsapp text-whatsapp hover:bg-whatsapp/10 flex-1 md:flex-none"
-              >
-                <Phone className="h-4 w-4" />
-                إرسال واتساب
-              </Button>
-            )}
-          </div>
         </div>
 
         {/* Tabs Navigation */}

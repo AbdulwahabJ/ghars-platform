@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useLocation } from "wouter";
 import { PublicUser } from "@workspace/shared";
 import { useAuth } from "@/hooks/use-auth";
@@ -68,7 +68,7 @@ export function Header({ user }: HeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Right: Logo & Name */}
         <div className="flex items-center gap-3">
-          <img src={clinicLogo} alt="Clinic Logo" className="h-8 w-auto object-contain" />
+          <img src={clinicLogo} alt="Clinic Logo" className="h-10 w-auto object-contain" />
           <span className="font-bold text-lg text-foreground hidden sm:block">
             نظام متابعة زراعة الأسنان – د. همام
           </span>

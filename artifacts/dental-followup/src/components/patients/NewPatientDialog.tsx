@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ApiError } from "@/lib/api";
 
 interface NewPatientDialogProps {
   open: boolean;
@@ -86,13 +87,15 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
           form.reset();
           setLocation(`/patients/${res.patient.id}`);
         },
-        onError: (err: any) => {
-          if (err.code === "DUPLICATE_ACTIVE") {
+        onError: (err: Error) => {
+          const apiErr = err instanceof ApiError ? err : undefined;
+          const patientId = (apiErr?.data as { patientId?: string } | undefined)?.patientId;
+          if (apiErr?.code === "DUPLICATE_ACTIVE") {
              setDuplicateStatus("active");
-             setDuplicateData({ id: err.data?.patientId });
-          } else if (err.code === "DUPLICATE_ARCHIVED") {
+             setDuplicateData({ id: patientId });
+          } else if (apiErr?.code === "DUPLICATE_ARCHIVED") {
              setDuplicateStatus("archived");
-             setDuplicateData({ id: err.data?.patientId });
+             setDuplicateData({ id: patientId });
           } else {
             toast({
               variant: "destructive",
@@ -102,11 +105,11 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
           }
         }
       });
-    } catch (err: any) {
+    } catch (err) {
       toast({
         variant: "destructive",
         title: "خطأ",
-        description: err.message || "حدث خطأ أثناء التحقق من رقم الملف."
+        description: (err instanceof Error && err.message) || "حدث خطأ أثناء التحقق من رقم الملف."
       });
     }
   };

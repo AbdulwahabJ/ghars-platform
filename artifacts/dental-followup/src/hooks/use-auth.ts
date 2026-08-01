@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { LoginInput, SetupInput } from "@workspace/shared";
 
 export const ME_QUERY_KEY = ["me"];

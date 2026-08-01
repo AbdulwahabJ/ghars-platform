@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { useUpdatePreferences } from "@/hooks/use-preferences";
@@ -21,35 +21,16 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showQuickHelp, setShowQuickHelp] = useState(false);
   const updatePreferences = useUpdatePreferences();
-
-  useEffect(() => {
-    const handleStartTour = () => {
-      setShowWelcome(false);
-      startDriverTour();
-    };
-
-    const handleShowShortcuts = () => setShowShortcuts(true);
-    const handleShowQuickHelp = () => setShowQuickHelp(true);
-
-    window.addEventListener("start-tour", handleStartTour);
-    window.addEventListener("show-shortcuts", handleShowShortcuts);
-    window.addEventListener("show-quick-help", handleShowQuickHelp);
-
-    return () => {
-      window.removeEventListener("start-tour", handleStartTour);
-      window.removeEventListener("show-shortcuts", handleShowShortcuts);
-      window.removeEventListener("show-quick-help", handleShowQuickHelp);
-    };
-  }, []);
+  const updateOnboarding = updatePreferences.mutate;
 
   const skipWelcome = () => {
     setShowWelcome(false);
     if (autoStart) {
-      updatePreferences.mutate({ onboardingStatus: "skipped" });
+      updateOnboarding({ onboardingStatus: "skipped" });
     }
   };
 
-  const startDriverTour = () => {
+  const startDriverTour = useCallback(() => {
     const driverObj = driver({
       showProgress: true,
       doneBtnText: "ابدأ العمل",
@@ -65,9 +46,9 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
       },
       onDestroyStarted: () => {
         if (!driverObj.hasNextStep() && autoStart) {
-          updatePreferences.mutate({ onboardingStatus: "completed" });
+          updateOnboarding({ onboardingStatus: "completed" });
         } else if (autoStart) {
-          updatePreferences.mutate({ onboardingStatus: "skipped" });
+          updateOnboarding({ onboardingStatus: "skipped" });
         }
         driverObj.destroy();
       },
@@ -121,7 +102,7 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
           element: "#tour-help-icon",
           popover: {
             title: "المساعدة والتواصل",
-            description: "يمكنك إعادة تشغيل الجولة من علامة الاستفهام، وفتح واتساب برسالة جاهزة من ملف المريض.",
+            description: "يمكنك إعادة تشغيل الجولة التعريفية في أي وقت من علامة الاستفهام.",
             side: "bottom",
             align: "end"
           }
@@ -142,7 +123,27 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
     });
 
     driverObj.drive();
-  };
+  }, [autoStart, updateOnboarding]);
+
+  useEffect(() => {
+    const handleStartTour = () => {
+      setShowWelcome(false);
+      startDriverTour();
+    };
+
+    const handleShowShortcuts = () => setShowShortcuts(true);
+    const handleShowQuickHelp = () => setShowQuickHelp(true);
+
+    window.addEventListener("start-tour", handleStartTour);
+    window.addEventListener("show-shortcuts", handleShowShortcuts);
+    window.addEventListener("show-quick-help", handleShowQuickHelp);
+
+    return () => {
+      window.removeEventListener("start-tour", handleStartTour);
+      window.removeEventListener("show-shortcuts", handleShowShortcuts);
+      window.removeEventListener("show-quick-help", handleShowQuickHelp);
+    };
+  }, [startDriverTour]);
 
   return (
     <>
@@ -173,12 +174,12 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
             <DialogTitle className="text-lg font-bold">مساعدة سريعة</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-4 text-foreground">
-            <p><strong>لإضافة حالة:</strong> اضغط تسجيل حالة زراعة جديدة.</p>
-            <p><strong>للبحث:</strong> استخدم الاسم أو رقم الملف أو الجوال.</p>
-            <p><strong>لإضافة زرعة:</strong> افتح ملف المريض ثم تاب الزرعات.</p>
-            <p><strong>لتسجيل دفعة:</strong> افتح تاب الدفعات.</p>
-            <p><strong>لإضافة متابعة:</strong> افتح تاب المتابعة.</p>
-            <p><strong>لإرسال واتساب:</strong> افتح ملف المريض ثم اضغط إرسال واتساب.</p>
+            <p><strong>لإضافة مريض:</strong> اضغط تسجيل حالة زراعة جديدة.</p>
+            <p><strong>للبحث عن مريض:</strong> استخدم الاسم أو رقم الملف أو رقم الجوال.</p>
+            <p><strong>لفتح ملف مريض:</strong> اضغط على سطر المريض في قائمة المرضى أو نتائج البحث.</p>
+            <p><strong>لتعديل بيانات المريض:</strong> افتح ملف المريض، عدّل الحقول، ثم اضغط حفظ التعديلات.</p>
+            <p><strong>لأرشفة ملف أو استعادته:</strong> من داخل ملف المريض في تاب البيانات.</p>
+            <p><strong>لإعادة الجولة التعريفية:</strong> من علامة الاستفهام في أعلى الشاشة.</p>
           </div>
         </DialogContent>
       </Dialog>

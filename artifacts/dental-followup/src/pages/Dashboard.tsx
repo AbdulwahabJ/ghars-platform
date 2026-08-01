@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { saudiGreeting, formatSaudiWeekdayDate } from "@/lib/datetime";
 import { useAuth } from "@/hooks/use-auth";
 import { Shell } from "@/components/layout/Shell";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Loader2, Info } from "lucide-react";
 import { usePatients } from "@/hooks/use-patients";
+import { Patient } from "@workspace/shared";
 import { NewPatientDialog } from "@/components/patients/NewPatientDialog";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -19,16 +20,34 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
   const [newPatientOpen, setNewPatientOpen] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: searchResults, isLoading: isSearching } = usePatients({ 
     query: debouncedSearch,
     pageSize: 5
   });
 
-  useEffect(() => {
+  // Adjust state when the debounced query changes (render-phase adjustment,
+  // see react.dev "You Might Not Need an Effect").
+  const [prevSearch, setPrevSearch] = useState(debouncedSearch);
+  if (prevSearch !== debouncedSearch) {
+    setPrevSearch(debouncedSearch);
     setIsSearchOpen(debouncedSearch.length > 0);
-  }, [debouncedSearch]);
+    setHighlightIndex(-1);
+  }
+
+  // Close the results panel when clicking outside of the search area.
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   const handlePatientSelect = (id: string) => {
     setIsSearchOpen(false);
@@ -36,13 +55,37 @@ export default function Dashboard() {
     setLocation(`/patients/${id}`);
   };
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const items = searchResults?.items ?? [];
+    if (e.key === "Escape") {
+      setIsSearchOpen(false);
+      setHighlightIndex(-1);
+      return;
+    }
+    if (!isSearchOpen || items.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIndex((i) => (i + 1) % items.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIndex((i) => (i <= 0 ? items.length - 1 : i - 1));
+    } else if (e.key === "Enter" && highlightIndex >= 0 && highlightIndex < items.length) {
+      e.preventDefault();
+      handlePatientSelect(items[highlightIndex].id);
+    }
+  };
+
   return (
     <Shell>
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* Section A: Greeting & Search */}
-        <section className="bg-primary/5 rounded-3xl p-8 md:p-12 relative overflow-hidden border border-primary/10">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-bl-full pointer-events-none" />
+        {/* overflow-hidden must NOT be on the section itself: it clips the search
+            results dropdown. The decorative circle is clipped in its own layer. */}
+        <section className="bg-primary/5 rounded-3xl p-8 md:p-12 relative border border-primary/10">
+          <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-bl-full" />
+          </div>
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
@@ -62,12 +105,23 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          <div className="mt-10 max-w-3xl relative" id="tour-global-search">
+          <div className="mt-10 max-w-3xl relative z-20" id="tour-global-search" ref={searchContainerRef}>
             <div className="relative">
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => debouncedSearch.length > 0 && setIsSearchOpen(true)}
+                onKeyDown={handleSearchKeyDown}
+                role="combobox"
+                aria-expanded={isSearchOpen}
+                aria-controls="global-search-results"
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  isSearchOpen && highlightIndex >= 0
+                    ? `global-search-option-${highlightIndex}`
+                    : undefined
+                }
                 placeholder="ابحث عن مريض بالاسم، رقم الملف، أو رقم الجوال..." 
                 className="h-14 pl-4 pr-12 text-lg rounded-2xl border-border bg-card shadow-sm focus-visible:ring-primary focus-visible:border-primary"
               />
@@ -79,21 +133,31 @@ export default function Dashboard() {
             </div>
 
             {isSearchOpen && (
-              <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+              <div
+                id="global-search-results"
+                role="listbox"
+                className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden max-h-96 overflow-y-auto"
+              >
                 {searchResults?.items && searchResults.items.length > 0 ? (
                   <div className="py-2">
-                    {searchResults.items.map((patient: any) => (
+                    {searchResults.items.map((patient: Patient, index: number) => (
                       <button
                         key={patient.id}
+                        id={`global-search-option-${index}`}
+                        role="option"
+                        aria-selected={index === highlightIndex}
                         onClick={() => handlePatientSelect(patient.id)}
-                        className="w-full text-right px-4 py-3 hover:bg-muted transition-colors flex items-center justify-between border-b border-border/50 last:border-0"
+                        onMouseEnter={() => setHighlightIndex(index)}
+                        className={`w-full text-right px-4 py-3 transition-colors flex items-center justify-between gap-3 border-b border-border/50 last:border-0 ${
+                          index === highlightIndex ? "bg-muted" : "hover:bg-muted"
+                        }`}
                       >
-                        <div>
-                          <p className="font-semibold text-foreground">{patient.fullName}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground truncate">{patient.fullName}</p>
                           <p className="text-sm text-muted-foreground mt-1" dir="ltr">{patient.fileNumber}</p>
                         </div>
                         {patient.status === 'archived' && (
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-md">مؤرشف</span>
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-md shrink-0">مؤرشف</span>
                         )}
                       </button>
                     ))}
