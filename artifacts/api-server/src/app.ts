@@ -1,10 +1,21 @@
-import express, { type Express } from "express";
+import express, {
+  type Express,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { csrfProtection } from "./middlewares/csrf";
+import { sessionMiddleware } from "./middlewares/session";
 
 const app: Express = express();
+
+// Behind the platform proxy: needed for secure cookies and correct
+// client IP resolution (rate limiting).
+app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -28,7 +39,21 @@ app.use(
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(sessionMiddleware);
+app.use(csrfProtection);
 
 app.use("/api", router);
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  req.log?.error({ err }, "unhandled error");
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
+  res.status(500).json({
+    error: "حدث خطأ غير متوقع في الخادم. يرجى المحاولة مرة أخرى.",
+    code: "INTERNAL",
+  });
+});
 
 export default app;

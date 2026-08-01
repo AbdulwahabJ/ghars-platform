@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "نظام متابعة زراعة الأسنان – د. همام"
+description = "Arabic RTL production web application for a dental implant clinic: patient management, implant case tracking, financial tracking, follow-ups, and WhatsApp communication workflow. Used by Dr. Homam, his assistant, and an administrator behind session authentication. Phase 1 covers foundation: auth, schema, layout, and patients."
+version = "1.0.0"
+id = "artifacts/dental-followup"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21421
+
+[services.development]
+run = "pnpm --filter @workspace/dental-followup run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dental-followup", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/dental-followup/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21421"
+BASE_PATH = "/"
