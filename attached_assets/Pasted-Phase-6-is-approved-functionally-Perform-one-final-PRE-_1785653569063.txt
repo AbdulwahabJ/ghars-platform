@@ -1,0 +1,111 @@
+Phase 6 is approved functionally.
+
+Perform one final PRE-PUBLISH gate only.
+
+Do not add new features.
+Do not redesign the system.
+Do not begin WhatsApp Coexistence or WhatsApp API work.
+
+1. Fix the remaining English date placeholders visible in the audit-log filters.
+
+The UI currently still shows:
+
+mm/dd/yyyy
+
+Use a clear Arabic-friendly date input presentation consistently with the rest of the system, while preserving the existing database date types.
+
+2. Review application settings and remove accidental test values.
+
+The current default Pros value contains a test/invalid string.
+
+Set the default Pros value to:
+
+3M
+
+or leave it empty if no valid configured default is intended.
+
+Do not change existing patient or case records.
+
+3. Production-environment readiness
+
+Prepare a separate production environment and production PostgreSQL database.
+
+Do not reuse, reset, or modify the current development database.
+
+Provide the exact required production environment variables without exposing their values.
+
+Verify:
+
+- production database connection,
+- migrations from an empty production database,
+- production startup,
+- /api/health,
+- /api/ready,
+- secure cookies,
+- HTTPS assumptions,
+- session persistence,
+- initial ADMIN setup,
+- logo persistence,
+- file upload behavior,
+- and rollback instructions.
+
+4. Backup gate
+
+Before publishing:
+
+- create a database backup procedure,
+- verify that the backup command works,
+- verify the documented restore command against a disposable database,
+- and report the result.
+
+Do not claim automated backups are enabled unless they are actually configured.
+
+5. Production data checklist
+
+Do not automatically copy test data into production.
+
+Report clearly which of these will be used:
+
+- empty production database with initial ADMIN setup,
+- or an explicitly approved import of real records.
+
+Do not delete or clean the development database.
+
+6. Final smoke test
+
+Run only the essential production smoke flow:
+
+- initial ADMIN setup,
+- login,
+- create a user,
+- create a patient,
+- create an implant case,
+- add an implant,
+- add a payment,
+- add a follow-up,
+- open the dashboard,
+- print a patient summary,
+- export CSV,
+- logout,
+- health and readiness checks.
+
+Run this against the disposable or production-staging database, never the current development database.
+
+7. Final report
+
+Provide:
+
+- production build result,
+- migration result on an empty database,
+- production startup result,
+- health and readiness results,
+- backup and restore verification,
+- final smoke-test result,
+- exact required environment-variable names,
+- known remaining limitations,
+- confirmation that the development data remains untouched,
+- and the exact final checkpoint commit hash.
+
+Create a final pre-publish checkpoint and stop.
+
+Do not publish until explicit approval.

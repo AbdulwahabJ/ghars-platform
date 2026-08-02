@@ -138,3 +138,26 @@
 .tour-final-screen .driver-popover-progress-text {
   display: none;
 }
+
+/*
+ * Arabic-friendly presentation for EMPTY native date inputs.
+ * The browser's default "mm/dd/yyyy" skeleton is hidden and replaced with an
+ * Arabic hint. Once the input has a value (or gains focus for typing), the
+ * normal native presentation returns. Storage stays ISO (yyyy-mm-dd).
+ */
+input[type='date'][data-empty-date='true']:not(:focus) {
+  position: relative;
+  color: transparent;
+}
+input[type='date'][data-empty-date='true']:not(:focus)::-webkit-datetime-edit {
+  color: transparent;
+}
+input[type='date'][data-empty-date='true']:not(:focus)::before {
+  content: 'يوم / شهر / سنة';
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
