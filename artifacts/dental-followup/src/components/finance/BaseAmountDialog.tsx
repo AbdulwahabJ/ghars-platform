@@ -89,7 +89,7 @@ function BaseAmountForm({ onOpenChange, caseId, current }: BaseAmountDialogProps
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={update.isPending} data-testid="button-save-base-amount">
           {update.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          حفظ
+          <span>حفظ</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           إلغاء

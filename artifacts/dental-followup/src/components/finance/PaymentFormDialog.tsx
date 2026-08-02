@@ -186,7 +186,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={createPayment.isPending} data-testid="button-save-payment">
           {createPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          تسجيل الدفعة
+          <span>تسجيل الدفعة</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           إلغاء

@@ -132,7 +132,7 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={createDiscount.isPending} data-testid="button-save-discount">
           {createDiscount.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          إضافة
+          <span>إضافة</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           إلغاء
