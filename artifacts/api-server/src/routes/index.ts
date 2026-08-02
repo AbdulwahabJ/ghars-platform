@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import authRouter from "./auth";
+import financeRouter from "./finance";
 import healthRouter from "./health";
 import implantCasesRouter from "./implant-cases";
 import patientsRouter from "./patients";
@@ -12,5 +13,6 @@ router.use(authRouter);
 router.use(preferencesRouter);
 router.use(patientsRouter);
 router.use(implantCasesRouter);
+router.use(financeRouter);
 
 export default router;

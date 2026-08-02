@@ -6,7 +6,18 @@
  * explicit helpers are consumed by React Query on the frontend.
  */
 import type {
+  BaseAmountInput,
+  CaseFinanceResponse,
   CaseListResponse,
+  Charge,
+  ChargeInput,
+  Discount,
+  DiscountInput,
+  FinanceFilters,
+  FinanceOverview,
+  Payment,
+  PaymentInput,
+  VoidPaymentInput,
   FileNumberCheckResponse,
   HealthResponse,
   Implant,
@@ -173,4 +184,56 @@ export const api = {
     request<{ implant: Implant }>(`/implants/${id}/archive`, {
       method: "POST",
     }),
+
+  // Phase 3 — financial tracking
+  getCaseFinance: (caseId: string) =>
+    request<CaseFinanceResponse>(`/implant-cases/${caseId}/finance`),
+  updateBaseAmount: (caseId: string, input: BaseAmountInput) =>
+    request<{ baseTreatmentAmount: number }>(
+      `/implant-cases/${caseId}/base-amount`,
+      { method: "PATCH", json: input },
+    ),
+  createCharge: (caseId: string, input: ChargeInput) =>
+    request<{ charge: Charge }>(`/implant-cases/${caseId}/charges`, {
+      method: "POST",
+      json: input,
+    }),
+  deleteCharge: (id: string) =>
+    request<void>(`/charges/${id}`, { method: "DELETE" }),
+  createDiscount: (caseId: string, input: DiscountInput) =>
+    request<{ discount: Discount }>(`/implant-cases/${caseId}/discounts`, {
+      method: "POST",
+      json: input,
+    }),
+  deleteDiscount: (id: string) =>
+    request<void>(`/discounts/${id}`, { method: "DELETE" }),
+  createPayment: (caseId: string, input: PaymentInput) =>
+    request<{ payment: Payment }>(`/implant-cases/${caseId}/payments`, {
+      method: "POST",
+      json: input,
+    }),
+  voidPayment: (id: string, input: VoidPaymentInput) =>
+    request<{ payment: Payment }>(`/payments/${id}/void`, {
+      method: "POST",
+      json: input,
+    }),
+  getFinanceOverview: (filters: FinanceFilters) =>
+    request<FinanceOverview>(`/finance/overview?${financeQs(filters)}`),
 };
+
+export function financeQs(filters: FinanceFilters): string {
+  const params = new URLSearchParams();
+  params.set("from", filters.from);
+  params.set("to", filters.to);
+  if (filters.patientName) params.set("patientName", filters.patientName);
+  if (filters.fileNumber) params.set("fileNumber", filters.fileNumber);
+  if (filters.paymentMethod) params.set("paymentMethod", filters.paymentMethod);
+  if (filters.paymentStatus) params.set("paymentStatus", filters.paymentStatus);
+  if (filters.implantSystem) params.set("implantSystem", filters.implantSystem);
+  return params.toString();
+}
+
+/** URL for the CSV export (opened directly so the browser downloads it). */
+export function financeExportUrl(filters: FinanceFilters): string {
+  return `${API_BASE}/finance/export.csv?${financeQs(filters)}`;
+}

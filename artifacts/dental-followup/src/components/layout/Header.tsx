@@ -42,7 +42,9 @@ export function Header({ user }: HeaderProps) {
   const navItems = [
     { label: "الرئيسية", path: "/" },
     { label: "المرضى", path: "/patients" },
-    { label: "المالية", path: "/finance" },
+    // Backend enforces this too; hiding the tab avoids a dead page for
+    // users without the financial-visibility permission.
+    ...(user.canViewFinancials ? [{ label: "المالية", path: "/finance" }] : []),
   ];
 
   const handleLogout = () => {
@@ -64,7 +66,7 @@ export function Header({ user }: HeaderProps) {
   };
 
   return (
-    <header className="bg-card border-b border-border sticky top-0 z-40">
+    <header className="bg-card border-b border-border sticky top-0 z-40 print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Right: Logo & Name */}
         <div className="flex items-center gap-3">

@@ -1,0 +1,280 @@
+Phase 2 is approved.
+
+Proceed with Phase 3 — Financial tracking only.
+
+IMPORTANT DELIVERY STRATEGY
+
+From this phase onward, prioritize completing the functional system quickly.
+
+Do not perform extra redesign, broad refactoring, optional optimization, extensive accessibility reviews, cosmetic polishing, or nonessential testing during this phase.
+
+Defer non-blocking improvements to the final stabilization phase.
+
+Fix immediately only issues that involve:
+
+- data loss or corruption,
+- incorrect financial calculations,
+- authorization or security bypass,
+- failed migrations,
+- failed production builds,
+- broken core workflows,
+- or nonfunctional required actions.
+
+Do not begin Phases 4–6.
+
+Preserve all existing users, patients, cases, implants, audit records, and current database data.
+
+Do not reset, truncate, recreate, or reseed the existing development database.
+
+PHASE 3 REQUIRED SCOPE
+
+Implement the financial functionality specified in the approved plan:
+
+1. Base treatment amount on each implant case.
+2. Additional charges as separate records.
+3. Discounts as separate records.
+4. Payments as separate non-deletable transactions.
+5. Payment voiding with reason, authorization, and audit logging.
+6. Automatic financial calculations.
+7. Case payment summary.
+8. Payment status.
+9. Patient payment tab.
+10. Finance page.
+11. Date filters.
+12. Patient and file-number filters.
+13. Payment-method filter.
+14. Payment-status filter.
+15. Implant-system filter where applicable.
+16. Payments table.
+17. Basic database-driven financial charts.
+18. CSV or Excel export.
+19. Printable financial summary.
+20. Proper financial permissions.
+
+FINANCIAL SOURCE OF TRUTH
+
+Use only:
+
+- implant_cases.base_treatment_amount
+- case_charges
+- case_discounts
+- valid non-voided payments
+
+Calculate dynamically:
+
+Final Case Total =
+Base Treatment Amount
++ Sum of Charges
+- Sum of Discounts
+
+Paid Amount =
+Sum of valid non-voided Payments
+
+Outstanding Balance =
+Final Case Total - Paid Amount
+
+Collected Revenue for a period =
+Sum of valid payments whose payment_date is within the selected period
+
+Do not calculate collected revenue from procedure date or case creation date.
+
+Do not store mutable derived totals.
+
+Do not allow users to manually edit:
+
+- paid amount,
+- outstanding balance,
+- final total,
+- or payment percentage.
+
+MONEY TYPES
+
+All monetary values must remain PostgreSQL numeric(12,2).
+
+Do not use float, real, or double precision.
+
+ADDITIONAL CHARGES
+
+Supported initial charge types:
+
+- زراعة عظم
+- رفع جيب أنفي
+- مؤقت
+- إعادة زراعة
+- إجراء إضافي
+- ضريبة
+- أخرى
+
+A charge may optionally reference a specific implant.
+
+When implant_id is provided, validate that the implant belongs to the same implant case.
+
+Do not store graft financial amounts in the implants table.
+
+DISCOUNTS
+
+Each discount must be a separate record containing:
+
+- amount
+- date
+- reason
+- approved_by
+- created_by
+
+Do not overwrite the original treatment amount.
+
+PAYMENTS
+
+Each payment must contain:
+
+- amount
+- payment_date
+- payment_label
+- payment_method
+- reference_number
+- note
+- created_by
+
+Payment labels:
+
+- دفعة أولى
+- دفعة ثانية
+- دفعة كاملة
+- دفعة إضافية
+- أخرى
+
+Payment methods:
+
+- شبكة
+- نقدي
+- تحويل
+- تمارا
+- أخرى
+
+Payments must never be permanently deleted.
+
+Voiding a payment requires:
+
+- an authorized role,
+- confirmation,
+- a required reason,
+- voided_at,
+- voided_by,
+- audit logging.
+
+PAYMENT STATUS
+
+Calculate and display:
+
+- لم يدفع
+- مدفوع جزئيًا
+- مدفوع بالكامل
+- رصيد زائد
+- مؤجل ماليًا
+
+Show a warning when paid amount exceeds the final case total.
+
+PERMISSIONS
+
+ADMIN:
+- full financial access.
+
+DOCTOR:
+- financial access only when the user-level financial visibility permission is enabled.
+
+ASSISTANT:
+- may record payments only when the user-level payment-recording permission is enabled.
+- must not gain broader financial access from role name alone.
+
+Enforce permissions in backend APIs.
+
+FINANCE PAGE
+
+Keep it simple and operational.
+
+Filters:
+
+- اليوم
+- أمس
+- هذا الأسبوع
+- هذا الشهر
+- الشهر الماضي
+- فترة مخصصة
+- المريض
+- رقم الملف
+- طريقة الدفع
+- حالة الدفع
+- نظام الزرعة
+
+Show:
+
+- المقبوض خلال الفترة
+- قيمة الحالات خلال الفترة
+- الرسوم الإضافية
+- الخصومات
+- إجمالي المتبقي
+- عدد الدفعات
+- عدد المرضى أصحاب المبالغ المتبقية
+
+Use no more than two simple charts.
+
+All values must come from live database queries.
+
+EXPORTS
+
+Implement:
+
+- CSV or Excel export respecting current filters.
+- Clean printable RTL financial summary.
+
+Do not add a heavy direct-PDF library during this phase unless required for basic functionality.
+
+Browser Print / Save as PDF is sufficient for now.
+
+PHASE BOUNDARIES
+
+Do not implement:
+
+- follow-up workflows,
+- WhatsApp,
+- live notification contents,
+- final dashboard statistics,
+- patient clinical PDF reports,
+- user-management UI,
+- settings UI,
+- deployment work.
+
+TESTING — KEEP IT FOCUSED
+
+Before completion:
+
+1. Run safe database migrations.
+2. Run typecheck.
+3. Run ESLint.
+4. Run existing tests.
+5. Add focused financial calculation and permission tests.
+6. Run the production build.
+7. Test the main financial workflow in Preview.
+8. Fix blocking errors only.
+9. Confirm existing data remains intact.
+10. Create a checkpoint.
+11. Provide a concise completion report.
+12. Stop.
+
+Required financial test scenarios:
+
+- add a base treatment amount,
+- add multiple charges,
+- link one charge to an implant,
+- add a discount,
+- add multiple payments,
+- verify final total,
+- verify paid amount,
+- verify outstanding balance,
+- verify collection by payment date,
+- verify overpayment warning,
+- void a payment and verify recalculation,
+- verify unauthorized financial access is rejected,
+- verify filters and exports use correct data.
+
+Do not begin Phase 4.

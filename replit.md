@@ -39,7 +39,7 @@ Arabic-first, RTL-only dental implant follow-up system for Dr. Homam's clinic (�
 
 ## Product
 
-Phase 1 (done): first-run setup, login/logout, sessions, header navigation (3 tabs, no sidebar), dashboard with greeting + global search, patients CRUD with archive/restore and duplicate-file-number dialogs, guided tour (6 steps + final screen), quick help, shortcuts dictionary, honest empty states (finance module, patient sub-tabs). Phases 2–6 (implants, payments, follow-ups, WhatsApp templates, reports, settings) not started — specs in `.local/tasks/phase-*.md`.
+Phase 1 (done): first-run setup, login/logout, sessions, header navigation (3 tabs, no sidebar), dashboard with greeting + global search, patients CRUD with archive/restore and duplicate-file-number dialogs, guided tour (6 steps + final screen), quick help, shortcuts dictionary, honest empty states (finance module, patient sub-tabs). Phase 2 (done, approved): implant cases + implants inside patient files (FDI chart, duplicate-site guard, archive/restore, lookup options). Phase 3 (done): financial tracking — base treatment amount, charges (implant-linkable), discounts, non-deletable payments with void+reason+audit, computed case summaries (never stored), payment statuses (incl. مؤجل ماليًا from case status مؤجل), patient الدفعات tab, finance page (period/patient/method/status/system filters, 7 KPIs, 2 charts, payments table, CSV export with UTF-8 BOM, browser print), backend-enforced financial permissions (effective = user override ?? role default). Phases 4–6 (follow-ups, WhatsApp templates, reports, settings) not started — specs in `.local/tasks/phase-*.md`.
 
 ## User preferences
 
