@@ -1,6 +1,16 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 
+// Fail fast at startup when a required environment variable is missing —
+// a half-configured server must never silently start.
+const REQUIRED_ENV = ["DATABASE_URL", "SESSION_SECRET"] as const;
+const missingEnv = REQUIRED_ENV.filter((key) => !process.env[key]);
+if (missingEnv.length > 0) {
+  throw new Error(
+    `Missing required environment variables: ${missingEnv.join(", ")}`,
+  );
+}
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {

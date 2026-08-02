@@ -214,6 +214,11 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
     req.session.save((err) => (err ? reject(err) : resolve())),
   );
 
+  await db
+    .update(usersTable)
+    .set({ lastLoginAt: new Date() })
+    .where(eq(usersTable.id, user.id));
+
   const preferences = await getOrCreatePreferences(user.id);
   await writeAudit({
     userId: user.id,

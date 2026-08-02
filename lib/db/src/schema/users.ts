@@ -33,6 +33,7 @@ export const usersTable = pgTable("users", {
   /** Override: null = use role default. */
   canRecordPayments: boolean("can_record_payments"),
   isActive: boolean("is_active").notNull().default(true),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

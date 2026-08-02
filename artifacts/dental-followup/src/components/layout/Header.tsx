@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNotifications } from "@/hooks/use-followups";
+import { useAppSettings } from "@/hooks/use-settings";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import clinicLogo from "@/assets/clinic-logo.png";
 
@@ -33,6 +34,7 @@ interface HeaderProps {
 export function Header({ user }: HeaderProps) {
   const [location, setLocation] = useLocation();
   const { logout } = useAuth();
+  const { settings } = useAppSettings();
   const { data: notifications } = useNotifications();
   const notificationItems = notifications?.items ?? [];
   const notificationCount = notifications?.totalCount ?? 0;
@@ -50,6 +52,7 @@ export function Header({ user }: HeaderProps) {
     // Backend enforces this too; hiding the tab avoids a dead page for
     // users without the financial-visibility permission.
     ...(user.canViewFinancials ? [{ label: "المالية", path: "/finance" }] : []),
+    ...(user.role === "ADMIN" ? [{ label: "الإعدادات", path: "/settings" }] : []),
   ];
 
   const handleLogout = () => {
@@ -73,11 +76,15 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40 print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Right: Logo & Name */}
+        {/* Right: Logo & Name (admin-configurable via app settings) */}
         <div className="flex items-center gap-3">
-          <img src={clinicLogo} alt="Clinic Logo" className="h-10 w-auto object-contain" />
+          <img
+            src={settings.clinicLogo ?? clinicLogo}
+            alt="Clinic Logo"
+            className="h-10 w-auto object-contain"
+          />
           <span className="font-bold text-lg text-foreground hidden sm:block">
-            نظام متابعة زراعة الأسنان – د. همام
+            {settings.systemName}
           </span>
         </div>
 

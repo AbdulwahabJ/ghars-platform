@@ -10,3 +10,4 @@
 - [Drizzle error wrapping](drizzle-error-wrapping.md) — SQLSTATE checks must walk err.cause (DrizzleQueryError); test constraint races with truly parallel requests.
 - [drizzle-kit path bug](drizzlekit-custom-migrations.md) — ALL migration generation (plain and --custom) fails (ENOENT .//home/…) with the repo's absolute-path config; use a temp relative config.
 - [Archived-scope invariant](archived-scope-invariant.md) — aggregates must exclude archived patients AND cases (payments have no own flag); seed-then-archive regression tests.
+- [Test-DB collision](testdb-collision.md) — vitest truncates the shared test DB; never run the suite while a tester session uses that DB, or phantom "data vanished" bugs appear.

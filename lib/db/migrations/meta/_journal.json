@@ -36,6 +36,13 @@
       "when": 1785645374738,
       "tag": "0004_seed_whatsapp_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785650189668,
+      "tag": "0005_users_last_login",
+      "breakpoints": true
     }
   ]
 }

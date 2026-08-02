@@ -53,6 +53,29 @@ import type {
   OperationalReportResponse,
   ReportFilters,
   StatisticsResponse,
+  AdminLookupCategory,
+  AdminLookupOption,
+  AdminLookupsResponse,
+  AdminTemplate,
+  AdminTemplatesResponse,
+  AdminUser,
+  AdminUsersResponse,
+  AppSettingsResponse,
+  AuditFilters,
+  AuditLogResponse,
+  CreateLookupOptionInput,
+  CreateUserInput,
+  ExportEntity,
+  ImportCommitResponse,
+  ImportPreviewResponse,
+  ImportRequest,
+  ImportType,
+  ReorderLookupOptionsInput,
+  ResetPasswordInput,
+  UpdateAppSettingsInput,
+  UpdateLookupOptionInput,
+  UpdateTemplateInput,
+  UpdateUserInput,
 } from "@workspace/shared";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
@@ -283,7 +306,129 @@ export const api = {
     request<OperationalReportResponse>(
       `/reports/operational?${reportQs(filters)}`,
     ),
+
+  // Application settings (all authenticated users)
+  getAppSettings: () => request<AppSettingsResponse>(`/settings`),
+  updateAppSettings: (input: UpdateAppSettingsInput) =>
+    request<AppSettingsResponse>(`/admin/settings`, {
+      method: "PATCH",
+      json: input,
+    }),
+
+  // Admin: users
+  adminListUsers: () => request<AdminUsersResponse>(`/admin/users`),
+  adminCreateUser: (input: CreateUserInput) =>
+    request<{ user: AdminUser }>(`/admin/users`, {
+      method: "POST",
+      json: input,
+    }),
+  adminUpdateUser: (id: string, input: UpdateUserInput) =>
+    request<{ user: AdminUser }>(`/admin/users/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  adminActivateUser: (id: string) =>
+    request<{ user: AdminUser }>(`/admin/users/${id}/activate`, {
+      method: "POST",
+    }),
+  adminDeactivateUser: (id: string) =>
+    request<{ user: AdminUser }>(`/admin/users/${id}/deactivate`, {
+      method: "POST",
+    }),
+  adminResetPassword: (id: string, input: ResetPasswordInput) =>
+    request<void>(`/admin/users/${id}/reset-password`, {
+      method: "POST",
+      json: input,
+    }),
+
+  // Admin: lookups
+  adminListLookups: () => request<AdminLookupsResponse>(`/admin/lookups`),
+  adminCreateLookup: (input: CreateLookupOptionInput) =>
+    request<{ option: AdminLookupOption }>(`/admin/lookups`, {
+      method: "POST",
+      json: input,
+    }),
+  adminUpdateLookup: (
+    category: AdminLookupCategory,
+    id: string,
+    input: UpdateLookupOptionInput,
+  ) =>
+    request<void>(`/admin/lookups/${category}/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  adminSetLookupActive: (
+    category: AdminLookupCategory,
+    id: string,
+    active: boolean,
+  ) =>
+    request<void>(
+      `/admin/lookups/${category}/${id}/${active ? "activate" : "deactivate"}`,
+      { method: "POST" },
+    ),
+  adminDeleteLookup: (category: AdminLookupCategory, id: string) =>
+    request<void>(`/admin/lookups/${category}/${id}`, { method: "DELETE" }),
+  adminReorderLookups: (input: ReorderLookupOptionsInput) =>
+    request<void>(`/admin/lookups/reorder`, { method: "POST", json: input }),
+
+  // Admin: WhatsApp templates
+  adminListTemplates: () =>
+    request<AdminTemplatesResponse>(`/admin/whatsapp-templates`),
+  adminUpdateTemplate: (id: string, input: UpdateTemplateInput) =>
+    request<{ template: AdminTemplate }>(`/admin/whatsapp-templates/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  adminSetTemplateActive: (id: string, active: boolean) =>
+    request<{ template: AdminTemplate }>(
+      `/admin/whatsapp-templates/${id}/${active ? "activate" : "deactivate"}`,
+      { method: "POST" },
+    ),
+
+  // Admin: audit logs
+  adminListAuditLogs: (filters: Partial<AuditFilters>) =>
+    request<AuditLogResponse>(`/admin/audit-logs?${auditQs(filters)}`),
+
+  // Admin: legacy import
+  adminImportPreview: (input: ImportRequest) =>
+    request<ImportPreviewResponse>(`/admin/import/preview`, {
+      method: "POST",
+      json: input,
+    }),
+  adminImportCommit: (input: ImportRequest) =>
+    request<ImportCommitResponse>(`/admin/import/commit`, {
+      method: "POST",
+      json: input,
+    }),
 };
+
+export function auditQs(filters: Partial<AuditFilters>): string {
+  const params = new URLSearchParams();
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  if (filters.userId) params.set("userId", filters.userId);
+  if (filters.action) params.set("action", filters.action);
+  if (filters.entityType) params.set("entityType", filters.entityType);
+  if (filters.fileNumber) params.set("fileNumber", filters.fileNumber);
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.limit) params.set("limit", String(filters.limit));
+  return params.toString();
+}
+
+/** URL for the audit log CSV export (browser download). */
+export function auditExportUrl(filters: Partial<AuditFilters>): string {
+  return `${API_BASE}/admin/audit-logs/export.csv?${auditQs(filters)}`;
+}
+
+/** URL for a full-data CSV export of one entity (browser download). */
+export function dataExportUrl(entity: ExportEntity): string {
+  return `${API_BASE}/admin/export/${entity}.csv`;
+}
+
+/** URL for an import CSV template download. */
+export function importTemplateUrl(type: ImportType): string {
+  return `${API_BASE}/admin/import/template/${type}.csv`;
+}
 
 export function reportQs(filters: ReportFilters): string {
   const params = new URLSearchParams();

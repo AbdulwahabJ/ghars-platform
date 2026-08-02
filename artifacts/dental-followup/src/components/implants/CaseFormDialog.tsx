@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { FieldLabel } from "./FieldLabel";
 import { useCreateImplantCase, useUpdateImplantCase } from "@/hooks/use-implant-cases";
+import { useAppSettings } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
 import { addMonthsToIsoDate, formatSaudiDate } from "@/lib/datetime";
 
@@ -63,6 +64,7 @@ function CaseForm({
   otherCases,
 }: CaseFormDialogProps) {
   const { toast } = useToast();
+  const { settings } = useAppSettings();
   const createCase = useCreateImplantCase();
   const updateCase = useUpdateImplantCase();
   const isEdit = Boolean(caseData);
@@ -71,7 +73,10 @@ function CaseForm({
     () => caseData?.procedureDate ?? "",
   );
   const [treatingDoctor, setTreatingDoctor] = useState(
-    () => caseData?.treatingDoctor ?? DEFAULT_TREATING_DOCTOR,
+    () =>
+      caseData?.treatingDoctor ??
+      settings.defaultTreatingDoctor ??
+      DEFAULT_TREATING_DOCTOR,
   );
   const [referringDoctor, setReferringDoctor] = useState(
     () => caseData?.referringDoctor ?? "",
@@ -80,14 +85,15 @@ function CaseForm({
     () => caseData?.caseStatus ?? "حالة جديدة",
   );
   const [prosChoice, setProsChoice] = useState<string>(() => {
-    const pros = caseData?.prosValue;
+    // New cases prefill from the admin-configured default Pros value.
+    const pros = caseData ? caseData.prosValue : settings.defaultProsValue;
     if (!pros) return NONE;
     return (PROS_SUGGESTED_VALUES as readonly string[]).includes(pros)
       ? pros
       : CUSTOM;
   });
   const [prosCustom, setProsCustom] = useState(() => {
-    const pros = caseData?.prosValue;
+    const pros = caseData ? caseData.prosValue : settings.defaultProsValue;
     if (pros && !(PROS_SUGGESTED_VALUES as readonly string[]).includes(pros)) {
       return pros;
     }

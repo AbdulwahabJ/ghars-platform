@@ -27,6 +27,7 @@ import {
   useCreateFollowup,
   useUpdateFollowup,
 } from "@/hooks/use-followups";
+import { useAppSettings } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { toRiyadhDateValue, toRiyadhInputValue } from "./followup-utils";
@@ -63,6 +64,7 @@ function FollowupForm({
   prefillFrom,
 }: FollowupFormDialogProps) {
   const { toast } = useToast();
+  const { settings } = useAppSettings();
   const createFollowup = useCreateFollowup(patientId);
   const updateFollowup = useUpdateFollowup(patientId);
   const { data: users } = useAssignableUsers();
@@ -91,8 +93,9 @@ function FollowupForm({
       : "",
   );
   const [note, setNote] = useState(followup?.note ?? "");
+  // New followups prefill from the admin-configured default assignee.
   const [assignedUserId, setAssignedUserId] = useState(
-    source?.assignedUserId ?? NONE,
+    source?.assignedUserId ?? settings.defaultFollowupAssigneeUserId ?? NONE,
   );
   const [error, setError] = useState<string | null>(null);
 

@@ -37,7 +37,9 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json());
+// 5 MB budget: the Admin legacy-data import sends CSV file content and the
+// clinic-logo setting sends a small base64 data URL in JSON bodies.
+app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(sessionMiddleware);
 app.use(csrfProtection);

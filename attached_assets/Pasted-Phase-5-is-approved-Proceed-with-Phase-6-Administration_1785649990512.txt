@@ -1,0 +1,456 @@
+Phase 5 is approved.
+
+Proceed with Phase 6 — Administration, settings, legacy-data import, deployment readiness, and final stabilization.
+
+This is the final core phase.
+
+DELIVERY STRATEGY
+
+Complete the remaining required functionality quickly.
+
+Do not redesign the application or rebuild completed modules.
+
+Prioritize:
+
+- administration,
+- permissions,
+- settings,
+- safe data import,
+- production readiness,
+- backup and recovery guidance,
+- and fixing visible usability issues.
+
+Preserve all existing development data.
+
+Do not reset, truncate, recreate, reseed, or destructively modify the current database.
+
+Do not integrate WhatsApp Business API, Coexistence, automatic message sending, or scheduled WhatsApp reminders in this phase.
+
+Those will be implemented as a separate approved integration after the core system is complete.
+
+==================================================
+1. USER MANAGEMENT
+==================================================
+
+Activate the Settings/Admin area for ADMIN users only.
+
+Implement:
+
+- users list,
+- create user,
+- edit user,
+- activate/deactivate user,
+- reset password securely,
+- role assignment,
+- user-level permission overrides,
+- last login display,
+- user audit history.
+
+Roles:
+
+- ADMIN
+- DOCTOR
+- ASSISTANT
+
+Required user-level permission overrides:
+
+- can_view_financials
+- can_record_payments
+
+Preserve all existing backend authorization rules.
+
+Deactivated users must:
+
+- be unable to log in,
+- have existing sessions invalidated,
+- remain referenced in historical records and audit logs.
+
+Do not permanently delete users who have activity records.
+
+Password requirements:
+
+- minimum 10 characters,
+- secure hashing,
+- no plaintext passwords,
+- no passwords in audit logs,
+- no password exposure in API responses.
+
+==================================================
+2. APPLICATION SETTINGS
+==================================================
+
+Create an ADMIN-only settings page for:
+
+- clinic name,
+- system display name,
+- default treating doctor,
+- clinic phone,
+- clinic address,
+- clinic logo,
+- Saudi timezone display,
+- default Pros value,
+- default follow-up responsible user where applicable.
+
+Use the existing safe internal logo filename and storage strategy.
+
+Do not expose filesystem paths or secrets.
+
+Changes must be audit-logged.
+
+==================================================
+3. CLINICAL LOOKUP MANAGEMENT
+==================================================
+
+Allow ADMIN users to manage the configurable lookup values already used in the system:
+
+- implant systems,
+- Q options,
+- Former options,
+- Graft options,
+- graft procedure types,
+- procedure tags,
+- follow-up types where supported,
+- payment methods where supported,
+- charge types where supported.
+
+Support:
+
+- add,
+- edit display label,
+- reorder,
+- activate/deactivate.
+
+Do not permanently delete an option already referenced by existing records.
+
+Existing historical values must continue displaying correctly even if the option is deactivated.
+
+Do not change the medical meaning of legacy fields.
+
+==================================================
+4. WHATSAPP TEMPLATE MANAGEMENT
+==================================================
+
+Allow ADMIN users to review and edit the six existing manual wa.me templates.
+
+Requirements:
+
+- preserve supported placeholders,
+- validate unknown placeholders,
+- preview the rendered message,
+- activate/deactivate a template,
+- prevent deletion of a referenced template,
+- audit all changes.
+
+This remains manual wa.me messaging only.
+
+Do not add:
+
+- Meta API credentials,
+- Cloud API,
+- Coexistence,
+- webhooks,
+- automatic sending,
+- delivery/read statuses,
+- background jobs.
+
+==================================================
+5. AUDIT LOG VIEWER
+==================================================
+
+Add an ADMIN-only audit-log page.
+
+Filters:
+
+- date range,
+- user,
+- action type,
+- entity type,
+- patient file number where applicable.
+
+Show:
+
+- date and time,
+- user,
+- Arabic action label,
+- affected entity,
+- safe summary.
+
+Do not expose:
+
+- password hashes,
+- session tokens,
+- access tokens,
+- secrets,
+- full sensitive payloads.
+
+Allow CSV export of the filtered audit log.
+
+==================================================
+6. SAFE LEGACY DATA IMPORT
+==================================================
+
+Implement a controlled ADMIN-only import workflow for legacy records.
+
+Use CSV or Excel templates.
+
+Do not attempt unreliable automatic Word-document parsing in production.
+
+Provide downloadable import templates for:
+
+A. Patients
+- patient name
+- mobile number
+- age or birth date
+- file number
+- date added
+
+B. Implant cases
+- patient file number
+- procedure date
+- treating doctor
+- referring doctor
+- case status
+- Pros
+- expected prosthetic date
+- general note
+- base treatment amount
+
+C. Implants
+- patient file number
+- case identifier or procedure date
+- site
+- System
+- diameter
+- length
+- Q
+- Former
+- Graft
+- graft type
+- procedure tags
+- implant status
+- NOTE
+
+D. Payments
+- patient file number
+- case identifier
+- amount
+- payment date
+- payment label
+- payment method
+- reference number
+- note
+
+E. Follow-ups
+- patient file number
+- case identifier
+- follow-up type
+- scheduled date and time
+- status
+- assigned user
+- note
+
+Import workflow:
+
+1. Upload file.
+2. Parse without writing.
+3. Show preview.
+4. Show valid rows.
+5. Show invalid rows with clear Arabic errors.
+6. Detect duplicate file numbers.
+7. Detect duplicate implant sites inside the same case.
+8. Validate money and date formats.
+9. Validate foreign phone country codes.
+10. Require explicit confirmation.
+11. Import in safe transactions.
+12. Produce a final result report.
+13. Audit the import.
+
+The import must never silently overwrite existing records.
+
+Use an explicit mode:
+
+- create new records only,
+- or skip duplicates.
+
+Do not implement automatic destructive merging.
+
+==================================================
+7. DATA EXPORT AND BACKUP READINESS
+==================================================
+
+Create an ADMIN-only complete data export.
+
+Export operational data in CSV or Excel files grouped by:
+
+- patients,
+- cases,
+- implants,
+- payments,
+- charges,
+- discounts,
+- follow-ups,
+- communications.
+
+Do not include:
+
+- password hashes,
+- session records,
+- secrets,
+- tokens.
+
+Provide a deployment document describing:
+
+- database backup procedure,
+- database restore procedure,
+- migration procedure,
+- rollback procedure,
+- environment variables,
+- secret rotation,
+- production health checks.
+
+Do not claim that an automatic backup exists unless it is actually configured.
+
+==================================================
+8. FINAL USABILITY STABILIZATION
+==================================================
+
+Perform focused final polish without redesigning the system.
+
+Fix clearly visible issues such as:
+
+- English mm/dd/yyyy placeholders in Arabic forms,
+- inconsistent Arabic date presentation,
+- clipped mobile content,
+- inconsistent close buttons,
+- unclear clickable rows,
+- overflowing charts or labels,
+- long names and notes,
+- print-page clipping,
+- loading states,
+- empty states,
+- error messages,
+- disabled-button feedback,
+- unsaved-change warnings.
+
+Use Saudi date/time presentation consistently.
+
+Keep date values stored using the previously approved database types.
+
+Do not convert the whole application to Hijri dates.
+
+==================================================
+9. SECURITY AND PRODUCTION READINESS
+==================================================
+
+Verify and preserve:
+
+- PostgreSQL server-side sessions,
+- secure production cookies,
+- same-origin protection,
+- Origin/Host validation,
+- CSRF protections,
+- rate limiting,
+- app.set("trust proxy", 1),
+- environment-variable validation,
+- safe error responses,
+- no stack traces exposed in production,
+- authorization enforced server-side,
+- archived-record write blocking,
+- safe file-upload limits and file-type validation.
+
+Add:
+
+- /health endpoint,
+- /ready endpoint if appropriate,
+- production startup validation,
+- safe migration command,
+- documented initial ADMIN setup process.
+
+Initial setup secrets must remain in Replit Secrets and must never appear in frontend code or logs.
+
+==================================================
+10. DEPLOYMENT READINESS
+==================================================
+
+Prepare the project for production deployment on Replit.
+
+Include:
+
+- production build command,
+- production start command,
+- migration command,
+- environment-variable checklist,
+- custom-domain readiness,
+- HTTPS assumptions,
+- database connection validation,
+- health-check configuration,
+- persistent file-storage considerations for the clinic logo,
+- rollback instructions.
+
+Do not deploy or change the live domain without explicit approval.
+
+==================================================
+11. FINAL TESTING
+==================================================
+
+Keep testing focused but complete.
+
+Run:
+
+1. Database migrations safely.
+2. TypeScript typecheck.
+3. ESLint.
+4. All existing backend and shared tests.
+5. Focused Phase 6 tests.
+6. Production build.
+7. Main browser E2E regression flow.
+8. Mobile regression checks.
+9. Print checks.
+10. Import dry-run and commit tests.
+11. Permission tests.
+12. Deployment startup test.
+
+Required scenarios:
+
+- create a user,
+- deactivate a user,
+- invalidate the deactivated user’s session,
+- verify historical ownership remains visible,
+- change financial permissions,
+- manage a lookup option,
+- deactivate a referenced lookup option,
+- edit and preview a WhatsApp template,
+- filter and export audit records,
+- upload a valid import file,
+- reject invalid import rows,
+- preview without writing,
+- confirm import,
+- prevent duplicate patient file numbers,
+- export complete operational data,
+- verify no secrets or password hashes are exported,
+- verify ADMIN-only pages reject unauthorized users,
+- verify production build and startup,
+- verify existing patients, cases, implants, finances, follow-ups, and reports still work.
+
+==================================================
+12. FINAL COMPLETION REPORT
+==================================================
+
+At completion provide:
+
+- features delivered,
+- migrations created,
+- test commands and passing counts,
+- lint result,
+- typecheck result,
+- production build result,
+- import verification result,
+- security verification result,
+- current development data counts before and after,
+- deployment instructions,
+- known non-blocking limitations,
+- exact checkpoint commit hash.
+
+Create a final stable checkpoint and stop.
+
+Do not begin WhatsApp Business API or Coexistence integration.
