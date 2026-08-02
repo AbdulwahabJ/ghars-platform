@@ -1,0 +1,146 @@
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CASE_STATUSES } from "@workspace/shared";
+import { REPORT_PERIODS, type ReportPeriodId } from "@/lib/report-periods";
+
+export const ALL = "__all__";
+
+export interface ReportFilterState {
+  period: ReportPeriodId;
+  customFrom: string;
+  customTo: string;
+  treatingDoctor: string;
+  implantSystem: string;
+  caseStatus: string;
+}
+
+/**
+ * Shared filters for the statistics and the operational report sections
+ * (period, doctor, implant system, case status).
+ */
+export function ReportFiltersBar({
+  state,
+  onChange,
+  doctorOptions,
+  systemOptions,
+}: {
+  state: ReportFilterState;
+  onChange: (next: ReportFilterState) => void;
+  doctorOptions: string[];
+  systemOptions: string[];
+}) {
+  const set = (patch: Partial<ReportFilterState>) =>
+    onChange({ ...state, ...patch });
+
+  return (
+    <Card className="print:hidden" data-testid="card-report-filters">
+      <CardContent className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+        <div className="space-y-1.5">
+          <Label className="text-xs">الفترة</Label>
+          <Select
+            value={state.period}
+            onValueChange={(v) => set({ period: v as ReportPeriodId })}
+          >
+            <SelectTrigger data-testid="select-report-period">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {REPORT_PERIODS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {state.period === "custom" && (
+          <>
+            <div className="space-y-1.5">
+              <Label className="text-xs">من</Label>
+              <Input
+                type="date"
+                value={state.customFrom}
+                onChange={(e) => set({ customFrom: e.target.value })}
+                data-testid="input-report-from"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">إلى</Label>
+              <Input
+                type="date"
+                value={state.customTo}
+                onChange={(e) => set({ customTo: e.target.value })}
+                data-testid="input-report-to"
+              />
+            </div>
+          </>
+        )}
+        <div className="space-y-1.5">
+          <Label className="text-xs">الطبيب المعالج</Label>
+          <Select
+            value={state.treatingDoctor}
+            onValueChange={(v) => set({ treatingDoctor: v })}
+          >
+            <SelectTrigger data-testid="select-report-doctor">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>الكل</SelectItem>
+              {doctorOptions.map((d) => (
+                <SelectItem key={d} value={d}>
+                  <span className="notranslate">{d}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">نظام الزرعة</Label>
+          <Select
+            value={state.implantSystem}
+            onValueChange={(v) => set({ implantSystem: v })}
+          >
+            <SelectTrigger data-testid="select-report-system">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>الكل</SelectItem>
+              {systemOptions.map((s) => (
+                <SelectItem key={s} value={s}>
+                  <span className="notranslate">{s}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">حالة الحالة</Label>
+          <Select
+            value={state.caseStatus}
+            onValueChange={(v) => set({ caseStatus: v })}
+          >
+            <SelectTrigger data-testid="select-report-case-status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>الكل</SelectItem>
+              {CASE_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  <span className="notranslate">{s}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

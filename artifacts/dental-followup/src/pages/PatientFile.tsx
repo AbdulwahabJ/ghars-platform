@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImplantsTab } from "@/components/implants/ImplantsTab";
 import { PaymentsTab } from "@/components/finance/PaymentsTab";
 import { FollowupsTab } from "@/components/followups/FollowupsTab";
+import { SummaryTab } from "@/components/summary/SummaryTab";
 import {
   Dialog,
   DialogContent,
@@ -150,7 +151,7 @@ export default function PatientFile() {
       <div className="space-y-6 animate-in fade-in duration-500 pb-20" id="tour-patient-workspace">
         
         {/* Navigation Back */}
-        <div>
+        <div className="print:hidden">
           <Button variant="ghost" onClick={() => setLocation("/patients")} className="text-muted-foreground hover:text-foreground gap-2 -ml-4">
             <ArrowRight className="h-4 w-4" />
             العودة للقائمة
@@ -158,7 +159,7 @@ export default function PatientFile() {
         </div>
 
         {/* Compact Patient Header */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
           <div className="flex items-start gap-4">
             <div className={`h-14 w-14 rounded-full flex items-center justify-center shrink-0 text-xl font-bold ${
               isArchived ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
@@ -196,7 +197,7 @@ export default function PatientFile() {
         </div>
 
         {/* Tabs Navigation */}
-        <div className="flex overflow-x-auto hide-scrollbar border-b border-border bg-card rounded-t-2xl px-2 pt-2">
+        <div className="flex overflow-x-auto hide-scrollbar border-b border-border bg-card rounded-t-2xl px-2 pt-2 print:hidden">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -319,17 +320,7 @@ export default function PatientFile() {
           ) : activeTab === "followup" ? (
             <FollowupsTab patient={patient} />
           ) : (
-            <div className="flex flex-col items-center justify-center p-12 text-center h-[400px]">
-              <div className="h-20 w-20 bg-primary/5 rounded-full flex items-center justify-center mb-6">
-                <Info className="h-10 w-10 text-primary" />
-              </div>
-              <h2 className="text-xl font-bold text-foreground mb-3">
-                وحدة {tabs.find(t => t.id === activeTab)?.label}
-              </h2>
-              <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-                سيتم تفعيل هذه الوحدة وإتاحة إدخال البيانات الخاصة بها في مرحلة قادمة من تطوير النظام.
-              </p>
-            </div>
+            <SummaryTab patient={patient} />
           )}
         </div>
       </div>

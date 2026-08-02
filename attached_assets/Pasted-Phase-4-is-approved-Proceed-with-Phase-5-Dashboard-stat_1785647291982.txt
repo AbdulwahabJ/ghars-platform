@@ -1,0 +1,348 @@
+Phase 4 is approved.
+
+Proceed with Phase 5 — Dashboard, statistics, patient summary, and operational reports only.
+
+DELIVERY STRATEGY
+
+Prioritize completing the functional system quickly.
+
+Do not perform broad redesign, cosmetic polishing, optional refactoring, or excessive testing.
+
+Defer non-blocking visual and usability improvements to the final stabilization phase.
+
+Fix immediately only issues involving:
+
+- incorrect statistics,
+- incorrect financial calculations,
+- data loss or corruption,
+- authorization bypass,
+- broken required workflows,
+- failed migrations,
+- or failed production builds.
+
+Do not begin Phase 6.
+
+Preserve all existing users, patients, implant cases, implants, financial records, follow-ups, communications, templates, preferences, and audit records.
+
+Do not reset, truncate, recreate, or reseed the current development database.
+
+==================================================
+PHASE 5 REQUIRED SCOPE
+==================================================
+
+Implement:
+
+1. Live main dashboard.
+2. Operational KPI cards.
+3. Actionable operational lists.
+4. Basic clinical statistics.
+5. Date and operational filters.
+6. Patient summary tab.
+7. Printable patient summary.
+8. Printable case summary.
+9. Basic filtered operational export.
+10. Role-aware financial dashboard information.
+11. Proper empty, loading, and error states.
+12. Audit records for report exports where appropriate.
+
+Do not implement:
+
+- user management,
+- settings management,
+- role-management UI,
+- WhatsApp Business API,
+- automatic WhatsApp sending,
+- deployment configuration,
+- final design polishing,
+- or unrelated new modules.
+
+==================================================
+MAIN DASHBOARD
+==================================================
+
+Activate the الرئيسية page using live database queries.
+
+Show operational KPI cards for:
+
+- المرضى النشطون
+- حالات الزراعة النشطة
+- إجمالي الزرعات النشطة
+- مواعيد اليوم
+- المتابعات المتأخرة
+- حالات جاهزة للتركيب
+- الزرعات الفاشلة أو التي تحتاج إعادة
+- مهام التواصل المستحقة
+
+Financial KPI cards may be shown only to users with financial-view permission:
+
+- المقبوض هذا الشهر
+- إجمالي المبالغ المتبقية
+
+Do not expose financial figures to unauthorized users.
+
+Every KPI must have a clear definition and must be calculated from current database records.
+
+Do not store dashboard totals.
+
+Do not use fake or hard-coded statistics.
+
+Archived patients, archived cases, and archived implants must be excluded unless a report explicitly requests archived records.
+
+==================================================
+ACTIONABLE DASHBOARD SECTIONS
+==================================================
+
+Show compact operational sections for:
+
+1. مواعيد اليوم
+2. المتابعات المتأخرة
+3. حالات جاهزة للتركيب
+4. مهام التواصل المستحقة
+5. آخر النشاطات
+
+Each row should include only useful information such as:
+
+- patient name,
+- file number,
+- case or follow-up type,
+- date or time,
+- assigned user where applicable,
+- direct action to open the patient file.
+
+Keep the dashboard operational and concise.
+
+Do not duplicate the full patient, finance, or follow-up tables.
+
+==================================================
+STATISTICS
+==================================================
+
+Add simple database-driven statistics with filters.
+
+Filters:
+
+- اليوم
+- هذا الأسبوع
+- هذا الشهر
+- الشهر الماضي
+- هذه السنة
+- فترة مخصصة
+- الطبيب المعالج
+- نظام الزرعة
+- حالة الحالة
+
+Supported statistics:
+
+- cases created over time,
+- implants placed over time,
+- implant systems distribution,
+- case-status distribution,
+- implant-status distribution,
+- follow-up outcomes,
+- failed and reimplantation counts.
+
+Use no more than three charts on the dashboard.
+
+Use simple Recharts charts already available in the project.
+
+Do not add a new heavy visualization library.
+
+Do not make medical-success claims or calculate clinical success rates unless the database contains an explicitly documented denominator and definition.
+
+==================================================
+PATIENT SUMMARY TAB
+==================================================
+
+Activate the الملخص tab inside the patient workspace.
+
+The patient summary should combine existing information without duplicating or rewriting it.
+
+Show:
+
+1. Patient information:
+   - patient name
+   - file number
+   - mobile number
+   - age
+   - date added
+
+2. Implant cases:
+   - procedure date
+   - treating doctor
+   - case status
+   - Pros
+   - expected prosthetic date
+   - reimplantation relationship where applicable
+
+3. Implants:
+   - site
+   - System
+   - SIZE
+   - Q
+   - Former
+   - Graft
+   - procedure tags
+   - implant status
+   - NOTE
+
+4. Follow-up summary:
+   - upcoming follow-up
+   - overdue follow-ups
+   - completed history
+   - next appointment
+
+5. Financial summary only when the current user is authorized:
+   - base treatment amount
+   - charges
+   - discounts
+   - final total
+   - paid amount
+   - remaining amount
+   - payment status
+
+6. Communication summary:
+   - communication reason
+   - recorded result
+   - date and user
+
+Do not expose financial information through the patient summary to unauthorized users.
+
+Do not display archived clinical records by default, but allow a clearly labeled option to include them when authorized.
+
+==================================================
+PRINTABLE REPORTS
+==================================================
+
+Implement clean RTL print layouts using browser Print / Save as PDF.
+
+Required printable reports:
+
+1. Patient comprehensive summary.
+2. Individual implant-case summary.
+3. Filtered operational dashboard report.
+
+The print layout must:
+
+- include the clinic name,
+- include report title,
+- include generation date and time in Saudi timezone,
+- include patient file number where applicable,
+- remove navigation, buttons, dialogs, and irrelevant UI,
+- remain readable in Arabic RTL,
+- avoid clipped tables or cards,
+- avoid blank pages where possible.
+
+Do not add a heavy PDF-generation library.
+
+Do not automatically include detailed communication message text or sensitive internal audit information in printed reports.
+
+==================================================
+EXPORT
+==================================================
+
+Provide one simple CSV or Excel export for the filtered operational report.
+
+The export should include relevant operational fields such as:
+
+- patient name,
+- file number,
+- case status,
+- treating doctor,
+- procedure date,
+- implant count,
+- implant systems,
+- next follow-up,
+- overdue status,
+- ready-for-treatment status.
+
+Do not include financial columns unless the exporting user has financial-view permission.
+
+Respect current filters.
+
+Use an Arabic-safe UTF-8 BOM when exporting CSV.
+
+Audit-log the export action.
+
+==================================================
+PERMISSIONS
+==================================================
+
+ADMIN:
+- full Phase 5 access.
+
+DOCTOR:
+- clinical dashboard, patient summaries, case reports, and operational reports.
+- financial values only when financial-view permission is enabled.
+
+ASSISTANT:
+- operational dashboard.
+- patient and follow-up information allowed by existing permissions.
+- no clinic-wide financial information unless explicitly permitted.
+- no hidden access through exports or print routes.
+
+All permissions must be enforced in backend APIs.
+
+Do not rely only on hiding frontend elements.
+
+==================================================
+DATA AND CALCULATION RULES
+==================================================
+
+Use live database queries.
+
+Do not store mutable summary totals.
+
+Use Saudi Arabia timezone for displayed date and time logic.
+
+Follow the existing definitions:
+
+- Today’s appointments come from incomplete follow-ups scheduled for today.
+- Overdue follow-ups are incomplete follow-ups before today.
+- Ready-for-treatment cases come from the approved case status.
+- Paid and collected amounts exclude voided payments.
+- Collected revenue is based on payment date.
+- Archived patients are excluded from active dashboard counts.
+
+Do not silently invent medical meanings or success-rate formulas.
+
+==================================================
+FOCUSED TESTING
+==================================================
+
+Before completion:
+
+1. Run safe database migrations if any are required.
+2. Run TypeScript typecheck.
+3. Run ESLint.
+4. Run all existing automated tests.
+5. Add focused Phase 5 dashboard and permission tests.
+6. Run the production build.
+7. Test dashboard filters and navigation in Preview.
+8. Test patient and case printing.
+9. Test authorized and unauthorized financial visibility.
+10. Confirm exports respect filters and permissions.
+11. Fix blocking issues only.
+12. Confirm existing development data remains intact.
+13. Create a stable checkpoint.
+14. Provide a concise completion report.
+15. Stop.
+
+Required test scenarios:
+
+- dashboard loads with empty data,
+- dashboard loads with real test records,
+- active and archived records are counted correctly,
+- today and overdue follow-ups are calculated correctly,
+- ready-for-treatment cases appear correctly,
+- failed implants are counted correctly,
+- date filters return correct results,
+- doctor filter works,
+- implant-system filter works,
+- patient summary shows all allowed sections,
+- financial summary is hidden from unauthorized users,
+- financial columns are excluded from unauthorized exports,
+- print layouts do not contain navigation controls,
+- operational export respects active filters,
+- dashboard links open the correct patient file.
+
+Do not begin Phase 6.

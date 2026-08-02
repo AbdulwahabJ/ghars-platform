@@ -649,7 +649,7 @@ interface CaseFinRow {
 }
 
 /** Per-case aggregates for all non-archived cases of non-archived patients. */
-async function loadCaseFinancials(filters: {
+export async function loadCaseFinancials(filters: {
   patientName?: string;
   fileNumber?: string;
   implantSystem?: string;

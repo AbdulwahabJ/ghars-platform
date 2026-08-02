@@ -49,6 +49,10 @@ import type {
   FollowupUpdate,
   NotificationsResponse,
   WhatsappTemplate,
+  DashboardResponse,
+  OperationalReportResponse,
+  ReportFilters,
+  StatisticsResponse,
 } from "@workspace/shared";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
@@ -272,7 +276,29 @@ export const api = {
       `/users/assignable`,
     ),
   getNotifications: () => request<NotificationsResponse>(`/notifications`),
+  getDashboard: () => request<DashboardResponse>(`/dashboard`),
+  getStatistics: (filters: ReportFilters) =>
+    request<StatisticsResponse>(`/statistics?${reportQs(filters)}`),
+  getOperationalReport: (filters: ReportFilters) =>
+    request<OperationalReportResponse>(
+      `/reports/operational?${reportQs(filters)}`,
+    ),
 };
+
+export function reportQs(filters: ReportFilters): string {
+  const params = new URLSearchParams();
+  params.set("from", filters.from);
+  params.set("to", filters.to);
+  if (filters.treatingDoctor) params.set("treatingDoctor", filters.treatingDoctor);
+  if (filters.implantSystem) params.set("implantSystem", filters.implantSystem);
+  if (filters.caseStatus) params.set("caseStatus", filters.caseStatus);
+  return params.toString();
+}
+
+/** URL for the operational report CSV export (browser download). */
+export function operationalExportUrl(filters: ReportFilters): string {
+  return `${API_BASE}/reports/operational/export.csv?${reportQs(filters)}`;
+}
 
 export function financeQs(filters: FinanceFilters): string {
   const params = new URLSearchParams();

@@ -6,6 +6,7 @@ import healthRouter from "./health";
 import implantCasesRouter from "./implant-cases";
 import patientsRouter from "./patients";
 import preferencesRouter from "./preferences";
+import reportsRouter from "./reports";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(patientsRouter);
 router.use(implantCasesRouter);
 router.use(financeRouter);
 router.use(followupsRouter);
+router.use(reportsRouter);
 
 export default router;

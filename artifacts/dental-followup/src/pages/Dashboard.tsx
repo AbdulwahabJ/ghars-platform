@@ -1,15 +1,36 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
-import { saudiGreeting, formatSaudiWeekdayDate } from "@/lib/datetime";
+import {
+  saudiGreeting,
+  formatSaudiWeekdayDate,
+  formatSaudiDateTime,
+} from "@/lib/datetime";
 import { useAuth } from "@/hooks/use-auth";
 import { Shell } from "@/components/layout/Shell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Loader2, Info } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import { usePatients } from "@/hooks/use-patients";
-import { Patient } from "@workspace/shared";
+import { Patient, type ReportFilters } from "@workspace/shared";
 import { NewPatientDialog } from "@/components/patients/NewPatientDialog";
 import { useDebounce } from "@/hooks/use-debounce";
+import {
+  useDashboard,
+  useOperationalReport,
+  useStatistics,
+} from "@/hooks/use-reports";
+import { useImplantOptions } from "@/hooks/use-implant-cases";
+import { KpiCards } from "@/components/dashboard/KpiCards";
+import { ActionLists } from "@/components/dashboard/ActionLists";
+import {
+  ALL,
+  ReportFiltersBar,
+  type ReportFilterState,
+} from "@/components/dashboard/ReportFiltersBar";
+import { StatisticsSection } from "@/components/dashboard/StatisticsSection";
+import { OperationalReportSection } from "@/components/dashboard/OperationalReportSection";
+import { reportPeriodRange } from "@/lib/report-periods";
+import { todayIso } from "@/lib/money";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -28,6 +49,52 @@ export default function Dashboard() {
     query: debouncedSearch,
     pageSize: 5
   });
+
+  /* ----------------------- Phase 5: live dashboard ------------------ */
+
+  const today = useMemo(() => todayIso(), []);
+  const dashboard = useDashboard();
+  const { data: implantOptions } = useImplantOptions();
+
+  const [filterState, setFilterState] = useState<ReportFilterState>({
+    period: "this_month",
+    customFrom: `${todayIso().slice(0, 7)}-01`,
+    customTo: todayIso(),
+    treatingDoctor: ALL,
+    implantSystem: ALL,
+    caseStatus: ALL,
+  });
+
+  const reportFilters: ReportFilters = useMemo(() => {
+    const range =
+      filterState.period === "custom"
+        ? {
+            from: filterState.customFrom,
+            to:
+              filterState.customTo >= filterState.customFrom
+                ? filterState.customTo
+                : filterState.customFrom,
+          }
+        : reportPeriodRange(filterState.period, today);
+    return {
+      ...range,
+      treatingDoctor:
+        filterState.treatingDoctor === ALL
+          ? undefined
+          : filterState.treatingDoctor,
+      implantSystem:
+        filterState.implantSystem === ALL
+          ? undefined
+          : filterState.implantSystem,
+      caseStatus:
+        filterState.caseStatus === ALL
+          ? undefined
+          : (filterState.caseStatus as ReportFilters["caseStatus"]),
+    };
+  }, [filterState, today]);
+
+  const statistics = useStatistics(reportFilters);
+  const report = useOperationalReport(reportFilters);
 
   // Adjust state when the debounced query changes (render-phase adjustment,
   // see react.dev "You Might Not Need an Effect").
@@ -82,7 +149,7 @@ export default function Dashboard() {
         {/* Section A: Greeting & Search */}
         {/* overflow-hidden must NOT be on the section itself: it clips the search
             results dropdown. The decorative circle is clipped in its own layer. */}
-        <section className="bg-primary/5 rounded-3xl p-8 md:p-12 relative border border-primary/10">
+        <section className="bg-primary/5 rounded-3xl p-8 md:p-12 relative border border-primary/10 print:hidden">
           <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-bl-full" />
           </div>
@@ -180,17 +247,65 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Section B: Placeholder for Phase 2 Cards */}
-        <section id="tour-dashboard-overview" className="bg-card rounded-3xl p-8 border border-border shadow-sm flex flex-col items-center justify-center min-h-[300px] text-center">
-          <div className="h-16 w-16 bg-light-blue rounded-full flex items-center justify-center mb-6">
-            <Info className="h-8 w-8 text-primary" />
+        {/* Section B: live operational overview */}
+        <section id="tour-dashboard-overview" className="space-y-4 print:hidden">
+          <h2 className="text-xl font-bold text-foreground">ملخص العمل اليومي</h2>
+          {dashboard.isLoading ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : dashboard.isError || !dashboard.data ? (
+            <p className="text-sm text-destructive py-6 text-center">
+              تعذر تحميل بيانات لوحة المتابعة. حاول تحديث الصفحة.
+            </p>
+          ) : (
+            <>
+              <KpiCards data={dashboard.data} />
+              <ActionLists
+                todayAppointments={dashboard.data.todayAppointments}
+                overdueFollowups={dashboard.data.overdueFollowups}
+                readyCases={dashboard.data.readyCases}
+                contactTasks={dashboard.data.contactTasks}
+                recentActivities={dashboard.data.recentActivities}
+              />
+            </>
+          )}
+        </section>
+
+        {/* Section C: filtered statistics + operational report */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-foreground print:hidden">
+            الإحصائيات والتقرير التشغيلي
+          </h2>
+          <ReportFiltersBar
+            state={filterState}
+            onChange={setFilterState}
+            doctorOptions={statistics.data?.doctorOptions ?? []}
+            systemOptions={implantOptions?.systems ?? []}
+          />
+          <div className="print:hidden">
+            <StatisticsSection
+              data={statistics.data}
+              isLoading={statistics.isLoading}
+              isError={statistics.isError}
+            />
           </div>
-          <h2 className="text-xl font-bold text-foreground mb-3">ملخص العمل اليومي</h2>
-          <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-            سيتم تفعيل لوحة الإحصائيات التشغيلية والمالية (مثل المواعيد، المتابعات، والحالات المتأخرة) في مرحلة قادمة.
-            <br />
-            يمكنك حالياً البدء بتسجيل المرضى وإدارة ملفاتهم.
-          </p>
+
+          {/* Print-only report header (browser Print / Save as PDF) */}
+          <div className="hidden print:block mb-4">
+            <h1 className="text-xl font-bold">مجمع السن الرقمي الطبي</h1>
+            <p className="text-sm mt-1">التقرير التشغيلي</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              الفترة: {reportFilters.from} إلى {reportFilters.to} — تاريخ
+              الإنشاء: {formatSaudiDateTime(new Date())}
+            </p>
+          </div>
+          <OperationalReportSection
+            data={report.data}
+            isLoading={report.isLoading}
+            isError={report.isError}
+            filters={reportFilters}
+          />
         </section>
       </div>
 
