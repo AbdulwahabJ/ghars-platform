@@ -5,3 +5,4 @@ export * from "./schemas/auth";
 export * from "./schemas/patients";
 export * from "./schemas/implants";
 export * from "./schemas/finance";
+export * from "./schemas/followups";

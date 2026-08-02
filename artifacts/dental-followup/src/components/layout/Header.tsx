@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useNotifications } from "@/hooks/use-followups";
+import { formatSaudiDateTime } from "@/lib/datetime";
 import clinicLogo from "@/assets/clinic-logo.png";
 
 interface HeaderProps {
@@ -31,6 +33,9 @@ interface HeaderProps {
 export function Header({ user }: HeaderProps) {
   const [location, setLocation] = useLocation();
   const { logout } = useAuth();
+  const { data: notifications } = useNotifications();
+  const notificationItems = notifications?.items ?? [];
+  const notificationCount = notifications?.totalCount ?? 0;
 
   const roleName =
     user.role === "ADMIN"
@@ -139,8 +144,21 @@ export function Header({ user }: HeaderProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-primary relative"
+                    data-testid="button-notifications"
+                  >
                     <Bell className="h-5 w-5" />
+                    {notificationCount > 0 ? (
+                      <span
+                        className="absolute -top-0.5 -left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-[18px] text-center font-bold notranslate"
+                        data-testid="badge-notification-count"
+                      >
+                        {notificationCount > 99 ? "+99" : notificationCount}
+                      </span>
+                    ) : null}
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
@@ -148,11 +166,34 @@ export function Header({ user }: HeaderProps) {
                 <p>التنبيهات</p>
               </TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="end" className="w-64 p-4 text-center">
-              <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
-                <Bell className="h-8 w-8 mb-2 opacity-20" />
-                <p className="text-sm">لا توجد تنبيهات حاليًا</p>
-              </div>
+            <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+              {notificationItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+                  <Bell className="h-8 w-8 mb-2 opacity-20" />
+                  <p className="text-sm">لا توجد تنبيهات حاليًا</p>
+                </div>
+              ) : (
+                <>
+                  <DropdownMenuLabel>التنبيهات ({notificationCount})</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {notificationItems.map((item, idx) => (
+                    <DropdownMenuItem
+                      key={`${item.kind}-${item.followupId ?? item.implantCaseId ?? idx}`}
+                      className="cursor-pointer flex flex-col items-start gap-0.5 py-2"
+                      onClick={() => setLocation(`/patients/${item.patientId}`)}
+                      data-testid={`notification-item-${idx}`}
+                    >
+                      <span className="text-sm font-medium notranslate">{item.patientName}</span>
+                      <span className="text-xs text-muted-foreground">{item.reason}</span>
+                      {item.dueAt ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          {formatSaudiDateTime(item.dueAt)}
+                        </span>
+                      ) : null}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 

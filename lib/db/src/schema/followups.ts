@@ -7,6 +7,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { implantCasesTable } from "./implant-cases";
+import { patientsTable } from "./patients";
 import { usersTable } from "./users";
 
 /**
@@ -20,9 +21,13 @@ export const followupsTable = pgTable(
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patientsTable.id),
     followupType: text("followup_type").notNull(),
     followupStatus: text("followup_status").notNull().default("مجدولة"),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    result: text("result"),
     requiresContact: boolean("requires_contact").notNull().default(false),
     contactDueAt: timestamp("contact_due_at", { withTimezone: true }),
     nextAppointmentAt: timestamp("next_appointment_at", { withTimezone: true }),
@@ -38,6 +43,7 @@ export const followupsTable = pgTable(
   },
   (table) => [
     index("IDX_followups_case_id").on(table.implantCaseId),
+    index("IDX_followups_patient_id").on(table.patientId),
     index("IDX_followups_scheduled_at").on(table.scheduledAt),
   ],
 );

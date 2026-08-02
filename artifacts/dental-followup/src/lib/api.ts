@@ -39,6 +39,16 @@ import type {
   SetupInput,
   SetupStatus,
   UpdatePreferencesInput,
+  Communication,
+  CommunicationInput,
+  CommunicationResultInput,
+  Followup,
+  FollowupInput,
+  FollowupOutcome,
+  FollowupPostpone,
+  FollowupUpdate,
+  NotificationsResponse,
+  WhatsappTemplate,
 } from "@workspace/shared";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
@@ -219,6 +229,49 @@ export const api = {
     }),
   getFinanceOverview: (filters: FinanceFilters) =>
     request<FinanceOverview>(`/finance/overview?${financeQs(filters)}`),
+  getFollowups: (patientId: string) =>
+    request<{ followups: Followup[] }>(`/patients/${patientId}/followups`),
+  createFollowup: (caseId: string, input: FollowupInput) =>
+    request<{ followup: Followup }>(`/implant-cases/${caseId}/followups`, {
+      method: "POST",
+      json: input,
+    }),
+  updateFollowup: (id: string, input: FollowupUpdate) =>
+    request<{ followup: Followup }>(`/followups/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  recordFollowupOutcome: (id: string, input: FollowupOutcome) =>
+    request<{ followup: Followup }>(`/followups/${id}/outcome`, {
+      method: "POST",
+      json: input,
+    }),
+  postponeFollowup: (id: string, input: FollowupPostpone) =>
+    request<{ followup: Followup; newFollowup: Followup }>(
+      `/followups/${id}/postpone`,
+      { method: "POST", json: input },
+    ),
+  getCommunications: (patientId: string) =>
+    request<{ communications: Communication[] }>(
+      `/patients/${patientId}/communications`,
+    ),
+  createCommunication: (patientId: string, input: CommunicationInput) =>
+    request<{ communication: Communication }>(
+      `/patients/${patientId}/communications`,
+      { method: "POST", json: input },
+    ),
+  recordCommunicationResult: (id: string, input: CommunicationResultInput) =>
+    request<{ communication: Communication }>(
+      `/communications/${id}/result`,
+      { method: "PATCH", json: input },
+    ),
+  getWhatsappTemplates: () =>
+    request<{ templates: WhatsappTemplate[] }>(`/whatsapp-templates`),
+  getAssignableUsers: () =>
+    request<{ users: Array<{ id: string; fullName: string; role: string }> }>(
+      `/users/assignable`,
+    ),
+  getNotifications: () => request<NotificationsResponse>(`/notifications`),
 };
 
 export function financeQs(filters: FinanceFilters): string {

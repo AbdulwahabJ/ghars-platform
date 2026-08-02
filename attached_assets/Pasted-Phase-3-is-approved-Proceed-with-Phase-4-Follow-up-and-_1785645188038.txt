@@ -1,0 +1,447 @@
+Phase 3 is approved.
+
+Proceed with Phase 4 — Follow-up and WhatsApp only.
+
+DELIVERY STRATEGY
+
+Prioritize completing the functional system quickly.
+
+Do not perform optional redesign, broad refactoring, cosmetic polishing, large accessibility reviews, or nonessential optimization during this phase.
+
+Defer non-blocking improvements to the final stabilization phase.
+
+Fix immediately only issues involving:
+
+- data loss or corruption,
+- authorization or security bypass,
+- incorrect follow-up behavior,
+- incorrect WhatsApp number handling,
+- failed migrations,
+- failed production builds,
+- broken required workflows,
+- or nonfunctional required actions.
+
+Do not begin Phase 5 or Phase 6.
+
+Preserve all existing users, patients, implant cases, implants, payments, charges, discounts, audit records, and current database data.
+
+Do not reset, truncate, recreate, or reseed the existing development database.
+
+==================================================
+PHASE 4 REQUIRED SCOPE
+==================================================
+
+Implement:
+
+1. Structured follow-up records.
+2. Follow-up scheduling.
+3. Follow-up status management.
+4. Follow-up type management using the approved initial values.
+5. Assigned user.
+6. Contact-required flag.
+7. Contact due date.
+8. Next appointment date and time.
+9. Follow-up result and notes.
+10. Follow-up timeline inside the patient workspace.
+11. WhatsApp message templates.
+12. WhatsApp message preview and editing.
+13. WhatsApp deep-link opening only.
+14. Saudi and international phone normalization.
+15. Communication result recording.
+16. Communication timeline.
+17. Live notification-dropdown contents based on follow-up records.
+18. Proper backend permissions.
+19. Audit logging for all Phase 4 actions.
+
+Do not implement:
+
+- WhatsApp Business API,
+- message delivery tracking,
+- message read tracking,
+- automatic sending,
+- SMS,
+- email,
+- browser push notifications,
+- background workers,
+- or chat synchronization.
+
+==================================================
+FOLLOW-UP MODEL
+==================================================
+
+Each follow-up must be a separate structured record.
+
+Fields:
+
+- implant_case_id
+- patient_id
+- followup_type
+- scheduled_at
+- status
+- result
+- note
+- requires_contact
+- contact_due_at
+- next_appointment_at
+- assigned_user_id
+- created_by
+- created_at
+- updated_at
+
+Use timestamptz for date-time values.
+
+Display all dates and times to users in the Saudi Arabia timezone.
+
+Initial follow-up types:
+
+- متابعة بعد العملية
+- تقييم ثبات الزرعة
+- أشعة
+- جاهزية للتركيب
+- موعد تركيب
+- متابعة المؤقت
+- تحويل المؤقت إلى دائم
+- متابعة زراعة العظم
+- متابعة رفع الجيب الأنفي
+- متابعة زرعة فاشلة
+- إعادة زراعة
+- متابعة مالية
+- تواصل عام
+- أخرى
+
+Follow-up statuses:
+
+- مجدولة
+- تمت
+- لم يحضر
+- مؤجلة
+- لا يوجد رد
+- تحتاج إعادة تواصل
+- ملغاة
+
+The user must be able to:
+
+- add a follow-up,
+- edit it,
+- mark it completed,
+- postpone it,
+- mark no-show,
+- mark no response,
+- create a new follow-up from an existing one,
+- and view follow-up history.
+
+Do not permanently delete follow-up history.
+
+Use archive or cancel behavior where appropriate.
+
+==================================================
+FOLLOW-UP RULES
+==================================================
+
+Use structured rules, not free-text interpretation.
+
+- Today’s scheduled incomplete follow-ups are considered today’s appointments.
+- Past incomplete follow-ups are overdue.
+- Follow-ups with requires_contact = true and a due contact date are contact tasks.
+- Cases with status جاهز للتركيب are ready-for-treatment cases.
+- Completed and cancelled follow-ups must not appear as overdue.
+- Postponing a follow-up must preserve the original history and record the new date.
+- Follow-up actions must be blocked when the patient file is archived.
+
+==================================================
+PATIENT WORKSPACE
+==================================================
+
+Activate the المتابعة tab.
+
+Display:
+
+- next upcoming follow-up,
+- overdue follow-ups,
+- follow-up history,
+- communication history,
+- add-follow-up button,
+- WhatsApp button when the patient has a valid mobile number.
+
+Keep the UI simple and readable.
+
+Use cards or a compact timeline.
+
+Avoid large complex tables inside the patient workspace.
+
+==================================================
+WHATSAPP WORKFLOW
+==================================================
+
+Use a standard WhatsApp deep link only.
+
+Required workflow:
+
+1. User clicks إرسال واتساب.
+2. Show the communication reason.
+3. Suggest an approved template.
+4. Show a message preview.
+5. Allow the user to edit the message.
+6. Validate and normalize the phone number.
+7. Open WhatsApp with the encoded number and message.
+8. Return to the application.
+9. Ask the user to record the communication result manually.
+
+The application must never claim that it knows:
+
+- the message was sent,
+- delivered,
+- read,
+- or replied to.
+
+The application only knows:
+
+- that the WhatsApp link was opened,
+- and the result manually recorded by the user.
+
+==================================================
+PHONE NORMALIZATION
+==================================================
+
+Preserve mobile_number exactly as entered.
+
+Use mobile_normalized for search and WhatsApp.
+
+Saudi formats:
+
+05XXXXXXXX
+→
+9665XXXXXXXX
+
++9665XXXXXXXX
+→
+9665XXXXXXXX
+
+9665XXXXXXXX
+→
+9665XXXXXXXX
+
+Continue supporting Arabic digits.
+
+For non-Saudi numbers:
+
+- require an explicit country code,
+- never guess a country,
+- reject a local foreign number without country code,
+- show a clear Arabic validation message.
+
+Do not overwrite the original displayed number.
+
+==================================================
+WHATSAPP TEMPLATES
+==================================================
+
+Create the approved templates:
+
+1. Appointment reminder
+
+أهلًا {{patientName}}،
+نذكركم بموعدكم في مجمع السن الرقمي الطبي يوم {{date}} الساعة {{time}}.
+لتأكيد الموعد أو طلب تغييره يرجى الرد على الرسالة.
+
+2. Implant follow-up
+
+أهلًا {{patientName}}،
+حان موعد المتابعة لدى د. همام.
+نرجو التواصل معنا لتحديد الموعد المناسب.
+
+3. Continue treatment
+
+أهلًا {{patientName}}،
+نود إبلاغكم بأن موعد استكمال المرحلة القادمة من العلاج أصبح متاحًا.
+نرجو التواصل معنا لتحديد الموعد المناسب.
+
+4. Missed appointment
+
+أهلًا {{patientName}}،
+لاحظنا عدم تمكنكم من الحضور إلى موعدكم.
+نرجو التواصل معنا لإعادة جدولة الموعد.
+
+5. Post-procedure follow-up
+
+أهلًا {{patientName}}،
+نطمئن على حالتكم بعد الإجراء.
+في حال وجود أي استفسار أو ملاحظة، يرجى التواصل معنا.
+
+6. General financial reminder
+
+أهلًا {{patientName}}،
+نود تذكيركم بوجود مبلغ متبقٍ ضمن خطة العلاج.
+للمزيد من التفاصيل أو التنسيق يرجى التواصل مع الاستقبال.
+
+Do not include by default:
+
+- tooth number,
+- implant system,
+- diagnosis,
+- clinical notes,
+- detailed medical information,
+- or exact financial balance.
+
+Allow the user to edit the message before opening WhatsApp.
+
+==================================================
+COMMUNICATION RESULT
+==================================================
+
+After opening WhatsApp, show a simple dialog:
+
+ما نتيجة التواصل؟
+
+Options:
+
+- تم فتح واتساب
+- تم التواصل
+- لا يوجد رد
+- أكد الموعد
+- طلب تغيير الموعد
+- سيتم التواصل لاحقًا
+- رقم غير صحيح
+
+Communication log fields:
+
+- patient_id
+- implant_case_id
+- template_id
+- communication_reason
+- rendered_message
+- opened_at
+- communication_result
+- result_note
+- user_id
+- created_at
+
+Do not store or scrape the complete WhatsApp conversation.
+
+==================================================
+NOTIFICATION DROPDOWN
+==================================================
+
+Activate the existing notification icon using live database records.
+
+Do not create a notifications table.
+
+Do not create background workers.
+
+Show a small operational list generated directly from:
+
+- follow-ups due today,
+- overdue follow-ups,
+- contact tasks due,
+- ready-for-treatment cases.
+
+Each item should include:
+
+- patient name,
+- reason,
+- due date or time,
+- open patient action.
+
+Keep the dropdown compact.
+
+Do not add email, SMS, push notifications, or external services.
+
+==================================================
+PERMISSIONS
+==================================================
+
+ADMIN:
+- full follow-up and communication access.
+
+DOCTOR:
+- create, edit, complete, postpone, and review follow-ups.
+- use approved WhatsApp templates.
+
+ASSISTANT:
+- create and update follow-ups.
+- record communication results.
+- use approved WhatsApp templates.
+- cannot permanently delete records.
+- cannot change system-wide templates or settings.
+
+Enforce all permissions in backend APIs.
+
+Archived patient files must reject Phase 4 write operations with a clear Arabic error.
+
+==================================================
+AUDIT LOGGING
+==================================================
+
+Record:
+
+- follow-up creation,
+- follow-up update,
+- follow-up completion,
+- follow-up postponement,
+- follow-up cancellation,
+- WhatsApp link opening,
+- communication-result recording.
+
+Do not store secrets, session tokens, or unnecessary sensitive message payloads in the audit log.
+
+==================================================
+PHASE BOUNDARIES
+==================================================
+
+Do not implement:
+
+- the final populated dashboard,
+- dashboard KPI cards,
+- final operational statistics,
+- final patient printable summary,
+- full user-management UI,
+- settings UI,
+- deployment work,
+- WhatsApp API,
+- automated messaging.
+
+These remain Phase 5 or Phase 6.
+
+==================================================
+FOCUSED TESTING
+==================================================
+
+Before completion:
+
+1. Run safe database migrations.
+2. Run TypeScript typecheck.
+3. Run ESLint.
+4. Run all existing tests.
+5. Add focused Phase 4 tests.
+6. Run the production build.
+7. Test the main follow-up and WhatsApp workflow in Preview.
+8. Fix blocking errors only.
+9. Confirm all existing data remains intact.
+10. Create a checkpoint.
+11. Provide a concise completion report.
+12. Stop.
+
+Required test scenarios:
+
+- create a scheduled follow-up,
+- edit a follow-up,
+- complete a follow-up,
+- postpone a follow-up,
+- mark a patient as no-show,
+- mark no response,
+- confirm overdue calculation,
+- confirm completed follow-ups are not overdue,
+- confirm today’s appointments calculation,
+- confirm contact-required calculation,
+- open WhatsApp using 05XXXXXXXX,
+- open WhatsApp using +9665XXXXXXXX,
+- reject invalid foreign number without country code,
+- verify the message is URL encoded,
+- verify the system does not claim sent/read status,
+- record each communication result,
+- verify communication timeline,
+- verify notification dropdown contents,
+- verify unauthorized actions are rejected,
+- verify archived patient writes are blocked.
+
+Do not begin Phase 5.

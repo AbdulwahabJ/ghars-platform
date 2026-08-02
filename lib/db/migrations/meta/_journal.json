@@ -22,6 +22,20 @@
       "when": 1785578277277,
       "tag": "0002_unique_active_implant_site",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785645366183,
+      "tag": "0003_followups_phase4_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785645374738,
+      "tag": "0004_seed_whatsapp_templates",
+      "breakpoints": true
     }
   ]
 }
