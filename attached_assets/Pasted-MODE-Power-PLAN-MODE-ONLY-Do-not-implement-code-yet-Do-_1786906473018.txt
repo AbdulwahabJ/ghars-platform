@@ -1,0 +1,360 @@
+MODE: Power
+PLAN MODE ONLY.
+
+Do not implement code yet.
+Do not modify the database.
+Do not add packages.
+Do not create migrations.
+Do not change existing UI.
+Do not publish.
+
+We want to add a new feature to the existing dental implant follow-up system:
+
+"مساعد د. همام الذكي"
+
+The assistant will eventually support text and real-time voice conversations and answer questions using the live data already stored in this system.
+
+Before implementation, inspect the current architecture, APIs, database schema, permissions, React components, dashboard, patient/case/implant/finance/follow-up/report endpoints, and existing audit infrastructure.
+
+Then produce a concrete implementation plan.
+
+==================================================
+PRODUCT EXPERIENCE
+==================================================
+
+On the main dashboard hero area, use the currently unused left-side space for a dedicated AI assistant entry point.
+
+Concept:
+
+مساعد د. همام الذكي
+اسأل عن مريض، زرعة، دفعة، متابعة أو إحصائية
+
+Primary action:
+🎙️ ابدأ المحادثة
+
+The existing patient search remains unchanged.
+
+Eventually we may also add a small microphone icon inside the search field, but the dedicated assistant is the main experience.
+
+When opened, the assistant should become a conversational panel or full-screen experience.
+
+The user should be able to:
+
+- speak naturally in Arabic,
+- type questions,
+- see their spoken question transcribed,
+- hear the assistant respond by voice,
+- see the assistant response written at the same time,
+- continue asking follow-up questions using the conversation context,
+- interrupt the assistant while it is speaking,
+- receive structured cards/tables/timelines when appropriate,
+- open the relevant patient/case from the answer.
+
+Examples:
+
+"كم زرعة عند المريض عبدالوهاب؟"
+
+"وكم باقي عليه؟"
+
+"متى موعده القادم؟"
+
+"لخص لي حالته من البداية إلى الآن"
+
+"مين المرضى الجاهزين للتركيب؟"
+
+"كم زرعة Neoss عملنا هذا الشهر؟"
+
+"كم قبضنا اليوم؟"
+
+==================================================
+PHASE 1 SCOPE — READ ONLY
+==================================================
+
+The first implementation must be READ-ONLY.
+
+The AI must NOT:
+
+- create records,
+- edit patients,
+- edit cases,
+- add implants,
+- record payments,
+- create follow-ups,
+- archive/delete records,
+- send WhatsApp,
+- change settings.
+
+It may only:
+
+- search,
+- retrieve,
+- calculate using existing trusted business logic,
+- summarize,
+- explain existing records,
+- navigate the user to existing records.
+
+Write actions may be considered later as a separate phase with explicit confirmation.
+
+==================================================
+SECURE TOOL ARCHITECTURE
+==================================================
+
+The language model must NEVER receive unrestricted database access.
+
+Do not allow free-form SQL generation/execution.
+
+Design a server-side tool layer.
+
+Possible tools include:
+
+- searchPatients
+- getPatientOverview
+- getPatientImplants
+- getPatientCases
+- getPatientFinancialSummary
+- getPatientFollowups
+- getPatientTimeline
+- getUpcomingAppointment
+- getOverdueFollowups
+- getReadyForProstheticCases
+- getOperationalStatistics
+- getCollectionsSummary
+- getImplantSystemStatistics
+
+Reuse existing API queries/business logic wherever possible.
+
+Do not duplicate financial calculations or clinical status logic.
+
+Every tool call must:
+
+1. authenticate the current application user,
+2. enforce existing server-side permissions,
+3. validate parameters,
+4. query only the minimum required data,
+5. return structured JSON,
+6. avoid exposing secrets or unrelated patient data.
+
+==================================================
+FINANCIAL PERMISSIONS
+==================================================
+
+Financial answers must obey the current permission model.
+
+Example:
+
+If a user without financial-view permission asks:
+
+"كم باقي على المريض؟"
+
+the backend must NOT send the financial value to the AI.
+
+Return an authorization result instead.
+
+Do not rely on prompting the AI to hide unauthorized information.
+
+Enforce it in backend tools.
+
+==================================================
+PATIENT RESOLUTION
+==================================================
+
+Design safe patient matching.
+
+Support:
+
+- Arabic patient name
+- partial patient name
+- file number
+- original mobile number
+- normalized mobile number
+
+If multiple patients match:
+
+Do not guess.
+
+Return a clarification choice such as:
+
+محمد أحمد — ملف 1034
+محمد خالد — ملف 1188
+
+The conversational context should remember the selected patient for follow-up questions such as:
+
+"وكم باقي عليه؟"
+
+==================================================
+ACCURACY RULE
+==================================================
+
+Structured facts must come from trusted backend tools, not model guessing.
+
+Examples:
+
+- implant count
+- implant sites
+- systems
+- financial totals
+- payment balance
+- upcoming appointments
+- case status
+- follow-up dates
+- dashboard statistics
+
+The model may summarize free-text notes but must never invent missing clinical facts.
+
+For narrative summaries use wording equivalent to:
+
+"حسب البيانات والملاحظات المسجلة في النظام..."
+
+==================================================
+PROPOSED AI / VOICE STACK
+==================================================
+
+Evaluate using the current official OpenAI architecture for:
+
+- Realtime voice interaction,
+- WebRTC browser/mobile connection,
+- server-created short-lived client session credentials,
+- tool/function calling,
+- audio + transcript output,
+- Arabic conversation,
+- interruption/barge-in,
+- conversation context.
+
+Do not put a permanent OpenAI API key in frontend code.
+
+The permanent API key must stay server-side.
+
+The design must work later from:
+
+- desktop browser,
+- tablet,
+- mobile browser,
+- installable PWA.
+
+Do not implement PWA yet in this task.
+
+==================================================
+UI RESPONSE TYPES
+==================================================
+
+Plan structured response components rather than rendering every answer as plain text.
+
+Possible result types:
+
+1. Plain answer
+2. Patient summary card
+3. Financial summary card
+4. Implant list
+5. Follow-up list
+6. Treatment timeline
+7. Statistics card
+8. Patient-selection clarification
+9. Permission-denied response
+10. Open-record action
+
+The voice response should be concise.
+
+The visual response may contain more detail.
+
+==================================================
+AUDIT AND PRIVACY
+==================================================
+
+Plan safe audit logging for AI use.
+
+Record at minimum:
+
+- user
+- timestamp
+- assistant session identifier
+- tool names used
+- relevant patient/entity IDs where appropriate
+
+Do not log:
+
+- raw microphone recordings,
+- API keys,
+- session secrets,
+- full database payloads.
+
+Evaluate whether full question/answer text should be persisted or session-only.
+
+Prefer session-only conversation content initially unless persistence is operationally necessary.
+
+==================================================
+COST CONTROL
+==================================================
+
+This feature must be designed with operating cost in mind.
+
+The plan must explain:
+
+- which interactions require the AI model,
+- which answers can come directly from deterministic backend tools,
+- how to avoid sending large patient histories unnecessarily,
+- how conversation context will be bounded,
+- how token/audio usage can be minimized without hurting user experience.
+
+==================================================
+IMPLEMENTATION PHASES
+==================================================
+
+Propose a staged implementation.
+
+Preferred direction:
+
+Phase A:
+Text AI assistant + secure tool calling.
+
+Phase B:
+Structured answer cards and conversational context.
+
+Phase C:
+Realtime voice input/output.
+
+Phase D:
+Mobile/PWA optimization.
+
+Do not assume this ordering if inspection reveals a better technical approach; explain any proposed change.
+
+==================================================
+IMPORTANT
+==================================================
+
+Reuse the current system.
+
+Do not create a second parallel data layer.
+
+Do not redesign unrelated dashboard sections.
+
+Do not change existing patient workflows.
+
+Do not integrate WhatsApp API or Coexistence.
+
+Do not implement anything yet.
+
+==================================================
+PLAN OUTPUT
+==================================================
+
+Return a concise but concrete plan containing:
+
+1. Existing components/APIs that can be reused.
+2. New backend AI/tool modules required.
+3. Proposed OpenAI integration architecture.
+4. Proposed frontend component structure.
+5. Authentication/permission flow.
+6. Patient-resolution strategy.
+7. Conversation-context strategy.
+8. Voice architecture.
+9. Audit/privacy approach.
+10. Expected database changes, if any.
+11. Required environment variables.
+12. Main risks.
+13. Cost-control strategy.
+14. Implementation phases.
+15. Exact files/modules likely to be added or changed.
+
+Stop after the plan.
+
+Do not implement.
