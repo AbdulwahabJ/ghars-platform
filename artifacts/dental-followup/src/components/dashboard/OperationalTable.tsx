@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X } from "lucide-react";
+import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1422,21 +1422,39 @@ export function OperationalTable({
   data,
   isLoading,
   isError,
+  isFetching,
   filters,
+  searchValue,
+  onSearchChange,
 }: {
   data: OperationalReportResponse | undefined;
   isLoading: boolean;
   isError: boolean;
+  isFetching: boolean;
   filters: ReportFilters;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
 }) {
   const showFinance = Boolean(data?.financialsIncluded);
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const [showNewRecord, setShowNewRecord] = useState(false);
 
   const groups = data ? groupByPatient(data.rows) : [];
+  const visibleExpandedPatientId = groups.some(
+    (group) => group.patientId === expandedPatientId,
+  )
+    ? expandedPatientId
+    : null;
 
   const handleToggle = (patientId: string) => {
     setExpandedPatientId((prev) => (prev === patientId ? null : patientId));
+  };
+
+  const handleSearchChange = (value: string) => {
+    if (value !== searchValue) {
+      setExpandedPatientId(null);
+    }
+    onSearchChange(value);
   };
 
   const colSpan = showFinance ? 9 : 7;
@@ -1481,6 +1499,36 @@ export function OperationalTable({
         </div>
       </CardHeader>
       <CardContent className="p-0">
+        <div className="px-4 pb-3 print:hidden">
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchValue}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              placeholder="ابحث باسم المريض، رقم الملف أو رقم الجوال..."
+              aria-label="البحث في التقرير التشغيلي"
+              data-testid="input-operational-search"
+              className="h-10 w-full pr-10 pl-10"
+            />
+            {searchValue && (
+              isFetching ? (
+                <Loader2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onSearchChange("")}
+                  aria-label="مسح البحث"
+                  data-testid="button-clear-operational-search"
+                  className="absolute left-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )
+            )}
+          </div>
+        </div>
         {isLoading ? (
           <div className="flex items-center justify-center py-10 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -1504,7 +1552,9 @@ export function OperationalTable({
             {!data || groups.length === 0 ? (
               !showNewRecord && (
                 <p className="text-sm text-muted-foreground px-6 pb-5 pt-4">
-                  لا توجد حالات مطابقة للفلاتر المحددة.
+                  {searchValue.trim()
+                    ? "لا توجد نتائج مطابقة للبحث."
+                    : "لا توجد حالات مطابقة للفلاتر المحددة."}
                 </p>
               )
             ) : (
@@ -1535,14 +1585,14 @@ export function OperationalTable({
                           <PatientSummaryRow
                             group={group}
                             showFinance={showFinance}
-                            expanded={expandedPatientId === group.patientId}
+                            expanded={visibleExpandedPatientId === group.patientId}
                             onToggle={() => handleToggle(group.patientId)}
                           />
                           <ExpandedRowWrapper
                             group={group}
                             showFinance={showFinance}
                             colSpan={colSpan}
-                            expanded={expandedPatientId === group.patientId}
+                            expanded={visibleExpandedPatientId === group.patientId}
                           />
                         </React.Fragment>
                       ))}

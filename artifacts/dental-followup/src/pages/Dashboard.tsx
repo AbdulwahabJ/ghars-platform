@@ -8,7 +8,6 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Shell } from "@/components/layout/Shell";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from "lucide-react";
 import { usePatients } from "@/hooks/use-patients";
 import { Patient, type ReportFilters } from "@workspace/shared";
@@ -60,6 +59,8 @@ export default function Dashboard() {
     implantSystem: ALL,
     caseStatus: ALL,
   });
+  const [operationalSearch, setOperationalSearch] = useState("");
+  const debouncedOperationalSearch = useDebounce(operationalSearch, 275);
 
   const reportFilters: ReportFilters = useMemo(() => {
     const range =
@@ -86,8 +87,9 @@ export default function Dashboard() {
         filterState.caseStatus === ALL
           ? undefined
           : (filterState.caseStatus as ReportFilters["caseStatus"]),
+      search: debouncedOperationalSearch.trim() || undefined,
     };
-  }, [filterState, today]);
+  }, [debouncedOperationalSearch, filterState, today]);
 
   const statistics = useStatistics(reportFilters);
   const report = useOperationalReport(reportFilters);
@@ -276,7 +278,10 @@ export default function Dashboard() {
             data={report.data}
             isLoading={report.isLoading}
             isError={report.isError}
+            isFetching={report.isFetching}
             filters={reportFilters}
+            searchValue={operationalSearch}
+            onSearchChange={setOperationalSearch}
           />
         </section>
 

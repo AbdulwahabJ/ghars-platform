@@ -6,8 +6,10 @@ import {
   FOLLOWUP_OUTCOME_STATUSES,
   OPEN_FOLLOWUP_STATUS,
   READY_CASE_STATUS,
+  normalizeArabicSearchText,
   reportFiltersSchema,
   riyadhDateOf,
+  toEnglishDigits,
   toCents,
   type DashboardListItem,
   type DashboardResponse,
@@ -49,6 +51,10 @@ function riyadhToday(): string {
 }
 
 const num = (v: unknown): number => Number(v ?? 0);
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
 
 /* ------------------------------------------------------------------ */
 /* GET /dashboard — live KPI counters + actionable lists               */
@@ -247,6 +253,37 @@ router.get("/dashboard", async (req, res) => {
  * same definition used by the finance module) falls inside [from, to].
  */
 function caseFilterFragment(filters: ReportFilters) {
+  const search = filters.search ? toEnglishDigits(filters.search).trim() : "";
+  const searchName = search ? normalizeArabicSearchText(search) : "";
+  const searchDigits = search.replace(/\D/g, "");
+  const searchConditions = [
+    searchName
+      ? sql`p.full_name_normalized ILIKE ${`%${escapeLike(searchName)}%`}`
+      : null,
+    search
+      ? sql`p.file_number ILIKE ${`%${escapeLike(search)}%`}`
+      : null,
+    searchDigits
+      ? sql`(
+          p.mobile_normalized LIKE ${`%${escapeLike(searchDigits)}%`}
+          OR regexp_replace(
+            translate(
+              COALESCE(p.mobile_number, ''),
+              '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹',
+              '01234567890123456789'
+            ),
+            '[^0-9]',
+            '',
+            'g'
+          ) LIKE ${`%${escapeLike(searchDigits)}%`}
+        )`
+      : null,
+  ].filter((condition): condition is ReturnType<typeof sql> => condition !== null);
+  const searchFragment =
+    searchConditions.length > 0
+      ? sql`AND (${sql.join(searchConditions, sql` OR `)})`
+      : sql``;
+
   return sql`
     ic.archived_at IS NULL
     AND p.archived_at IS NULL
@@ -264,6 +301,7 @@ function caseFilterFragment(filters: ReportFilters) {
               AND ix.system = ${filters.implantSystem})`
         : sql``
     }
+    ${searchFragment}
   `;
 }
 

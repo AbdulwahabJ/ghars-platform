@@ -11,9 +11,10 @@ export function useDashboard() {
 }
 
 export function useStatistics(filters: ReportFilters) {
+  const { search: _search, ...statisticsFilters } = filters;
   return useQuery({
-    queryKey: ["statistics", filters],
-    queryFn: () => api.getStatistics(filters),
+    queryKey: ["statistics", statisticsFilters],
+    queryFn: () => api.getStatistics(statisticsFilters),
   });
 }
 
@@ -21,5 +22,6 @@ export function useOperationalReport(filters: ReportFilters) {
   return useQuery({
     queryKey: ["operational-report", filters],
     queryFn: () => api.getOperationalReport(filters),
+    placeholderData: (previous) => previous,
   });
 }

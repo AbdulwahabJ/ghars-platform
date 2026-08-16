@@ -1,0 +1,118 @@
+MODE: Lite
+
+Add one focused feature only: patient search inside the operational report table.
+
+Do not redesign anything else.
+Do not change unrelated pages or workflows.
+Do not run broad tests.
+
+## SEARCH LOCATION
+
+Add a clean search field inside the "التقرير التشغيلي" section, directly above the patient rows.
+
+Placeholder:
+
+ابحث باسم المريض، رقم الملف أو رقم الجوال...
+
+Include:
+
+* search icon
+* clear X button when text exists
+* responsive full-width behavior on mobile
+
+Keep:
+
+* إضافة سجل
+* تصدير CSV
+* طباعة
+
+in the same report header area.
+
+## SEARCH BEHAVIOR
+
+Search across:
+
+* patient full name
+* file number
+* original mobile number
+* normalized mobile number
+
+Support:
+
+* Arabic and English digits
+* partial name matching
+* partial file-number matching
+* partial phone-number matching
+
+Examples:
+
+عبدالوهاب
+
+1234
+
+0530
+
+96653
+
+must all work appropriately.
+
+## IMPORTANT
+
+Search must combine with the existing operational-report filters:
+
+* period
+* treating doctor
+* implant system
+* case status
+
+Do not reset other filters when searching.
+
+Use approximately 250–300ms debounce.
+
+Prefer server-side filtering through the existing operational-report endpoint so this continues working correctly when the number of patients becomes large.
+
+Do not fetch all patients merely to search them in the browser.
+
+## RESULTS
+
+While typing:
+
+* update the table smoothly
+* do not reload the whole page
+* show a subtle loading indicator if needed
+
+When there are no results show:
+
+لا توجد نتائج مطابقة للبحث.
+
+Do not automatically expand a result.
+
+If the currently expanded patient disappears because of the search, safely close its expanded row.
+
+Clearing the search restores the previous filtered table.
+
+## MOBILE
+
+The same search must work in the mobile patient-card view.
+
+Keep it large enough for easy touch use.
+
+## VERIFICATION
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* one focused browser check:
+
+1. search by patient name
+2. search by file number
+3. search by mobile number
+4. clear search
+5. combine search with one existing filter
+6. confirm mobile layout
+
+Do not run the full test suite.
+Do not publish.
+
+Provide a concise completion report and stop.

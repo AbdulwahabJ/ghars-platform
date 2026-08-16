@@ -440,6 +440,7 @@ export function reportQs(filters: ReportFilters): string {
   const params = new URLSearchParams();
   params.set("from", filters.from);
   params.set("to", filters.to);
+  if (filters.search) params.set("search", filters.search);
   if (filters.treatingDoctor) params.set("treatingDoctor", filters.treatingDoctor);
   if (filters.implantSystem) params.set("implantSystem", filters.implantSystem);
   if (filters.caseStatus) params.set("caseStatus", filters.caseStatus);

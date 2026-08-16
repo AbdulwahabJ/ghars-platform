@@ -18,6 +18,7 @@ export const reportFiltersSchema = z
   .object({
     from: isoDateSchema,
     to: isoDateSchema,
+    search: z.string().trim().min(1).max(200).optional(),
     treatingDoctor: z.string().trim().min(1).max(200).optional(),
     implantSystem: z.string().trim().min(1).max(200).optional(),
     caseStatus: caseStatusSchema.optional(),
