@@ -1,0 +1,203 @@
+MODE: Economy
+
+Apply one focused workflow correction to the expanded operational-table patient row.
+
+Do not redesign the table.
+Do not change unrelated pages.
+Do not change existing APIs, permissions, calculations, or business rules unless required to reuse them inline.
+
+## GOAL
+
+The expanded operational patient row must become the primary working area.
+
+Currently these actions navigate the user to the full patient workspace:
+
+* إضافة زرعة
+* تسجيل دفعة
+* إضافة متابعة
+
+Change them so these three actions work INLINE inside the currently expanded patient row.
+
+The user must remain on the dashboard operational table.
+
+## 1. ADD IMPLANT INLINE
+
+When clicking:
+
+إضافة زرعة
+
+Do not navigate.
+Do not open the full patient page.
+Do not open a separate modal.
+
+Open a smooth inline implant editor directly below the quick-action toolbar inside the expanded patient row.
+
+Reuse the existing implant creation logic and validation.
+
+Fields must include the existing implant fields:
+
+* site / FDI
+* System
+* diameter
+* length
+* Q
+* Former
+* Graft
+* graft type/note where applicable
+* procedure tags
+* implant status
+* NOTE
+
+Use the selected patient's appropriate implant case.
+
+If the patient has more than one active case and the target case cannot be inferred safely, show a small case selector first.
+
+Actions:
+
+[إلغاء] [حفظ الزرعة]
+
+After save:
+
+* close the inline editor,
+* refresh only that patient's expanded details and report summary,
+* show the newly added implant immediately.
+
+## 2. RECORD PAYMENT INLINE
+
+When clicking:
+
+تسجيل دفعة
+
+Open a compact inline payment form in the same location.
+
+Do not navigate.
+
+Reuse the existing payment API, permissions, validation, and audit behavior.
+
+Fields:
+
+* implant case
+* amount
+* payment label
+* payment method
+* payment date
+* reference number
+* note
+
+If there is only one relevant case, preselect it.
+
+If there are multiple cases, require the user to choose the case.
+
+Actions:
+
+[إلغاء] [حفظ الدفعة]
+
+After save:
+
+* refresh financial summary,
+* refresh paid/outstanding values in the operational row,
+* keep the patient row expanded.
+
+Respect canRecordPayments server-side and frontend-side.
+
+## 3. ADD FOLLOW-UP INLINE
+
+When clicking:
+
+إضافة متابعة
+
+Open the existing follow-up creation workflow inline inside the expanded patient row.
+
+Fields should reuse the existing follow-up logic:
+
+* case
+* follow-up type
+* scheduled date/time
+* responsible user
+* requires contact
+* contact due date when applicable
+* next appointment
+* note
+
+Actions:
+
+[إلغاء] [حفظ المتابعة]
+
+After save:
+
+* update next follow-up,
+* update overdue/today indicators where relevant,
+* keep the patient row expanded.
+
+## 4. INLINE ACTION AREA BEHAVIOR
+
+Only one inline quick-action editor should be open at a time.
+
+Example:
+
+If "إضافة زرعة" is open and the user clicks "تسجيل دفعة":
+
+* close the implant editor,
+* open the payment editor.
+
+Use a smooth 200–300ms transition.
+
+Do not move the user to another page.
+
+Keep scroll position stable.
+
+## 5. FULL PATIENT FILE
+
+Keep:
+
+فتح الملف الكامل
+
+as the only action that navigates to the full patient workspace.
+
+Make it visually secondary and clearly indicate that it opens another view, for example:
+
+الملف الكامل ↗
+
+Do not remove the full patient workspace.
+
+## 6. PRESERVE EVERYTHING ELSE
+
+Do not change:
+
+* current expanded-row design,
+* inline section editing,
+* inline new-record workflow,
+* finance rules,
+* follow-up rules,
+* implant rules,
+* patient workspace,
+* statistics,
+* settings,
+* WhatsApp behavior,
+* permissions.
+
+## 7. COST-AWARE VERIFICATION
+
+Do not run the full historical E2E suite.
+
+Run only:
+
+* typecheck,
+* lint for affected code,
+* focused browser smoke test:
+
+  1. expand patient,
+  2. add implant inline,
+  3. verify row stays open,
+  4. record payment inline,
+  5. verify totals refresh,
+  6. add follow-up inline,
+  7. verify next follow-up refreshes,
+  8. verify cancel behavior,
+  9. verify only one inline editor opens at a time.
+
+Use isolated test data.
+
+Provide a concise result and stop.
+
+Do not publish.

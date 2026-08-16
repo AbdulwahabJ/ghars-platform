@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Phone, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check } from "lucide-react";
+import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Phone, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,12 +15,14 @@ import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
 import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant } from "@workspace/shared";
-import { CASE_STATUSES, IMPLANT_STATUSES } from "@workspace/shared";
+import { CASE_STATUSES, IMPLANT_STATUSES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
 import { usePatient, useUpdatePatient } from "@/hooks/use-patients";
-import { useImplantCases, useUpdateImplantCase, useUpdateImplant, useImplantOptions } from "@/hooks/use-implant-cases";
-import { useFollowups } from "@/hooks/use-followups";
+import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useImplantOptions } from "@/hooks/use-implant-cases";
+import { useFollowups, useCreateFollowup, useAssignableUsers } from "@/hooks/use-followups";
+import { useCreatePayment } from "@/hooks/use-finance";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { InlineNewRecord } from "./InlineNewRecord";
 
 /* ------------------------------------------------------------------ */
@@ -402,6 +405,442 @@ function InlineImplantEdit({
 }
 
 /* ------------------------------------------------------------------ */
+/* Inline Quick-Action Forms                                           */
+/* ------------------------------------------------------------------ */
+
+/** Case selector used by payment + followup forms when there are multiple cases */
+function CaseSelector({
+  cases,
+  selected,
+  onSelect,
+}: {
+  cases: ImplantCaseWithImplants[];
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  if (cases.length <= 1) return null;
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">الحالة *</Label>
+      <Select dir="rtl" value={selected} onValueChange={onSelect}>
+        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="اختر الحالة" /></SelectTrigger>
+        <SelectContent>
+          {cases.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.caseStatus} — {c.treatingDoctor}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function InlineAddImplant({
+  patientId,
+  cases,
+  onDone,
+}: {
+  patientId: string;
+  cases: ImplantCaseWithImplants[];
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const create = useCreateImplant();
+  const { data: implantOptions } = useImplantOptions();
+  const qc = useQueryClient();
+
+  const defaultCaseId = cases[0]?.id ?? "";
+  const [caseId, setCaseId] = useState(defaultCaseId);
+  const [site, setSite] = useState("");
+  const [system, setSystem] = useState("");
+  const [diameter, setDiameter] = useState("");
+  const [length, setLength] = useState("");
+  const [qValue, setQValue] = useState("");
+  const [formerValue, setFormerValue] = useState("");
+  const [graftValue, setGraftValue] = useState("");
+  const [graftProcedureType, setGraftProcedureType] = useState("");
+  const [graftNote, setGraftNote] = useState("");
+  const [implantStatus, setImplantStatus] = useState<string>("مزروعة");
+  const [implantNote, setImplantNote] = useState("");
+
+  const save = () => {
+    if (!site || !caseId) return;
+    create.mutate(
+      {
+        caseId,
+        patientId,
+        data: {
+          site: site as any,
+          system: system || null,
+          diameter: diameter ? parseFloat(diameter) : null,
+          length: length ? parseFloat(length) : null,
+          qValue: qValue || null,
+          formerValue: formerValue || null,
+          graftValue: graftValue || null,
+          graftProcedureType: graftProcedureType || null,
+          graftNote: graftNote || null,
+          procedureTags: [],
+          implantStatus: implantStatus as any,
+          implantNote: implantNote || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "تمت إضافة الزرعة" });
+          void qc.invalidateQueries({ queryKey: ["operational-report"] });
+          onDone();
+        },
+        onError: () => { toast({ title: "فشل الحفظ", variant: "destructive" }); },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-3 pt-1">
+      <p className="text-xs font-semibold text-muted-foreground">إضافة زرعة</p>
+      <CaseSelector cases={cases} selected={caseId} onSelect={setCaseId} />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* Site */}
+        <div className="space-y-1">
+          <Label className="text-xs">الموقع (FDI) *</Label>
+          <Select dir="ltr" value={site} onValueChange={setSite}>
+            <SelectTrigger className="h-8 text-sm text-right"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
+              {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك السفلي</div>
+              {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* System */}
+        <div className="space-y-1">
+          <Label className="text-xs">النظام</Label>
+          <Select dir="rtl" value={system || "__none__"} onValueChange={(v) => setSystem(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {(implantOptions?.systems ?? []).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Diameter */}
+        <div className="space-y-1">
+          <Label className="text-xs">القطر</Label>
+          <Input className="h-8 text-sm" type="number" step="0.1" min={0} value={diameter} onChange={(e) => setDiameter(e.target.value)} />
+        </div>
+        {/* Length */}
+        <div className="space-y-1">
+          <Label className="text-xs">الطول</Label>
+          <Input className="h-8 text-sm" type="number" step="0.1" min={0} value={length} onChange={(e) => setLength(e.target.value)} />
+        </div>
+        {/* Q */}
+        <div className="space-y-1">
+          <Label className="text-xs">Q</Label>
+          <Select dir="rtl" value={qValue || "__none__"} onValueChange={(v) => setQValue(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {(implantOptions?.qValues ?? []).map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Former */}
+        <div className="space-y-1">
+          <Label className="text-xs">Former</Label>
+          <Select dir="rtl" value={formerValue || "__none__"} onValueChange={(v) => setFormerValue(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {(implantOptions?.formerValues ?? []).map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Graft */}
+        <div className="space-y-1">
+          <Label className="text-xs">Graft</Label>
+          <Select dir="rtl" value={graftValue || "__none__"} onValueChange={(v) => setGraftValue(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {(implantOptions?.graftValues ?? []).map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Implant Status */}
+        <div className="space-y-1">
+          <Label className="text-xs">حالة الزرعة</Label>
+          <Select dir="rtl" value={implantStatus} onValueChange={setImplantStatus}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Graft procedure type */}
+        {graftValue && (
+          <>
+            <div className="space-y-1">
+              <Label className="text-xs">نوع إجراء الترقيع</Label>
+              <Input className="h-8 text-sm" value={graftProcedureType} onChange={(e) => setGraftProcedureType(e.target.value)} />
+            </div>
+            <div className="col-span-2 sm:col-span-3 space-y-1">
+              <Label className="text-xs">ملاحظة الترقيع</Label>
+              <Input className="h-8 text-sm" value={graftNote} onChange={(e) => setGraftNote(e.target.value)} />
+            </div>
+          </>
+        )}
+        {/* Implant note — full width */}
+        <div className="col-span-2 sm:col-span-4 space-y-1">
+          <Label className="text-xs">ملاحظة</Label>
+          <Textarea className="text-sm resize-none" rows={2} value={implantNote} onChange={(e) => setImplantNote(e.target.value)} />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={create.isPending || !site || !caseId} className="h-8 text-xs">
+          {create.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          حفظ الزرعة
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={create.isPending} className="h-8 text-xs">
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function InlineRecordPayment({
+  patientId,
+  cases,
+  onDone,
+}: {
+  patientId: string;
+  cases: ImplantCaseWithImplants[];
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const create = useCreatePayment();
+  const qc = useQueryClient();
+
+  const defaultCaseId = cases[0]?.id ?? "";
+  const [caseId, setCaseId] = useState(defaultCaseId);
+  const [amount, setAmount] = useState("");
+  const [paymentLabel, setPaymentLabel] = useState<string>(PAYMENT_LABELS[0]);
+  const [paymentMethod, setPaymentMethod] = useState<string>(PAYMENT_METHODS[1]);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [note, setNote] = useState("");
+
+  const save = () => {
+    if (!amount || !caseId) return;
+    create.mutate(
+      {
+        caseId,
+        data: {
+          amount: parseFloat(amount),
+          paymentLabel: paymentLabel as any,
+          paymentMethod: paymentMethod as any,
+          paymentDate: paymentDate,
+          referenceNumber: referenceNumber || null,
+          note: note || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "تم تسجيل الدفعة" });
+          void qc.invalidateQueries({ queryKey: ["operational-report"] });
+          onDone();
+        },
+        onError: () => { toast({ title: "فشل الحفظ", variant: "destructive" }); },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-3 pt-1">
+      <p className="text-xs font-semibold text-muted-foreground">تسجيل دفعة</p>
+      <CaseSelector cases={cases} selected={caseId} onSelect={setCaseId} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">المبلغ (ر.س) *</Label>
+          <Input className="h-8 text-sm" type="number" step="0.01" min={0.01} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">وصف الدفعة</Label>
+          <Select dir="rtl" value={paymentLabel} onValueChange={setPaymentLabel}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">طريقة الدفع</Label>
+          <Select dir="rtl" value={paymentMethod} onValueChange={setPaymentMethod}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">تاريخ الدفعة</Label>
+          <Input className="h-8 text-sm" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">رقم المرجع</Label>
+          <Input className="h-8 text-sm" dir="ltr" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="اختياري" />
+        </div>
+        <div className="col-span-2 sm:col-span-3 space-y-1">
+          <Label className="text-xs">ملاحظة</Label>
+          <Textarea className="text-sm resize-none" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={create.isPending || !amount || !caseId} className="h-8 text-xs">
+          {create.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          حفظ الدفعة
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={create.isPending} className="h-8 text-xs">
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function InlineAddFollowup({
+  patientId,
+  cases,
+  onDone,
+}: {
+  patientId: string;
+  cases: ImplantCaseWithImplants[];
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const create = useCreateFollowup(patientId);
+  const { data: assignableUsers } = useAssignableUsers();
+  const qc = useQueryClient();
+
+  const defaultCaseId = cases[0]?.id ?? "";
+  const [caseId, setCaseId] = useState(defaultCaseId);
+  const [followupType, setFollowupType] = useState<string>(FOLLOWUP_TYPES[0]);
+  // datetime-local value: YYYY-MM-DDTHH:MM (no seconds)
+  const [scheduledAt, setScheduledAt] = useState(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16);
+  });
+  const [requiresContact, setRequiresContact] = useState(false);
+  const [contactDueAt, setContactDueAt] = useState("");
+  const [nextAppointmentAt, setNextAppointmentAt] = useState("");
+  const [assignedUserId, setAssignedUserId] = useState("");
+  const [note, setNote] = useState("");
+
+  const save = () => {
+    if (!scheduledAt || !caseId) return;
+    create.mutate(
+      {
+        caseId,
+        input: {
+          followupType: followupType as any,
+          scheduledAt,
+          requiresContact,
+          contactDueAt: requiresContact && contactDueAt ? contactDueAt : null,
+          nextAppointmentAt: nextAppointmentAt || null,
+          note: note || null,
+          assignedUserId: assignedUserId || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "تمت إضافة المتابعة" });
+          void qc.invalidateQueries({ queryKey: ["operational-report"] });
+          onDone();
+        },
+        onError: () => { toast({ title: "فشل الحفظ", variant: "destructive" }); },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-3 pt-1">
+      <p className="text-xs font-semibold text-muted-foreground">إضافة متابعة</p>
+      <CaseSelector cases={cases} selected={caseId} onSelect={setCaseId} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">نوع المتابعة *</Label>
+          <Select dir="rtl" value={followupType} onValueChange={setFollowupType}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {FOLLOWUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">التاريخ والوقت *</Label>
+          <Input
+            className="h-8 text-sm"
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+          />
+        </div>
+        {assignableUsers && assignableUsers.length > 0 && (
+          <div className="space-y-1">
+            <Label className="text-xs">المسؤول</Label>
+            <Select dir="rtl" value={assignedUserId || "__none__"} onValueChange={(v) => setAssignedUserId(v === "__none__" ? "" : v)}>
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">—</SelectItem>
+                {assignableUsers.map((u) => <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="space-y-1">
+          <Label className="text-xs">الموعد القادم</Label>
+          <Input
+            className="h-8 text-sm"
+            type="datetime-local"
+            value={nextAppointmentAt}
+            onChange={(e) => setNextAppointmentAt(e.target.value)}
+          />
+        </div>
+        <div className="col-span-1 sm:col-span-2 flex items-center gap-2 pt-1">
+          <Checkbox
+            id="qe-requires-contact"
+            checked={requiresContact}
+            onCheckedChange={(v) => setRequiresContact(!!v)}
+          />
+          <Label htmlFor="qe-requires-contact" className="text-xs cursor-pointer">يتطلب تواصلًا</Label>
+        </div>
+        {requiresContact && (
+          <div className="space-y-1">
+            <Label className="text-xs">تاريخ التواصل</Label>
+            <Input className="h-8 text-sm" type="date" value={contactDueAt} onChange={(e) => setContactDueAt(e.target.value)} />
+          </div>
+        )}
+        <div className="col-span-1 sm:col-span-2 space-y-1">
+          <Label className="text-xs">ملاحظة</Label>
+          <Textarea className="text-sm resize-none" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={create.isPending || !scheduledAt || !caseId} className="h-8 text-xs">
+          {create.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          حفظ المتابعة
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={create.isPending} className="h-8 text-xs">
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Expanded Patient Detail                                             */
 /* ------------------------------------------------------------------ */
 
@@ -423,10 +862,16 @@ function PatientExpandedRow({
   const [editingPatient, setEditingPatient] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
   const [editingImplantId, setEditingImplantId] = useState<string | null>(null);
+  // Inline quick-action state — one form open at a time
+  type QuickAction = "implant" | "payment" | "followup";
+  const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
 
   const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); };
   const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); };
   const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); };
+
+  const toggleAction = (action: QuickAction) =>
+    setActiveAction((prev) => (prev === action ? null : action));
 
   const allCases = casesQuery.data?.items ?? [];
   const activeCases = allCases.filter((c) => c.status === "active");
@@ -673,37 +1118,86 @@ function PatientExpandedRow({
         </div>
       )}
 
-      {/* F — Quick actions */}
-      <div className="flex flex-wrap gap-2 pt-2 border-t border-border/60">
-        <Button asChild size="sm" variant="outline">
-          <Link href={`/patients/${group.patientId}`}>
-            <ExternalLink className="h-3.5 w-3.5" />
-            فتح الملف الكامل
-          </Link>
-        </Button>
-        {group.rows[0] && (
-          <>
-            <Button asChild size="sm" variant="outline">
-              <Link href={`/patients/${group.patientId}?tab=implants`}>
-                <Plus className="h-3.5 w-3.5" />
-                إضافة زرعة
-              </Link>
+      {/* F — Quick actions toolbar */}
+      <div className="pt-2 border-t border-border/60 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Primary inline actions */}
+          <Button
+            type="button"
+            size="sm"
+            variant={activeAction === "implant" ? "default" : "outline"}
+            onClick={() => toggleAction("implant")}
+            className="h-8 text-xs gap-1"
+          >
+            {activeAction === "implant" ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            إضافة زرعة
+          </Button>
+
+          {canRecordPayments && (
+            <Button
+              type="button"
+              size="sm"
+              variant={activeAction === "payment" ? "default" : "outline"}
+              onClick={() => toggleAction("payment")}
+              className="h-8 text-xs gap-1"
+            >
+              {activeAction === "payment" ? <X className="h-3.5 w-3.5" /> : <Banknote className="h-3.5 w-3.5" />}
+              تسجيل دفعة
             </Button>
-            {canRecordPayments && (
-              <Button asChild size="sm" variant="outline">
-                <Link href={`/patients/${group.patientId}?tab=finance`}>
-                  <Banknote className="h-3.5 w-3.5" />
-                  تسجيل دفعة
-                </Link>
-              </Button>
+          )}
+
+          <Button
+            type="button"
+            size="sm"
+            variant={activeAction === "followup" ? "default" : "outline"}
+            onClick={() => toggleAction("followup")}
+            className="h-8 text-xs gap-1"
+          >
+            {activeAction === "followup" ? <X className="h-3.5 w-3.5" /> : <Calendar className="h-3.5 w-3.5" />}
+            إضافة متابعة
+          </Button>
+
+          {/* Secondary — navigate only */}
+          <Button asChild size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground gap-1 mr-auto">
+            <Link href={`/patients/${group.patientId}`}>
+              <ExternalLink className="h-3 w-3" />
+              الملف الكامل ↗
+            </Link>
+          </Button>
+        </div>
+
+        {/* Inline form panel — smooth height transition */}
+        {activeAction !== null && activeCases.length > 0 && (
+          <div className="bg-muted/40 rounded-xl border border-border/60 p-4 transition-all duration-200">
+            {activeAction === "implant" && (
+              <InlineAddImplant
+                patientId={group.patientId}
+                cases={activeCases}
+                onDone={() => setActiveAction(null)}
+              />
             )}
-            <Button asChild size="sm" variant="outline">
-              <Link href={`/patients/${group.patientId}?tab=followups`}>
-                <Calendar className="h-3.5 w-3.5" />
-                إضافة متابعة
-              </Link>
-            </Button>
-          </>
+            {activeAction === "payment" && canRecordPayments && (
+              <InlineRecordPayment
+                patientId={group.patientId}
+                cases={activeCases}
+                onDone={() => setActiveAction(null)}
+              />
+            )}
+            {activeAction === "followup" && (
+              <InlineAddFollowup
+                patientId={group.patientId}
+                cases={activeCases}
+                onDone={() => setActiveAction(null)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* No active cases warning */}
+        {activeAction !== null && activeCases.length === 0 && (
+          <p className="text-sm text-muted-foreground px-1">
+            لا توجد حالات نشطة. أضف حالة زراعة أولًا عبر الملف الكامل.
+          </p>
         )}
       </div>
     </div>
