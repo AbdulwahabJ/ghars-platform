@@ -471,7 +471,11 @@ async function buildOperationalRows(
             finalTotal: fin.finalCents / 100,
             paid: fin.paidCents / 100,
             remaining: (fin.finalCents - fin.paidCents) / 100,
-            paymentStatus: fin.status,
+            // Show neutral "غير محدد" when there is no financial obligation at all
+            paymentStatus:
+              fin.finalCents === 0 && fin.paidCents === 0
+                ? "غير محدد"
+                : fin.status,
           }
         : null,
     };

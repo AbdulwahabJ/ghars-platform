@@ -1,18 +1,25 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Phone, Calendar, Banknote, Stethoscope, Activity, ClipboardList } from "lucide-react";
+import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Phone, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
-import type { OperationalReportResponse, OperationalRow, ReportFilters } from "@workspace/shared";
-import { usePatient } from "@/hooks/use-patients";
-import { useImplantCases } from "@/hooks/use-implant-cases";
+import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant } from "@workspace/shared";
+import { CASE_STATUSES, IMPLANT_STATUSES } from "@workspace/shared";
+import { usePatient, useUpdatePatient } from "@/hooks/use-patients";
+import { useImplantCases, useUpdateImplantCase, useUpdateImplant, useImplantOptions } from "@/hooks/use-implant-cases";
 import { useFollowups } from "@/hooks/use-followups";
-import { useCaseFinance } from "@/hooks/use-finance";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { InlineNewRecord } from "./InlineNewRecord";
 
 /* ------------------------------------------------------------------ */
@@ -105,6 +112,296 @@ function paymentStatusClass(status: string): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* Inline edit sub-components                                          */
+/* ------------------------------------------------------------------ */
+
+function InlinePatientEdit({
+  p,
+  patientId,
+  onDone,
+}: {
+  p: Patient;
+  patientId: string;
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const update = useUpdatePatient();
+  const [fullName, setFullName] = useState(p.fullName);
+  const [mobile, setMobile] = useState(p.mobileNumber ?? "");
+  const [age, setAge] = useState(p.age != null ? String(p.age) : "");
+  const [note, setNote] = useState(p.administrativeNote ?? "");
+
+  const save = () => {
+    update.mutate(
+      {
+        id: patientId,
+        data: {
+          fullName,
+          mobileNumber: mobile || null,
+          age: age ? parseInt(age, 10) : null,
+          administrativeNote: note || null,
+        },
+      },
+      {
+        onSuccess: () => { toast({ title: "تم تحديث بيانات المريض" }); onDone(); },
+        onError: () => { toast({ title: "فشل التحديث", variant: "destructive" }); },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">الاسم *</Label>
+          <Input className="h-8 text-sm" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">الجوال</Label>
+          <Input className="h-8 text-sm" dir="ltr" value={mobile} onChange={(e) => setMobile(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">العمر</Label>
+          <Input className="h-8 text-sm" type="number" min={0} max={130} value={age} onChange={(e) => setAge(e.target.value)} />
+        </div>
+        <div className="col-span-2 space-y-1">
+          <Label className="text-xs">ملاحظة إدارية</Label>
+          <Textarea className="text-sm resize-none" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={update.isPending || !fullName.trim()} className="h-7 text-xs">
+          {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          حفظ
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={update.isPending} className="h-7 text-xs">
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function InlineCaseEdit({
+  c,
+  patientId,
+  onDone,
+}: {
+  c: ImplantCaseWithImplants;
+  patientId: string;
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const update = useUpdateImplantCase();
+  const [caseStatus, setCaseStatus] = useState<string>(c.caseStatus);
+  const [treatingDoctor, setTreatingDoctor] = useState(c.treatingDoctor);
+  const [procedureDate, setProcedureDate] = useState(c.procedureDate ?? "");
+  const [prosValue, setProsValue] = useState(c.prosValue ?? "");
+  const [expectedDate, setExpectedDate] = useState(c.expectedProstheticDate ?? "");
+  const [generalNote, setGeneralNote] = useState(c.generalNote ?? "");
+
+  const save = () => {
+    update.mutate(
+      {
+        id: c.id,
+        patientId,
+        data: {
+          caseStatus: caseStatus as typeof CASE_STATUSES[number],
+          treatingDoctor,
+          procedureDate: procedureDate || null,
+          prosValue: prosValue || null,
+          expectedProstheticDate: expectedDate || null,
+          generalNote: generalNote || null,
+        },
+      },
+      {
+        onSuccess: () => { toast({ title: "تم تحديث الحالة" }); onDone(); },
+        onError: () => { toast({ title: "فشل التحديث", variant: "destructive" }); },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">حالة الحالة</Label>
+          <Select dir="rtl" value={caseStatus} onValueChange={setCaseStatus}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CASE_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">الطبيب المعالج</Label>
+          <Input className="h-8 text-sm" value={treatingDoctor} onChange={(e) => setTreatingDoctor(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">تاريخ العملية</Label>
+          <Input className="h-8 text-sm" type="date" value={procedureDate} onChange={(e) => setProcedureDate(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">مدة التركيب (Pros)</Label>
+          <Input className="h-8 text-sm" value={prosValue} onChange={(e) => setProsValue(e.target.value)} placeholder="3M" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">تاريخ التركيب المتوقع</Label>
+          <Input className="h-8 text-sm" type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
+        </div>
+        <div className="col-span-2 space-y-1">
+          <Label className="text-xs">ملاحظة</Label>
+          <Textarea className="text-sm resize-none" rows={2} value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={update.isPending || !treatingDoctor.trim()} className="h-7 text-xs">
+          {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          حفظ
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={update.isPending} className="h-7 text-xs">
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function InlineImplantEdit({
+  imp,
+  patientId,
+  onDone,
+}: {
+  imp: Implant;
+  patientId: string;
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const update = useUpdateImplant();
+  const { data: implantOptions } = useImplantOptions();
+  const [site, setSite] = useState(imp.site);
+  const [system, setSystem] = useState(imp.system ?? "");
+  const [diameter, setDiameter] = useState(imp.diameter != null ? String(imp.diameter) : "");
+  const [length, setLength] = useState(imp.length != null ? String(imp.length) : "");
+  const [qValue, setQValue] = useState(imp.qValue ?? "");
+  const [formerValue, setFormerValue] = useState(imp.formerValue ?? "");
+  const [graftValue, setGraftValue] = useState(imp.graftValue ?? "");
+  const [implantStatus, setImplantStatus] = useState(imp.implantStatus);
+
+  const save = () => {
+    update.mutate(
+      {
+        id: imp.id,
+        patientId,
+        data: {
+          site: site as typeof CASE_STATUSES[number] extends never ? never : string as any,
+          system: system || null,
+          diameter: diameter ? parseFloat(diameter) : null,
+          length: length ? parseFloat(length) : null,
+          qValue: qValue || null,
+          formerValue: formerValue || null,
+          graftValue: graftValue || null,
+          implantStatus: implantStatus as typeof IMPLANT_STATUSES[number],
+        },
+      },
+      {
+        onSuccess: () => { toast({ title: "تم تحديث الزرعة" }); onDone(); },
+        onError: () => { toast({ title: "فشل التحديث", variant: "destructive" }); },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">الموقع (FDI)</Label>
+          <Select dir="ltr" value={site} onValueChange={setSite}>
+            <SelectTrigger className="h-7 text-xs text-right"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
+              {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك السفلي</div>
+              {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">النظام</Label>
+          <Select dir="rtl" value={system || "__none__"} onValueChange={(v) => setSystem(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {(implantOptions?.systems ?? []).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">القطر</Label>
+          <Input className="h-7 text-xs" type="number" step="0.1" value={diameter} onChange={(e) => setDiameter(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">الطول</Label>
+          <Input className="h-7 text-xs" type="number" step="0.1" value={length} onChange={(e) => setLength(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Q</Label>
+          <Select dir="rtl" value={qValue || "__none__"} onValueChange={(v) => setQValue(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {(implantOptions?.qValues ?? []).map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Former</Label>
+          <Select dir="rtl" value={formerValue || "__none__"} onValueChange={(v) => setFormerValue(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {(implantOptions?.formerValues ?? []).map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Graft</Label>
+          <Select dir="rtl" value={graftValue || "__none__"} onValueChange={(v) => setGraftValue(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {(implantOptions?.graftValues ?? []).map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">الحالة</Label>
+          <Select dir="rtl" value={implantStatus} onValueChange={(v) => setImplantStatus(v as typeof IMPLANT_STATUSES[number])}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={update.isPending} className="h-7 text-xs">
+          {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          حفظ
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={update.isPending} className="h-7 text-xs">
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Expanded Patient Detail                                             */
 /* ------------------------------------------------------------------ */
 
@@ -121,6 +418,15 @@ function PatientExpandedRow({
   const patient = usePatient(group.patientId);
   const casesQuery = useImplantCases(group.patientId);
   const followupsQuery = useFollowups(group.patientId);
+
+  // Inline edit state — one section at a time
+  const [editingPatient, setEditingPatient] = useState(false);
+  const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
+  const [editingImplantId, setEditingImplantId] = useState<string | null>(null);
+
+  const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); };
+  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); };
+  const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); };
 
   const allCases = casesQuery.data?.items ?? [];
   const activeCases = allCases.filter((c) => c.status === "active");
@@ -153,38 +459,49 @@ function PatientExpandedRow({
 
         {/* A — بيانات المريض */}
         <div className="bg-card rounded-xl border border-border p-4 space-y-2">
-          <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
-            <ClipboardList className="h-3.5 w-3.5" />
-            بيانات المريض
-          </h4>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between gap-2">
-              <span className="text-muted-foreground">الاسم</span>
-              <span className="font-medium notranslate">{p?.fullName ?? group.patientName}</span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-muted-foreground">رقم الملف</span>
-              <span dir="ltr">{group.fileNumber}</span>
-            </div>
-            {p?.mobileNumber && (
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">الجوال</span>
-                <span dir="ltr" className="notranslate">{p.mobileNumber}</span>
-              </div>
-            )}
-            {p?.age != null && (
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">العمر</span>
-                <span>{p.age}</span>
-              </div>
-            )}
-            {p?.createdAt && (
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">تاريخ الإضافة</span>
-                <span>{formatSaudiDate(p.createdAt)}</span>
-              </div>
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+              <ClipboardList className="h-3.5 w-3.5" />
+              بيانات المريض
+            </h4>
+            {!editingPatient && (
+              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={startEditPatient}>
+                <Pencil className="h-3 w-3" /> تعديل
+              </Button>
             )}
           </div>
+          {editingPatient && p ? (
+            <InlinePatientEdit p={p} patientId={group.patientId} onDone={() => setEditingPatient(false)} />
+          ) : (
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">الاسم</span>
+                <span className="font-medium notranslate">{p?.fullName ?? group.patientName}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">رقم الملف</span>
+                <span dir="ltr">{group.fileNumber}</span>
+              </div>
+              {p?.mobileNumber && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">الجوال</span>
+                  <span dir="ltr" className="notranslate">{p.mobileNumber}</span>
+                </div>
+              )}
+              {p?.age != null && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">العمر</span>
+                  <span>{p.age}</span>
+                </div>
+              )}
+              {p?.createdAt && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">تاريخ الإضافة</span>
+                  <span>{formatSaudiDate(p.createdAt)}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* E — المتابعة */}
@@ -245,7 +562,7 @@ function PatientExpandedRow({
                   )}
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground">الإجمالي</span>
-                    <span className="tabular-nums">{formatMoney(row.finance.remaining)}</span>
+                    <span className="tabular-nums">{formatMoney(row.finance.finalTotal)}</span>
                   </div>
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground">المتبقي</span>
@@ -271,28 +588,32 @@ function PatientExpandedRow({
           <div className="space-y-3">
             {activeCases.map((c) => (
               <div key={c.id} className="bg-card rounded-xl border border-border p-4">
-                <div className="flex flex-wrap gap-3 justify-between">
-                  <div className="space-y-1 text-sm">
-                    <div className="flex gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[11px] notranslate">
-                        {c.caseStatus}
-                      </Badge>
-                      {c.prosValue && (
-                        <Badge variant="secondary" className="text-[11px] notranslate">
-                          Pros: {c.prosValue}
-                        </Badge>
-                      )}
+                {editingCaseId === c.id ? (
+                  <InlineCaseEdit c={c} patientId={group.patientId} onDone={() => setEditingCaseId(null)} />
+                ) : (
+                  <div className="flex flex-wrap gap-3 justify-between items-start">
+                    <div className="space-y-1 text-sm flex-1">
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-[11px] notranslate">{c.caseStatus}</Badge>
+                        {c.prosValue && (
+                          <Badge variant="secondary" className="text-[11px] notranslate">Pros: {c.prosValue}</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground notranslate">
+                        {c.treatingDoctor}
+                        {c.procedureDate ? ` — ${formatSaudiDate(c.procedureDate)}` : ""}
+                        {c.expectedProstheticDate ? ` — تركيب: ${formatSaudiDate(c.expectedProstheticDate)}` : ""}
+                      </p>
+                      {c.generalNote && <p className="text-xs text-muted-foreground">{c.generalNote}</p>}
                     </div>
-                    <p className="text-xs text-muted-foreground notranslate">
-                      {c.treatingDoctor}
-                      {c.procedureDate ? ` — ${formatSaudiDate(c.procedureDate)}` : ""}
-                      {c.expectedProstheticDate ? ` — تركيب: ${formatSaudiDate(c.expectedProstheticDate)}` : ""}
-                    </p>
+                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-muted-foreground shrink-0" onClick={() => startEditCase(c.id)}>
+                      <Pencil className="h-3 w-3" /> تعديل
+                    </Button>
                   </div>
-                </div>
+                )}
 
-                {/* C — الزرعات */}
-                {c.implants.filter((i) => i.status === "active").length > 0 && (
+                {/* C — الزرعات (hide during case edit to keep UI clean) */}
+                {editingCaseId !== c.id && c.implants.filter((i) => i.status === "active").length > 0 && (
                   <div className="mt-3 border-t border-border/60 pt-3">
                     <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                       <Activity className="h-3 w-3" />
@@ -304,29 +625,43 @@ function PatientExpandedRow({
                         .map((imp) => (
                           <div
                             key={imp.id}
-                            className="bg-muted/50 rounded-lg px-3 py-2 text-xs space-y-0.5"
+                            className={`bg-muted/50 rounded-lg text-xs transition-all ${
+                              editingImplantId === imp.id
+                                ? "col-span-2 sm:col-span-3 lg:col-span-4 p-3"
+                                : "px-3 py-2 space-y-0.5"
+                            }`}
                           >
-                            <p className="font-semibold" dir="ltr">
-                              {imp.site}
-                            </p>
-                            {imp.system && (
-                              <p className="text-muted-foreground notranslate">
-                                {imp.system}
-                              </p>
+                            {editingImplantId === imp.id ? (
+                              <InlineImplantEdit imp={imp} patientId={group.patientId} onDone={() => setEditingImplantId(null)} />
+                            ) : (
+                              <>
+                                <div className="flex items-center justify-between gap-1">
+                                  <p className="font-semibold" dir="ltr">{imp.site}</p>
+                                  <button
+                                    type="button"
+                                    className="text-muted-foreground hover:text-foreground transition-colors rounded p-0.5"
+                                    onClick={() => startEditImplant(imp.id)}
+                                    title="تعديل الزرعة"
+                                  >
+                                    <Pencil className="h-2.5 w-2.5" />
+                                  </button>
+                                </div>
+                                {imp.system && <p className="text-muted-foreground notranslate">{imp.system}</p>}
+                                {(imp.diameter || imp.length) && (
+                                  <p className="text-muted-foreground" dir="ltr">
+                                    {imp.diameter ? `Ø${imp.diameter}` : ""}
+                                    {imp.diameter && imp.length ? " × " : ""}
+                                    {imp.length ? `L${imp.length}` : ""}
+                                  </p>
+                                )}
+                                {imp.qValue && <p className="text-muted-foreground">Q: {imp.qValue}</p>}
+                                {imp.formerValue && <p className="text-muted-foreground">Former: {imp.formerValue}</p>}
+                                {imp.graftValue && <p className="text-muted-foreground">Graft: {imp.graftValue}</p>}
+                                <Badge variant="outline" className="text-[9px] notranslate mt-1">
+                                  {imp.implantStatus}
+                                </Badge>
+                              </>
                             )}
-                            {(imp.diameter || imp.length) && (
-                              <p className="text-muted-foreground" dir="ltr">
-                                {imp.diameter ? `Ø${imp.diameter}` : ""}
-                                {imp.diameter && imp.length ? " × " : ""}
-                                {imp.length ? `L${imp.length}` : ""}
-                              </p>
-                            )}
-                            {imp.qValue && <p className="text-muted-foreground">Q: {imp.qValue}</p>}
-                            {imp.formerValue && <p className="text-muted-foreground">Former: {imp.formerValue}</p>}
-                            {imp.graftValue && <p className="text-muted-foreground">Graft: {imp.graftValue}</p>}
-                            <Badge variant="outline" className="text-[9px] notranslate mt-1">
-                              {imp.implantStatus}
-                            </Badge>
                           </div>
                         ))}
                     </div>

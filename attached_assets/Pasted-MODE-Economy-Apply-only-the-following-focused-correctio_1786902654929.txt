@@ -1,0 +1,112 @@
+MODE: Economy
+
+Apply only the following focused corrections to the new operational-table workflow.
+
+Do not redesign the table.
+Do not change unrelated pages.
+Do not run the full historical test suite.
+Do not perform broad code review or refactoring.
+
+1. INLINE EDITING
+
+The expanded patient row currently provides quick actions but is missing the requested inline editing workflow.
+
+Add small, clean "تعديل" actions to the relevant sections:
+
+- بيانات المريض → تعديل
+- each implant case → تعديل
+- each implant → تعديل
+
+When clicked:
+
+- edit that section inside the same expanded row,
+- do not navigate away,
+- do not open a modal,
+- do not make the entire patient row editable at once.
+
+Use:
+
+[إلغاء] [حفظ]
+
+Reuse the existing update APIs, validation rules, permissions, audit behavior, and React Query invalidation.
+
+After save, return the section to read-only mode and refresh only the affected row/detail data.
+
+2. FINANCIAL PERMISSION SEPARATION IN QUICK ENTRY
+
+Do not gate the entire financial section only by canRecordPayments.
+
+Use the existing financial permissions correctly:
+
+- A user who is authorized to view/manage case financials may enter the base treatment amount.
+- The optional initial-payment fields must appear only when the user is authorized to record payments.
+- An assistant with canRecordPayments but without broader financial-management permission must not gain the ability to edit the base treatment amount, charges, or discounts.
+
+Enforce this server-side as well as in the UI.
+
+3. ZERO / UNDEFINED FINANCIAL STATUS
+
+Do not display "لم يدفع" merely because paid amount is zero when no treatment amount has actually been defined.
+
+For a patient/case with:
+
+- no meaningful base treatment amount,
+- no charges,
+- no discounts,
+- and no payments,
+
+display a neutral financial state such as:
+
+"غير محدد"
+
+or:
+
+"—"
+
+Do not imply that the patient owes money.
+
+Once a positive financial obligation exists, preserve the existing payment-status rules:
+
+- لم يدفع
+- مدفوع جزئيًا
+- مدفوع بالكامل
+- رصيد زائد
+- مؤجل ماليًا
+
+Do not change the underlying established financial calculations.
+
+4. KEEP EVERYTHING ELSE AS IS
+
+Preserve:
+
+- current table design,
+- smooth row expansion,
+- one-row-per-patient behavior,
+- inline new-record workflow,
+- mobile card layout,
+- filters,
+- CSV/print,
+- statistics,
+- full patient workspace,
+- quick actions,
+- all existing permissions.
+
+5. COST-AWARE CHECK
+
+Run only:
+
+- typecheck,
+- lint on affected workspace/files,
+- focused tests for the financial permission/status corrections,
+- one browser smoke check for:
+  - inline patient edit,
+  - inline case edit,
+  - inline implant edit,
+  - cancel,
+  - save,
+  - finance visibility.
+
+Do not run the full E2E suite.
+
+Provide a concise report and stop.
+Do not publish.

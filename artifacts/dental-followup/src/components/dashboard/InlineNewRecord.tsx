@@ -141,6 +141,7 @@ export function InlineNewRecord({
   const { data: assignableUsers } = useAssignableUsers();
   const { settings: appSettings } = useAppSettings();
   const canRecordPayments = user?.role === "ADMIN" || user?.canRecordPayments;
+  const canViewFinancials = user?.role === "ADMIN" || user?.canViewFinancials;
   const today = todayIso();
 
   // Section open states
@@ -683,8 +684,13 @@ export function InlineNewRecord({
           </div>
         )}
 
-        {/* Section 4: المالية (conditional on permission) */}
-        {includeCase && canRecordPayments && (
+        {/* Section 4: المالية
+            Visibility rules (per spec):
+            - Section is visible when canViewFinancials (includes ADMIN)
+            - Base treatment amount: canViewFinancials only
+            - Payment fields (amount/date/label/method): canRecordPayments only
+        */}
+        {includeCase && canViewFinancials && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <SectionHeader
@@ -693,20 +699,23 @@ export function InlineNewRecord({
                 onToggle={() => setFinanceOpen((v) => !v)}
                 optional
               />
-              <div className="flex items-center gap-2 shrink-0">
-                <Checkbox
-                  id="qe-includePayment"
-                  checked={includePayment}
-                  onCheckedChange={(v) => {
-                    form.setValue("includePayment", !!v);
-                    if (!!v) setFinanceOpen(true);
-                  }}
-                />
-                <Label htmlFor="qe-includePayment" className="text-sm cursor-pointer">تضمين</Label>
-              </div>
+              {canRecordPayments && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Checkbox
+                    id="qe-includePayment"
+                    checked={includePayment}
+                    onCheckedChange={(v) => {
+                      form.setValue("includePayment", !!v);
+                      if (!!v) setFinanceOpen(true);
+                    }}
+                  />
+                  <Label htmlFor="qe-includePayment" className="text-sm cursor-pointer">تضمين دفعة</Label>
+                </div>
+              )}
             </div>
-            {includePayment && financeOpen && (
+            {financeOpen && (
               <div className="px-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Base treatment amount — canViewFinancials */}
                 <div className="space-y-1">
                   <Label>مبلغ العلاج الأساسي (ر.س)</Label>
                   <Input
@@ -717,6 +726,8 @@ export function InlineNewRecord({
                     {...form.register("baseTreatmentAmount")}
                   />
                 </div>
+                {/* Payment fields — canRecordPayments only */}
+                {canRecordPayments && includePayment && (
                 <div className="space-y-1">
                   <Label>مبلغ الدفعة الأولى (ر.س)</Label>
                   <Input
@@ -728,44 +739,49 @@ export function InlineNewRecord({
                     data-testid="qe-paymentAmount"
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label>تاريخ الدفعة</Label>
-                  <Input type="date" {...form.register("paymentDate")} />
-                </div>
-                <div className="space-y-1">
-                  <Label>وصف الدفعة</Label>
-                  <Select
-                    dir="rtl"
-                    value={form.watch("paymentLabel") || "دفعة أولى"}
-                    onValueChange={(v) => form.setValue("paymentLabel", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PAYMENT_LABELS.map((l) => (
-                        <SelectItem key={l} value={l}>{l}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>طريقة الدفع</Label>
-                  <Select
-                    dir="rtl"
-                    value={form.watch("paymentMethod") || "نقدي"}
-                    onValueChange={(v) => form.setValue("paymentMethod", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PAYMENT_METHODS.map((m) => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                )}
+                {canRecordPayments && includePayment && (
+                <>
+                  <div className="space-y-1">
+                    <Label>تاريخ الدفعة</Label>
+                    <Input type="date" {...form.register("paymentDate")} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>وصف الدفعة</Label>
+                    <Select
+                      dir="rtl"
+                      value={form.watch("paymentLabel") || "دفعة أولى"}
+                      onValueChange={(v) => form.setValue("paymentLabel", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_LABELS.map((l) => (
+                          <SelectItem key={l} value={l}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>طريقة الدفع</Label>
+                    <Select
+                      dir="rtl"
+                      value={form.watch("paymentMethod") || "نقدي"}
+                      onValueChange={(v) => form.setValue("paymentMethod", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_METHODS.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+                )}
               </div>
             )}
           </div>

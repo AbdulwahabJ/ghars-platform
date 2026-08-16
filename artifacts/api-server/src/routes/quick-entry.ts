@@ -42,7 +42,19 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
   const user = req.currentUser!;
   const perms = effectivePermissions(user);
 
-  // Validate payment permission before touching the DB
+  // Validate financial permissions before touching the DB
+  if (
+    typeof input.baseTreatmentAmount === "number" &&
+    input.baseTreatmentAmount > 0 &&
+    user.role !== "ADMIN" &&
+    !perms.canViewFinancials
+  ) {
+    res.status(403).json({
+      error: "ليست لديك صلاحية تعديل المبلغ المالي للحالة.",
+      code: FORBIDDEN_FINANCIAL,
+    });
+    return;
+  }
   if (input.initialPayment && user.role !== "ADMIN" && !perms.canRecordPayments) {
     res.status(403).json({
       error: "ليست لديك صلاحية تسجيل الدفعات.",
