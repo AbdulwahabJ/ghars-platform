@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Phone, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X } from "lucide-react";
+import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +12,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { operationalExportUrl } from "@/lib/api";
-import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
+import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
-import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant } from "@workspace/shared";
-import { CASE_STATUSES, IMPLANT_STATUSES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
+import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, FollowupType } from "@workspace/shared";
+import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
 import { usePatient, useUpdatePatient } from "@/hooks/use-patients";
 import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useImplantOptions } from "@/hooks/use-implant-cases";
 import { useFollowups, useCreateFollowup, useAssignableUsers } from "@/hooks/use-followups";
@@ -297,7 +297,7 @@ function InlineImplantEdit({
         id: imp.id,
         patientId,
         data: {
-          site: site as typeof CASE_STATUSES[number] extends never ? never : string as any,
+          site: site as typeof FDI_SITES[number],
           system: system || null,
           diameter: diameter ? parseFloat(diameter) : null,
           length: length ? parseFloat(length) : null,
@@ -319,7 +319,7 @@ function InlineImplantEdit({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">الموقع (FDI)</Label>
-          <Select dir="ltr" value={site} onValueChange={setSite}>
+          <Select dir="ltr" value={site} onValueChange={(value) => setSite(value as typeof FDI_SITES[number])}>
             <SelectTrigger className="h-7 text-xs text-right"><SelectValue /></SelectTrigger>
             <SelectContent>
               <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
@@ -452,7 +452,7 @@ function InlineAddImplant({
 
   const defaultCaseId = cases[0]?.id ?? "";
   const [caseId, setCaseId] = useState(defaultCaseId);
-  const [site, setSite] = useState("");
+  const [site, setSite] = useState<typeof FDI_SITES[number] | "">("");
   const [system, setSystem] = useState("");
   const [diameter, setDiameter] = useState("");
   const [length, setLength] = useState("");
@@ -461,7 +461,7 @@ function InlineAddImplant({
   const [graftValue, setGraftValue] = useState("");
   const [graftProcedureType, setGraftProcedureType] = useState("");
   const [graftNote, setGraftNote] = useState("");
-  const [implantStatus, setImplantStatus] = useState<string>("مزروعة");
+  const [implantStatus, setImplantStatus] = useState<ImplantStatus>("مزروعة");
   const [implantNote, setImplantNote] = useState("");
 
   const save = () => {
@@ -471,7 +471,7 @@ function InlineAddImplant({
         caseId,
         patientId,
         data: {
-          site: site as any,
+          site: site as typeof FDI_SITES[number],
           system: system || null,
           diameter: diameter ? parseFloat(diameter) : null,
           length: length ? parseFloat(length) : null,
@@ -481,7 +481,7 @@ function InlineAddImplant({
           graftProcedureType: graftProcedureType || null,
           graftNote: graftNote || null,
           procedureTags: [],
-          implantStatus: implantStatus as any,
+          implantStatus,
           implantNote: implantNote || null,
         },
       },
@@ -504,7 +504,7 @@ function InlineAddImplant({
         {/* Site */}
         <div className="space-y-1">
           <Label className="text-xs">الموقع (FDI) *</Label>
-          <Select dir="ltr" value={site} onValueChange={setSite}>
+          <Select dir="ltr" value={site} onValueChange={(value) => setSite(value as typeof FDI_SITES[number])}>
             <SelectTrigger className="h-8 text-sm text-right"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
@@ -571,7 +571,7 @@ function InlineAddImplant({
         {/* Implant Status */}
         <div className="space-y-1">
           <Label className="text-xs">حالة الزرعة</Label>
-          <Select dir="rtl" value={implantStatus} onValueChange={setImplantStatus}>
+          <Select dir="rtl" value={implantStatus} onValueChange={(value) => setImplantStatus(value as ImplantStatus)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -611,11 +611,9 @@ function InlineAddImplant({
 }
 
 function InlineRecordPayment({
-  patientId,
   cases,
   onDone,
 }: {
-  patientId: string;
   cases: ImplantCaseWithImplants[];
   onDone: () => void;
 }) {
@@ -626,8 +624,8 @@ function InlineRecordPayment({
   const defaultCaseId = cases[0]?.id ?? "";
   const [caseId, setCaseId] = useState(defaultCaseId);
   const [amount, setAmount] = useState("");
-  const [paymentLabel, setPaymentLabel] = useState<string>(PAYMENT_LABELS[0]);
-  const [paymentMethod, setPaymentMethod] = useState<string>(PAYMENT_METHODS[1]);
+  const [paymentLabel, setPaymentLabel] = useState<typeof PAYMENT_LABELS[number]>(PAYMENT_LABELS[0]);
+  const [paymentMethod, setPaymentMethod] = useState<typeof PAYMENT_METHODS[number]>(PAYMENT_METHODS[1]);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
   const [referenceNumber, setReferenceNumber] = useState("");
   const [note, setNote] = useState("");
@@ -639,8 +637,8 @@ function InlineRecordPayment({
         caseId,
         data: {
           amount: parseFloat(amount),
-          paymentLabel: paymentLabel as any,
-          paymentMethod: paymentMethod as any,
+          paymentLabel,
+          paymentMethod,
           paymentDate: paymentDate,
           referenceNumber: referenceNumber || null,
           note: note || null,
@@ -668,7 +666,7 @@ function InlineRecordPayment({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">وصف الدفعة</Label>
-          <Select dir="rtl" value={paymentLabel} onValueChange={setPaymentLabel}>
+          <Select dir="rtl" value={paymentLabel} onValueChange={(value) => setPaymentLabel(value as typeof PAYMENT_LABELS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
@@ -677,7 +675,7 @@ function InlineRecordPayment({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">طريقة الدفع</Label>
-          <Select dir="rtl" value={paymentMethod} onValueChange={setPaymentMethod}>
+          <Select dir="rtl" value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as typeof PAYMENT_METHODS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
@@ -726,7 +724,7 @@ function InlineAddFollowup({
 
   const defaultCaseId = cases[0]?.id ?? "";
   const [caseId, setCaseId] = useState(defaultCaseId);
-  const [followupType, setFollowupType] = useState<string>(FOLLOWUP_TYPES[0]);
+  const [followupType, setFollowupType] = useState<FollowupType>(FOLLOWUP_TYPES[0]);
   // datetime-local value: YYYY-MM-DDTHH:MM (no seconds)
   const [scheduledAt, setScheduledAt] = useState(() => {
     const now = new Date();
@@ -744,7 +742,7 @@ function InlineAddFollowup({
       {
         caseId,
         input: {
-          followupType: followupType as any,
+          followupType,
           scheduledAt,
           requiresContact,
           contactDueAt: requiresContact && contactDueAt ? contactDueAt : null,
@@ -771,7 +769,7 @@ function InlineAddFollowup({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">نوع المتابعة *</Label>
-          <Select dir="rtl" value={followupType} onValueChange={setFollowupType}>
+          <Select dir="rtl" value={followupType} onValueChange={(value) => setFollowupType(value as FollowupType)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {FOLLOWUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -899,7 +897,10 @@ function PatientExpandedRow({
     .sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1))[0];
 
   return (
-    <div className="p-4 md:p-6 bg-muted/30 border-t border-border space-y-4">
+    <div
+      className="p-4 md:p-6 bg-muted/30 border-t border-border space-y-4"
+      onClick={(event) => event.stopPropagation()}
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
         {/* A — بيانات المريض */}
@@ -1178,7 +1179,6 @@ function PatientExpandedRow({
             )}
             {activeAction === "payment" && canRecordPayments && (
               <InlineRecordPayment
-                patientId={group.patientId}
                 cases={activeCases}
                 onDone={() => setActiveAction(null)}
               />
@@ -1298,7 +1298,6 @@ function PatientCard({
   const ready = hasReady(group.rows);
   const remaining = showFinance ? summaryRemaining(group.rows) : null;
   const payStatus = showFinance ? summaryPaymentStatus(group.rows) : null;
-
   return (
     <div className="border border-border rounded-xl overflow-hidden">
       <button
@@ -1336,12 +1335,18 @@ function PatientCard({
 
       {/* Expanded content */}
       <div
-        className={`overflow-hidden transition-all duration-250 ${expanded ? "max-h-[2000px]" : "max-h-0"}`}
-        style={{ transition: "max-height 250ms ease-in-out" }}
+        className="grid overflow-hidden"
+        style={{
+          gridTemplateRows: expanded ? "1fr" : "0fr",
+          transition: "grid-template-rows 250ms ease-in-out",
+        }}
+        onClick={(event) => event.stopPropagation()}
       >
-        {expanded && (
-          <PatientExpandedRow group={group} showFinance={showFinance} />
-        )}
+        <div className="min-h-0 overflow-hidden">
+          {expanded && (
+            <PatientExpandedRow group={group} showFinance={showFinance} />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1355,32 +1360,28 @@ function ExpandedRowWrapper({
   group,
   showFinance,
   colSpan,
+  expanded,
 }: {
   group: PatientGroup;
   showFinance: boolean;
   colSpan: number;
+  expanded: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number>(0);
-
-  useEffect(() => {
-    if (ref.current) {
-      setHeight(ref.current.scrollHeight);
-    }
-  }, [group.patientId]);
-
   return (
     <tr>
-      <td colSpan={colSpan} className="p-0">
+      <td colSpan={colSpan} className="p-0" onClick={(event) => event.stopPropagation()}>
         <div
-          ref={ref}
+          className="grid overflow-hidden"
           style={{
-            maxHeight: height || undefined,
-            transition: "max-height 250ms ease-in-out",
+            gridTemplateRows: expanded ? "1fr" : "0fr",
+            transition: "grid-template-rows 250ms ease-in-out",
           }}
-          className="overflow-hidden"
         >
-          <PatientExpandedRow group={group} showFinance={showFinance} />
+          <div className="min-h-0 overflow-hidden">
+            {expanded && (
+              <PatientExpandedRow group={group} showFinance={showFinance} />
+            )}
+          </div>
         </div>
       </td>
     </tr>
@@ -1511,13 +1512,12 @@ export function OperationalTable({
                             expanded={expandedPatientId === group.patientId}
                             onToggle={() => handleToggle(group.patientId)}
                           />
-                          {expandedPatientId === group.patientId && (
-                            <ExpandedRowWrapper
-                              group={group}
-                              showFinance={showFinance}
-                              colSpan={colSpan}
-                            />
-                          )}
+                          <ExpandedRowWrapper
+                            group={group}
+                            showFinance={showFinance}
+                            colSpan={colSpan}
+                            expanded={expandedPatientId === group.patientId}
+                          />
                         </React.Fragment>
                       ))}
                     </tbody>

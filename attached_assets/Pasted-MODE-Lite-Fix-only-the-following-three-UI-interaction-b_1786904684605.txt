@@ -1,0 +1,180 @@
+MODE: Lite
+
+Fix only the following three UI interaction bugs in the expandable operational-table row.
+
+Do not redesign anything.
+Do not change backend APIs, database logic, permissions, calculations, or business rules.
+Do not perform broad refactoring.
+
+These bugs are reproducible in the actual browser UI.
+
+BUG 1 — EXPANDED ROW CONTENT IS CLIPPED / REQUIRES SECOND CLICK
+
+Current behavior:
+
+- Clicking a patient row the first time expands it, but not all patient details become visible.
+- Clicking the same row again causes the rest of the content to appear.
+
+This strongly suggests the expandable container is using a stale measured height / max-height / scrollHeight before asynchronous detail content finishes rendering.
+
+Fix the expansion implementation so the expanded row always adapts automatically to its real dynamic content height.
+
+Requirements:
+
+- One click must fully open the row.
+- If patient details are still loading, show a compact loading state/skeleton.
+- When the async details arrive, the same already-open row must automatically grow to display them.
+- No second click must ever be required.
+- Dynamically opening inline edit forms or quick-action forms must also automatically increase the row height.
+- Dynamically closing them must shrink it smoothly.
+
+Do NOT use a fixed or stale max-height.
+
+Prefer a content-driven solution such as:
+
+- CSS grid 0fr → 1fr expansion,
+- or another naturally content-sized approach,
+- or ResizeObserver only if genuinely necessary.
+
+Avoid manually measuring scrollHeight once and then keeping that stale value.
+
+Keep the existing smooth ~250ms transition.
+
+BUG 2 — INLINE EDIT HAS NO VISIBLE SAVE/CANCEL ACTIONS
+
+Current behavior:
+
+When clicking "تعديل", the fields become editable, but [حفظ] and [إلغاء] are not visible.
+
+For all three inline edit types:
+
+- بيانات المريض
+- حالة الزراعة
+- الزرعة
+
+ensure the inline editor visibly includes:
+
+[إلغاء] [حفظ]
+
+inside the same section.
+
+The action buttons must:
+
+- always remain visible below the editable fields,
+- never be clipped by the expandable row,
+- save using the existing PATCH endpoint,
+- show disabled/loading state while saving,
+- keep the patient row expanded after successful save,
+- return the section to read-only mode after save.
+
+Cancel must restore the original values without saving.
+
+Do not navigate.
+Do not open a modal.
+
+BUG 3 — QUICK ACTION BUTTONS OPEN NOTHING VISIBLY
+
+Current behavior:
+
+Clicking:
+
+- إضافة زرعة
+- تسجيل دفعة
+- إضافة متابعة
+
+changes the active button state, but no inline form becomes visible.
+
+Fix this in the actual UI.
+
+When clicking each action, render its corresponding form immediately BELOW the quick-action toolbar, within the same expanded patient row.
+
+Expected layout:
+
+[الملف الكامل ↗] [إضافة زرعة] [تسجيل دفعة] [إضافة متابعة]
+
+----------------------------------
+<active inline form appears here>
+----------------------------------
+
+Only one quick-action form may be open at a time.
+
+Clicking the active action again closes it.
+
+Clicking another action switches to the new form.
+
+IMPORTANT EVENT HANDLING
+
+Check event bubbling carefully.
+
+Buttons, inputs, selects, edit controls and quick actions inside the expanded row must not accidentally trigger the parent patient-row expand/collapse handler.
+
+Use stopPropagation where appropriate.
+
+The parent row toggle must respond only to intentional row clicks.
+
+KEEP STATE INDEPENDENT
+
+Keep these states logically separate:
+
+- expandedPatientId
+- activeInlineEdit
+- activeQuickAction
+
+Opening an edit or quick action must NOT toggle expandedPatientId.
+
+Receiving async patient details must NOT toggle expandedPatientId.
+
+Saving data must NOT collapse the row.
+
+FOCUSED REAL BROWSER VERIFICATION
+
+The previous verification was API-level and did not detect these visual bugs.
+
+For this task, perform one actual browser interaction smoke test.
+
+Verify visually:
+
+1. Click a collapsed patient once.
+   → complete details load and remain fully visible.
+
+2. Click patient edit.
+   → editable fields + visible حفظ / إلغاء appear.
+
+3. Cancel.
+   → returns correctly.
+
+4. Edit again and save.
+   → saves and row remains expanded.
+
+5. Edit a case.
+   → visible حفظ / إلغاء.
+
+6. Edit an implant.
+   → visible حفظ / إلغاء.
+
+7. Click إضافة زرعة.
+   → implant form is visibly rendered under toolbar.
+
+8. Without closing the patient row, click تسجيل دفعة.
+   → implant form closes and payment form becomes visibly rendered.
+
+9. Click إضافة متابعة.
+   → payment form closes and follow-up form becomes visibly rendered.
+
+10. Close the quick action.
+    → expanded patient details remain open.
+
+11. Repeat once on a second patient to confirm the first-click expansion bug is gone.
+
+Check browser console for errors during this focused flow.
+
+Do not run the full historical E2E suite.
+Do not run broad code review.
+
+Run only:
+- affected TypeScript check
+- affected lint
+- this focused browser smoke test
+
+Provide a concise report and stop.
+Do not publish.
