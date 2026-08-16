@@ -12,10 +12,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { operationalExportUrl } from "@/lib/api";
-import { formatSaudiDate } from "@/lib/datetime";
+import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
 import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, FollowupType } from "@workspace/shared";
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
+import { followupStatusClasses } from "@/components/followups/followup-utils";
 import { usePatient, useUpdatePatient } from "@/hooks/use-patients";
 import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useImplantOptions } from "@/hooks/use-implant-cases";
 import { useFollowups, useCreateFollowup, useAssignableUsers } from "@/hooks/use-followups";
@@ -863,6 +864,7 @@ function PatientExpandedRow({
   // Inline quick-action state — one form open at a time
   type QuickAction = "implant" | "payment" | "followup";
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
+  const [now] = useState(() => Date.now());
 
   const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); };
   const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); };
@@ -886,15 +888,17 @@ function PatientExpandedRow({
   }
 
   const p = patient.data?.patient;
-  const upcomingFollowups = allFollowups.filter(
-    (f) => f.followupStatus === "مجدولة" && f.scheduledAt && new Date(f.scheduledAt) >= new Date(),
-  );
-  const overdueFollowups = allFollowups.filter(
-    (f) => f.followupStatus === "مجدولة" && f.scheduledAt && new Date(f.scheduledAt) < new Date(),
-  );
-  const lastCompleted = allFollowups
-    .filter((f) => f.followupStatus === "تمت")
-    .sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1))[0];
+  const displayedFollowups = [...allFollowups].sort((a, b) => {
+    const aTime = a.scheduledAt ? new Date(a.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
+    const bTime = b.scheduledAt ? new Date(b.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
+    const aPriority = a.followupStatus === "مجدولة"
+      ? (aTime >= now ? 0 : 1)
+      : 2;
+    const bPriority = b.followupStatus === "مجدولة"
+      ? (bTime >= now ? 0 : 1)
+      : 2;
+    return aPriority - bPriority || aTime - bTime;
+  });
 
   return (
     <div
@@ -959,34 +963,56 @@ function PatientExpandedRow({
           {allFollowups.length === 0 ? (
             <p className="text-sm text-muted-foreground">لا توجد متابعات مسجلة.</p>
           ) : (
-            <div className="space-y-1 text-sm">
-              {upcomingFollowups.length > 0 && (
-                <div>
-                  <span className="text-muted-foreground">القادمة: </span>
-                  <span className="notranslate">{upcomingFollowups[0]!.followupType}</span>
-                  {upcomingFollowups[0]!.scheduledAt && (
-                    <span className="text-muted-foreground mr-1">
-                      — {formatSaudiDate(upcomingFollowups[0]!.scheduledAt)}
-                    </span>
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                {allFollowups.length} {allFollowups.length === 1 ? "متابعة" : "متابعات"}
+              </p>
+              {displayedFollowups.map((followup) => (
+                <div key={followup.id} className="rounded-lg border border-border/70 p-2.5 space-y-1.5 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium notranslate">{followup.followupType}</span>
+                    <Badge variant="outline" className={followupStatusClasses(followup.followupStatus)}>
+                      <span className="notranslate">{followup.followupStatus}</span>
+                    </Badge>
+                  </div>
+                  {followup.scheduledAt && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">الموعد</span>
+                      <span>{formatSaudiDateTime(followup.scheduledAt)}</span>
+                    </div>
+                  )}
+                  {followup.assignedUserName && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">المسؤول</span>
+                      <span>{followup.assignedUserName}</span>
+                    </div>
+                  )}
+                  {followup.contactDueAt && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">موعد التواصل</span>
+                      <span>{formatSaudiDate(followup.contactDueAt)}</span>
+                    </div>
+                  )}
+                  {followup.nextAppointmentAt && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">الموعد التالي</span>
+                      <span>{formatSaudiDateTime(followup.nextAppointmentAt)}</span>
+                    </div>
+                  )}
+                  {followup.result && (
+                    <p>
+                      <span className="text-muted-foreground">النتيجة: </span>
+                      {followup.result}
+                    </p>
+                  )}
+                  {followup.note && (
+                    <p>
+                      <span className="text-muted-foreground">الملاحظة: </span>
+                      {followup.note}
+                    </p>
                   )}
                 </div>
-              )}
-              {overdueFollowups.length > 0 && (
-                <div className="text-destructive font-medium">
-                  متأخرة: {overdueFollowups.length} متابعة
-                </div>
-              )}
-              {lastCompleted && (
-                <div>
-                  <span className="text-muted-foreground">آخر مكتملة: </span>
-                  <span className="notranslate">{lastCompleted.followupType}</span>
-                  {lastCompleted.updatedAt && (
-                    <span className="text-muted-foreground mr-1">
-                      — {formatSaudiDate(lastCompleted.updatedAt)}
-                    </span>
-                  )}
-                </div>
-              )}
+              ))}
             </div>
           )}
         </div>
