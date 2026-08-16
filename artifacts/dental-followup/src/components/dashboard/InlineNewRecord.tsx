@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -192,6 +192,24 @@ export function InlineNewRecord({
 
   const [serverError, setServerError] = useState<string | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ patientId?: string; code: string } | null>(null);
+  const errorBannerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to error banner whenever a server error appears
+  useEffect(() => {
+    if (serverError && errorBannerRef.current) {
+      errorBannerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [serverError]);
+
+  // Scroll to first invalid field when client-side validation fails
+  const onInvalid = () => {
+    setTimeout(() => {
+      const firstInvalid = document.querySelector<HTMLElement>(
+        "#qe-form [aria-invalid='true'], #qe-form .text-destructive:not(span)"
+      );
+      firstInvalid?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  };
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
@@ -204,6 +222,16 @@ export function InlineNewRecord({
         form.setError("mobileNumber", { message: mobileRes.message });
         return;
       }
+    }
+
+    // Followup date required when section is included
+    if (values.includeFollowup && !values.followupScheduledAt) {
+      form.setError("followupScheduledAt", { message: "موعد المتابعة مطلوب" });
+      setFollowupOpen(true);
+      setTimeout(() => {
+        document.getElementById("qe-followupScheduledAt")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 80);
+      return;
     }
 
     // Build patient input
@@ -276,7 +304,7 @@ export function InlineNewRecord({
     if (values.includeCase && values.includeFollowup && values.followupScheduledAt) {
       followup = {
         followupType: values.followupType as NonNullable<QuickEntryInput["followup"]>["followupType"],
-        scheduledAt: `${values.followupScheduledAt}:00`,
+        scheduledAt: values.followupScheduledAt,
         requiresContact: false,
         contactDueAt: null,
         nextAppointmentAt: null,
@@ -342,7 +370,7 @@ export function InlineNewRecord({
       </div>
 
       {serverError && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+        <div ref={errorBannerRef} className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
           {serverError}
           {duplicateInfo?.patientId && (
             <button
@@ -356,7 +384,7 @@ export function InlineNewRecord({
         </div>
       )}
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form id="qe-form" onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-4">
 
         {/* Section 1: بيانات المريض */}
         <div className="space-y-3">
@@ -785,13 +813,20 @@ export function InlineNewRecord({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label>
+                  <Label htmlFor="qe-followupScheduledAt">
                     موعد المتابعة <span className="text-destructive">*</span>
                   </Label>
                   <Input
+                    id="qe-followupScheduledAt"
                     type="datetime-local"
+                    aria-invalid={!!form.formState.errors.followupScheduledAt}
                     {...form.register("followupScheduledAt")}
                   />
+                  {form.formState.errors.followupScheduledAt && (
+                    <p className="text-xs text-destructive">
+                      {form.formState.errors.followupScheduledAt.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label>المسؤول</Label>
