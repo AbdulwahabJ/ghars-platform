@@ -1,0 +1,423 @@
+MODE: Economy
+
+Implement this as a focused workflow/UI revision only.
+
+Do not redesign unrelated pages.
+Do not change existing business rules.
+Do not change existing permissions.
+Do not remove any existing patient, case, implant, finance, follow-up, reporting, settings, or WhatsApp functionality.
+
+Use the current stable checkpoint as the rollback baseline.
+
+==================================================
+1. MOVE RECENT ACTIVITY OFF THE DASHBOARD
+==================================================
+
+Remove the "آخر النشاطات" block from the main dashboard.
+
+Recent activity must be available only to ADMIN users inside:
+
+الإعدادات → سجل النشاط
+
+At the top of the existing audit-log page, optionally show a compact "آخر النشاطات" preview containing the most recent records, followed by the existing full audit-log filters/table.
+
+Do not expose recent activity on the main dashboard to non-admin users.
+
+Do not duplicate audit data into a new database table.
+
+==================================================
+2. MOVE THE OPERATIONAL REPORT UP
+==================================================
+
+Move "التقرير التشغيلي" to the exact dashboard area currently occupied by "آخر النشاطات".
+
+The dashboard order should become:
+
+1. Greeting / global search
+2. Daily KPI summary
+3. Today's / overdue / ready / contact operational cards
+4. Operational report
+5. Statistics and charts
+
+Keep the existing statistics/charts below it.
+
+==================================================
+3. TURN THE OPERATIONAL REPORT INTO THE MAIN
+   PATIENT/CASE WORKSPACE
+==================================================
+
+Redesign the operational report as a clean expandable master-detail table.
+
+This table becomes the fastest operational workspace in the system.
+
+Use a patient-centric row.
+
+One primary row per patient.
+
+Suggested summary columns:
+
+- المريض
+- رقم الملف
+- حالة الحالة النشطة
+- الطبيب المعالج
+- عدد الزرعات
+- أنظمة الزرعات
+- المتابعة القادمة
+- المتبقي
+- حالة السداد
+
+Financial columns must continue to obey the existing financial permissions.
+
+Do not expose financial data to users without permission.
+
+Use the existing report filters above the table.
+
+Preserve CSV/print functionality where appropriate.
+
+==================================================
+4. SMOOTH INLINE ROW EXPANSION
+==================================================
+
+Clicking anywhere on a patient row, except explicit action buttons, should smoothly expand that row in place.
+
+Do NOT navigate away.
+Do NOT open a modal.
+
+The expanded content must appear immediately below the selected row, while all following rows smoothly move downward.
+
+Only one patient row should normally be expanded at a time.
+
+Clicking the same row again collapses it.
+
+Clicking another patient:
+
+- collapses the previous row,
+- expands the selected row,
+- preserves a clean smooth transition.
+
+Use a subtle animation around 200–300ms.
+
+Respect prefers-reduced-motion.
+
+Avoid height-jump glitches.
+
+==================================================
+5. EXPANDED PATIENT CONTENT
+==================================================
+
+The expanded area should use the full table width and present a clean structured summary.
+
+Do not make it look like another full page.
+
+Use compact sections/cards inside the expanded row:
+
+A. بيانات المريض
+- الاسم
+- رقم الملف
+- الجوال
+- العمر
+- تاريخ الإضافة
+
+B. حالات الزراعة
+For every active case show:
+- procedure date
+- treating doctor
+- case status
+- Pros
+- expected prosthetic date
+
+C. الزرعات
+Compact implant rows/cards:
+- site
+- System
+- SIZE
+- Q
+- Former
+- Graft
+- status
+
+D. المالية
+Only when authorized:
+- final total
+- paid
+- outstanding
+- payment status
+
+E. المتابعة
+- upcoming follow-up
+- overdue follow-ups
+- last completed follow-up
+
+F. quick actions
+- تعديل
+- فتح الملف الكامل
+- إضافة زرعة
+- تسجيل دفعة if authorized
+- إضافة متابعة
+
+Do not duplicate backend calculation logic.
+
+Reuse existing APIs and calculation rules.
+
+==================================================
+6. INLINE ADD NEW RECORD
+==================================================
+
+Add a prominent button in the operational report header:
+
++ إضافة سجل
+
+or:
+
++ إضافة مريض وحالة
+
+Clicking it must NOT open the old patient modal.
+
+Instead insert a temporary expanded "new record" row directly below the table header.
+
+All existing rows move downward smoothly.
+
+The new record editor must remain inside the table area.
+
+==================================================
+7. ONE-PLACE QUICK ENTRY WORKFLOW
+==================================================
+
+The inline new-record editor should allow the user to enter the complete initial patient workflow from one place.
+
+Organize it into clean collapsible sections.
+
+SECTION 1 — بيانات المريض
+Required:
+- patient name
+- file number
+- mobile number
+
+Optional/current rules:
+- age / birth information
+- date added
+
+SECTION 2 — حالة الزراعة
+Allow adding the initial implant case:
+- procedure date
+- treating doctor
+- referring doctor
+- case status
+- Pros
+- expected prosthetic date
+- note
+
+Allow skipping this section when the user only wants to create a patient.
+
+SECTION 3 — الزرعات
+Allow adding zero, one, or multiple implants before saving.
+
+Use a compact repeatable implant editor.
+
+Each implant:
+- site using FDI selection
+- System
+- diameter
+- length
+- Q
+- Former
+- Graft
+- procedure tags
+- status
+- note
+
+Provide:
+
++ إضافة زرعة أخرى
+
+Do not force the user to reopen dialogs for every implant.
+
+SECTION 4 — المالية
+Only display according to existing permissions.
+
+Allow:
+- base treatment amount
+- optional initial payment
+
+Use existing payment rules.
+
+Do not add charges/discounts unless the user explicitly opens their existing controls later.
+
+SECTION 5 — المتابعة
+Optional initial follow-up:
+- type
+- scheduled date/time
+- assignee
+- requires contact
+- note
+
+==================================================
+8. SAVE BEHAVIOR
+==================================================
+
+At the bottom of the new-record expanded row use:
+
+[إلغاء]      [حفظ السجل]
+
+The user should be able to create:
+
+- patient only,
+
+or:
+
+- patient
+- first implant case
+- multiple implants
+- optional initial payment
+- optional initial follow-up
+
+in one save action.
+
+This must be atomic.
+
+Add one focused backend orchestration endpoint if required.
+
+Use a database transaction.
+
+If any required operation fails:
+
+- rollback all newly created entities,
+- leave the inline editor open,
+- show the specific Arabic validation error,
+- do not create partial patient/case/implant data.
+
+Do NOT replace the existing individual APIs.
+
+The existing patient/case/implant/payment/follow-up workflows must continue working.
+
+==================================================
+9. DUPLICATE AND VALIDATION RULES
+==================================================
+
+Preserve all existing protections:
+
+- globally unique active/archived patient file number
+- normalized phone rules
+- duplicate implant-site rules
+- money numeric rules
+- role permissions
+- archived-record rules
+- payment permissions
+- financial visibility
+
+Run all authorization checks server-side.
+
+==================================================
+10. INLINE EDITING OF EXISTING RECORDS
+==================================================
+
+Inside an expanded existing patient row, the default mode is read-only.
+
+Add a clear:
+
+تعديل
+
+action.
+
+When pressed, allow inline editing of the appropriate section without navigating away.
+
+Do not convert the entire expanded row into one giant editable form.
+
+Edit each logical section independently.
+
+Examples:
+
+بيانات المريض → تعديل
+حالة الزراعة → تعديل
+زرعة → تعديل
+
+Reuse existing validation and update APIs wherever possible.
+
+==================================================
+11. PERFORMANCE
+==================================================
+
+Do not fetch the complete detailed dataset for every patient when the dashboard first loads.
+
+Initial table request should contain only row-summary data.
+
+Fetch detailed patient/case/implant/finance/follow-up information only when a row is expanded.
+
+Cache expanded patient details using the existing React Query setup.
+
+After edits, invalidate only the relevant patient/report queries.
+
+==================================================
+12. RESPONSIVE DESIGN
+==================================================
+
+Desktop:
+Use the full operational table.
+
+Tablet:
+Allow compact columns and horizontal scrolling only when necessary.
+
+Mobile:
+Do not squeeze a large desktop table into the screen.
+
+Render the same records as compact patient rows/cards.
+
+Tapping a patient expands the same detail content underneath.
+
+The inline new-record workflow must also work cleanly on mobile.
+
+==================================================
+13. DO NOT CHANGE
+==================================================
+
+Do not change:
+
+- patient full workspace tabs
+- implant workflow outside this table
+- finance page
+- follow-up page
+- settings
+- statistics logic
+- charts
+- permissions
+- audit behavior
+- WhatsApp behavior
+- database meanings
+- existing reports/calculations
+
+This is a focused dashboard workflow improvement.
+
+==================================================
+14. COST-AWARE VERIFICATION
+==================================================
+
+Do NOT run the entire historical test suite repeatedly.
+
+Do NOT perform an independent broad code review.
+Do NOT perform unrelated refactoring.
+
+Run only:
+
+- TypeScript typecheck
+- lint for affected files/workspace
+- focused tests for the new transactional quick-entry endpoint
+- focused permission tests
+- one focused browser smoke test covering:
+
+  1. open dashboard
+  2. expand a patient row
+  3. collapse it
+  4. expand another patient
+  5. add a new inline record
+  6. add two implants in the same entry
+  7. save
+  8. verify the new patient appears in the table
+  9. verify mobile layout
+
+Do not run full E2E regression unless a blocking regression is discovered.
+
+Do not modify or delete existing development data during automated testing.
+Use the isolated test database.
+
+At completion provide a concise report and stop.
+Do not publish.

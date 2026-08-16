@@ -76,6 +76,8 @@ import type {
   UpdateLookupOptionInput,
   UpdateTemplateInput,
   UpdateUserInput,
+  QuickEntryInput,
+  QuickEntryResponse,
 } from "@workspace/shared";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
@@ -388,6 +390,10 @@ export const api = {
   // Admin: audit logs
   adminListAuditLogs: (filters: Partial<AuditFilters>) =>
     request<AuditLogResponse>(`/admin/audit-logs?${auditQs(filters)}`),
+
+  // Quick-entry (atomic one-shot patient + case + implants + payment + followup)
+  quickEntry: (input: QuickEntryInput) =>
+    request<QuickEntryResponse>("/quick-entry", { method: "POST", json: input }),
 
   // Admin: legacy import
   adminImportPreview: (input: ImportRequest) =>

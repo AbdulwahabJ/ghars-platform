@@ -8,3 +8,4 @@ export * from "./schemas/finance";
 export * from "./schemas/followups";
 export * from "./schemas/reports";
 export * from "./schemas/admin";
+export * from "./schemas/quick-entry";

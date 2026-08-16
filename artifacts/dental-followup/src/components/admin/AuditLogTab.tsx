@@ -27,6 +27,76 @@ import { formatSaudiDateTime } from "@/lib/datetime";
 
 const ALL = "__all__";
 
+/** Arabic labels for audit actions shown in آخر النشاطات. */
+const ACTION_LABELS: Record<string, string> = {
+  patient_create: "إضافة مريض",
+  patient_update: "تعديل بيانات مريض",
+  patient_archive: "أرشفة ملف مريض",
+  patient_restore: "استعادة ملف مريض",
+  implant_case_create: "إضافة حالة زراعة",
+  implant_case_update: "تعديل حالة زراعة",
+  implant_create: "إضافة زرعة",
+  implant_update: "تعديل زرعة",
+  case_base_amount_update: "تحديث مبلغ العلاج",
+  payment_create: "تسجيل دفعة",
+  payment_void: "إلغاء دفعة",
+  followup_created: "إضافة متابعة",
+  followup_updated: "تعديل متابعة",
+  followup_completed: "إتمام متابعة",
+  user_create: "إنشاء مستخدم",
+  login_success: "تسجيل دخول",
+};
+
+function RecentActivitiesPreview() {
+  const { data, isLoading } = useAuditLogs({ limit: 6, page: 1 });
+  const items = data?.items ?? [];
+
+  if (isLoading) {
+    return (
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">آخر النشاطات</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (items.length === 0) return null;
+
+  return (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">آخر النشاطات</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ul className="divide-y divide-border/60">
+          {items.map((item) => (
+            <li key={item.id} className="px-6 py-2.5">
+              <p className="text-sm">
+                <span className="font-medium">
+                  {ACTION_LABELS[item.action] ?? item.action}
+                </span>
+                {item.summary ? (
+                  <span className="text-muted-foreground notranslate"> — {item.summary}</span>
+                ) : null}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {item.userName ? <span className="notranslate">{item.userName} — </span> : null}
+                {formatSaudiDateTime(item.createdAt)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function AuditLogTab() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -54,6 +124,8 @@ export function AuditLogTab() {
   const resetPage = () => setPage(1);
 
   return (
+    <>
+    <RecentActivitiesPreview />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
         <CardTitle>سجل النشاط</CardTitle>
@@ -247,5 +319,6 @@ export function AuditLogTab() {
         )}
       </CardContent>
     </Card>
+    </>
   );
 }

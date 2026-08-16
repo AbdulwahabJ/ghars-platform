@@ -9,10 +9,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { Shell } from "@/components/layout/Shell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Loader2 } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { usePatients } from "@/hooks/use-patients";
 import { Patient, type ReportFilters } from "@workspace/shared";
-import { NewPatientDialog } from "@/components/patients/NewPatientDialog";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
   useDashboard,
@@ -28,7 +27,7 @@ import {
   type ReportFilterState,
 } from "@/components/dashboard/ReportFiltersBar";
 import { StatisticsSection } from "@/components/dashboard/StatisticsSection";
-import { OperationalReportSection } from "@/components/dashboard/OperationalReportSection";
+import { OperationalTable } from "@/components/dashboard/OperationalTable";
 import { reportPeriodRange } from "@/lib/report-periods";
 import { todayIso } from "@/lib/money";
 
@@ -42,15 +41,12 @@ export default function Dashboard() {
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
-  const [newPatientOpen, setNewPatientOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: searchResults, isLoading: isSearching } = usePatients({ 
     query: debouncedSearch,
     pageSize: 5
   });
-
-  /* ----------------------- Phase 5: live dashboard ------------------ */
 
   const today = useMemo(() => todayIso(), []);
   const dashboard = useDashboard();
@@ -96,8 +92,6 @@ export default function Dashboard() {
   const statistics = useStatistics(reportFilters);
   const report = useOperationalReport(reportFilters);
 
-  // Adjust state when the debounced query changes (render-phase adjustment,
-  // see react.dev "You Might Not Need an Effect").
   const [prevSearch, setPrevSearch] = useState(debouncedSearch);
   if (prevSearch !== debouncedSearch) {
     setPrevSearch(debouncedSearch);
@@ -105,7 +99,6 @@ export default function Dashboard() {
     setHighlightIndex(-1);
   }
 
-  // Close the results panel when clicking outside of the search area.
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
@@ -147,8 +140,6 @@ export default function Dashboard() {
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* Section A: Greeting & Search */}
-        {/* overflow-hidden must NOT be on the section itself: it clips the search
-            results dropdown. The decorative circle is clipped in its own layer. */}
         <section className="bg-primary/5 rounded-3xl p-8 md:p-12 relative border border-primary/10 print:hidden">
           <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-bl-full" />
@@ -161,15 +152,6 @@ export default function Dashboard() {
               </h1>
               <p className="text-muted-foreground text-lg">{todayDate}</p>
             </div>
-            
-            <Button 
-              onClick={() => setNewPatientOpen(true)}
-              className="btn-primary shrink-0 shadow-sm"
-              id="tour-new-patient-btn"
-            >
-              <Plus className="h-5 w-5" />
-              تسجيل حالة زراعة جديدة
-            </Button>
           </div>
 
           <div className="mt-10 max-w-3xl relative z-20" id="tour-global-search" ref={searchContainerRef}>
@@ -247,7 +229,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Section B: live operational overview */}
+        {/* Section B: Daily KPI summary + operational action cards */}
         <section id="tour-dashboard-overview" className="space-y-4 print:hidden">
           <h2 className="text-xl font-bold text-foreground">ملخص العمل اليومي</h2>
           {dashboard.isLoading ? (
@@ -266,32 +248,21 @@ export default function Dashboard() {
                 overdueFollowups={dashboard.data.overdueFollowups}
                 readyCases={dashboard.data.readyCases}
                 contactTasks={dashboard.data.contactTasks}
-                recentActivities={dashboard.data.recentActivities}
               />
             </>
           )}
         </section>
 
-        {/* Section C: filtered statistics + operational report */}
+        {/* Section C: filters + Operational report (workspace table) — ABOVE statistics */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold text-foreground print:hidden">
-            الإحصائيات والتقرير التشغيلي
-          </h2>
           <ReportFiltersBar
             state={filterState}
             onChange={setFilterState}
             doctorOptions={statistics.data?.doctorOptions ?? []}
             systemOptions={implantOptions?.systems ?? []}
           />
-          <div className="print:hidden">
-            <StatisticsSection
-              data={statistics.data}
-              isLoading={statistics.isLoading}
-              isError={statistics.isError}
-            />
-          </div>
 
-          {/* Print-only report header (browser Print / Save as PDF) */}
+          {/* Print-only report header */}
           <div className="hidden print:block mb-4">
             <h1 className="text-xl font-bold">مجمع السن الرقمي الطبي</h1>
             <p className="text-sm mt-1">التقرير التشغيلي</p>
@@ -300,16 +271,24 @@ export default function Dashboard() {
               الإنشاء: {formatSaudiDateTime(new Date())}
             </p>
           </div>
-          <OperationalReportSection
+
+          <OperationalTable
             data={report.data}
             isLoading={report.isLoading}
             isError={report.isError}
             filters={reportFilters}
           />
         </section>
-      </div>
 
-      <NewPatientDialog open={newPatientOpen} onOpenChange={setNewPatientOpen} />
+        {/* Section D: Statistics and charts — below operational report */}
+        <section className="space-y-4 print:hidden">
+          <StatisticsSection
+            data={statistics.data}
+            isLoading={statistics.isLoading}
+            isError={statistics.isError}
+          />
+        </section>
+      </div>
     </Shell>
   );
 }

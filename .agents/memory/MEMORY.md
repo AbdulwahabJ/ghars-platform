@@ -12,3 +12,4 @@
 - [Archived-scope invariant](archived-scope-invariant.md) — aggregates must exclude archived patients AND cases (payments have no own flag); seed-then-archive regression tests.
 - [Test-DB collision](testdb-collision.md) — vitest truncates the shared test DB; never run the suite while a tester session uses that DB, or phantom "data vanished" bugs appear.
 - [Vite build env gotcha](vite-build-env.md) — vite.config must not require PORT/BASE_PATH at build time; deploy builds provide neither. Gate fail-fast env checks on command === 'serve'.
+- [Quick-entry atomic route](quick-entry-route.md) — POST /api/quick-entry creates patient+case+implants+payment+followup in one transaction; shared schema in lib/shared/src/schemas/quick-entry.ts; numeric DB columns need String() cast for diameter/length.

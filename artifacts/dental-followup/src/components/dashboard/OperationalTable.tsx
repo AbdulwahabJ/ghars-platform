@@ -1,0 +1,717 @@
+import React, { useState, useRef, useEffect } from "react";
+import { Link } from "wouter";
+import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Phone, Calendar, Banknote, Stethoscope, Activity, ClipboardList } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { operationalExportUrl } from "@/lib/api";
+import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
+import { formatMoney } from "@/lib/money";
+import type { OperationalReportResponse, OperationalRow, ReportFilters } from "@workspace/shared";
+import { usePatient } from "@/hooks/use-patients";
+import { useImplantCases } from "@/hooks/use-implant-cases";
+import { useFollowups } from "@/hooks/use-followups";
+import { useCaseFinance } from "@/hooks/use-finance";
+import { useAuth } from "@/hooks/use-auth";
+import { InlineNewRecord } from "./InlineNewRecord";
+
+/* ------------------------------------------------------------------ */
+/* Types                                                               */
+/* ------------------------------------------------------------------ */
+
+interface PatientGroup {
+  patientId: string;
+  patientName: string;
+  fileNumber: string;
+  rows: OperationalRow[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Group rows by patient                                               */
+/* ------------------------------------------------------------------ */
+
+function groupByPatient(rows: OperationalRow[]): PatientGroup[] {
+  const map = new Map<string, PatientGroup>();
+  for (const row of rows) {
+    let group = map.get(row.patientId);
+    if (!group) {
+      group = { patientId: row.patientId, patientName: row.patientName, fileNumber: row.fileNumber, rows: [] };
+      map.set(row.patientId, group);
+    }
+    group.rows.push(row);
+  }
+  return Array.from(map.values());
+}
+
+/* ------------------------------------------------------------------ */
+/* Summary helpers                                                     */
+/* ------------------------------------------------------------------ */
+
+function summaryStatus(rows: OperationalRow[]): string {
+  if (rows.length === 1) return rows[0].caseStatus;
+  return "متعددة";
+}
+
+function summaryDoctor(rows: OperationalRow[]): string {
+  const doctors = [...new Set(rows.map((r) => r.treatingDoctor).filter(Boolean))];
+  if (doctors.length === 1) return doctors[0]!;
+  return doctors.length > 1 ? "متعددة" : "—";
+}
+
+function summaryImplantCount(rows: OperationalRow[]): number {
+  return rows.reduce((s, r) => s + r.implantCount, 0);
+}
+
+function summarySystems(rows: OperationalRow[]): string[] {
+  const all = rows.flatMap((r) => r.implantSystems);
+  return [...new Set(all)];
+}
+
+function summaryNextFollowup(rows: OperationalRow[]): string | null {
+  const dates = rows.map((r) => r.nextFollowupAt).filter(Boolean) as string[];
+  if (dates.length === 0) return null;
+  return dates.sort()[0] ?? null;
+}
+
+function summaryRemaining(rows: OperationalRow[]): number | null {
+  if (!rows.some((r) => r.finance)) return null;
+  return rows.reduce((s, r) => s + (r.finance?.remaining ?? 0), 0);
+}
+
+function summaryPaymentStatus(rows: OperationalRow[]): string | null {
+  const statuses = [...new Set(rows.map((r) => r.finance?.paymentStatus).filter(Boolean))];
+  if (statuses.length === 0) return null;
+  if (statuses.length === 1) return statuses[0] ?? null;
+  return "متعددة";
+}
+
+function hasOverdue(rows: OperationalRow[]): boolean {
+  return rows.some((r) => r.isOverdue);
+}
+function hasReady(rows: OperationalRow[]): boolean {
+  return rows.some((r) => r.isReady);
+}
+
+/* ------------------------------------------------------------------ */
+/* Payment status badge colors                                         */
+/* ------------------------------------------------------------------ */
+
+function paymentStatusClass(status: string): string {
+  if (status === "مدفوع بالكامل") return "bg-emerald-100 text-emerald-800";
+  if (status === "لم يدفع") return "bg-red-100 text-red-800";
+  if (status === "مدفوع جزئيًا") return "bg-amber-100 text-amber-800";
+  if (status === "رصيد زائد") return "bg-blue-100 text-blue-800";
+  return "bg-muted text-muted-foreground";
+}
+
+/* ------------------------------------------------------------------ */
+/* Expanded Patient Detail                                             */
+/* ------------------------------------------------------------------ */
+
+function PatientExpandedRow({
+  group,
+  showFinance,
+}: {
+  group: PatientGroup;
+  showFinance: boolean;
+}) {
+  const { user } = useAuth();
+  const canRecordPayments = user?.role === "ADMIN" || user?.canRecordPayments;
+
+  const patient = usePatient(group.patientId);
+  const casesQuery = useImplantCases(group.patientId);
+  const followupsQuery = useFollowups(group.patientId);
+
+  const allCases = casesQuery.data?.items ?? [];
+  const activeCases = allCases.filter((c) => c.status === "active");
+  const allFollowups = followupsQuery.data ?? [];
+
+  const isLoading = patient.isLoading || casesQuery.isLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  const p = patient.data?.patient;
+  const upcomingFollowups = allFollowups.filter(
+    (f) => f.followupStatus === "مجدولة" && f.scheduledAt && new Date(f.scheduledAt) >= new Date(),
+  );
+  const overdueFollowups = allFollowups.filter(
+    (f) => f.followupStatus === "مجدولة" && f.scheduledAt && new Date(f.scheduledAt) < new Date(),
+  );
+  const lastCompleted = allFollowups
+    .filter((f) => f.followupStatus === "تمت")
+    .sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1))[0];
+
+  return (
+    <div className="p-4 md:p-6 bg-muted/30 border-t border-border space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+        {/* A — بيانات المريض */}
+        <div className="bg-card rounded-xl border border-border p-4 space-y-2">
+          <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+            <ClipboardList className="h-3.5 w-3.5" />
+            بيانات المريض
+          </h4>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between gap-2">
+              <span className="text-muted-foreground">الاسم</span>
+              <span className="font-medium notranslate">{p?.fullName ?? group.patientName}</span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-muted-foreground">رقم الملف</span>
+              <span dir="ltr">{group.fileNumber}</span>
+            </div>
+            {p?.mobileNumber && (
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">الجوال</span>
+                <span dir="ltr" className="notranslate">{p.mobileNumber}</span>
+              </div>
+            )}
+            {p?.age != null && (
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">العمر</span>
+                <span>{p.age}</span>
+              </div>
+            )}
+            {p?.createdAt && (
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">تاريخ الإضافة</span>
+                <span>{formatSaudiDate(p.createdAt)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* E — المتابعة */}
+        <div className="bg-card rounded-xl border border-border p-4 space-y-2">
+          <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5" />
+            المتابعة
+          </h4>
+          {allFollowups.length === 0 ? (
+            <p className="text-sm text-muted-foreground">لا توجد متابعات مسجلة.</p>
+          ) : (
+            <div className="space-y-1 text-sm">
+              {upcomingFollowups.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground">القادمة: </span>
+                  <span className="notranslate">{upcomingFollowups[0]!.followupType}</span>
+                  {upcomingFollowups[0]!.scheduledAt && (
+                    <span className="text-muted-foreground mr-1">
+                      — {formatSaudiDate(upcomingFollowups[0]!.scheduledAt)}
+                    </span>
+                  )}
+                </div>
+              )}
+              {overdueFollowups.length > 0 && (
+                <div className="text-destructive font-medium">
+                  متأخرة: {overdueFollowups.length} متابعة
+                </div>
+              )}
+              {lastCompleted && (
+                <div>
+                  <span className="text-muted-foreground">آخر مكتملة: </span>
+                  <span className="notranslate">{lastCompleted.followupType}</span>
+                  {lastCompleted.updatedAt && (
+                    <span className="text-muted-foreground mr-1">
+                      — {formatSaudiDate(lastCompleted.updatedAt)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* D — المالية (conditional) */}
+        {showFinance && (
+          <div className="bg-card rounded-xl border border-border p-4 space-y-2">
+            <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+              <Banknote className="h-3.5 w-3.5" />
+              المالية
+            </h4>
+            {group.rows.map((row) =>
+              row.finance ? (
+                <div key={row.caseId} className="space-y-1 text-sm">
+                  {group.rows.length > 1 && (
+                    <p className="text-xs font-medium text-muted-foreground">
+                      الحالة: {row.caseStatus}
+                    </p>
+                  )}
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">الإجمالي</span>
+                    <span className="tabular-nums">{formatMoney(row.finance.remaining)}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">المتبقي</span>
+                    <span className="tabular-nums font-medium">{formatMoney(row.finance.remaining)}</span>
+                  </div>
+                  <Badge className={`text-[10px] ${paymentStatusClass(row.finance.paymentStatus)}`}>
+                    {row.finance.paymentStatus}
+                  </Badge>
+                </div>
+              ) : null,
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* B — حالات الزراعة */}
+      {activeCases.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+            <Stethoscope className="h-3.5 w-3.5" />
+            حالات الزراعة
+          </h4>
+          <div className="space-y-3">
+            {activeCases.map((c) => (
+              <div key={c.id} className="bg-card rounded-xl border border-border p-4">
+                <div className="flex flex-wrap gap-3 justify-between">
+                  <div className="space-y-1 text-sm">
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-[11px] notranslate">
+                        {c.caseStatus}
+                      </Badge>
+                      {c.prosValue && (
+                        <Badge variant="secondary" className="text-[11px] notranslate">
+                          Pros: {c.prosValue}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground notranslate">
+                      {c.treatingDoctor}
+                      {c.procedureDate ? ` — ${formatSaudiDate(c.procedureDate)}` : ""}
+                      {c.expectedProstheticDate ? ` — تركيب: ${formatSaudiDate(c.expectedProstheticDate)}` : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {/* C — الزرعات */}
+                {c.implants.filter((i) => i.status === "active").length > 0 && (
+                  <div className="mt-3 border-t border-border/60 pt-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                      <Activity className="h-3 w-3" />
+                      الزرعات ({c.implants.filter((i) => i.status === "active").length})
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {c.implants
+                        .filter((i) => i.status === "active")
+                        .map((imp) => (
+                          <div
+                            key={imp.id}
+                            className="bg-muted/50 rounded-lg px-3 py-2 text-xs space-y-0.5"
+                          >
+                            <p className="font-semibold" dir="ltr">
+                              {imp.site}
+                            </p>
+                            {imp.system && (
+                              <p className="text-muted-foreground notranslate">
+                                {imp.system}
+                              </p>
+                            )}
+                            {(imp.diameter || imp.length) && (
+                              <p className="text-muted-foreground" dir="ltr">
+                                {imp.diameter ? `Ø${imp.diameter}` : ""}
+                                {imp.diameter && imp.length ? " × " : ""}
+                                {imp.length ? `L${imp.length}` : ""}
+                              </p>
+                            )}
+                            {imp.qValue && <p className="text-muted-foreground">Q: {imp.qValue}</p>}
+                            {imp.formerValue && <p className="text-muted-foreground">Former: {imp.formerValue}</p>}
+                            {imp.graftValue && <p className="text-muted-foreground">Graft: {imp.graftValue}</p>}
+                            <Badge variant="outline" className="text-[9px] notranslate mt-1">
+                              {imp.implantStatus}
+                            </Badge>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* F — Quick actions */}
+      <div className="flex flex-wrap gap-2 pt-2 border-t border-border/60">
+        <Button asChild size="sm" variant="outline">
+          <Link href={`/patients/${group.patientId}`}>
+            <ExternalLink className="h-3.5 w-3.5" />
+            فتح الملف الكامل
+          </Link>
+        </Button>
+        {group.rows[0] && (
+          <>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/patients/${group.patientId}?tab=implants`}>
+                <Plus className="h-3.5 w-3.5" />
+                إضافة زرعة
+              </Link>
+            </Button>
+            {canRecordPayments && (
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/patients/${group.patientId}?tab=finance`}>
+                  <Banknote className="h-3.5 w-3.5" />
+                  تسجيل دفعة
+                </Link>
+              </Button>
+            )}
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/patients/${group.patientId}?tab=followups`}>
+                <Calendar className="h-3.5 w-3.5" />
+                إضافة متابعة
+              </Link>
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Summary row (desktop table row)                                     */
+/* ------------------------------------------------------------------ */
+
+function PatientSummaryRow({
+  group,
+  showFinance,
+  expanded,
+  onToggle,
+}: {
+  group: PatientGroup;
+  showFinance: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const overdue = hasOverdue(group.rows);
+  const ready = hasReady(group.rows);
+  const remaining = showFinance ? summaryRemaining(group.rows) : null;
+  const payStatus = showFinance ? summaryPaymentStatus(group.rows) : null;
+  const systems = summarySystems(group.rows);
+
+  return (
+    <tr
+      className={`cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${expanded ? "bg-muted/30" : ""}`}
+      onClick={onToggle}
+      data-testid={`report-row-${group.patientId}`}
+    >
+      <td className="px-4 py-3">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0">
+            <p className="font-medium text-sm notranslate leading-tight">{group.patientName}</p>
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {overdue && (
+                <Badge variant="destructive" className="text-[10px]">متأخرة</Badge>
+              )}
+              {ready && (
+                <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px]">
+                  جاهزة للتركيب
+                </Badge>
+              )}
+            </div>
+          </div>
+          <span className="text-muted-foreground mr-auto shrink-0">
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-sm" dir="ltr">{group.fileNumber}</td>
+      <td className="px-4 py-3 text-sm notranslate">{summaryStatus(group.rows)}</td>
+      <td className="px-4 py-3 text-sm notranslate">{summaryDoctor(group.rows)}</td>
+      <td className="px-4 py-3 text-sm tabular-nums">{summaryImplantCount(group.rows)}</td>
+      <td className="px-4 py-3 text-sm notranslate">
+        {systems.length > 0 ? systems.join("، ") : "—"}
+      </td>
+      <td className="px-4 py-3 text-sm">
+        {summaryNextFollowup(group.rows) ? formatSaudiDate(summaryNextFollowup(group.rows)!) : "—"}
+      </td>
+      {showFinance && (
+        <>
+          <td className="px-4 py-3 text-sm tabular-nums">
+            {remaining !== null ? formatMoney(remaining) : "—"}
+          </td>
+          <td className="px-4 py-3 text-sm">
+            {payStatus ? (
+              <Badge className={`text-[10px] ${paymentStatusClass(payStatus)}`}>
+                {payStatus}
+              </Badge>
+            ) : "—"}
+          </td>
+        </>
+      )}
+    </tr>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile patient card                                                 */
+/* ------------------------------------------------------------------ */
+
+function PatientCard({
+  group,
+  showFinance,
+  expanded,
+  onToggle,
+}: {
+  group: PatientGroup;
+  showFinance: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const overdue = hasOverdue(group.rows);
+  const ready = hasReady(group.rows);
+  const remaining = showFinance ? summaryRemaining(group.rows) : null;
+  const payStatus = showFinance ? summaryPaymentStatus(group.rows) : null;
+
+  return (
+    <div className="border border-border rounded-xl overflow-hidden">
+      <button
+        className={`w-full text-right p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors ${expanded ? "bg-muted/30" : "bg-card"}`}
+        onClick={onToggle}
+        data-testid={`report-card-${group.patientId}`}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-semibold notranslate">{group.patientName}</p>
+            <p className="text-xs text-muted-foreground shrink-0" dir="ltr">{group.fileNumber}</p>
+          </div>
+          <div className="flex gap-1 mt-1 flex-wrap">
+            {overdue && <Badge variant="destructive" className="text-[10px]">متأخرة</Badge>}
+            {ready && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px]">جاهزة للتركيب</Badge>}
+            <Badge variant="outline" className="text-[10px] notranslate">{summaryStatus(group.rows)}</Badge>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2 text-xs text-muted-foreground">
+            <span>{summaryImplantCount(group.rows)} زرعة</span>
+            {summaryNextFollowup(group.rows) && (
+              <span>متابعة: {formatSaudiDate(summaryNextFollowup(group.rows)!)}</span>
+            )}
+            {remaining !== null && (
+              <span className="font-medium text-foreground">{formatMoney(remaining)} متبقي</span>
+            )}
+            {payStatus && (
+              <Badge className={`text-[10px] ${paymentStatusClass(payStatus)}`}>{payStatus}</Badge>
+            )}
+          </div>
+        </div>
+        <span className="text-muted-foreground shrink-0 mt-1">
+          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </span>
+      </button>
+
+      {/* Expanded content */}
+      <div
+        className={`overflow-hidden transition-all duration-250 ${expanded ? "max-h-[2000px]" : "max-h-0"}`}
+        style={{ transition: "max-height 250ms ease-in-out" }}
+      >
+        {expanded && (
+          <PatientExpandedRow group={group} showFinance={showFinance} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Animated expansion wrapper for table rows                           */
+/* ------------------------------------------------------------------ */
+
+function ExpandedRowWrapper({
+  group,
+  showFinance,
+  colSpan,
+}: {
+  group: PatientGroup;
+  showFinance: boolean;
+  colSpan: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number>(0);
+
+  useEffect(() => {
+    if (ref.current) {
+      setHeight(ref.current.scrollHeight);
+    }
+  }, [group.patientId]);
+
+  return (
+    <tr>
+      <td colSpan={colSpan} className="p-0">
+        <div
+          ref={ref}
+          style={{
+            maxHeight: height || undefined,
+            transition: "max-height 250ms ease-in-out",
+          }}
+          className="overflow-hidden"
+        >
+          <PatientExpandedRow group={group} showFinance={showFinance} />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Main OperationalTable                                               */
+/* ------------------------------------------------------------------ */
+
+export function OperationalTable({
+  data,
+  isLoading,
+  isError,
+  filters,
+}: {
+  data: OperationalReportResponse | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  filters: ReportFilters;
+}) {
+  const showFinance = Boolean(data?.financialsIncluded);
+  const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
+  const [showNewRecord, setShowNewRecord] = useState(false);
+
+  const groups = data ? groupByPatient(data.rows) : [];
+
+  const handleToggle = (patientId: string) => {
+    setExpandedPatientId((prev) => (prev === patientId ? null : patientId));
+  };
+
+  const colSpan = showFinance ? 9 : 7;
+
+  return (
+    <Card data-testid="card-operational-report">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3 flex-wrap">
+        <CardTitle className="text-base">
+          التقرير التشغيلي ({groups.length} مريض)
+        </CardTitle>
+        <div className="flex gap-2 print:hidden flex-wrap">
+          <Button
+            variant="default"
+            size="sm"
+            className="btn-primary"
+            onClick={() => setShowNewRecord((v) => !v)}
+            data-testid="button-add-new-record"
+          >
+            <Plus className="h-4 w-4" />
+            <span>إضافة سجل</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!data || data.rows.length === 0}
+            onClick={() => window.open(operationalExportUrl(filters), "_blank")}
+            data-testid="button-export-operational"
+          >
+            <Download className="h-4 w-4" />
+            <span>تصدير CSV</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!data || data.rows.length === 0}
+            onClick={() => window.print()}
+            data-testid="button-print-operational"
+          >
+            <Printer className="h-4 w-4" />
+            <span>طباعة</span>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : isError ? (
+          <p className="text-sm text-destructive py-6 text-center px-6">
+            تعذر تحميل التقرير التشغيلي. حاول تحديث الصفحة.
+          </p>
+        ) : (
+          <>
+            {/* Inline new record form */}
+            {showNewRecord && (
+              <div className="border-b border-border">
+                <InlineNewRecord
+                  onClose={() => setShowNewRecord(false)}
+                  onSuccess={() => setShowNewRecord(false)}
+                />
+              </div>
+            )}
+
+            {!data || groups.length === 0 ? (
+              !showNewRecord && (
+                <p className="text-sm text-muted-foreground px-6 pb-5 pt-4">
+                  لا توجد حالات مطابقة للفلاتر المحددة.
+                </p>
+              )
+            ) : (
+              <>
+                {/* Desktop table (hidden on mobile) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="px-4 py-3 font-medium text-muted-foreground">المريض</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">رقم الملف</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">حالة الحالة</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">الطبيب المعالج</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">الزرعات</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">الأنظمة</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">المتابعة القادمة</th>
+                        {showFinance && (
+                          <>
+                            <th className="px-4 py-3 font-medium text-muted-foreground">المتبقي</th>
+                            <th className="px-4 py-3 font-medium text-muted-foreground">حالة السداد</th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groups.map((group) => (
+                        <React.Fragment key={group.patientId}>
+                          <PatientSummaryRow
+                            group={group}
+                            showFinance={showFinance}
+                            expanded={expandedPatientId === group.patientId}
+                            onToggle={() => handleToggle(group.patientId)}
+                          />
+                          {expandedPatientId === group.patientId && (
+                            <ExpandedRowWrapper
+                              group={group}
+                              showFinance={showFinance}
+                              colSpan={colSpan}
+                            />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile cards (hidden on desktop) */}
+                <div className="md:hidden p-3 space-y-2">
+                  {groups.map((group) => (
+                    <PatientCard
+                      key={group.patientId}
+                      group={group}
+                      showFinance={showFinance}
+                      expanded={expandedPatientId === group.patientId}
+                      onToggle={() => handleToggle(group.patientId)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
