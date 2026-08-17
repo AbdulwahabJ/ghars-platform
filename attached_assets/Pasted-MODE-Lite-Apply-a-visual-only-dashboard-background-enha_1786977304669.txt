@@ -1,0 +1,113 @@
+MODE: Lite
+
+Apply a visual-only dashboard background enhancement around the operational-report area and other empty side spaces on the homepage.
+
+Do not change business logic, APIs, permissions, calculations, tables, filters, or workflows.
+This task is purely UI / visual polish.
+
+## GOAL
+
+The empty background areas around the main dashboard content — especially the side spaces around the operational report/table section and similar blank zones — should feel more alive and branded.
+
+I want subtle decorative background elements inspired by the clinic logo and the existing hero/search background style.
+
+## DESIGN DIRECTION
+
+Use the logo as inspiration:
+- soft curved lines
+- orbit-like paths
+- circular nodes / dots
+- subtle glow accents
+- abstract connected lines
+- shapes inspired by the implant / network / circular motion in the logo
+
+Match the existing dashboard style:
+- clean
+- modern
+- medical / professional
+- light and elegant
+- not crowded
+- not distracting
+
+The result should feel like a continuation of the existing hero background.
+
+## VISUAL RULES
+
+- Use very subtle decorative background graphics only.
+- Keep all content readable.
+- Decorations must stay behind the content.
+- Use low opacity.
+- Prefer soft teal / cyan / blue tones derived from the current logo.
+- Avoid dark heavy shapes.
+- Avoid anything that looks like a watermark over text.
+- Avoid large illustrations that compete with tables/cards.
+- Do not place strong graphics directly under important text or table values.
+
+## WHERE TO APPLY
+
+Apply subtle background decoration in the empty layout zones such as:
+- left and right empty side areas around the dashboard body
+- behind / around the operational report section
+- other clearly empty background spaces on the dashboard page
+
+Do NOT clutter every section.
+The effect should be balanced and elegant.
+
+## IMPLEMENTATION STYLE
+
+Prefer CSS / lightweight SVG decorative layers.
+Do not use heavy images if not needed.
+If using SVG, keep it reusable and responsive.
+
+Recommended approach:
+- absolute-positioned decorative layers
+- pointer-events: none
+- low z-index behind content
+- responsive visibility and scaling
+- soft blur/glow where appropriate
+
+Possible elements:
+- thin curved orbit lines
+- small circles / nodes
+- gradient glow spots
+- abstract connected-dot patterns
+- partial arc lines similar to the hero background
+- very subtle implant-inspired circular geometry
+
+## RESPONSIVENESS
+
+- Decorations must look good on desktop first.
+- On tablet/mobile, simplify or reduce them.
+- Do not let background graphics break spacing or cause horizontal scroll.
+- Do not affect table width or layout behavior.
+
+## CONSISTENCY
+
+Keep the current hero/search section unchanged in behavior.
+Visually harmonize the new decorative background with:
+- hero card background
+- current brand palette
+- overall dashboard cards
+- logo language
+
+## IMPORTANT
+
+This is NOT a redesign of the page.
+Do NOT move components.
+Do NOT change any table structure.
+Do NOT modify any interactions.
+
+Only improve the empty background areas with elegant branded abstract visuals.
+
+## VERIFICATION
+
+Run only:
+- affected TypeScript check
+- affected lint
+- one browser verification screenshot on desktop
+- one browser verification screenshot on mobile/tablet if needed
+
+Do not run the full test suite.
+Do not publish.
+
+Provide a concise report and stop.
