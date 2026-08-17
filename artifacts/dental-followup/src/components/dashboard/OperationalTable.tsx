@@ -25,7 +25,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { InlineNewRecord } from "./InlineNewRecord";
-import { OperationalDatePicker, OperationalDateTimePicker } from "./OperationalDatePicker";
+import {
+  OperationalDatePicker,
+  OperationalDateTimeFields,
+} from "./OperationalDatePicker";
 import {
   ReportFiltersBar,
   type ReportFilterState,
@@ -782,10 +785,11 @@ function InlineAddFollowup({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">التاريخ والوقت *</Label>
-          <OperationalDateTimePicker value={scheduledAt} onChange={setScheduledAt} />
-        </div>
+        <OperationalDateTimeFields
+          value={scheduledAt}
+          onChange={setScheduledAt}
+          required
+        />
         {assignableUsers && assignableUsers.length > 0 && (
           <div className="space-y-1">
             <Label className="text-xs">المسؤول</Label>
@@ -798,10 +802,10 @@ function InlineAddFollowup({
             </Select>
           </div>
         )}
-        <div className="space-y-1">
-          <Label className="text-xs">الموعد القادم</Label>
-          <OperationalDateTimePicker value={nextAppointmentAt} onChange={setNextAppointmentAt} />
-        </div>
+        <OperationalDateTimeFields
+          value={nextAppointmentAt}
+          onChange={setNextAppointmentAt}
+        />
         <div className="col-span-1 sm:col-span-2 flex items-center gap-2 pt-1">
           <Checkbox
             id="qe-requires-contact"
@@ -922,10 +926,10 @@ function InlineFollowupEdit({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">التاريخ والوقت</Label>
-          <OperationalDateTimePicker value={scheduledAt} onChange={setScheduledAt} />
-        </div>
+        <OperationalDateTimeFields
+          value={scheduledAt}
+          onChange={setScheduledAt}
+        />
         {assignableUsers && assignableUsers.length > 0 && (
           <div className="space-y-1">
             <Label className="text-xs">المسؤول</Label>
@@ -938,10 +942,10 @@ function InlineFollowupEdit({
             </Select>
           </div>
         )}
-        <div className="space-y-1">
-          <Label className="text-xs">الموعد التالي</Label>
-          <OperationalDateTimePicker value={nextAppointmentAt} onChange={setNextAppointmentAt} />
-        </div>
+        <OperationalDateTimeFields
+          value={nextAppointmentAt}
+          onChange={setNextAppointmentAt}
+        />
         <div className="flex items-center gap-2 pt-5">
           <Checkbox id={`edit-contact-${followup.id}`} checked={requiresContact} onCheckedChange={(value) => setRequiresContact(Boolean(value))} />
           <Label htmlFor={`edit-contact-${followup.id}`} className="text-xs cursor-pointer">يتطلب تواصلًا</Label>

@@ -35,7 +35,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { OperationalDatePicker, OperationalDateTimePicker } from "./OperationalDatePicker";
+import {
+  OperationalDatePicker,
+  OperationalDateTimeFields,
+} from "./OperationalDatePicker";
 
 /* ------------------------------------------------------------------ */
 /* Internal form schema (more permissive than API schema — API validates)
@@ -833,22 +836,18 @@ export function InlineNewRecord({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="qe-followupScheduledAt">
-                    موعد المتابعة <span className="text-destructive">*</span>
-                  </Label>
-                  <OperationalDateTimePicker
-                    id="qe-followupScheduledAt"
-                    aria-invalid={!!form.formState.errors.followupScheduledAt}
-                    value={form.watch("followupScheduledAt") ?? ""}
-                    onChange={(value) => form.setValue("followupScheduledAt", value, { shouldDirty: true, shouldValidate: true })}
-                  />
-                  {form.formState.errors.followupScheduledAt && (
-                    <p className="text-xs text-destructive">
-                      {form.formState.errors.followupScheduledAt.message}
-                    </p>
-                  )}
-                </div>
+                <OperationalDateTimeFields
+                  id="qe-followupScheduledAt"
+                  required
+                  aria-invalid={!!form.formState.errors.followupScheduledAt}
+                  value={form.watch("followupScheduledAt") ?? ""}
+                  onChange={(value) => form.setValue("followupScheduledAt", value, { shouldDirty: true, shouldValidate: true })}
+                />
+                {form.formState.errors.followupScheduledAt && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.followupScheduledAt.message}
+                  </p>
+                )}
                 <div className="space-y-1">
                   <Label>المسؤول</Label>
                   <Select
