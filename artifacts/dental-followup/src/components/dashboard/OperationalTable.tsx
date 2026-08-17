@@ -2043,7 +2043,7 @@ export function OperationalTable({
     <Card data-testid="card-operational-report">
       <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3 flex-wrap">
         <CardTitle className="text-base">
-          التقرير التشغيلي ({groups.length} مريض)
+          الحالات ({groups.length} مريض)
         </CardTitle>
         <div className="flex gap-2 print:hidden flex-wrap">
           <Button
