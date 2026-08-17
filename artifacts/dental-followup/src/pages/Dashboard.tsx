@@ -290,14 +290,9 @@ export default function Dashboard() {
                       size="hero"
                       shape="frameless"
                       imageFit="natural"
+                      className="hero-portrait-avatar"
                     />
-                  ) : (
-                    /* No photo: keep only the decorative background, sized like the portrait slot */
-                    <div
-                      aria-hidden="true"
-                      className="invisible h-[140px] w-[112px] sm:h-[170px] sm:w-[136px] md:h-[250px] md:w-[200px] lg:h-[300px] lg:w-[240px] xl:h-[320px] xl:w-[256px]"
-                    />
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}

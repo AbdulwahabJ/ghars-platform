@@ -123,18 +123,22 @@
     position: relative;
     display: flex;
     min-width: 0;
-    min-height: 184px;
+    min-height: 250px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
+    overflow: visible;
   }
 
   .hero-portrait-visual {
     position: relative;
     display: flex;
+    width: min(100%, 340px);
+    height: clamp(250px, 32vw, 360px);
     align-items: center;
     justify-content: center;
+    overflow: visible;
     animation: hero-portrait-float 7s ease-in-out infinite;
     will-change: transform;
   }
@@ -159,12 +163,32 @@
     background: transparent;
   }
 
+  /*
+   * Dedicated safe region for the complete portrait. The outer avatar fills
+   * this region, while its natural-size image is constrained by both axes.
+   * This prevents a tall transparent portrait from touching a fixed bottom
+   * edge or being cropped by a fixed avatar rectangle.
+   */
+  .hero-portrait-avatar {
+    position: relative;
+    z-index: 1;
+    width: calc(100% - 24px) !important;
+    height: calc(100% - 16px) !important;
+    max-width: calc(100% - 24px) !important;
+    max-height: calc(100% - 16px) !important;
+    overflow: visible !important;
+  }
+
   .hero-portrait-frameless img {
     /* Real alpha transparency is preserved in the stored WebP/PNG.
        Do NOT apply mask-image or background here — that would fight the
        actual transparent pixels and could recreate a rectangular matte.
        The image silhouette is defined by the image itself. */
     display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
     background: transparent;
     filter: drop-shadow(0 12px 20px rgb(23 62 104 / 0.12));
@@ -266,7 +290,7 @@
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-5px);
+      transform: translateY(-4px);
     }
   }
 

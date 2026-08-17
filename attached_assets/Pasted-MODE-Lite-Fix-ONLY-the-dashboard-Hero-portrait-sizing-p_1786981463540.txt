@@ -1,0 +1,216 @@
+MODE: Lite
+
+Fix ONLY the dashboard Hero portrait sizing/positioning.
+
+The transparency issue is now solved correctly.
+
+The remaining problem is that the user portrait still looks CUT OFF / CROPPED at the bottom.
+
+I do NOT want any part of the uploaded transparent portrait to be clipped.
+
+## PRIMARY REQUIREMENT
+
+Show the COMPLETE transparent user portrait inside the Hero composition.
+
+The portrait must preserve the full uploaded image silhouette.
+
+Do NOT crop:
+
+* head
+* shoulders
+* arms
+* torso
+* bottom of the transparent portrait
+
+The full visible subject contained in the uploaded PNG/WebP must remain visible.
+
+## 1. USE CONTAIN-STYLE SIZING
+
+The portrait should behave like:
+
+* width: auto
+* height: auto
+* max-width: appropriate Hero size
+* max-height: appropriate Hero size
+* object-fit: contain
+
+Do NOT use `object-cover`.
+
+Do NOT zoom/crop the image to fill a fixed rectangle.
+
+Preserve the original aspect ratio.
+
+If the image is too tall for the current Hero, SCALE THE WHOLE PORTRAIT DOWN proportionally instead of cutting it.
+
+## 2. REMOVE CLIPPING FROM PARENT CONTAINERS
+
+Inspect all parent elements around the Hero portrait.
+
+Make sure the portrait is not being clipped by:
+
+* `overflow: hidden`
+* fixed height wrappers
+* max-height smaller than the rendered portrait
+* masks
+* pseudo-element clipping
+* translated elements extending outside a hidden container
+
+The portrait wrapper itself must allow the complete transparent image to remain visible.
+
+If the Hero must keep overflow hidden for its decorative background, separate the layers:
+
+Hero background layer
+→ may remain clipped if needed
+
+Portrait layer
+→ must have its own safe visible area and must NOT be clipped
+
+Do not globally change layout overflow if that breaks the decorative background.
+
+## 3. SAFE PORTRAIT AREA
+
+Define a dedicated portrait-safe region on the LEFT side of the Hero.
+
+Desktop target:
+
+* width approximately 280–340px
+* usable height approximately 300–360px
+
+Vertically center the COMPLETE portrait in that space.
+
+The portrait should never touch/cross the bottom boundary in a way that causes visible clipping.
+
+If required, move the image slightly upward or reduce it by 5–15%.
+
+Do not solve this by cutting the bottom.
+
+## 4. TRANSPARENT IMAGE BEHAVIOR
+
+The transparent background must continue working exactly as it does now.
+
+Do not:
+
+* add a background rectangle
+* add a frame
+* add a mask
+* convert the image format
+* reintroduce JPEG conversion
+
+The existing transparent WebP/PNG behavior must stay intact.
+
+## 5. DECORATIONS
+
+Keep the animated:
+
+* orbit lines
+* network nodes
+* glow
+* digital logo-inspired decorations
+
+behind the portrait.
+
+The decorations may extend beyond the subject.
+
+The portrait itself must remain completely visible above them.
+
+Do not use decorative clipping to shape the portrait.
+
+## 6. FLOATING MOTION
+
+Keep the subtle floating animation.
+
+But the animation must not cause the image to move outside its safe visible region.
+
+For example:
+
+* reduce vertical travel if currently too large
+* approximately 3–6px is enough
+
+At both the highest and lowest points of the animation, the complete portrait must remain visible.
+
+## 7. VISUAL BALANCE
+
+It is acceptable for the portrait to become slightly smaller than it is now if that is required to show the complete image.
+
+Priority order:
+
+1. full portrait visible
+2. correct aspect ratio
+3. no clipping
+4. visual balance
+5. maximum size
+
+Do NOT prioritize making the image huge if it causes clipping.
+
+## 8. RESPONSIVE
+
+Desktop:
+
+* full transparent portrait visible
+
+Tablet:
+
+* proportionally scale down
+
+Mobile:
+
+* proportionally scale down further
+
+Never crop the portrait at any breakpoint.
+
+## 9. NO PHOTO STATE
+
+Keep the current rule:
+
+If there is no profile photo:
+
+* render no Hero portrait
+* no initials
+* no placeholder
+* no fallback block
+
+## 10. DO NOT CHANGE
+
+Do not change:
+
+* image upload pipeline
+* transparency processing
+* database
+* profile settings
+* header avatar
+* greeting
+* search
+* KPIs
+* navigation
+* Hero decorations
+
+This task is ONLY about making the complete Hero portrait visible without cropping.
+
+## VISUAL ACCEPTANCE TEST
+
+Use the currently uploaded transparent Admin portrait.
+
+The task is NOT complete unless:
+
+1. the complete transparent image is visible
+2. the bottom of the subject is no longer cut
+3. head and shoulders remain visible
+4. image proportions are unchanged
+5. there is no rectangular background
+6. the portrait still floats subtly
+7. decorative lines remain behind it
+8. the portrait remains fully visible throughout the floating animation
+
+Do a real authenticated browser visual check.
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* focused Hero browser verification
+
+Do not run the full test suite.
+
+Do not publish.
+
+Provide a concise completion report and stop.
