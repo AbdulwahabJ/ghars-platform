@@ -33,7 +33,7 @@ export default function PatientsList() {
   };
 
   return (
-    <Shell>
+    <Shell decorated>
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* Header Actions */}

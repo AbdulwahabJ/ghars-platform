@@ -153,7 +153,7 @@ export default function Finance() {
 
   if (!canView) {
     return (
-      <Shell>
+      <Shell decorated>
         <div className="flex flex-col items-center justify-center p-12 text-center min-h-[60vh]">
           <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">
             <Lock className="h-10 w-10 text-muted-foreground" />
@@ -184,7 +184,7 @@ export default function Finance() {
     : [];
 
   return (
-    <Shell>
+    <Shell decorated>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Print-only header */}
         <div className="hidden print:block text-center border-b border-border pb-4 mb-4">

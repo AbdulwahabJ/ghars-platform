@@ -1,0 +1,57 @@
+Apply the approved decorative background style across all MAIN top-level pages of the app.
+
+Use the same accepted visual language that is now shown on the dashboard:
+- soft digital ornaments
+- subtle curved lines
+- circles / nodes
+- light network-style motifs
+- shapes derived from the clinic logo colors and identity
+- clean, low-contrast, professional background decoration
+
+IMPORTANT:
+This is the background style that was already approved on the dashboard. Reuse that same style and extend it consistently across the main pages.
+
+Pages to apply it to:
+- Dashboard / الرئيسية
+- Patients / المرضى
+- Finance / المالية
+- Settings / الإعدادات
+
+Interpret “main pages” as the primary top navigation pages/screen-level pages.
+
+Requirements:
+1. Keep the content area readable and uncluttered.
+2. Decorations should stay mostly on the sides / outer background areas, not interfere with tables, cards, forms, or text.
+3. Use the same overall style, colors, opacity, and feeling as the approved dashboard background.
+4. Make it feel like one consistent system-wide visual identity, not different designs per page.
+5. The effect should be subtle and elegant, not loud.
+6. Preserve current layouts and functionality — this is a styling/background task only.
+7. Make it responsive:
+   - desktop: visible side decorations
+   - tablet: reduced but still present
+   - mobile: simplified version so it does not crowd the UI
+8. Do not reduce contrast or readability of inputs, tables, filters, cards, or page titles.
+9. Do not place decorative elements directly behind dense data areas in a distracting way.
+10. Reuse this through a shared layout/background wrapper or shared styling approach so it is consistent and maintainable.
+
+Implementation guidance:
+- Extract the approved dashboard background treatment into a reusable shared page background pattern/component.
+- Apply it to all main top-level pages.
+- Keep page-specific content untouched.
+
+Do NOT change:
+- business logic
+- routes
+- permissions
+- forms
+- tables
+- workflows
+- data behavior
+
+Only expand the approved background design system-wide across the main pages.
+
+Verification:
+- confirm it appears on all main top-level pages
+- confirm desktop/tablet/mobile behavior
+- confirm readability is preserved
+- provide a concise completion report and stop

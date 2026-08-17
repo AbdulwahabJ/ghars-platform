@@ -33,7 +33,7 @@ export default function Settings() {
   }, [isLoading, user, setLocation]);
 
   return (
-    <Shell>
+    <Shell decorated>
       {user?.role === "ADMIN" && (
         <div className="space-y-6">
           <h1 className="text-2xl font-bold" data-testid="text-settings-title">
