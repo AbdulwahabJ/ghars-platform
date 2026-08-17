@@ -1,0 +1,270 @@
+MODE: Lite
+
+Apply one focused VISUAL-ONLY refinement to the MAIN DASHBOARD background.
+
+The previous background enhancement did not visibly affect the large empty spaces on the LEFT and RIGHT sides of the dashboard.
+
+This time, the goal is very specific:
+
+Fill the empty side areas of the dashboard with subtle, premium digital decorative elements inspired directly by the clinic logo.
+
+Do NOT redesign the dashboard.
+Do NOT move existing components.
+Do NOT change any data, APIs, calculations, permissions, tables, filters, workflows, or interactions.
+
+## VISUAL REFERENCE
+
+Use the existing clinic logo already available in the project as the visual inspiration.
+
+Do NOT simply place or repeat the logo as a watermark.
+
+Extract the visual language of the logo:
+
+* connected network nodes
+* thin geometric connection lines
+* circular orbit paths
+* partial arcs
+* small glowing dots
+* digital medical-tech geometry
+* subtle implant-inspired abstract forms
+* teal / cyan / navy visual accents
+
+The decoration should feel like an extension of the logo identity.
+
+## MAIN TARGET AREAS
+
+Focus especially on the currently empty visual spaces:
+
+* LEFT side of the homepage/dashboard content
+* RIGHT side of the homepage/dashboard content
+* empty outer areas around the hero section
+* empty side spaces around the KPI / operational sections
+* large blank background areas around the main content column
+
+These side spaces must be VISIBLY improved.
+
+Do not only modify the hero card itself.
+
+The previous attempt was too subtle and the side areas remained visually empty.
+
+## DESIRED RESULT
+
+The dashboard should feel:
+
+* modern
+* premium
+* medical-tech
+* digital
+* elegant
+* branded
+* visually richer
+
+while still remaining clean and professional.
+
+Think of:
+
+"subtle futuristic dental technology background"
+
+not:
+
+"decorative illustration"
+
+## DECORATIVE ELEMENTS
+
+Create lightweight abstract decorative compositions such as:
+
+### Left-side composition
+
+A larger partial network pattern made of:
+
+* connected nodes
+* thin curved lines
+* orbit arcs
+* several soft glowing points
+
+It can extend partially off-screen so it feels naturally integrated into the page.
+
+### Right-side composition
+
+Use a different but visually related pattern:
+
+* large partial circular orbit
+* smaller connected-node network
+* soft gradient glow
+* subtle line geometry
+
+Do NOT mirror the exact same SVG on both sides.
+
+The two sides should feel related but not duplicated.
+
+## OPACITY / VISIBILITY
+
+The decorations MUST actually be visible.
+
+Do not make them so faint that they disappear.
+
+Use approximately:
+
+* 8–18% opacity for major lines/shapes
+* slightly stronger opacity for selected nodes or accent elements
+* very soft blur/glow where appropriate
+
+Keep enough contrast so the visual identity is noticeable without reducing readability.
+
+## COLOR PALETTE
+
+Derive colors from the existing logo and current system palette.
+
+Use combinations of:
+
+* teal
+* turquoise / cyan
+* navy blue
+* dark blue
+
+Very soft transparent gradients are allowed.
+
+Do not introduce unrelated colors.
+
+## IMPLEMENTATION
+
+Prefer lightweight implementation:
+
+* reusable SVG decorative components
+* CSS gradients
+* absolute-positioned decorative layers
+* pseudo-elements where appropriate
+
+Avoid large raster background images unless absolutely necessary.
+
+Suggested architecture:
+
+DashboardDecorations
+
+* left decorative composition
+* right decorative composition
+* optional subtle center/background accents
+
+Use:
+
+pointer-events: none
+
+so decorations never interfere with clicks or controls.
+
+Keep them behind all interactive content.
+
+## PAGE LAYERING
+
+The decoration should visually sit:
+
+behind:
+
+* hero
+* KPI cards
+* operational cards
+* operational report
+* statistics
+
+but above the plain page background.
+
+It must NOT appear over text, buttons, tables, or form controls.
+
+Existing cards should remain visually readable above the decorations.
+
+## HERO AREA
+
+Preserve the existing hero design and search behavior.
+
+You may visually connect the new page decorations with the existing hero arcs so the whole dashboard feels like one unified branded composition.
+
+Do not replace the hero.
+
+## RESPONSIVE BEHAVIOR
+
+Desktop:
+
+* decorations should be clearly visible in the empty left/right areas
+* use the available wide-screen space effectively
+
+Tablet:
+
+* reduce size/opacities if necessary
+
+Mobile:
+
+* simplify heavily
+* show only small decorative accents
+* avoid horizontal overflow
+* never reduce readability
+
+Do not let any SVG or absolute element increase the page width.
+
+## PERFORMANCE
+
+The decoration must be lightweight.
+
+Do not introduce:
+
+* animation libraries
+* canvas
+* WebGL
+* heavy dependencies
+
+Simple SVG/CSS only.
+
+Very subtle CSS animation may be used only if it adds value and has negligible performance cost, but static decoration is perfectly acceptable.
+
+Respect prefers-reduced-motion if any animation is used.
+
+## IMPORTANT — DO NOT CHANGE
+
+Do not change:
+
+* dashboard layout
+* hero structure
+* search field
+* KPI cards
+* operational cards
+* operational report
+* patient table
+* filters
+* statistics/charts
+* navigation
+* permissions
+* backend
+* APIs
+* database
+* business logic
+
+This task is visual background decoration ONLY.
+
+## VISUAL VERIFICATION
+
+This task MUST be visually verified.
+
+Do not stop after code compilation.
+
+Open the dashboard in the browser and verify that:
+
+1. the LEFT empty side area contains clearly visible logo-inspired decoration
+2. the RIGHT empty side area contains clearly visible logo-inspired decoration
+3. the decoration is visible but not distracting
+4. it does not overlap or reduce readability of cards/tables
+5. there is no horizontal overflow
+6. desktop looks intentionally branded rather than empty
+7. mobile remains clean
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* desktop browser visual verification
+* mobile/tablet visual verification if needed
+
+Do NOT run the full historical test suite.
+
+Do NOT modify unrelated code.
+
+Do NOT publish.
+
+Provide a concise completion report and stop.
