@@ -1337,7 +1337,7 @@ function PatientExpandedRow({
   }
 
   const p = patient.data?.patient;
-  const displayedFollowups = [...allFollowups].sort((a, b) => {
+  const displayedFollowups = allFollowups.filter((f) => f.followupStatus !== "ملغاة").sort((a, b) => {
     const aTime = a.scheduledAt ? new Date(a.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
     const bTime = b.scheduledAt ? new Date(b.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
     const aPriority = a.followupStatus === "مجدولة"
