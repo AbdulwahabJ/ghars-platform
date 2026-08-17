@@ -1,0 +1,89 @@
+Refine ONLY the dashboard hero user portrait.
+
+Current state:
+- The portrait is now larger and placed correctly in the hero.
+- But the image still does not fit cleanly inside the frame.
+- I want the portrait to feel more polished, better fitted, and slightly animated/floating.
+
+Apply the following changes carefully:
+
+1) IMAGE FIT INSIDE THE FRAME
+- Make the user photo fit properly inside the portrait frame.
+- The image must look clean and well-composed inside the existing oval / organic frame.
+- Avoid awkward cropping of the head, shoulders, or arms.
+- The user’s full upper body should appear naturally inside the frame.
+- Prioritize a professional portrait composition.
+
+Implementation direction:
+- Use a fit behavior that keeps the subject visually complete inside the frame.
+- If needed, prefer a “contain-like” presentation rather than an aggressive crop.
+- Center the subject properly.
+- If empty space appears because of better fitting, fill it elegantly with a soft background / gradient / blur that matches the hero palette.
+- Never stretch or distort the image.
+- Preserve aspect ratio at all times.
+
+2) FLOATING / PREMIUM MOTION
+- Add a subtle floating animation to the portrait composition.
+- The movement should feel premium, light, and elegant.
+- Very small up/down floating motion only.
+- Optional: add a very slight slow parallax feel to the outer glow / decorative ring if it improves the result.
+- Do NOT make it flashy, bouncy, or distracting.
+- Motion must feel calm and professional.
+
+Animation direction:
+- Slow duration, smooth easing, infinite loop.
+- Example feel: gentle vertical movement of a few pixels.
+- Respect reduced motion preferences.
+
+3) KEEP THE EXISTING VISUAL STYLE
+- Keep the same general hero structure.
+- Keep the current large portrait area on the left.
+- Keep the greeting, date, and search on the right unchanged.
+- Keep the subtle logo-inspired digital background decorations.
+- Keep the professional teal / cyan / navy visual language.
+
+4) POLISH THE FRAME
+- Keep the portrait frame premium and clean.
+- Preserve the current elegant oval / organic style.
+- The portrait should feel slightly floating above the hero background.
+- Keep or improve:
+  - soft outer glow,
+  - subtle border/ring,
+  - light shadow,
+  - elegant depth.
+
+5) NAME / ROLE
+- Keep the user name and role under the portrait.
+- Make sure spacing and alignment feel polished.
+- They should remain secondary to the portrait itself.
+
+6) RESPONSIVENESS
+- On desktop: keep the portrait large and prominent.
+- On tablet/mobile: scale it down gracefully without breaking layout.
+- The animation and image fit must still work properly on smaller screens.
+
+7) DO NOT CHANGE
+Do NOT change:
+- header avatar behavior,
+- greeting content,
+- search behavior,
+- KPIs,
+- navigation,
+- dashboard logic,
+- user upload logic,
+- permissions,
+- backend,
+- database.
+
+This is only a visual refinement of the hero portrait.
+
+8) VISUAL ACCEPTANCE CRITERIA
+The task is complete only if:
+- the portrait fits naturally inside the frame,
+- the subject is not awkwardly cropped,
+- the image is not stretched,
+- the portrait feels premium and clear,
+- the floating effect is subtle and elegant,
+- the result looks better than a static avatar and more like a hero portrait.
+
+Run only the affected frontend checks and visually verify the dashboard in the browser before stopping.

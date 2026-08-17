@@ -130,13 +130,27 @@
     gap: 0.75rem;
   }
 
+  .hero-portrait-visual {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: hero-portrait-float 7s ease-in-out infinite;
+    will-change: transform;
+  }
+
   .hero-portrait-frame {
     border-radius: 48% 48% 44% 44% / 40% 40% 52% 52%;
     position: relative;
   }
 
   .hero-portrait-frame img {
-    object-position: center 20%;
+    object-position: center;
+    background: linear-gradient(
+      160deg,
+      rgb(255 255 255 / 0.42),
+      rgb(31 169 184 / 0.08)
+    );
   }
 
   .hero-portrait-halo {
@@ -154,6 +168,22 @@
     border: 1px solid rgb(31 169 184 / 0.28);
     border-radius: 48% 52% 46% 54% / 42% 45% 55% 58%;
     transform: rotate(-18deg);
+  }
+
+  @keyframes hero-portrait-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-portrait-visual {
+    animation: none;
   }
 }
 

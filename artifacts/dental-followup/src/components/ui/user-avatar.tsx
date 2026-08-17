@@ -68,6 +68,8 @@ interface UserAvatarProps {
   ring?: boolean;
   /** Use the organic vertical frame reserved for the dashboard hero. */
   shape?: "circle" | "portrait";
+  /** Keep the source image complete when the frame should avoid aggressive cropping. */
+  imageFit?: "cover" | "contain";
 }
 
 const SIZE_CLASSES: Record<NonNullable<UserAvatarProps["size"]>, string> = {
@@ -86,6 +88,7 @@ export function UserAvatar({
   className,
   ring = false,
   shape = "circle",
+  imageFit = "cover",
 }: UserAvatarProps) {
   const initials = getInitials(fullName);
 
@@ -105,7 +108,10 @@ export function UserAvatar({
         <img
           src={avatarData}
           alt={fullName}
-          className="w-full h-full object-cover"
+            className={cn(
+              "w-full h-full",
+              imageFit === "contain" ? "object-contain" : "object-cover",
+            )}
           draggable={false}
         />
       ) : (

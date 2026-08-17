@@ -233,20 +233,21 @@ export default function Dashboard() {
             {/* Left: signed-in user portrait composition */}
             {user && (
               <div className="hero-portrait-composition order-1 md:order-none">
-                <div
-                  aria-hidden="true"
-                  className="hero-portrait-halo absolute h-[210px] w-[210px] sm:h-[250px] sm:w-[250px] md:h-[320px] md:w-[320px] lg:h-[380px] lg:w-[380px]"
-                />
-                <div
-                  aria-hidden="true"
-                  className="hero-portrait-orbit absolute h-[190px] w-[138px] sm:h-[230px] sm:w-[166px] md:h-[300px] md:w-[220px] lg:h-[360px] lg:w-[264px]"
-                />
-                <div className="relative z-10">
+                <div className="hero-portrait-visual">
+                  <div
+                    aria-hidden="true"
+                    className="hero-portrait-halo absolute left-1/2 top-1/2 h-[210px] w-[210px] -translate-x-1/2 -translate-y-1/2 sm:h-[250px] sm:w-[250px] md:h-[320px] md:w-[320px] lg:h-[380px] lg:w-[380px]"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="hero-portrait-orbit absolute left-1/2 top-1/2 h-[190px] w-[138px] -translate-x-1/2 -translate-y-1/2 sm:h-[230px] sm:w-[166px] md:h-[300px] md:w-[220px] lg:h-[360px] lg:w-[264px]"
+                  />
                   <UserAvatar
                     fullName={user.fullName}
                     avatarData={user.avatarData}
                     size="hero"
                     shape="portrait"
+                    imageFit="contain"
                     className="border-4 border-white/80 bg-gradient-to-br from-primary/25 via-cyan-500/15 to-primary/5 shadow-[0_18px_45px_rgba(23,62,104,0.12),0_4px_14px_rgba(13,148,136,0.12)]"
                   />
                 </div>
