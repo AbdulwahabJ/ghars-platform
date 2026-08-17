@@ -66,10 +66,10 @@ interface UserAvatarProps {
   className?: string;
   /** Extra ring style, e.g. brand teal ring for hero use. */
   ring?: boolean;
-  /** Use the organic vertical frame reserved for the dashboard hero. */
-  shape?: "circle" | "portrait";
+  /** Use the organic vertical frame or frameless treatment reserved for the dashboard hero. */
+  shape?: "circle" | "portrait" | "frameless";
   /** Keep the source image complete when the frame should avoid aggressive cropping. */
-  imageFit?: "cover" | "contain";
+  imageFit?: "cover" | "contain" | "natural";
 }
 
 const SIZE_CLASSES: Record<NonNullable<UserAvatarProps["size"]>, string> = {
@@ -95,10 +95,15 @@ export function UserAvatar({
   return (
     <div
       className={cn(
-        shape === "circle" ? "rounded-full" : "hero-portrait-frame",
-        "overflow-hidden flex items-center justify-center shrink-0 select-none font-semibold",
+        shape === "circle"
+          ? "rounded-full"
+          : shape === "portrait"
+          ? "hero-portrait-frame"
+          : "hero-portrait-frameless",
+        shape === "frameless" ? "overflow-visible" : "overflow-hidden",
+        "flex items-center justify-center shrink-0 select-none font-semibold",
         SIZE_CLASSES[size],
-        !avatarData && "bg-primary/15 text-primary",
+        !avatarData && shape !== "frameless" && "bg-primary/15 text-primary",
         ring &&
           "ring-2 ring-offset-2 ring-primary/50 shadow-[0_0_14px_2px_rgba(13,148,136,0.25)]",
         className,
@@ -108,14 +113,23 @@ export function UserAvatar({
         <img
           src={avatarData}
           alt={fullName}
-            className={cn(
-              "w-full h-full",
-              imageFit === "contain" ? "object-contain" : "object-cover",
-            )}
+          className={cn(
+            imageFit === "natural"
+              ? "h-auto w-auto max-h-full max-w-full"
+              : "h-full w-full",
+            imageFit === "cover" ? "object-cover" : "object-contain",
+          )}
           draggable={false}
         />
       ) : (
-        <span className="notranslate leading-none">{initials}</span>
+        <span
+          className={cn(
+            "notranslate leading-none",
+            shape === "frameless" && "hero-portrait-initials",
+          )}
+        >
+          {initials}
+        </span>
       )}
     </div>
   );

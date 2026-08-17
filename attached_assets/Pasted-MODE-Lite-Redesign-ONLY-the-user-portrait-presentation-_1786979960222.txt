@@ -1,0 +1,279 @@
+MODE: Lite
+
+Redesign ONLY the user portrait presentation inside the dashboard hero.
+
+The framed / oval portrait approach is still not visually satisfying.
+
+Remove the portrait frame completely.
+
+I want the user photo to blend artistically into the hero background as part of the composition itself.
+
+This should feel like a premium medical-tech hero portrait, not an avatar inside a container.
+
+## CORE DESIGN DIRECTION
+
+Create a FRAMELESS portrait treatment.
+
+The user image should:
+
+* appear large and clear
+* visually float inside the left side of the hero
+* softly merge into the hero background
+* have no visible hard border
+* have no oval/circle/card frame
+* have no text underneath
+* feel integrated with the existing logo-inspired digital decorations
+
+The visual goal is:
+
+"portrait emerging naturally from the dashboard background"
+
+rather than:
+
+"photo placed inside a shape"
+
+## 1. REMOVE THE CURRENT FRAME
+
+Remove:
+
+* oval frame
+* hard border
+* white ring
+* visible image container outline
+
+Do not replace it with another obvious frame.
+
+The portrait should feel borderless.
+
+## 2. SOFT EDGE BLENDING
+
+Use CSS masking / feathered fading to blend the image edges into the hero.
+
+Preferred implementation:
+
+* CSS `mask-image`
+* `-webkit-mask-image`
+* layered radial / linear gradients where needed
+
+The fade should be strongest around:
+
+* left/right edges
+* bottom edge
+* optionally the upper corners
+
+The face and upper body must remain fully clear.
+
+Do NOT fade the subject itself excessively.
+
+The outer photo background should gradually disappear into the hero.
+
+This is especially important because uploaded user photos may have their own rectangular background.
+
+## 3. PORTRAIT COMPOSITION
+
+Use the available left side of the hero.
+
+Desktop target:
+
+* portrait visual width approximately 240–300px
+* height approximately 280–340px
+
+Do not constrain it inside a small box.
+
+Position the portrait so:
+
+* face is clearly visible
+* upper body is visible
+* head is never cropped awkwardly
+* arms/shoulders are not cut unnaturally
+
+Maintain the original image aspect ratio.
+
+Do not stretch the photo.
+
+## 4. IMAGE FIT
+
+Do NOT blindly use a tight `object-cover` crop.
+
+Choose the fitting strategy based on the current uploaded portrait.
+
+Prefer:
+
+* natural full portrait visibility
+* intelligent sizing
+* top/center positioning
+
+If using an `<img>` element:
+
+* preserve aspect ratio
+* allow the image to size naturally within the composition
+
+If using a background/image layer:
+
+* use a portrait-aware background position
+
+The final result should not look rectangular, cropped, squeezed, or framed.
+
+## 5. BLEND WITH THE HERO
+
+Integrate the portrait with the existing hero atmosphere.
+
+Behind the portrait, use very subtle:
+
+* teal/cyan ambient glow
+* logo-inspired orbit lines
+* network nodes
+* soft gradient light
+
+The portrait should visually sit inside the same digital environment already used around the dashboard.
+
+Do not place decoration over the user's face.
+
+## 6. DEPTH
+
+Create subtle depth without creating a visible frame.
+
+Allowed:
+
+* soft shadow behind the subject
+* cyan/teal ambient glow
+* subtle blurred halo
+
+Avoid:
+
+* hard drop shadows
+* thick rings
+* visible borders
+* card backgrounds
+
+The effect should be elegant and almost atmospheric.
+
+## 7. FLOATING ANIMATION
+
+Keep a subtle floating animation.
+
+Animate the entire portrait composition, not the internal image crop.
+
+Use approximately:
+
+* 5–8px vertical travel
+* slow 5–7 second duration
+* smooth ease-in-out
+* infinite alternate movement
+
+Optionally allow the ambient glow/orbit layer to move at a slightly different extremely subtle speed for depth.
+
+Do NOT create bouncing or obvious movement.
+
+Respect `prefers-reduced-motion`.
+
+## 8. NO NAME OR ROLE UNDER THE IMAGE
+
+Do not show:
+
+* username
+* full name
+* role
+* labels
+* badges
+
+under or over the portrait.
+
+The greeting on the right already identifies the signed-in user.
+
+Keep the left portrait area visually clean.
+
+## 9. HERO BALANCE
+
+Keep the right side exactly as it is:
+
+* greeting
+* date
+* patient search
+
+Use the left side purely as the visual portrait composition.
+
+The final hero should feel balanced:
+
+LEFT:
+large integrated portrait
+
+RIGHT:
+greeting + date + search
+
+Do not move or resize the search unless absolutely necessary for responsive layout.
+
+## 10. RESPONSIVE
+
+Desktop:
+
+* full frameless portrait
+* strong visual presence
+* soft blended edges
+
+Tablet:
+
+* reduce portrait size while preserving the effect
+
+Mobile:
+
+* simplify the blend
+* use a smaller portrait
+* avoid large decorative layers
+* never cause horizontal overflow
+
+## 11. FALLBACK
+
+For users without a profile photo:
+
+Do NOT create a giant framed initials avatar.
+
+Instead use a simple subtle branded abstract user silhouette / initials composition that fits the same visual area without pretending to be a portrait.
+
+## 12. DO NOT CHANGE
+
+Do not change:
+
+* profile upload functionality
+* user management
+* header avatar
+* greeting
+* search
+* KPIs
+* dashboard structure
+* digital page background
+* backend
+* APIs
+* database
+* permissions
+
+This is HERO PORTRAIT VISUAL WORK ONLY.
+
+## 13. VISUAL ACCEPTANCE CRITERIA
+
+Do not consider this complete unless visually verified.
+
+The final portrait must:
+
+1. have NO obvious frame
+2. have NO rectangular-looking photo boundary
+3. softly fade into the hero background
+4. keep the face and upper body clear
+5. avoid awkward cropping
+6. preserve image proportions
+7. feel integrated with the existing digital background
+8. float subtly
+9. contain no text underneath
+10. look intentionally designed rather than simply inserted
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* focused authenticated dashboard visual verification
+
+Do not run the full historical test suite.
+
+Do not publish.
+
+Provide a concise completion report and stop.

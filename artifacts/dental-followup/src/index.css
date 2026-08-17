@@ -153,6 +153,52 @@
     );
   }
 
+  .hero-portrait-frameless {
+    position: relative;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .hero-portrait-frameless img {
+    display: block;
+    object-fit: contain;
+    -webkit-mask-image: radial-gradient(
+      ellipse 72% 84% at 50% 43%,
+      #000 42%,
+      rgb(0 0 0 / 0.96) 57%,
+      rgb(0 0 0 / 0.68) 75%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(
+      ellipse 72% 84% at 50% 43%,
+      #000 42%,
+      rgb(0 0 0 / 0.96) 57%,
+      rgb(0 0 0 / 0.68) 75%,
+      transparent 100%
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    filter: drop-shadow(0 18px 22px rgb(23 62 104 / 0.1));
+  }
+
+  .hero-portrait-initials {
+    display: grid;
+    height: 7rem;
+    width: 7rem;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 50% 35%,
+      rgb(31 169 184 / 0.28),
+      rgb(23 62 104 / 0.1) 62%,
+      transparent 72%
+    );
+    color: rgb(15 118 110 / 0.8);
+    font-size: 2.5rem;
+  }
+
   .hero-portrait-halo {
     border-radius: 50%;
     background: radial-gradient(
@@ -165,8 +211,9 @@
   }
 
   .hero-portrait-orbit {
-    border: 1px solid rgb(31 169 184 / 0.28);
-    border-radius: 48% 52% 46% 54% / 42% 45% 55% 58%;
+    border: 1px solid rgb(31 169 184 / 0.17);
+    border-radius: 50%;
+    opacity: 0.7;
     transform: rotate(-18deg);
   }
 

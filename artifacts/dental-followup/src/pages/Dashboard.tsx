@@ -246,9 +246,8 @@ export default function Dashboard() {
                     fullName={user.fullName}
                     avatarData={user.avatarData}
                     size="hero"
-                    shape="portrait"
-                    imageFit="contain"
-                    className="border-4 border-white/80 bg-gradient-to-br from-primary/25 via-cyan-500/15 to-primary/5 shadow-[0_18px_45px_rgba(23,62,104,0.12),0_4px_14px_rgba(13,148,136,0.12)]"
+                    shape="frameless"
+                    imageFit="natural"
                   />
                 </div>
               </div>
