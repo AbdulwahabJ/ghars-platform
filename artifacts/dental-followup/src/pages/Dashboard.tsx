@@ -251,19 +251,6 @@ export default function Dashboard() {
                     className="border-4 border-white/80 bg-gradient-to-br from-primary/25 via-cyan-500/15 to-primary/5 shadow-[0_18px_45px_rgba(23,62,104,0.12),0_4px_14px_rgba(13,148,136,0.12)]"
                   />
                 </div>
-
-                <div className="relative z-10 text-center">
-                  <p className="font-semibold text-foreground text-base leading-tight notranslate">
-                    {user.fullName}
-                  </p>
-                  <p className="text-sm text-primary/75 mt-0.5">
-                    {user.role === "ADMIN"
-                      ? "مدير النظام"
-                      : user.role === "DOCTOR"
-                      ? "طبيب"
-                      : "مساعد"}
-                  </p>
-                </div>
               </div>
             )}
           </div>

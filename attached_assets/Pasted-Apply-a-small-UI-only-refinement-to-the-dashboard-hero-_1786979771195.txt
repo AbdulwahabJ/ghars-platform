@@ -1,0 +1,41 @@
+Apply a small UI-only refinement to the dashboard hero profile image area. Keep this as a Lite task and do not change any backend, database, permissions, routing, or business logic.
+
+Context:
+We already added the large floating user image inside the left side of the dashboard hero. The current result has two issues:
+1) the image looks cropped / cut off and does not fit nicely inside the frame
+2) the text below the image (the username / role under the portrait) is unnecessary and should be removed
+
+What to change:
+1. Fix the hero profile image so it fits properly inside its visual frame:
+   - the full portrait should be visible in a clean, professional way
+   - avoid the “cut off / cropped awkwardly” look
+   - preserve the elegant floating look and animation
+   - keep the portrait large and visually prominent
+   - keep it consistent with the site’s soft medical / digital design language
+   - if needed, adjust the frame dimensions, inner padding, image scaling, mask, and object positioning
+   - prefer a polished “fit inside the frame” result rather than aggressively cropped “cover”
+   - the result should look intentional and premium on desktop and remain responsive
+
+2. Remove the text under the image completely:
+   - remove the username label under the portrait
+   - remove the role label under the portrait
+   - the area under the image should be visually clean
+
+3. Preserve everything else:
+   - do not change the hero greeting text, search field, top nav, KPIs, decorative background, or page structure
+   - do not remove the floating animation, only refine it if needed
+   - do not change the user image upload logic or settings flow
+
+Design direction:
+- clean, premium, balanced
+- image should feel “framed” and elegant
+- no awkward clipping
+- no extra text under the image
+- keep the current overall layout and aesthetics
+
+Acceptance criteria:
+- the hero portrait no longer appears cut off
+- the portrait is visually centered and properly fitted inside the frame
+- the floating effect still works smoothly
+- there is no text shown under the portrait
+- no other UI sections are changed
