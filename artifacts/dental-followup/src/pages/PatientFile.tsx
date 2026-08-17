@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Archive, RefreshCw, Save, AlertCircle, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { PatientUpdate } from "@workspace/shared";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImplantsTab } from "@/components/implants/ImplantsTab";
@@ -27,12 +28,14 @@ export default function PatientFile() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { data, isLoading } = usePatient(id || "");
   const updatePatient = useUpdatePatient();
   const archivePatient = useArchivePatient();
   const restorePatient = useRestorePatient();
 
   const patient = data?.patient;
+  const canArchive = user?.role === "ADMIN";
 
   const [activeTab, setActiveTab] = useState<"data" | "implants" | "payments" | "followup" | "summary">("data");
   
@@ -282,14 +285,16 @@ export default function PatientFile() {
 
                 {!isArchived ? (
                   <div className="flex items-center justify-between pt-6 border-t border-border mt-8">
-                    <Button 
-                      onClick={() => setShowArchiveConfirm(true)} 
-                      variant="outline" 
-                      className="text-destructive border-destructive hover:bg-destructive/10"
-                    >
-                      <Archive className="h-4 w-4 mr-2 ml-2" />
-                      أرشفة الملف
-                    </Button>
+                    {canArchive && (
+                      <Button
+                        onClick={() => setShowArchiveConfirm(true)}
+                        variant="outline"
+                        className="text-destructive border-destructive hover:bg-destructive/10"
+                      >
+                        <Archive className="h-4 w-4 mr-2 ml-2" />
+                        أرشفة الملف
+                      </Button>
+                    )}
                     <Button 
                       onClick={handleSave} 
                       disabled={!isDirty || updatePatient.isPending}

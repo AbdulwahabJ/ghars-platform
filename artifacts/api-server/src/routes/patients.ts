@@ -373,7 +373,7 @@ router.patch("/patients/:id", async (req, res) => {
 
 router.post(
   "/patients/:id/archive",
-  requireRole("ADMIN", "DOCTOR"),
+  requireRole("ADMIN"),
   async (req, res) => {
     const id = String(req.params.id);
     if (!UUID_RE.test(id)) {

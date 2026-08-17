@@ -17,7 +17,7 @@ import { formatMoney } from "@/lib/money";
 import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment } from "@workspace/shared";
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
-import { usePatient, useUpdatePatient } from "@/hooks/use-patients";
+import { useArchivePatient, usePatient, useUpdatePatient } from "@/hooks/use-patients";
 import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useImplantOptions } from "@/hooks/use-implant-cases";
 import { useFollowups, useCreateFollowup, useUpdateFollowup, useFollowupOutcome, useAssignableUsers } from "@/hooks/use-followups";
 import { useCreatePayment, useUpdatePayment, useVoidPayment, useCaseFinance } from "@/hooks/use-finance";
@@ -1251,6 +1251,7 @@ function PatientExpandedRow({
   const { user } = useAuth();
   const canRecordPayments = user?.role === "ADMIN" || user?.canRecordPayments;
   const canManageFinancials = user?.role === "ADMIN" || (user?.role === "DOCTOR" && user?.canViewFinancials);
+  const canDeleteRows = user?.role === "ADMIN";
 
   const patient = usePatient(group.patientId);
   const casesQuery = useImplantCases(group.patientId);
@@ -1258,6 +1259,7 @@ function PatientExpandedRow({
   const { toast } = useToast();
   const qc = useQueryClient();
   const archiveImplant = useArchiveImplant();
+  const archivePatient = useArchivePatient();
   const followupOutcome = useFollowupOutcome(group.patientId);
 
   // Inline edit state — one section at a time
@@ -1267,6 +1269,7 @@ function PatientExpandedRow({
   const [editingFollowupId, setEditingFollowupId] = useState<string | null>(null);
   // Destructive confirmations
   const [confirmArchiveImplantId, setConfirmArchiveImplantId] = useState<string | null>(null);
+  const [confirmArchivePatient, setConfirmArchivePatient] = useState(false);
   const [confirmCancelFollowupId, setConfirmCancelFollowupId] = useState<string | null>(null);
   // Inline quick-action state — one form open at a time
   type QuickAction = "implant" | "payment" | "followup";
@@ -1296,6 +1299,25 @@ function PatientExpandedRow({
         },
       },
     );
+  };
+
+  const doArchivePatient = () => {
+    archivePatient.mutate(group.patientId, {
+      onSuccess: () => {
+        toast({ title: "تم حذف الصف من الجدول" });
+        void qc.invalidateQueries({ queryKey: ["operational-report"] });
+        void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        void qc.invalidateQueries({ queryKey: ["statistics"] });
+        setConfirmArchivePatient(false);
+      },
+      onError: (error) => {
+        toast({
+          title: "تعذر حذف الصف",
+          description: error instanceof Error ? error.message : undefined,
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const doCancelFollowup = (followupId: string) => {
@@ -1615,6 +1637,7 @@ function PatientExpandedRow({
                                       <p className="text-[11px] text-muted-foreground" dir="ltr">{imp.site}</p>
                                     </div>
                                   </div>
+                                  {user?.role === "ADMIN" && (
                                   <div className="flex gap-1">
                                     <button
                                       type="button"
@@ -1633,6 +1656,7 @@ function PatientExpandedRow({
                                       <Trash2 className="h-3 w-3" />
                                     </button>
                                   </div>
+                                  )}
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-2">
                                   <div>
@@ -1767,7 +1791,51 @@ function PatientExpandedRow({
               الملف الكامل ↗
             </Link>
           </Button>
+          {canDeleteRows && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setConfirmArchivePatient(true)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              حذف الصف
+            </Button>
+          )}
         </div>
+
+        {canDeleteRows && confirmArchivePatient && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+            <p className="text-xs flex items-start gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+              سيتم إخفاء صف <strong>{group.patientName}</strong> وجميع حالاته من الجدول عبر أرشفة الملف، ويمكن استعادته لاحقًا من الملفات المؤرشفة.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={doArchivePatient}
+                disabled={archivePatient.isPending}
+                className="h-7 text-xs"
+              >
+                {archivePatient.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                تأكيد حذف الصف
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setConfirmArchivePatient(false)}
+                disabled={archivePatient.isPending}
+                className="h-7 text-xs"
+              >
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Inline form panel — smooth height transition */}
         {activeAction !== null && activeCases.length > 0 && (
