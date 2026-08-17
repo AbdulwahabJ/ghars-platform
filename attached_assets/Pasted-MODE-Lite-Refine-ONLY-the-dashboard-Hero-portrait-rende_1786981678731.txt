@@ -1,0 +1,218 @@
+MODE: Lite
+
+Refine ONLY the dashboard Hero portrait rendering.
+
+The current portrait still visually reveals the bottom edge/crop.
+
+Do NOT resize or crop the portrait aggressively.
+
+Instead, make the LOWER HALF of the transparent portrait gradually fade into the Hero background so there is no visible hard ending.
+
+## GOAL
+
+The user portrait should look like it naturally emerges from the Hero background.
+
+The face and upper body must remain completely clear.
+
+Starting around the middle/lower-middle of the portrait, the image should gradually become more transparent until the bottom completely disappears into the Hero.
+
+Visual concept:
+
+TOP / FACE
+100% visible
+
+CHEST / UPPER BODY
+100% visible
+
+MID BODY
+begin very subtle fade
+
+LOWER BODY
+progressively more transparent
+
+BOTTOM EDGE
+fully transparent
+
+There must be NO visible cut line and NO rectangular image boundary.
+
+## 1. USE A VERTICAL ALPHA MASK
+
+Apply a CSS alpha mask directly to the portrait image.
+
+Preferred approach:
+
+`mask-image`
+and
+`-webkit-mask-image`
+
+using a vertical linear gradient.
+
+Suggested starting point:
+
+* 0% → 55%: fully opaque
+* around 60%: begin subtle fade
+* around 75%: partially transparent
+* around 90–95%: almost transparent
+* 100%: fully transparent
+
+Example direction:
+
+linear-gradient(
+to bottom,
+#000 0%,
+#000 55%,
+rgba(0,0,0,0.95) 62%,
+rgba(0,0,0,0.65) 75%,
+rgba(0,0,0,0.25) 88%,
+transparent 100%
+)
+
+Tune the actual stops visually.
+
+Do NOT blindly copy these percentages if the real portrait needs slightly different values.
+
+The final result must look natural.
+
+## 2. KEEP THE HEAD AND FACE PERFECTLY CLEAR
+
+Do not fade:
+
+* face
+* hair
+* shoulders
+* upper torso
+
+The user's identity should remain sharp and visually prominent.
+
+The fade should affect only the lower portion of the portrait.
+
+## 3. OPTIONAL SIDE FEATHERING
+
+If the original transparent image still has a slightly visible side boundary, add VERY subtle side feathering.
+
+Do not blur the whole image.
+
+Side fade should be minimal.
+
+The primary fade is vertical from the middle toward the bottom.
+
+## 4. DO NOT REINTRODUCE A RECTANGLE
+
+Do not add:
+
+* frame
+* card
+* oval
+* background color
+* solid image wrapper
+* border
+
+The existing PNG/WebP alpha transparency must remain visible.
+
+The portrait should visually blend directly into the Hero.
+
+## 5. PRESERVE THE CURRENT PORTRAIT SIZE
+
+Keep approximately the current portrait size and position unless a small adjustment improves the composition.
+
+Do NOT significantly shrink it again.
+
+We specifically want the fade to solve the bottom-edge problem.
+
+## 6. ANIMATED DECORATIONS
+
+Keep the current animated logo-inspired elements around the portrait:
+
+* orbit lines
+* nodes
+* digital curves
+* subtle glow
+
+These must remain behind the portrait.
+
+Because the lower portrait fades away, some decorative lines may naturally become more visible through the lower body area.
+
+That is desirable and should make the portrait feel integrated with the digital background.
+
+## 7. FLOATING MOTION
+
+Keep the subtle floating animation.
+
+The mask must move WITH the portrait.
+
+Do not animate the mask independently.
+
+The portrait and its fade should behave as one visual element.
+
+## 8. NO PHOTO STATE
+
+Keep the current strict rule:
+
+If no profile image exists:
+
+* render no portrait
+* no initials
+* no placeholder
+* no empty portrait container
+
+## 9. RESPONSIVE
+
+Desktop:
+
+* clear large portrait
+* lower body fades smoothly
+
+Tablet:
+
+* preserve the same fade behavior
+
+Mobile:
+
+* use a slightly earlier fade if needed so the portrait remains compact
+
+Never show a hard bottom edge at any breakpoint.
+
+## 10. DO NOT CHANGE
+
+Do not change:
+
+* image upload/transparency pipeline
+* user settings
+* database
+* header avatar
+* greeting
+* patient search
+* KPIs
+* dashboard logic
+* Hero layout
+* existing digital background design
+
+This task is ONLY the portrait fade treatment.
+
+## VISUAL ACCEPTANCE CRITERIA
+
+Use the current Admin transparent portrait and visually verify:
+
+1. face is fully sharp and visible
+2. upper body remains clear
+3. fade begins approximately around the middle/lower-middle
+4. transparency increases smoothly toward the bottom
+5. bottom edge completely disappears
+6. no visible crop line
+7. no rectangle
+8. no frame
+9. digital lines behind the portrait become subtly visible through the faded lower area
+10. floating animation remains smooth
+
+Do not stop based on TypeScript alone.
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* authenticated dashboard visual verification
+
+Do not run the full historical test suite.
+Do not publish.
+
+Provide a concise completion report and stop.

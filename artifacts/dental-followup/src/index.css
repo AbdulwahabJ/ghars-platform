@@ -180,10 +180,12 @@
   }
 
   .hero-portrait-frameless img {
-    /* Real alpha transparency is preserved in the stored WebP/PNG.
-       Do NOT apply mask-image or background here — that would fight the
-       actual transparent pixels and could recreate a rectangular matte.
-       The image silhouette is defined by the image itself. */
+    /*
+     * The stored PNG/WebP alpha remains the source silhouette. This second
+     * alpha mask only softens the lower edge so the portrait emerges into
+     * the Hero background instead of ending on a visible horizontal line.
+     * The upper face, shoulders, and torso stay fully opaque.
+     */
     display: block;
     width: auto;
     height: auto;
@@ -191,6 +193,28 @@
     max-height: 100%;
     object-fit: contain;
     background: transparent;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 55%,
+      rgb(0 0 0 / 0.95) 62%,
+      rgb(0 0 0 / 0.68) 75%,
+      rgb(0 0 0 / 0.25) 88%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 55%,
+      rgb(0 0 0 / 0.95) 62%,
+      rgb(0 0 0 / 0.68) 75%,
+      rgb(0 0 0 / 0.25) 88%,
+      transparent 100%
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
     filter: drop-shadow(0 12px 20px rgb(23 62 104 / 0.12));
   }
 
@@ -379,6 +403,29 @@
   .hero-decor-arc-path,
   .hero-decor-node {
     animation: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .hero-portrait-frameless img {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 52%,
+      rgb(0 0 0 / 0.94) 60%,
+      rgb(0 0 0 / 0.62) 72%,
+      rgb(0 0 0 / 0.2) 87%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 52%,
+      rgb(0 0 0 / 0.94) 60%,
+      rgb(0 0 0 / 0.62) 72%,
+      rgb(0 0 0 / 0.2) 87%,
+      transparent 100%
+    );
   }
 }
 
