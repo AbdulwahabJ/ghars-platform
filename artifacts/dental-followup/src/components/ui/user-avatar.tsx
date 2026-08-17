@@ -62,10 +62,12 @@ export function resizeAvatarToDataUrl(file: File): Promise<string> {
 interface UserAvatarProps {
   fullName: string;
   avatarData?: string | null;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "hero";
   className?: string;
   /** Extra ring style, e.g. brand teal ring for hero use. */
   ring?: boolean;
+  /** Use the organic vertical frame reserved for the dashboard hero. */
+  shape?: "circle" | "portrait";
 }
 
 const SIZE_CLASSES: Record<NonNullable<UserAvatarProps["size"]>, string> = {
@@ -74,6 +76,7 @@ const SIZE_CLASSES: Record<NonNullable<UserAvatarProps["size"]>, string> = {
   md: "h-10 w-10 text-sm",
   lg: "h-16 w-16 text-xl",
   xl: "h-24 w-24 text-3xl",
+  hero: "h-[140px] w-[112px] text-4xl sm:h-[170px] sm:w-[136px] md:h-[250px] md:w-[200px] lg:h-[300px] lg:w-[240px] xl:h-[320px] xl:w-[256px]",
 };
 
 export function UserAvatar({
@@ -82,13 +85,15 @@ export function UserAvatar({
   size = "md",
   className,
   ring = false,
+  shape = "circle",
 }: UserAvatarProps) {
   const initials = getInitials(fullName);
 
   return (
     <div
       className={cn(
-        "rounded-full overflow-hidden flex items-center justify-center shrink-0 select-none font-semibold",
+        shape === "circle" ? "rounded-full" : "hero-portrait-frame",
+        "overflow-hidden flex items-center justify-center shrink-0 select-none font-semibold",
         SIZE_CLASSES[size],
         !avatarData && "bg-primary/15 text-primary",
         ring &&

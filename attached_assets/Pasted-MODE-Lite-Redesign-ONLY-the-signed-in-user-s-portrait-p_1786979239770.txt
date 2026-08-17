@@ -1,0 +1,389 @@
+MODE: Lite
+
+Redesign ONLY the signed-in user's portrait presentation inside the DASHBOARD HERO.
+
+The current implementation is not acceptable:
+
+* the portrait is too small,
+* the image crop/fitting is weak,
+* it feels like a normal avatar instead of a premium hero portrait,
+* it does not use the available left-side hero space effectively.
+
+Use the attached doctor-website screenshot ONLY as inspiration for the PHOTO TREATMENT.
+
+Do NOT copy:
+
+* the website layout,
+* text,
+* buttons,
+* floating tags,
+* badges,
+* doctor specialty labels.
+
+The reference is only for the visual idea:
+
+LARGE + CLEAR + FLOATING + PREMIUM PORTRAIT.
+
+==================================================
+
+1. DESIGN GOAL
+   ==================================================
+
+Transform the left side of the dashboard hero into a professional user portrait area.
+
+The portrait should feel like an intentional visual centerpiece, not a profile avatar.
+
+Desired feeling:
+
+* premium
+* medical
+* modern
+* elegant
+* clean
+* professional
+* integrated with the current teal/navy brand identity
+
+The portrait should visually balance the greeting/search content on the right side.
+
+==================================================
+2. HERO LAYOUT
+==============
+
+Keep the existing RIGHT side unchanged:
+
+* greeting
+* user name in greeting
+* date
+* patient search field
+
+Use approximately the LEFT 35–40% of the hero for the portrait composition.
+
+Do not reduce the existing search width unnecessarily.
+
+Desktop structure should visually feel like:
+
+[ LARGE USER PORTRAIT ]        [ Greeting + Date ]
+[ Search field      ]
+
+Do not create a separate card inside the hero.
+
+The portrait should feel naturally integrated into the hero background itself.
+
+==================================================
+3. PORTRAIT SIZE
+================
+
+The portrait must be significantly larger than the current implementation.
+
+Target desktop visual size approximately:
+
+* width: 220–280px
+* height: 250–320px
+
+Adjust proportionally to the actual hero height.
+
+The image should occupy a meaningful amount of the empty left hero space.
+
+Do NOT make it a small 80–120px avatar.
+
+The user's face and upper body should be clearly visible.
+
+==================================================
+4. PORTRAIT FRAME STYLE
+=======================
+
+Do NOT use a simple small circle.
+
+Use a vertically-oriented portrait frame inspired by the reference image.
+
+Preferred shape:
+
+* soft vertical oval
+  OR
+* organic rounded portrait frame
+
+Example visual proportions:
+
+aspect-ratio approximately 4 / 5
+
+Possible implementation:
+
+border-radius:
+48% 48% 44% 44% / 40% 40% 52% 52%
+
+or another tasteful organic/oval shape.
+
+Avoid strange exaggerated shapes.
+
+The frame should feel premium and intentional.
+
+==================================================
+5. IMAGE FIT — VERY IMPORTANT
+=============================
+
+The image MUST fit professionally.
+
+Current bad cropping must be fixed.
+
+Use:
+
+object-fit: cover
+
+but choose an intelligent portrait-oriented object position.
+
+Default recommendation:
+
+object-position: center 20%
+
+or another top-biased position that prioritizes:
+
+1. face
+2. shoulders
+3. upper body
+
+Do not center-crop blindly if it cuts the user's head.
+
+Never stretch or distort the image.
+
+Never use:
+
+object-fit: fill
+
+The source image aspect ratio must always be preserved.
+
+If the uploaded image is unusually wide or tall, the design must still degrade gracefully.
+
+==================================================
+6. PORTRAIT DEPTH / FLOATING EFFECT
+===================================
+
+Give the portrait a subtle floating appearance similar in spirit to the reference.
+
+Use tasteful depth such as:
+
+* soft teal outer ring
+* subtle translucent halo
+* low-opacity shadow
+* very soft cyan/teal glow
+
+Example direction:
+
+box-shadow:
+0 18px 45px rgba(..., 0.12),
+0 4px 14px rgba(..., 0.08)
+
+Do not use heavy dark shadows.
+
+Do not make it look like a gaming profile.
+
+==================================================
+7. BRAND-INSPIRED FRAME DETAILS
+===============================
+
+Integrate the portrait with the approved logo-inspired dashboard background.
+
+Around or behind the portrait, optionally use VERY SUBTLE:
+
+* partial orbit arc
+* one or two network nodes
+* soft curved line
+* faint cyan halo
+
+These should visually connect the portrait with the existing digital background ornaments.
+
+Do NOT add:
+
+* labels over the image
+* floating tags
+* specialty badges
+* text bubbles
+* buttons on top of the portrait
+
+The image itself must remain clean.
+
+==================================================
+8. NAME AND ROLE
+================
+
+Show the user's full name and role near the portrait, but keep them secondary to the image.
+
+Do NOT repeat a large "Admin" directly under the image like the current version.
+
+Use the real full name when available.
+
+Example:
+
+عبدالوهاب الدبيات
+مدير النظام
+
+or:
+
+د. همام الكيال
+طبيب
+
+Suggested styling:
+
+Name:
+
+* medium/semibold
+* clear but not oversized
+
+Role:
+
+* smaller
+* muted teal/gray
+
+Placement can be:
+
+* below the portrait
+  OR
+* subtly beside its lower edge
+
+Choose whichever produces the cleaner composition.
+
+==================================================
+9. HERO VISUAL BALANCE
+======================
+
+The final hero must feel balanced.
+
+The portrait should NOT:
+
+* touch the hero borders awkwardly
+* look isolated in a corner
+* collide with search
+* visually overpower the greeting
+* create excessive empty space around itself
+
+Vertically center the portrait composition relative to the hero.
+
+A slight visual "bleed" toward the bottom of the hero is acceptable if it improves the floating effect, but it must not overlap the KPI section below.
+
+==================================================
+10. FALLBACK WITHOUT PHOTO
+==========================
+
+If a user has no uploaded photo:
+
+Do NOT show a giant initials circle in the hero.
+
+Instead show a tasteful larger fallback portrait placeholder using:
+
+* initials
+* the same oval/organic frame
+* subtle brand gradient
+* same dimensions
+
+This keeps the hero layout consistent for every user.
+
+==================================================
+11. HEADER AVATAR
+=================
+
+Do NOT change the current small profile image in the top header.
+
+The header avatar remains compact.
+
+This redesign applies ONLY to the dashboard hero portrait.
+
+==================================================
+12. RESPONSIVE DESIGN
+=====================
+
+Desktop:
+
+* full large portrait treatment
+* approximately 220–280px wide
+* clear visual presence
+
+Tablet:
+
+* reduce to approximately 170–210px
+* preserve portrait proportions
+
+Mobile:
+Do NOT squeeze the desktop hero composition.
+
+Use a compact treatment such as:
+
+[ portrait ] [ greeting ]
+
+or place the portrait above the greeting in a clean centered layout.
+
+Mobile portrait can reduce to approximately 110–140px.
+
+No horizontal overflow.
+
+==================================================
+13. DO NOT CHANGE
+=================
+
+Do not change:
+
+* user upload workflow
+* user-management logic
+* authentication
+* permissions
+* database
+* profile-image storage
+* dashboard KPIs
+* operational report
+* patient search behavior
+* navigation
+* other pages
+* approved digital dashboard background
+
+This task is specifically a HERO PORTRAIT VISUAL REDESIGN.
+
+==================================================
+14. IMPLEMENTATION QUALITY
+==========================
+
+Keep the implementation lightweight.
+
+Prefer:
+
+* CSS
+* Tailwind
+* existing components
+
+Do not add a new UI or image library.
+
+Avoid unnecessary abstraction for a single visual element.
+
+Keep the code maintainable and responsive.
+
+==================================================
+15. VISUAL VERIFICATION IS REQUIRED
+===================================
+
+Do not stop after TypeScript succeeds.
+
+Open the dashboard in the browser using a user account with a real uploaded profile photo.
+
+Visually verify:
+
+1. portrait is significantly larger than before
+2. face/head are not badly cropped
+3. upper body is clearly visible
+4. image is never stretched
+5. portrait feels floating and premium
+6. no tags/badges are placed on the image
+7. portrait and greeting visually balance each other
+8. search remains unchanged
+9. existing background ornaments remain visible
+10. tablet/mobile do not break
+
+If the portrait still looks like a normal small avatar, the task is NOT complete.
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* focused dashboard browser verification
+
+Do NOT run the full historical test suite.
+
+Do NOT publish.
+
+Provide a concise completion report and stop.

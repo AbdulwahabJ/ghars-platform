@@ -147,43 +147,115 @@ export default function Dashboard() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-bl-full" />
           </div>
           
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            {/* Right: greeting + date */}
-            <div>
+          <div className="relative z-10 grid gap-8 md:min-h-[350px] md:grid-cols-[minmax(0,1fr)_minmax(220px,36%)] md:items-center md:gap-10">
+            {/* Right: greeting, date, and the existing patient search */}
+            <div className="order-2 min-w-0 md:order-none">
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                 {greeting}، {user?.fullName}
               </h1>
               <p className="text-muted-foreground text-lg">{todayDate}</p>
+
+              <div className="mt-10 w-full max-w-3xl relative z-20" id="tour-global-search" ref={searchContainerRef}>
+                <div className="relative">
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => debouncedSearch.length > 0 && setIsSearchOpen(true)}
+                    onKeyDown={handleSearchKeyDown}
+                    role="combobox"
+                    aria-expanded={isSearchOpen}
+                    aria-controls="global-search-results"
+                    aria-autocomplete="list"
+                    aria-activedescendant={
+                      isSearchOpen && highlightIndex >= 0
+                        ? `global-search-option-${highlightIndex}`
+                        : undefined
+                    }
+                    placeholder="ابحث عن مريض بالاسم، رقم الملف، أو رقم الجوال..."
+                    className="h-14 pl-4 pr-12 text-lg rounded-2xl border-border bg-card shadow-sm focus-visible:ring-primary focus-visible:border-primary"
+                  />
+                  {isSearching && (
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+
+                {isSearchOpen && (
+                  <div
+                    id="global-search-results"
+                    role="listbox"
+                    className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden max-h-96 overflow-y-auto"
+                  >
+                    {searchResults?.items && searchResults.items.length > 0 ? (
+                      <div className="py-2">
+                        {searchResults.items.map((patient: Patient, index: number) => (
+                          <button
+                            key={patient.id}
+                            id={`global-search-option-${index}`}
+                            role="option"
+                            aria-selected={index === highlightIndex}
+                            onClick={() => handlePatientSelect(patient.id)}
+                            onMouseEnter={() => setHighlightIndex(index)}
+                            className={`w-full text-right px-4 py-3 transition-colors flex items-center justify-between gap-3 border-b border-border/50 last:border-0 ${
+                              index === highlightIndex ? "bg-muted" : "hover:bg-muted"
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-foreground truncate">{patient.fullName}</p>
+                              <p className="text-sm text-muted-foreground mt-1" dir="ltr">{patient.fileNumber}</p>
+                            </div>
+                            {patient.status === 'archived' && (
+                              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-md shrink-0">مؤرشف</span>
+                            )}
+                          </button>
+                        ))}
+                        {searchResults.total > 5 && (
+                          <button
+                            onClick={() => setLocation(`/patients?q=${encodeURIComponent(debouncedSearch)}`)}
+                            className="w-full text-center py-3 text-sm text-primary font-medium hover:bg-primary/5 transition-colors"
+                          >
+                            عرض جميع النتائج ({searchResults.total})
+                          </button>
+                        )}
+                      </div>
+                    ) : debouncedSearch.length > 0 && !isSearching ? (
+                      <div className="py-8 text-center text-muted-foreground">
+                        لا توجد نتائج مطابقة لـ "{debouncedSearch}"
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Left: signed-in user identity card */}
+            {/* Left: signed-in user portrait composition */}
             {user && (
-              <div className="hidden md:flex flex-col items-center gap-3 shrink-0">
-                {/* Avatar with brand ring */}
-                <div className="relative">
-                  {/* Subtle orbital decoration */}
-                  <div
-                    className="absolute inset-0 rounded-full pointer-events-none"
-                    style={{
-                      background:
-                        "radial-gradient(circle, rgba(13,148,136,0.18) 0%, transparent 70%)",
-                      transform: "scale(1.5)",
-                    }}
-                  />
+              <div className="hero-portrait-composition order-1 md:order-none">
+                <div
+                  aria-hidden="true"
+                  className="hero-portrait-halo absolute h-[210px] w-[210px] sm:h-[250px] sm:w-[250px] md:h-[320px] md:w-[320px] lg:h-[380px] lg:w-[380px]"
+                />
+                <div
+                  aria-hidden="true"
+                  className="hero-portrait-orbit absolute h-[190px] w-[138px] sm:h-[230px] sm:w-[166px] md:h-[300px] md:w-[220px] lg:h-[360px] lg:w-[264px]"
+                />
+                <div className="relative z-10">
                   <UserAvatar
                     fullName={user.fullName}
                     avatarData={user.avatarData}
-                    size="xl"
-                    ring
+                    size="hero"
+                    shape="portrait"
+                    className="border-4 border-white/80 bg-gradient-to-br from-primary/25 via-cyan-500/15 to-primary/5 shadow-[0_18px_45px_rgba(23,62,104,0.12),0_4px_14px_rgba(13,148,136,0.12)]"
                   />
                 </div>
 
-                {/* Name & role */}
-                <div className="text-center">
+                <div className="relative z-10 text-center">
                   <p className="font-semibold text-foreground text-base leading-tight notranslate">
                     {user.fullName}
                   </p>
-                  <p className="text-sm text-primary/80 mt-0.5">
+                  <p className="text-sm text-primary/75 mt-0.5">
                     {user.role === "ADMIN"
                       ? "مدير النظام"
                       : user.role === "DOCTOR"
@@ -191,80 +263,6 @@ export default function Dashboard() {
                       : "مساعد"}
                   </p>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-10 max-w-3xl relative z-20" id="tour-global-search" ref={searchContainerRef}>
-            <div className="relative">
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => debouncedSearch.length > 0 && setIsSearchOpen(true)}
-                onKeyDown={handleSearchKeyDown}
-                role="combobox"
-                aria-expanded={isSearchOpen}
-                aria-controls="global-search-results"
-                aria-autocomplete="list"
-                aria-activedescendant={
-                  isSearchOpen && highlightIndex >= 0
-                    ? `global-search-option-${highlightIndex}`
-                    : undefined
-                }
-                placeholder="ابحث عن مريض بالاسم، رقم الملف، أو رقم الجوال..." 
-                className="h-14 pl-4 pr-12 text-lg rounded-2xl border-border bg-card shadow-sm focus-visible:ring-primary focus-visible:border-primary"
-              />
-              {isSearching && (
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              )}
-            </div>
-
-            {isSearchOpen && (
-              <div
-                id="global-search-results"
-                role="listbox"
-                className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden max-h-96 overflow-y-auto"
-              >
-                {searchResults?.items && searchResults.items.length > 0 ? (
-                  <div className="py-2">
-                    {searchResults.items.map((patient: Patient, index: number) => (
-                      <button
-                        key={patient.id}
-                        id={`global-search-option-${index}`}
-                        role="option"
-                        aria-selected={index === highlightIndex}
-                        onClick={() => handlePatientSelect(patient.id)}
-                        onMouseEnter={() => setHighlightIndex(index)}
-                        className={`w-full text-right px-4 py-3 transition-colors flex items-center justify-between gap-3 border-b border-border/50 last:border-0 ${
-                          index === highlightIndex ? "bg-muted" : "hover:bg-muted"
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground truncate">{patient.fullName}</p>
-                          <p className="text-sm text-muted-foreground mt-1" dir="ltr">{patient.fileNumber}</p>
-                        </div>
-                        {patient.status === 'archived' && (
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-md shrink-0">مؤرشف</span>
-                        )}
-                      </button>
-                    ))}
-                    {searchResults.total > 5 && (
-                      <button 
-                        onClick={() => setLocation(`/patients?q=${encodeURIComponent(debouncedSearch)}`)}
-                        className="w-full text-center py-3 text-sm text-primary font-medium hover:bg-primary/5 transition-colors"
-                      >
-                        عرض جميع النتائج ({searchResults.total})
-                      </button>
-                    )}
-                  </div>
-                ) : debouncedSearch.length > 0 && !isSearching ? (
-                  <div className="py-8 text-center text-muted-foreground">
-                    لا توجد نتائج مطابقة لـ "{debouncedSearch}"
-                  </div>
-                ) : null}
               </div>
             )}
           </div>
