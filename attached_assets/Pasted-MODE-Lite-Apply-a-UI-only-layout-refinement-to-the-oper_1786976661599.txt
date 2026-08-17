@@ -1,0 +1,92 @@
+MODE: Lite
+
+Apply a UI-only layout refinement to the operational report section on the dashboard.
+
+Do NOT change backend logic, APIs, permissions, filters behavior, calculations, or data results.
+This task is only about moving and reorganizing the filter UI placement.
+
+## GOAL
+
+The operational report filters should be placed INSIDE the operational report/table container, not in a separate card above it.
+
+Right now the filters appear outside the table area.
+I want the filtering controls to feel like part of the report itself.
+
+## REQUIRED CHANGE
+
+Move the operational report filters:
+- الفترة
+- الطبيب المعالج
+- نظام الزرعة
+- حالة الحالة
+
+from the separate card above the table
+into the operational report card/container itself.
+
+## DESIRED LAYOUT
+
+Inside the operational report card:
+1. Header row:
+   - report title on the right: "التقرير التشغيلي"
+   - patient count
+2. Actions row / toolbar:
+   - إضافة سجل
+   - تصدير CSV
+   - طباعة
+3. Filters row INSIDE the same card
+4. Search field for patient/file/mobile
+5. Table
+
+The filters should visually belong to the table/report section, not float outside it.
+
+## UI / DESIGN RULES
+
+- Keep the current clean style.
+- Maintain RTL layout.
+- Make the filter row feel integrated with the table card.
+- Use responsive wrapping if needed.
+- Keep spacing clean and balanced.
+- Do not make the header too crowded.
+- On smaller screens, filters can wrap to multiple rows inside the report card.
+- Preserve the existing search field inside the report area.
+- Avoid creating a second outer filter container.
+
+## FUNCTIONAL RULES
+
+- Filter logic must remain exactly the same.
+- Existing state, selected values, and behavior must remain unchanged.
+- No changes to query parameters, API contracts, or result calculations.
+- Search + filters must continue working together as before.
+
+## RESPONSIVENESS
+
+- Desktop: filters can appear in one row or a compact two-row layout inside the table card.
+- Tablet/mobile: stack neatly inside the same report card.
+- No horizontal overflow.
+- No layout breakage.
+
+## IMPORTANT
+
+This is a layout-only refinement.
+Do not alter:
+- operational-report data structure
+- inline row expansion
+- quick actions
+- permissions
+- statistics logic
+- dashboard KPIs
+
+Only move and integrate the filters into the table/report container.
+
+## VERIFICATION
+
+Run only:
+- affected TypeScript check
+- affected lint
+- one browser verification on desktop
+- one browser verification on mobile/tablet if needed
+
+Do not run the full test suite.
+Do not publish.
+
+Provide a concise completion report and stop.

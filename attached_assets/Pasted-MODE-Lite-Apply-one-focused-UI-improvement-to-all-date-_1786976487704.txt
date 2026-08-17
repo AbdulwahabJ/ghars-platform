@@ -1,0 +1,95 @@
+MODE: Lite
+
+Apply one focused UI improvement to all date/time fields in the Operational Report inline forms.
+
+Do not change backend logic, database types, APIs, permissions, or business rules.
+
+## GOAL
+
+Users should select dates and times from UI controls instead of manually typing date/time strings.
+
+## DATE PICKER
+
+Replace manually editable date fields with a proper calendar/date picker.
+
+When the user clicks the date field:
+
+- open a calendar picker,
+- allow selecting the date visually,
+- display the selected date in clear Arabic-friendly format,
+- keep the stored value in the existing ISO/database format.
+
+The user should not need to manually type:
+
+dd/mm/yyyy
+mm/dd/yyyy
+yyyy-mm-dd
+
+Use the existing UI/design system where possible.
+
+Prefer the existing shadcn/Popover/Calendar components if already available.
+
+Do not add a heavy date library unless absolutely necessary.
+
+## TIME PICKER
+
+For fields that require time, do not make the user type the time manually.
+
+Use a clear selectable time control.
+
+Preferred behavior:
+
+- hour selector
+- minute selector
+- AM/PM if the existing UI uses 12-hour display
+
+or a clean time dropdown.
+
+Example:
+
+التاريخ:
+[ 20 أغسطس 2026 📅 ]
+
+الوقت:
+[ 10:00 ص ▼ ]
+
+## APPLY TO
+
+Apply consistently to inline Operational Report forms, especially:
+
+- follow-up scheduled date/time
+- next appointment date/time
+- contact due date/time
+- implant case procedure date
+- expected prosthetic date
+- payment date
+- patient date-added fields where editable
+- quick-entry date fields
+
+Do not change historical display formatting outside forms unless required for consistency.
+
+## UX
+
+- Clicking the field should open the selector immediately.
+- Selected value should be visually clear.
+- Calendar should work correctly in RTL.
+- Keep Saudi/Riyadh timezone behavior unchanged.
+- Preserve validation and field-level error feedback.
+- Do not allow the calendar popup to be clipped by the expanded patient row.
+
+## VERIFICATION
+
+Run only:
+
+- affected TypeScript check
+- affected lint
+- one browser check confirming calendar/time selection works in:
+  - follow-up edit
+  - add follow-up
+  - case edit
+  - payment edit
+
+Do not run the full test suite.
+Do not publish.
+
+Provide a concise report and stop.

@@ -25,6 +25,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { InlineNewRecord } from "./InlineNewRecord";
+import { OperationalDatePicker, OperationalDateTimePicker } from "./OperationalDatePicker";
+import {
+  ReportFiltersBar,
+  type ReportFilterState,
+} from "./ReportFiltersBar";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -243,7 +248,7 @@ function InlineCaseEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">تاريخ العملية</Label>
-          <Input className="h-8 text-sm" type="date" value={procedureDate} onChange={(e) => setProcedureDate(e.target.value)} />
+          <OperationalDatePicker value={procedureDate} onChange={setProcedureDate} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">مدة التركيب (Pros)</Label>
@@ -251,7 +256,7 @@ function InlineCaseEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">تاريخ التركيب المتوقع</Label>
-          <Input className="h-8 text-sm" type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
+          <OperationalDatePicker value={expectedDate} onChange={setExpectedDate} />
         </div>
         <div className="col-span-2 space-y-1">
           <Label className="text-xs">ملاحظة</Label>
@@ -685,7 +690,7 @@ function InlineRecordPayment({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">تاريخ الدفعة</Label>
-          <Input className="h-8 text-sm" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
+          <OperationalDatePicker value={paymentDate} onChange={setPaymentDate} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">رقم المرجع</Label>
@@ -779,12 +784,7 @@ function InlineAddFollowup({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">التاريخ والوقت *</Label>
-          <Input
-            className="h-8 text-sm"
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
-          />
+          <OperationalDateTimePicker value={scheduledAt} onChange={setScheduledAt} />
         </div>
         {assignableUsers && assignableUsers.length > 0 && (
           <div className="space-y-1">
@@ -800,12 +800,7 @@ function InlineAddFollowup({
         )}
         <div className="space-y-1">
           <Label className="text-xs">الموعد القادم</Label>
-          <Input
-            className="h-8 text-sm"
-            type="datetime-local"
-            value={nextAppointmentAt}
-            onChange={(e) => setNextAppointmentAt(e.target.value)}
-          />
+          <OperationalDateTimePicker value={nextAppointmentAt} onChange={setNextAppointmentAt} />
         </div>
         <div className="col-span-1 sm:col-span-2 flex items-center gap-2 pt-1">
           <Checkbox
@@ -818,7 +813,7 @@ function InlineAddFollowup({
         {requiresContact && (
           <div className="space-y-1">
             <Label className="text-xs">تاريخ التواصل</Label>
-            <Input className="h-8 text-sm" type="date" value={contactDueAt} onChange={(e) => setContactDueAt(e.target.value)} />
+            <OperationalDatePicker value={contactDueAt} onChange={setContactDueAt} />
           </div>
         )}
         <div className="col-span-1 sm:col-span-2 space-y-1">
@@ -929,7 +924,7 @@ function InlineFollowupEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">التاريخ والوقت</Label>
-          <Input className="h-8 text-sm" type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} />
+          <OperationalDateTimePicker value={scheduledAt} onChange={setScheduledAt} />
         </div>
         {assignableUsers && assignableUsers.length > 0 && (
           <div className="space-y-1">
@@ -945,7 +940,7 @@ function InlineFollowupEdit({
         )}
         <div className="space-y-1">
           <Label className="text-xs">الموعد التالي</Label>
-          <Input className="h-8 text-sm" type="datetime-local" value={nextAppointmentAt} onChange={(event) => setNextAppointmentAt(event.target.value)} />
+          <OperationalDateTimePicker value={nextAppointmentAt} onChange={setNextAppointmentAt} />
         </div>
         <div className="flex items-center gap-2 pt-5">
           <Checkbox id={`edit-contact-${followup.id}`} checked={requiresContact} onCheckedChange={(value) => setRequiresContact(Boolean(value))} />
@@ -954,7 +949,7 @@ function InlineFollowupEdit({
         {requiresContact && (
           <div className="space-y-1">
             <Label className="text-xs">موعد التواصل</Label>
-            <Input className="h-8 text-sm" type="date" value={contactDueAt} onChange={(event) => setContactDueAt(event.target.value)} />
+            <OperationalDatePicker value={contactDueAt} onChange={setContactDueAt} />
           </div>
         )}
         <div className="sm:col-span-2 space-y-1">
@@ -1044,8 +1039,7 @@ function InlinePaymentEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">تاريخ الدفعة *</Label>
-          <Input className="h-8 text-sm" type="date" value={paymentDate}
-            onChange={(event) => setPaymentDate(event.target.value)} />
+          <OperationalDatePicker value={paymentDate} onChange={setPaymentDate} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">وصف الدفعة</Label>
@@ -2004,6 +1998,10 @@ export function OperationalTable({
   filters,
   searchValue,
   onSearchChange,
+  filterState,
+  onFilterChange,
+  doctorOptions,
+  systemOptions,
 }: {
   data: OperationalReportResponse | undefined;
   isLoading: boolean;
@@ -2012,6 +2010,10 @@ export function OperationalTable({
   filters: ReportFilters;
   searchValue: string;
   onSearchChange: (value: string) => void;
+  filterState: ReportFilterState;
+  onFilterChange: (next: ReportFilterState) => void;
+  doctorOptions: string[];
+  systemOptions: string[];
 }) {
   const showFinance = Boolean(data?.financialsIncluded);
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
@@ -2076,6 +2078,14 @@ export function OperationalTable({
           </Button>
         </div>
       </CardHeader>
+      <div className="border-t border-border/60 px-4 py-3 print:hidden">
+        <ReportFiltersBar
+          state={filterState}
+          onChange={onFilterChange}
+          doctorOptions={doctorOptions}
+          systemOptions={systemOptions}
+        />
+      </div>
       <CardContent className="p-0">
         <div className="px-4 pb-3 print:hidden">
           <div className="relative">

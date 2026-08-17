@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -41,8 +40,7 @@ export function ReportFiltersBar({
     onChange({ ...state, ...patch });
 
   return (
-    <Card className="print:hidden" data-testid="card-report-filters">
-      <CardContent className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end" data-testid="card-report-filters">
         <div className="space-y-1.5">
           <Label className="text-xs">الفترة</Label>
           <Select
@@ -140,7 +138,6 @@ export function ReportFiltersBar({
             </SelectContent>
           </Select>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

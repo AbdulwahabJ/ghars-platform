@@ -4,11 +4,6 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  patientInputSchema,
-  implantCaseInputSchema,
-  implantInputSchema,
-  paymentInputSchema,
-  followupInputSchema,
   FDI_SITES,
   CASE_STATUSES,
   IMPLANT_STATUSES,
@@ -40,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { OperationalDatePicker, OperationalDateTimePicker } from "./OperationalDatePicker";
 
 /* ------------------------------------------------------------------ */
 /* Internal form schema (more permissive than API schema — API validates)
@@ -470,7 +466,10 @@ export function InlineNewRecord({
             <div className="px-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>تاريخ العملية</Label>
-                <Input type="date" {...form.register("procedureDate")} />
+                <OperationalDatePicker
+                  value={form.watch("procedureDate") ?? ""}
+                  onChange={(value) => form.setValue("procedureDate", value, { shouldDirty: true, shouldValidate: true })}
+                />
               </div>
               <div className="space-y-1">
                 <Label>الطبيب المعالج</Label>
@@ -499,7 +498,10 @@ export function InlineNewRecord({
               </div>
               <div className="space-y-1">
                 <Label>تاريخ التركيب المتوقع</Label>
-                <Input type="date" {...form.register("expectedProstheticDate")} />
+                <OperationalDatePicker
+                  value={form.watch("expectedProstheticDate") ?? ""}
+                  onChange={(value) => form.setValue("expectedProstheticDate", value, { shouldDirty: true, shouldValidate: true })}
+                />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label>ملاحظة</Label>
@@ -705,8 +707,8 @@ export function InlineNewRecord({
                     id="qe-includePayment"
                     checked={includePayment}
                     onCheckedChange={(v) => {
-                      form.setValue("includePayment", !!v);
-                      if (!!v) setFinanceOpen(true);
+                      form.setValue("includePayment", Boolean(v));
+                      if (v) setFinanceOpen(true);
                     }}
                   />
                   <Label htmlFor="qe-includePayment" className="text-sm cursor-pointer">تضمين دفعة</Label>
@@ -744,7 +746,10 @@ export function InlineNewRecord({
                 <>
                   <div className="space-y-1">
                     <Label>تاريخ الدفعة</Label>
-                    <Input type="date" {...form.register("paymentDate")} />
+                    <OperationalDatePicker
+                      value={form.watch("paymentDate") ?? ""}
+                      onChange={(value) => form.setValue("paymentDate", value, { shouldDirty: true, shouldValidate: true })}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label>وصف الدفعة</Label>
@@ -802,8 +807,8 @@ export function InlineNewRecord({
                   id="qe-includeFollowup"
                   checked={includeFollowup}
                   onCheckedChange={(v) => {
-                    form.setValue("includeFollowup", !!v);
-                    if (!!v) setFollowupOpen(true);
+                    form.setValue("includeFollowup", Boolean(v));
+                    if (v) setFollowupOpen(true);
                   }}
                 />
                 <Label htmlFor="qe-includeFollowup" className="text-sm cursor-pointer">تضمين</Label>
@@ -832,11 +837,11 @@ export function InlineNewRecord({
                   <Label htmlFor="qe-followupScheduledAt">
                     موعد المتابعة <span className="text-destructive">*</span>
                   </Label>
-                  <Input
+                  <OperationalDateTimePicker
                     id="qe-followupScheduledAt"
-                    type="datetime-local"
                     aria-invalid={!!form.formState.errors.followupScheduledAt}
-                    {...form.register("followupScheduledAt")}
+                    value={form.watch("followupScheduledAt") ?? ""}
+                    onChange={(value) => form.setValue("followupScheduledAt", value, { shouldDirty: true, shouldValidate: true })}
                   />
                   {form.formState.errors.followupScheduledAt && (
                     <p className="text-xs text-destructive">

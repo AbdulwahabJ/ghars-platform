@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import clinicLogo from "@/assets/clinic-logo.png";
+import clinicLogo from "@/assets/clinic-logo.jpeg";
 import { Loader2 } from "lucide-react";
 
 // Extend schema for password confirmation
@@ -73,7 +73,7 @@ export default function Setup() {
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/5 rounded-tr-full pointer-events-none" />
         
         <div className="flex flex-col items-center mb-8 relative z-10">
-          <img src={clinicLogo} alt="Clinic Logo" className="h-16 w-auto mb-4" />
+          <img src={clinicLogo} alt="Clinic Logo" className="h-20 w-18 rounded-lg object-contain mb-4" />
           <h1 className="text-2xl font-bold text-foreground text-center">
             إعداد النظام لأول مرة
           </h1>

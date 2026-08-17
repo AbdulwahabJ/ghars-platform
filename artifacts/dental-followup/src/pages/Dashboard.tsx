@@ -22,13 +22,85 @@ import { KpiCards } from "@/components/dashboard/KpiCards";
 import { ActionLists } from "@/components/dashboard/ActionLists";
 import {
   ALL,
-  ReportFiltersBar,
   type ReportFilterState,
 } from "@/components/dashboard/ReportFiltersBar";
 import { StatisticsSection } from "@/components/dashboard/StatisticsSection";
 import { OperationalTable } from "@/components/dashboard/OperationalTable";
 import { reportPeriodRange } from "@/lib/report-periods";
 import { todayIso } from "@/lib/money";
+
+function DashboardDecorations() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden print:hidden"
+    >
+      <div className="absolute -start-44 top-[31rem] h-80 w-80 rounded-full bg-cyan-300/10 blur-3xl" />
+      <div className="absolute -end-48 top-[52rem] h-96 w-96 rounded-full bg-blue-300/10 blur-3xl" />
+      <div className="absolute end-[18%] top-[78rem] h-56 w-56 rounded-full bg-teal-300/10 blur-3xl" />
+
+      <svg
+        className="absolute inset-x-0 top-[25rem] hidden h-[62rem] w-full opacity-60 sm:block"
+        viewBox="0 0 1200 1500"
+        preserveAspectRatio="none"
+        fill="none"
+      >
+        <defs>
+          <linearGradient id="dashboard-orbit-teal" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#1fa9b8" stopOpacity="0" />
+            <stop offset="0.45" stopColor="#1fa9b8" stopOpacity="0.24" />
+            <stop offset="1" stopColor="#0f766e" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="dashboard-orbit-blue" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#2563eb" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#2563eb" stopOpacity="0.16" />
+            <stop offset="1" stopColor="#1fa9b8" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        <path
+          d="M-70 300C170 20 560 40 720 270S930 720 1270 470"
+          stroke="url(#dashboard-orbit-teal)"
+          strokeWidth="2"
+        />
+        <path
+          d="M-120 710C170 450 420 540 540 790s300 330 780 40"
+          stroke="url(#dashboard-orbit-blue)"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M1180 70C910 180 850 440 980 650s40 430-300 760"
+          stroke="url(#dashboard-orbit-teal)"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M80 1030C260 880 420 920 560 1060s330 180 600 70"
+          stroke="#1fa9b8"
+          strokeOpacity="0.1"
+          strokeWidth="1"
+          strokeDasharray="4 12"
+        />
+
+        <g fill="#1fa9b8">
+          <circle cx="175" cy="185" r="4" fillOpacity="0.2" />
+          <circle cx="520" cy="185" r="3" fillOpacity="0.24" />
+          <circle cx="735" cy="275" r="5" fillOpacity="0.18" />
+          <circle cx="1000" cy="590" r="4" fillOpacity="0.2" />
+          <circle cx="245" cy="785" r="3" fillOpacity="0.2" />
+          <circle cx="570" cy="1080" r="4" fillOpacity="0.16" />
+        </g>
+        <g stroke="#1fa9b8" strokeOpacity="0.12" strokeWidth="1">
+          <path d="M175 185L520 185L735 275" />
+          <path d="M245 785L570 1080L1000 590" />
+        </g>
+      </svg>
+
+      <div className="absolute start-4 top-[36rem] h-24 w-24 rounded-full border border-primary/10 sm:start-8 lg:start-16" />
+      <div className="absolute end-4 top-[61rem] h-32 w-32 rounded-full border border-accent/10 sm:end-10 lg:end-24" />
+      <div className="absolute end-[12%] top-[91rem] hidden h-20 w-20 rounded-full border border-primary/10 md:block" />
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -139,7 +211,9 @@ export default function Dashboard() {
 
   return (
     <Shell>
-      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="relative isolate overflow-hidden">
+        <DashboardDecorations />
+        <div className="relative z-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* Section A: Greeting & Search */}
         <section className="bg-primary/5 rounded-3xl p-8 md:p-12 relative border border-primary/10 print:hidden">
@@ -257,13 +331,6 @@ export default function Dashboard() {
 
         {/* Section C: filters + Operational report (workspace table) — ABOVE statistics */}
         <section className="space-y-4">
-          <ReportFiltersBar
-            state={filterState}
-            onChange={setFilterState}
-            doctorOptions={statistics.data?.doctorOptions ?? []}
-            systemOptions={implantOptions?.systems ?? []}
-          />
-
           {/* Print-only report header */}
           <div className="hidden print:block mb-4">
             <h1 className="text-xl font-bold">مجمع السن الرقمي الطبي</h1>
@@ -282,6 +349,10 @@ export default function Dashboard() {
             filters={reportFilters}
             searchValue={operationalSearch}
             onSearchChange={setOperationalSearch}
+            filterState={filterState}
+            onFilterChange={setFilterState}
+            doctorOptions={statistics.data?.doctorOptions ?? []}
+            systemOptions={implantOptions?.systems ?? []}
           />
         </section>
 
@@ -293,6 +364,7 @@ export default function Dashboard() {
             isError={statistics.isError}
           />
         </section>
+        </div>
       </div>
     </Shell>
   );

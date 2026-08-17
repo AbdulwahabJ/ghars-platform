@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useNotifications } from "@/hooks/use-followups";
 import { useAppSettings } from "@/hooks/use-settings";
 import { formatSaudiDateTime } from "@/lib/datetime";
-import clinicLogo from "@/assets/clinic-logo.png";
+import clinicLogo from "@/assets/clinic-logo.jpeg";
 
 interface HeaderProps {
   user: PublicUser;
@@ -81,7 +81,7 @@ export function Header({ user }: HeaderProps) {
           <img
             src={settings.clinicLogo ?? clinicLogo}
             alt="Clinic Logo"
-            className="h-10 w-auto object-contain"
+            className="h-11 w-10 rounded-md object-contain"
           />
           <span className="font-bold text-lg text-foreground hidden sm:block">
             {settings.systemName}
