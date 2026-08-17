@@ -1,0 +1,253 @@
+MODE: Economy
+
+Fix the profile-photo transparency pipeline and the dashboard hero portrait rendering.
+
+This is NOT another visual experiment.
+
+The uploaded user portrait has already had its background removed, but the dashboard still renders it inside a visible BLACK RECTANGLE.
+
+This strongly indicates that transparency is being lost somewhere in the profile-image upload / resize / storage / rendering pipeline.
+
+Before changing the Hero CSS again, inspect the entire profile-photo flow and find the exact cause.
+
+## PRIMARY GOAL
+
+A transparent PNG/WebP user portrait must remain transparent from:
+
+upload
+→ optional client-side resize
+→ API payload
+→ database storage
+→ authenticated-user response
+→ dashboard rendering
+
+The transparent pixels must NEVER become black, white, or another solid background.
+
+## 1. INSPECT THE CURRENT IMAGE PIPELINE
+
+Inspect how user profile images are currently:
+
+* selected
+* previewed
+* resized
+* converted
+* serialized/base64 encoded
+* uploaded
+* stored
+* returned through the API
+* rendered in the dashboard
+
+Specifically search for:
+
+* canvas.toDataURL("image/jpeg")
+* canvas.convertToBlob({ type: "image/jpeg" })
+* JPEG conversion
+* Sharp `.jpeg()`
+* explicit background flattening
+* canvas fillRect/background fills
+* CSS background-color on the image wrapper
+* any logic that converts PNG/WebP uploads to JPEG
+
+Determine exactly why alpha transparency is being lost.
+
+## 2. PRESERVE ALPHA TRANSPARENCY
+
+For transparent profile images:
+
+preserve transparency end-to-end.
+
+Preferred processed output:
+
+WebP with alpha support
+
+or:
+
+PNG
+
+Do NOT convert transparent images to JPEG.
+
+If client-side resizing is used:
+
+* create a transparent canvas
+* do NOT paint a background
+* export using PNG or WebP with alpha
+* preserve aspect ratio
+
+Example acceptable direction:
+
+canvas.toBlob(..., "image/webp", quality)
+
+provided alpha is preserved.
+
+If WebP processing is not reliable in the existing implementation, use PNG.
+
+## 3. NON-TRANSPARENT PHOTOS
+
+Normal JPEG photos must continue working.
+
+Do not force every image to PNG unnecessarily.
+
+The system should safely support:
+
+* JPEG
+* PNG with transparency
+* WebP with transparency
+
+and preserve the appropriate image characteristics.
+
+## 4. HERO RENDERING
+
+Once transparency is preserved, render the profile image as a TRUE FRAMELESS portrait.
+
+Remove any visual element that could recreate a rectangle:
+
+* image wrapper background
+* black background
+* white image background
+* rectangular card
+* visible frame
+* forced matte layer
+
+The actual transparent parts of the image should show the existing Hero background underneath.
+
+The portrait should appear directly over the Hero composition.
+
+## 5. PORTRAIT LAYOUT
+
+Keep the portrait:
+
+* large
+* clear
+* naturally positioned in the left side of the Hero
+* full upper body visible when the uploaded photo supports it
+* proportional
+* not stretched
+
+Do NOT place it inside a circle, oval, rectangle, or card.
+
+Use natural image sizing such as:
+
+height: appropriate hero-relative size
+width: auto
+object-fit: contain
+
+The image itself should define the silhouette.
+
+## 6. INTEGRATE WITH EXISTING DIGITAL DECORATIONS
+
+Once the rectangular background is gone, let the existing logo-inspired decorations sit BEHIND the transparent portrait:
+
+* orbit lines
+* network nodes
+* soft teal glow
+* subtle digital curves
+
+This should create the visual effect of the user floating inside the Hero environment.
+
+Do not cover the face.
+
+## 7. ANIMATION
+
+Preserve the subtle floating portrait animation.
+
+Additionally, the decorative orbit/network elements around the portrait may have very slow independent motion.
+
+Keep movement calm and professional.
+
+Respect `prefers-reduced-motion`.
+
+## 8. NO PHOTO STATE
+
+This requirement is strict:
+
+If the signed-in user has NO profile photo:
+
+render NOTHING in the portrait area.
+
+Do NOT show:
+
+* initials
+* letter avatar
+* silhouette
+* placeholder
+* circle
+* empty image frame
+
+The Hero should simply use its normal decorative background.
+
+The small HEADER avatar may continue using its existing fallback behavior.
+
+This no-photo rule applies specifically to the large dashboard Hero portrait.
+
+## 9. EXISTING STORED IMAGE
+
+If the currently stored profile image has already been flattened into JPEG / black-background data:
+
+do NOT attempt to fake transparency with CSS.
+
+Fix the pipeline first.
+
+Then clearly report that the affected user must re-upload the original transparent PNG/WebP once so the newly preserved alpha data is stored correctly.
+
+Do not destructively modify unrelated user records.
+
+## 10. VERIFY WITH REAL TRANSPARENCY
+
+This task is not complete based only on TypeScript checks.
+
+Verify with an actual transparent PNG profile image.
+
+Acceptance test:
+
+1. Upload a PNG with transparent background.
+2. Preview must show the UI background through transparent areas.
+3. Save the user.
+4. Reload the page.
+5. Transparent areas must remain transparent.
+6. Log out and back in.
+7. Hero portrait must still have no rectangular background.
+8. Refresh the browser.
+9. Transparency must still remain.
+10. Header avatar still works.
+11. Remove the profile image.
+12. Hero portrait area must disappear completely with no fallback.
+
+Also inspect the stored MIME/data format and confirm it is not accidentally being converted to JPEG.
+
+## 11. DO NOT CHANGE
+
+Do not redesign:
+
+* dashboard greeting
+* search
+* KPIs
+* operational report
+* navigation
+* permissions
+* authentication
+* unrelated image upload behavior
+
+Only fix profile-image transparency preservation and the Hero portrait rendering required to use it.
+
+## VERIFICATION
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* focused profile-image upload test
+* focused authenticated dashboard browser verification
+
+Do not run the full historical test suite.
+
+Do not publish.
+
+At completion report:
+
+1. exact cause of the black rectangle
+2. what was changed
+3. image format now stored for transparent portraits
+4. whether the currently stored Admin photo needs to be re-uploaded
+5. confirmation that users without a profile photo render no Hero portrait at all
+
+Stop.

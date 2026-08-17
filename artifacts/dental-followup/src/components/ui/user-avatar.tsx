@@ -22,10 +22,26 @@ export function getInitials(name: string): string {
 }
 
 /**
- * Resize an image File to a square JPEG data URL at AVATAR_CANVAS_SIZE.
+ * Whether the source image format can carry an alpha channel.
+ * Only PNG and WebP support transparency; JPEG does not.
+ */
+function hasAlphaChannel(file: File): boolean {
+  return file.type === "image/png" || file.type === "image/webp";
+}
+
+/**
+ * Resize an image File to a data URL at most AVATAR_CANVAS_SIZE on its
+ * longest side, preserving aspect ratio.
+ *
+ * Transparency preservation rule:
+ *   - PNG / WebP source → output as WebP (alpha-safe); canvas is NOT filled
+ *     with any background colour so transparent pixels remain transparent.
+ *   - JPEG source → output as JPEG (no alpha channel needed).
+ *
  * Uses a temporary canvas — no external library required.
  */
 export function resizeAvatarToDataUrl(file: File): Promise<string> {
+  const alpha = hasAlphaChannel(file);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("قراءة الملف فشلت."));
@@ -33,21 +49,27 @@ export function resizeAvatarToDataUrl(file: File): Promise<string> {
       const img = new Image();
       img.onerror = () => reject(new Error("تحميل الصورة فشل."));
       img.onload = () => {
+        const { naturalWidth: sw, naturalHeight: sh } = img;
+        // Clamp the longest side to AVATAR_CANVAS_SIZE, keep aspect ratio.
+        const scale = Math.min(1, AVATAR_CANVAS_SIZE / Math.max(sw, sh));
+        const tw = Math.round(sw * scale);
+        const th = Math.round(sh * scale);
+
         const canvas = document.createElement("canvas");
-        canvas.width = AVATAR_CANVAS_SIZE;
-        canvas.height = AVATAR_CANVAS_SIZE;
+        canvas.width = tw;
+        canvas.height = th;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
           reject(new Error("Canvas غير متاح."));
           return;
         }
-        // Crop to square from center then scale to target size.
-        const { naturalWidth: sw, naturalHeight: sh } = img;
-        const side = Math.min(sw, sh);
-        const sx = (sw - side) / 2;
-        const sy = (sh - side) / 2;
-        ctx.drawImage(img, sx, sy, side, side, 0, 0, AVATAR_CANVAS_SIZE, AVATAR_CANVAS_SIZE);
-        resolve(canvas.toDataURL("image/jpeg", 0.85));
+        // Do NOT fill the background — keeps alpha channel transparent.
+        ctx.drawImage(img, 0, 0, tw, th);
+
+        // Use WebP for alpha sources (JPEG kills transparency by design).
+        const outType = alpha ? "image/webp" : "image/jpeg";
+        const quality = alpha ? 0.92 : 0.85;
+        resolve(canvas.toDataURL(outType, quality));
       };
       img.src = reader.result as string;
     };
