@@ -1,0 +1,264 @@
+MODE: Economy
+
+Apply the following focused corrections and additions to the expanded patient row inside the Operational Report.
+
+Do not redesign unrelated areas.
+Do not change existing financial calculations.
+Do not bypass existing permissions or audit rules.
+Do not perform hard deletion of financial or historical records.
+
+## 1. PAYMENT EDIT IS STILL MISSING
+
+The previous request asked for inline payment editing, but it is still not visible in the expanded Operational Report row.
+
+Add a clearly visible "تعديل" action for every eligible non-voided payment.
+
+The payment edit must open INLINE inside the expanded patient row.
+
+Do not navigate to the patient file.
+Do not open a modal.
+
+Editable payment fields:
+
+* amount
+* payment date
+* payment label
+* payment method
+* reference number
+* note
+
+Use:
+
+[إلغاء] [حفظ]
+
+Rules:
+
+* keep the patient row expanded,
+* preserve entered values while editing,
+* show validation errors inline,
+* reuse the existing payment permissions,
+* audit every payment edit,
+* log the previous and new values safely in the audit summary,
+* voided payments must not be editable.
+
+After save:
+
+* close edit mode,
+* refresh payment list,
+* refresh paid amount,
+* refresh outstanding amount,
+* refresh payment status,
+* refresh the operational-row financial summary.
+
+## 2. SAFE REMOVE ACTION FOR IMPLANTS
+
+Add a small delete/remove action for each implant card.
+
+UI label may be:
+
+حذف الزرعة
+
+But do NOT permanently delete the implant record.
+
+Use the existing archive behavior.
+
+On click show a confirmation dialog:
+
+"هل أنت متأكد من حذف هذه الزرعة من العرض النشط؟ سيبقى السجل محفوظًا في النظام."
+
+Actions:
+
+[إلغاء] [تأكيد الحذف]
+
+After confirmation:
+
+* archive the implant,
+* keep historical data intact,
+* audit the action,
+* remove it from the active implant cards,
+* refresh implant count and operational summary.
+
+Respect existing permissions.
+
+If the implant cannot be archived because of an existing business rule, show the exact Arabic reason.
+
+## 3. SAFE REMOVE ACTION FOR FOLLOW-UPS
+
+Add a visible remove/cancel action to editable active follow-up cards.
+
+UI may show:
+
+إلغاء المتابعة
+
+Do not permanently delete follow-up history.
+
+When clicked:
+
+* require confirmation,
+* change the follow-up to the existing cancelled state,
+* preserve the original record,
+* audit the cancellation,
+* remove it from upcoming/overdue active lists,
+* keep it visible in follow-up history where appropriate.
+
+Confirmation:
+
+"هل تريد إلغاء هذه المتابعة؟ سيبقى السجل محفوظًا في سجل المتابعات."
+
+Do not allow completed or otherwise locked follow-ups to be removed if existing rules prohibit it.
+
+Show the exact reason when the action is unavailable.
+
+## 4. PAYMENT REMOVAL MUST BE VOID, NOT DELETE
+
+Do NOT add permanent payment deletion.
+
+Instead add:
+
+إلغاء الدفعة
+
+for eligible non-voided payments.
+
+This must reuse the existing payment void workflow.
+
+On click:
+
+* show confirmation,
+* require a void reason,
+* show payment amount/date being voided,
+* require the existing authorized permission,
+* set the payment to voided using the existing backend logic,
+* preserve the payment record,
+* audit the void action.
+
+Dialog:
+
+إلغاء الدفعة
+
+سبب الإلغاء *
+[...................]
+
+[رجوع] [تأكيد إلغاء الدفعة]
+
+After voiding:
+
+* payment remains visible as "ملغاة",
+* financial totals recalculate automatically,
+* paid amount updates,
+* outstanding amount updates,
+* payment status updates,
+* operational report row refreshes,
+* patient row remains expanded.
+
+Never hard-delete a payment.
+
+## 5. PAYMENT DISPLAY INSIDE EXPANDED ROW
+
+If payment details are currently not displayed clearly enough inside the expanded row, add a compact payment list below or inside the financial section.
+
+Each payment should clearly show:
+
+* amount
+* date
+* label
+* payment method
+* reference number when available
+* status
+
+Actions where permitted:
+
+* تعديل
+* إلغاء الدفعة
+
+Voided payments:
+
+* visually indicate "ملغاة",
+* do not allow editing,
+* do not allow voiding again.
+
+Do not create a large complex table.
+
+Use compact cards or rows consistent with the existing expanded-row design.
+
+## 6. FOLLOW-UP EDIT MUST REMAIN AVAILABLE
+
+Preserve/add the previously requested inline "تعديل" action for follow-up cards.
+
+Follow-up edit and cancellation must coexist cleanly:
+
+[تعديل] [إلغاء المتابعة]
+
+where permitted.
+
+Do not navigate away.
+
+## 7. IMPLANT EDIT MUST REMAIN AVAILABLE
+
+Preserve the existing inline implant edit pencil.
+
+The implant card should now support:
+
+[تعديل] [حذف الزرعة]
+
+where permissions allow.
+
+## 8. CONFIRMATION AND ERROR UX
+
+For all destructive-looking actions:
+
+* implant archive,
+* follow-up cancellation,
+* payment void,
+
+require confirmation.
+
+Never immediately perform the action after one click.
+
+If an action fails:
+
+* keep the patient row expanded,
+* show the exact Arabic reason,
+* do not show only "فشل الحفظ" or "حدث خطأ".
+
+Examples:
+
+"لا يمكن إلغاء دفعة ملغاة مسبقًا."
+
+"لا يمكن تعديل هذه المتابعة لأنها مكتملة."
+
+"ليس لديك صلاحية لإلغاء هذه الدفعة."
+
+## 9. PRESERVE AUDIT HISTORY
+
+Every action must be audit logged:
+
+* payment edit
+* payment void
+* implant archive
+* follow-up cancel
+
+Do not remove historical audit records.
+
+## 10. COST-AWARE VERIFICATION
+
+Do not run the full historical test suite.
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* focused permission/business-rule tests
+* one browser smoke test confirming:
+
+1. payment edit is visibly available
+2. payment edit saves inline
+3. payment void requires a reason
+4. voided payment remains visible and totals recalculate
+5. implant archive requires confirmation and removes it from active cards
+6. follow-up cancellation preserves history
+7. unauthorized actions are hidden or rejected correctly
+8. patient row remains expanded after all actions
+
+Do not publish.
+
+Provide a concise completion report and stop.

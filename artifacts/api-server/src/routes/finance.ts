@@ -31,6 +31,7 @@ import {
   discountInputSchema,
   financeFiltersSchema,
   paymentInputSchema,
+  paymentUpdateSchema,
   toCents,
   voidPaymentInputSchema,
   type CaseFinanceResponse,
@@ -578,6 +579,62 @@ router.post(
     res.status(201).json({ payment: toPaymentDto(row, names) });
   },
 );
+
+router.patch("/payments/:id", requireFinanceManage, async (req, res) => {
+  const id = String(req.params.id);
+  if (!UUID_RE.test(id)) {
+    res.status(404).json({ error: "الدفعة غير موجودة.", code: PAYMENT_NOT_FOUND });
+    return;
+  }
+  const [existing] = await db
+    .select()
+    .from(paymentsTable)
+    .where(eq(paymentsTable.id, id))
+    .limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "الدفعة غير موجودة.", code: PAYMENT_NOT_FOUND });
+    return;
+  }
+  if (existing.voidedAt) {
+    res.status(409).json({ error: "لا يمكن تعديل دفعة ملغاة.", code: PAYMENT_ALREADY_VOIDED });
+    return;
+  }
+  const input = parseOrRespond(paymentUpdateSchema, req.body, res);
+  if (!input) return;
+
+  const previous = {
+    amount: money(existing.amount),
+    paymentDate: existing.paymentDate,
+    paymentLabel: existing.paymentLabel,
+    paymentMethod: existing.paymentMethod,
+    referenceNumber: existing.referenceNumber,
+    note: existing.note,
+  };
+
+  const [row] = await db
+    .update(paymentsTable)
+    .set({
+      ...(input.amount !== undefined && { amount: input.amount.toFixed(2) }),
+      ...(input.paymentDate !== undefined && { paymentDate: input.paymentDate }),
+      ...(input.paymentLabel !== undefined && { paymentLabel: input.paymentLabel }),
+      ...(input.paymentMethod !== undefined && { paymentMethod: input.paymentMethod }),
+      ...(input.referenceNumber !== undefined && { referenceNumber: input.referenceNumber }),
+      ...(input.note !== undefined && { note: input.note }),
+    })
+    .where(eq(paymentsTable.id, id))
+    .returning();
+
+  await writeAudit({
+    userId: req.currentUser!.id,
+    action: "payment_update",
+    entityType: "payment",
+    entityId: id,
+    summary: `تعديل دفعة — المبلغ السابق: ${previous.amount.toFixed(2)} ر.س، المبلغ الجديد: ${money(row.amount).toFixed(2)} ر.س`,
+    details: { previous, next: input },
+  });
+  const names = await userNames([row.createdBy, row.voidedBy]);
+  res.json({ payment: toPaymentDto(row, names) });
+});
 
 router.post("/payments/:id/void", requireFinanceManage, async (req, res) => {
   const id = String(req.params.id);

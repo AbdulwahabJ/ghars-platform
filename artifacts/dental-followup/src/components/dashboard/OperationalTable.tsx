@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search } from "lucide-react";
+import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,13 +14,13 @@ import {
 import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
-import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType } from "@workspace/shared";
+import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment } from "@workspace/shared";
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
 import { usePatient, useUpdatePatient } from "@/hooks/use-patients";
-import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useImplantOptions } from "@/hooks/use-implant-cases";
-import { useFollowups, useCreateFollowup, useUpdateFollowup, useAssignableUsers } from "@/hooks/use-followups";
-import { useCreatePayment } from "@/hooks/use-finance";
+import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useImplantOptions } from "@/hooks/use-implant-cases";
+import { useFollowups, useCreateFollowup, useUpdateFollowup, useFollowupOutcome, useAssignableUsers } from "@/hooks/use-followups";
+import { useCreatePayment, useUpdatePayment, useVoidPayment, useCaseFinance } from "@/hooks/use-finance";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -492,7 +492,7 @@ function InlineAddImplant({
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
-        onError: () => { toast({ title: "فشل الحفظ", variant: "destructive" }); },
+        onError: (error) => { toast({ title: "فشل الحفظ", description: error instanceof Error ? error.message : undefined, variant: "destructive" }); },
       },
     );
   };
@@ -651,7 +651,7 @@ function InlineRecordPayment({
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
-        onError: () => { toast({ title: "فشل الحفظ", variant: "destructive" }); },
+        onError: (error) => { toast({ title: "فشل الحفظ", description: error instanceof Error ? error.message : undefined, variant: "destructive" }); },
       },
     );
   };
@@ -758,7 +758,7 @@ function InlineAddFollowup({
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
-        onError: () => { toast({ title: "فشل الحفظ", variant: "destructive" }); },
+        onError: (error) => { toast({ title: "فشل الحفظ", description: error instanceof Error ? error.message : undefined, variant: "destructive" }); },
       },
     );
   };
@@ -976,6 +976,270 @@ function InlineFollowupEdit({
 }
 
 /* ------------------------------------------------------------------ */
+/* Inline Payment Edit                                                 */
+/* ------------------------------------------------------------------ */
+
+function InlinePaymentEdit({
+  payment,
+  caseId,
+  onDone,
+}: {
+  payment: Payment;
+  caseId: string;
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const update = useUpdatePayment();
+
+  const [amount, setAmount] = useState(String(payment.amount));
+  const [paymentDate, setPaymentDate] = useState(payment.paymentDate ?? "");
+  const [paymentLabel, setPaymentLabel] = useState<typeof PAYMENT_LABELS[number]>(
+    (payment.paymentLabel as typeof PAYMENT_LABELS[number]) ?? PAYMENT_LABELS[0],
+  );
+  const [paymentMethod, setPaymentMethod] = useState<typeof PAYMENT_METHODS[number]>(
+    (payment.paymentMethod as typeof PAYMENT_METHODS[number]) ?? PAYMENT_METHODS[0],
+  );
+  const [referenceNumber, setReferenceNumber] = useState(payment.referenceNumber ?? "");
+  const [note, setNote] = useState(payment.note ?? "");
+
+  const save = () => {
+    const parsed = parseFloat(amount);
+    if (!amount || isNaN(parsed) || parsed <= 0 || !paymentDate) return;
+    update.mutate(
+      {
+        id: payment.id,
+        caseId,
+        data: {
+          amount: parsed,
+          paymentDate,
+          paymentLabel,
+          paymentMethod,
+          referenceNumber: referenceNumber.trim() || null,
+          note: note.trim() || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "تم تحديث الدفعة" });
+          onDone();
+        },
+        onError: (error) => {
+          toast({
+            title: "تعذر تحديث الدفعة",
+            description: error instanceof Error ? error.message : undefined,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-3 pt-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">المبلغ (ر.س) *</Label>
+          <Input className="h-8 text-sm" type="number" step="0.01" min={0.01} value={amount}
+            onChange={(event) => setAmount(event.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">تاريخ الدفعة *</Label>
+          <Input className="h-8 text-sm" type="date" value={paymentDate}
+            onChange={(event) => setPaymentDate(event.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">وصف الدفعة</Label>
+          <Select dir="rtl" value={paymentLabel} onValueChange={(v) => setPaymentLabel(v as typeof PAYMENT_LABELS[number])}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>{PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">طريقة الدفع</Label>
+          <Select dir="rtl" value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as typeof PAYMENT_METHODS[number])}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>{PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">رقم المرجع</Label>
+          <Input className="h-8 text-sm" value={referenceNumber}
+            onChange={(event) => setReferenceNumber(event.target.value)} placeholder="اختياري" />
+        </div>
+        <div className="sm:col-span-3 space-y-1">
+          <Label className="text-xs">الملاحظة</Label>
+          <Input className="h-8 text-sm" value={note}
+            onChange={(event) => setNote(event.target.value)} placeholder="اختياري" />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save}
+          disabled={update.isPending || !amount || !paymentDate}
+          className="h-8 text-xs">
+          {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          حفظ
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone}
+          disabled={update.isPending} className="h-8 text-xs">
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Case Payments Section (per-case payment list with edit/void)        */
+/* ------------------------------------------------------------------ */
+
+function CasePaymentsSection({
+  caseId,
+  canManage,
+}: {
+  caseId: string;
+  canManage: boolean;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const financeQuery = useCaseFinance(caseId, true);
+  const voidPayment = useVoidPayment();
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [voidingPaymentId, setVoidingPaymentId] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+
+  const payments = financeQuery.data?.payments ?? [];
+
+  const startVoid = (id: string) => { setVoidingPaymentId(id); setVoidReason(""); setEditingPaymentId(null); };
+  const startEdit = (id: string) => { setEditingPaymentId(id); setVoidingPaymentId(null); };
+
+  const confirmVoid = (payment: Payment) => {
+    if (!voidReason.trim()) return;
+    voidPayment.mutate(
+      { id: payment.id, caseId, data: { reason: voidReason.trim() } },
+      {
+        onSuccess: () => {
+          toast({ title: "تم إلغاء الدفعة" });
+          void qc.invalidateQueries({ queryKey: ["operational-report"] });
+          setVoidingPaymentId(null);
+          setVoidReason("");
+        },
+        onError: (error) => {
+          toast({
+            title: "تعذر إلغاء الدفعة",
+            description: error instanceof Error ? error.message : undefined,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  if (financeQuery.isLoading) {
+    return <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> جارٍ التحميل...</div>;
+  }
+  if (payments.length === 0) {
+    return <p className="text-xs text-muted-foreground py-1">لا توجد دفعات مسجلة.</p>;
+  }
+
+  return (
+    <div className="space-y-2 mt-2 border-t border-border/60 pt-2">
+      <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+        <CreditCard className="h-3 w-3" />
+        الدفعات ({payments.length})
+      </p>
+      {payments.map((payment) => (
+        <div key={payment.id} className={`rounded-lg border text-xs p-2.5 space-y-2 ${payment.isVoided ? "border-destructive/30 bg-destructive/5 opacity-70" : "border-border/70 bg-background/60"}`}>
+          {editingPaymentId === payment.id ? (
+            <InlinePaymentEdit payment={payment} caseId={caseId} onDone={() => setEditingPaymentId(null)} />
+          ) : voidingPaymentId === payment.id ? (
+            <div className="space-y-2">
+              <p className="font-medium text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3.5 w-3.5" />
+                إلغاء الدفعة — {formatMoney(payment.amount)} ({payment.paymentDate})
+              </p>
+              <div className="space-y-1">
+                <Label className="text-xs">سبب الإلغاء *</Label>
+                <Input className="h-8 text-sm" value={voidReason}
+                  onChange={(event) => setVoidReason(event.target.value)}
+                  placeholder="يرجى ذكر سبب الإلغاء..." autoFocus />
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" variant="destructive"
+                  onClick={() => confirmVoid(payment)}
+                  disabled={voidPayment.isPending || !voidReason.trim()}
+                  className="h-7 text-xs">
+                  {voidPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                  تأكيد إلغاء الدفعة
+                </Button>
+                <Button type="button" size="sm" variant="outline"
+                  onClick={() => setVoidingPaymentId(null)}
+                  disabled={voidPayment.isPending}
+                  className="h-7 text-xs">رجوع</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold tabular-nums">{formatMoney(payment.amount)}</span>
+                  {payment.isVoided && (
+                    <Badge variant="destructive" className="text-[10px]">ملغاة</Badge>
+                  )}
+                </div>
+                {!payment.isVoided && canManage && (
+                  <div className="flex gap-1.5">
+                    <Button type="button" variant="ghost" size="sm"
+                      className="h-6 px-2 text-[11px] gap-1 text-muted-foreground"
+                      onClick={() => startEdit(payment.id)}>
+                      <Pencil className="h-3 w-3" /> تعديل
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm"
+                      className="h-6 px-2 text-[11px] gap-1 text-destructive hover:text-destructive"
+                      onClick={() => startVoid(payment.id)}>
+                      <X className="h-3 w-3" /> إلغاء الدفعة
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">التاريخ</span>
+                  <span>{formatSaudiDate(payment.paymentDate ?? "")}</span>
+                </div>
+                {payment.paymentLabel && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">الوصف</span>
+                    <span>{payment.paymentLabel}</span>
+                  </div>
+                )}
+                {payment.paymentMethod && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">الطريقة</span>
+                    <span>{payment.paymentMethod}</span>
+                  </div>
+                )}
+                {payment.referenceNumber && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">المرجع</span>
+                    <span dir="ltr">{payment.referenceNumber}</span>
+                  </div>
+                )}
+                {payment.isVoided && payment.voidReason && (
+                  <div className="col-span-2 flex justify-between gap-2">
+                    <span className="text-muted-foreground">سبب الإلغاء</span>
+                    <span className="text-destructive">{payment.voidReason}</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Expanded Patient Detail                                             */
 /* ------------------------------------------------------------------ */
 
@@ -988,25 +1252,72 @@ function PatientExpandedRow({
 }) {
   const { user } = useAuth();
   const canRecordPayments = user?.role === "ADMIN" || user?.canRecordPayments;
+  const canManageFinancials = user?.role === "ADMIN" || (user?.role === "DOCTOR" && user?.canViewFinancials);
 
   const patient = usePatient(group.patientId);
   const casesQuery = useImplantCases(group.patientId);
   const followupsQuery = useFollowups(group.patientId);
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const archiveImplant = useArchiveImplant();
+  const followupOutcome = useFollowupOutcome(group.patientId);
 
   // Inline edit state — one section at a time
   const [editingPatient, setEditingPatient] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
   const [editingImplantId, setEditingImplantId] = useState<string | null>(null);
   const [editingFollowupId, setEditingFollowupId] = useState<string | null>(null);
+  // Destructive confirmations
+  const [confirmArchiveImplantId, setConfirmArchiveImplantId] = useState<string | null>(null);
+  const [confirmCancelFollowupId, setConfirmCancelFollowupId] = useState<string | null>(null);
   // Inline quick-action state — one form open at a time
   type QuickAction = "implant" | "payment" | "followup";
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
   const [now] = useState(() => Date.now());
 
-  const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); setEditingFollowupId(null); };
-  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); };
-  const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); setEditingFollowupId(null); };
-  const startEditFollowup = (id: string) => { setEditingFollowupId(id); setEditingPatient(false); setEditingCaseId(null); setEditingImplantId(null); };
+  const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
+  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
+  const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
+  const startEditFollowup = (id: string) => { setEditingFollowupId(id); setEditingPatient(false); setEditingCaseId(null); setEditingImplantId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
+
+  const doArchiveImplant = (imp: Implant) => {
+    archiveImplant.mutate(
+      { id: imp.id, patientId: group.patientId },
+      {
+        onSuccess: () => {
+          toast({ title: "تم حذف الزرعة من العرض النشط" });
+          void qc.invalidateQueries({ queryKey: ["operational-report"] });
+          setConfirmArchiveImplantId(null);
+        },
+        onError: (error) => {
+          toast({
+            title: "تعذر حذف الزرعة",
+            description: error instanceof Error ? error.message : undefined,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  const doCancelFollowup = (followupId: string) => {
+    followupOutcome.mutate(
+      { id: followupId, input: { status: "ملغاة" as const, note: null, result: null } },
+      {
+        onSuccess: () => {
+          toast({ title: "تم إلغاء المتابعة" });
+          setConfirmCancelFollowupId(null);
+        },
+        onError: (error) => {
+          toast({
+            title: "تعذر إلغاء المتابعة",
+            description: error instanceof Error ? error.message : undefined,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
 
   const toggleAction = (action: QuickAction) =>
     setActiveAction((prev) => (prev === action ? null : action));
@@ -1123,11 +1434,37 @@ function PatientExpandedRow({
                           </Badge>
                         </div>
                         {!["تمت", "ملغاة", "مؤجلة"].includes(followup.followupStatus) && (
-                          <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-muted-foreground" onClick={() => startEditFollowup(followup.id)}>
-                            <Pencil className="h-3 w-3" /> تعديل
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-muted-foreground" onClick={() => startEditFollowup(followup.id)}>
+                              <Pencil className="h-3 w-3" /> تعديل
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-destructive hover:text-destructive" onClick={() => setConfirmCancelFollowupId(followup.id)}>
+                              <X className="h-3 w-3" /> إلغاء المتابعة
+                            </Button>
+                          </div>
                         )}
                       </div>
+                      {confirmCancelFollowupId === followup.id && (
+                        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2.5 space-y-2">
+                          <p className="text-[11px] flex items-start gap-1.5">
+                            <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                            هل تريد إلغاء هذه المتابعة؟ سيبقى السجل محفوظًا في سجل المتابعات.
+                          </p>
+                          <div className="flex gap-2">
+                            <Button type="button" size="sm" variant="destructive"
+                              onClick={() => doCancelFollowup(followup.id)}
+                              disabled={followupOutcome.isPending}
+                              className="h-6 text-[11px]">
+                              {followupOutcome.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                              تأكيد الإلغاء
+                            </Button>
+                            <Button type="button" size="sm" variant="outline"
+                              onClick={() => setConfirmCancelFollowupId(null)}
+                              disabled={followupOutcome.isPending}
+                              className="h-6 text-[11px]">إلغاء</Button>
+                          </div>
+                        </div>
+                      )}
                       {followup.scheduledAt && (
                         <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">الموعد</span>
@@ -1207,6 +1544,7 @@ function PatientExpandedRow({
                       </Badge>
                     </div>
                   </div>
+                  <CasePaymentsSection caseId={row.caseId} canManage={canManageFinancials} />
                 </div>
               ) : null,
             )}
@@ -1279,14 +1617,24 @@ function PatientExpandedRow({
                                       <p className="text-[11px] text-muted-foreground" dir="ltr">{imp.site}</p>
                                     </div>
                                   </div>
-                                  <button
-                                    type="button"
-                                    className="text-muted-foreground hover:text-foreground transition-colors rounded p-1.5 hover:bg-muted"
-                                    onClick={() => startEditImplant(imp.id)}
-                                    title="تعديل الزرعة"
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </button>
+                                  <div className="flex gap-1">
+                                    <button
+                                      type="button"
+                                      className="text-muted-foreground hover:text-foreground transition-colors rounded p-1.5 hover:bg-muted"
+                                      onClick={() => startEditImplant(imp.id)}
+                                      title="تعديل الزرعة"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="text-muted-foreground hover:text-destructive transition-colors rounded p-1.5 hover:bg-destructive/10"
+                                      onClick={() => setConfirmArchiveImplantId(imp.id)}
+                                      title="حذف الزرعة"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-2">
                                   <div>
@@ -1340,6 +1688,27 @@ function PatientExpandedRow({
                                   <p className="text-muted-foreground">
                                     <span className="font-medium text-foreground">الملاحظة: </span>{imp.implantNote}
                                   </p>
+                                )}
+                                {confirmArchiveImplantId === imp.id && (
+                                  <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2.5 space-y-2 mt-1">
+                                    <p className="text-[11px] flex items-start gap-1.5">
+                                      <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                                      هل تريد حذف هذه الزرعة من العرض النشط؟ سيتم أرشفتها ويمكن استعادتها لاحقًا.
+                                    </p>
+                                    <div className="flex gap-2">
+                                      <Button type="button" size="sm" variant="destructive"
+                                        onClick={() => doArchiveImplant(imp)}
+                                        disabled={archiveImplant.isPending}
+                                        className="h-6 text-[11px]">
+                                        {archiveImplant.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                                        تأكيد الحذف
+                                      </Button>
+                                      <Button type="button" size="sm" variant="outline"
+                                        onClick={() => setConfirmArchiveImplantId(null)}
+                                        disabled={archiveImplant.isPending}
+                                        className="h-6 text-[11px]">إلغاء</Button>
+                                    </div>
+                                  </div>
                                 )}
                               </>
                             )}

@@ -6,6 +6,7 @@ import type {
   DiscountInput,
   FinanceFilters,
   PaymentInput,
+  PaymentUpdateInput,
   VoidPaymentInput,
 } from "@workspace/shared";
 
@@ -83,7 +84,27 @@ export function useCreatePayment() {
   });
 }
 
+export function useUpdatePayment() {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      caseId: string;
+      data: PaymentUpdateInput;
+    }) => api.updatePayment(id, data),
+    onSuccess: (_res, vars) => {
+      invalidate(vars.caseId);
+      void queryClient.invalidateQueries({ queryKey: ["operational-report"] });
+    },
+  });
+}
+
 export function useVoidPayment() {
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateFinance();
   return useMutation({
     mutationFn: ({
@@ -94,7 +115,10 @@ export function useVoidPayment() {
       caseId: string;
       data: VoidPaymentInput;
     }) => api.voidPayment(id, data),
-    onSuccess: (_res, vars) => invalidate(vars.caseId),
+    onSuccess: (_res, vars) => {
+      invalidate(vars.caseId);
+      void queryClient.invalidateQueries({ queryKey: ["operational-report"] });
+    },
   });
 }
 

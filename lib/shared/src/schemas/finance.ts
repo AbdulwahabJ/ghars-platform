@@ -156,6 +156,9 @@ export const voidPaymentInputSchema = z.object({
 });
 export type VoidPaymentInput = z.infer<typeof voidPaymentInputSchema>;
 
+export const paymentUpdateSchema = paymentInputSchema.partial();
+export type PaymentUpdateInput = z.infer<typeof paymentUpdateSchema>;
+
 /* ------------------------------------------------------------------ */
 /* DTOs                                                                */
 /* ------------------------------------------------------------------ */

@@ -17,6 +17,7 @@ import type {
   FinanceOverview,
   Payment,
   PaymentInput,
+  PaymentUpdateInput,
   VoidPaymentInput,
   FileNumberCheckResponse,
   HealthResponse,
@@ -249,6 +250,11 @@ export const api = {
   createPayment: (caseId: string, input: PaymentInput) =>
     request<{ payment: Payment }>(`/implant-cases/${caseId}/payments`, {
       method: "POST",
+      json: input,
+    }),
+  updatePayment: (id: string, input: PaymentUpdateInput) =>
+    request<{ payment: Payment }>(`/payments/${id}`, {
+      method: "PATCH",
       json: input,
     }),
   voidPayment: (id: string, input: VoidPaymentInput) =>
