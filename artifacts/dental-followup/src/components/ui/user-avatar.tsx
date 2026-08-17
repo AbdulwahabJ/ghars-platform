@@ -92,6 +92,12 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const initials = getInitials(fullName);
 
+  // Frameless is reserved for the dashboard hero: with no photo, render
+  // nothing at all (no placeholder, no initials, no empty badge).
+  if (shape === "frameless" && !avatarData) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
@@ -121,15 +127,8 @@ export function UserAvatar({
           )}
           draggable={false}
         />
-      ) : (
-        <span
-          className={cn(
-            "notranslate leading-none",
-            shape === "frameless" && "hero-portrait-initials",
-          )}
-        >
-          {initials}
-        </span>
+      ) : shape === "frameless" ? null : (
+        <span className="notranslate leading-none">{initials}</span>
       )}
     </div>
   );

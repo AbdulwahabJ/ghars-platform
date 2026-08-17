@@ -1,0 +1,97 @@
+Refine the dashboard Hero section only. Do not change any backend logic, permissions, search behavior, KPIs, or other pages.
+
+Goal:
+Redesign the LEFT visual side of the Hero so it feels like a modern premium profile hero, similar in composition to the attached inspiration: a large, clear, elegant user portrait with animated decorative shapes/lines around it. Do NOT copy the sample literally — adapt it to this system’s existing visual identity, colors, and logo language.
+
+Design requirements:
+
+1) Hero portrait composition
+- Use the logged-in user’s profile photo as the main visual element in the left side of the Hero.
+- The image must be large, visually prominent, and professionally integrated into the Hero.
+- The photo should feel like it is “floating” inside the Hero, not sitting inside a stiff box.
+- Do NOT show the user name or role under the image.
+- Do NOT show any fallback initials/avatar badge if no image exists.
+- If the logged-in user has no profile photo, render nothing in that visual slot (no placeholder, no letter, no empty badge).
+
+2) Image treatment
+- The user image must be fully visible and well-fitted — no awkward cropping, no cut face, no clipped shoulders.
+- Avoid the previous “hard rectangle” look.
+- Use a soft modern presentation, such as:
+  - clean cutout-like integration,
+  - soft abstract shape behind the image,
+  - or a gentle masked/organic portrait container,
+  - but the result must look elegant and premium.
+- The portrait should blend naturally with the Hero background.
+
+3) Decorative motion around the portrait
+- Add animated decorative elements around the portrait area only.
+- These elements should be inspired by the system identity and logo:
+  - soft curved lines,
+  - orbit-like strokes,
+  - connected dots / network nodes,
+  - subtle glowing circles,
+  - abstract digital shapes.
+- The motion should be continuous, subtle, and premium:
+  - slow floating,
+  - gentle orbit movement,
+  - soft pulse/glow,
+  - slight parallax feel,
+  - no aggressive or distracting animation.
+- The moving shapes should surround the image, not cover the face.
+
+4) Visual style / brand alignment
+- Use the existing site identity and logo colors as the source of the decorative palette:
+  - turquoise / teal,
+  - blue,
+  - navy,
+  - very soft cyan glow.
+- Match the current site look:
+  - light background,
+  - clean medical-tech feel,
+  - elegant and calm,
+  - premium but not flashy.
+- The Hero should still feel like part of the same website, not a different template.
+
+5) Layout constraints
+- Keep the existing greeting and search area on the right side.
+- Only redesign the left visual area and its interaction with the Hero background.
+- Keep the Hero balanced and clean.
+- Maintain proper spacing so the portrait does not crowd the search bar or text.
+- Make the result look intentional on desktop and responsive on tablet/mobile.
+
+6) Motion quality
+- Animation should be smooth and lightweight.
+- Respect reduced-motion preferences if applicable.
+- Avoid heavy libraries unless already justified.
+- Prefer CSS / lightweight animation techniques.
+
+7) Empty-state rule
+- If there is no profile image for the user:
+  - do not render initials,
+  - do not render a placeholder avatar,
+  - do not render a fake portrait block.
+- In that case, keep the Hero visually balanced with only the decorative background.
+
+8) Important restrictions
+- Do not touch backend APIs unless absolutely required for already-existing profile photo usage.
+- Do not modify dashboard business logic.
+- Do not alter patient search logic.
+- Do not redesign the KPI cards or operational report in this task.
+- Keep this task focused on the Hero visual refinement only.
+
+Implementation quality:
+- Make it feel polished and production-ready.
+- Do not do a quick patch.
+- Adjust sizing, fitting, and spacing carefully.
+- Ensure the portrait looks professional and not distorted.
+- Ensure the animated lines/shapes feel integrated with the logo language.
+
+Acceptance criteria:
+- The Hero left side contains a large professional portrait if a user image exists.
+- The portrait is fully visible and not awkwardly cropped.
+- Decorative lines/shapes around the image are animated and visually linked to the site identity.
+- No name/role appears under the portrait.
+- If no photo exists, nothing portrait-like is shown there.
+- The Hero still looks clean, premium, and consistent with the site.
+
+Please implement directly, then verify visually and report exactly what changed.

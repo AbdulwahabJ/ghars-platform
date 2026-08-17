@@ -183,23 +183,15 @@
     filter: drop-shadow(0 18px 22px rgb(23 62 104 / 0.1));
   }
 
-  .hero-portrait-initials {
-    display: grid;
-    height: 7rem;
-    width: 7rem;
-    place-items: center;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle at 50% 35%,
-      rgb(31 169 184 / 0.28),
-      rgb(23 62 104 / 0.1) 62%,
-      transparent 72%
-    );
-    color: rgb(15 118 110 / 0.8);
-    font-size: 2.5rem;
+  /* Shared base for all hero decorative layers: centered, non-interactive. */
+  .hero-decor {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    pointer-events: none;
   }
 
-  .hero-portrait-halo {
+  .hero-decor-halo {
     border-radius: 50%;
     background: radial-gradient(
       circle,
@@ -208,13 +200,77 @@
       transparent 70%
     );
     filter: blur(12px);
+    animation: hero-halo-pulse 9s ease-in-out infinite;
   }
 
-  .hero-portrait-orbit {
-    border: 1px solid rgb(31 169 184 / 0.17);
+  .hero-decor-blob {
+    border-radius: 58% 42% 55% 45% / 48% 55% 45% 52%;
+    background: linear-gradient(
+      150deg,
+      rgb(31 169 184 / 0.16),
+      rgb(59 130 246 / 0.08) 55%,
+      rgb(23 62 104 / 0.1)
+    );
+    filter: blur(2px);
+    animation: hero-blob-morph 18s ease-in-out infinite;
+  }
+
+  .hero-decor-orbit-a {
+    border: 1px solid rgb(31 169 184 / 0.2);
     border-radius: 50%;
     opacity: 0.7;
-    transform: rotate(-18deg);
+    animation: hero-orbit-spin-a 46s linear infinite;
+  }
+
+  .hero-decor-orbit-b {
+    border: 1px dashed rgb(23 62 104 / 0.16);
+    border-radius: 50%;
+    opacity: 0.65;
+    animation: hero-orbit-spin-b 62s linear infinite;
+  }
+
+  .hero-decor-arc {
+    opacity: 0.75;
+    animation: hero-arc-drift 12s ease-in-out infinite;
+  }
+
+  .hero-decor-arc-path {
+    stroke-dasharray: 3 9;
+    animation: hero-arc-flow 16s linear infinite;
+  }
+
+  .hero-decor-node {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgb(31 169 184 / 0.85);
+    box-shadow: 0 0 10px 2px rgb(31 169 184 / 0.35);
+    pointer-events: none;
+    animation: hero-node-pulse 5.5s ease-in-out infinite;
+  }
+
+  .hero-decor-node-1 {
+    top: 6%;
+    left: -9%;
+  }
+
+  .hero-decor-node-2 {
+    top: 38%;
+    right: -15%;
+    width: 6px;
+    height: 6px;
+    background: rgb(23 62 104 / 0.55);
+    box-shadow: 0 0 8px 2px rgb(59 130 246 / 0.3);
+    animation-delay: 1.7s;
+  }
+
+  .hero-decor-node-3 {
+    bottom: 9%;
+    left: -5%;
+    width: 5px;
+    height: 5px;
+    animation-delay: 3.2s;
   }
 
   @keyframes hero-portrait-float {
@@ -226,10 +282,91 @@
       transform: translateY(-5px);
     }
   }
+
+  @keyframes hero-halo-pulse {
+    0%,
+    100% {
+      opacity: 0.75;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes hero-blob-morph {
+    0%,
+    100% {
+      border-radius: 58% 42% 55% 45% / 48% 55% 45% 52%;
+      transform: rotate(0deg);
+    }
+    33% {
+      border-radius: 46% 54% 44% 56% / 56% 44% 58% 42%;
+      transform: rotate(2deg);
+    }
+    66% {
+      border-radius: 54% 46% 58% 42% / 44% 58% 42% 56%;
+      transform: rotate(-2deg);
+    }
+  }
+
+  @keyframes hero-orbit-spin-a {
+    from {
+      transform: rotate(-18deg);
+    }
+    to {
+      transform: rotate(342deg);
+    }
+  }
+
+  @keyframes hero-orbit-spin-b {
+    from {
+      transform: rotate(14deg);
+    }
+    to {
+      transform: rotate(-346deg);
+    }
+  }
+
+  @keyframes hero-arc-drift {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(4px);
+    }
+  }
+
+  @keyframes hero-arc-flow {
+    to {
+      stroke-dashoffset: -120;
+    }
+  }
+
+  @keyframes hero-node-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: translateY(-4px) scale(1.15);
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-portrait-visual {
+  .hero-portrait-visual,
+  .hero-decor-halo,
+  .hero-decor-blob,
+  .hero-decor-orbit-a,
+  .hero-decor-orbit-b,
+  .hero-decor-arc,
+  .hero-decor-arc-path,
+  .hero-decor-node {
     animation: none;
   }
 }

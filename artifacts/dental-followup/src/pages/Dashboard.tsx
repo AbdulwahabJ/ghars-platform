@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useId } from "react";
 import { useLocation } from "wouter";
 import {
   saudiGreeting,
@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const greeting = saudiGreeting();
   const todayDate = formatSaudiWeekdayDate(new Date());
+  const heroArcGradientId = useId();
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 400);
@@ -234,21 +235,69 @@ export default function Dashboard() {
             {user && (
               <div className="hero-portrait-composition order-1 md:order-none">
                 <div className="hero-portrait-visual">
+                  {/* Soft pulsing glow halo */}
                   <div
                     aria-hidden="true"
-                    className="hero-portrait-halo absolute left-1/2 top-1/2 h-[210px] w-[210px] -translate-x-1/2 -translate-y-1/2 sm:h-[250px] sm:w-[250px] md:h-[320px] md:w-[320px] lg:h-[380px] lg:w-[380px]"
+                    className="hero-decor hero-decor-halo h-[210px] w-[210px] sm:h-[250px] sm:w-[250px] md:h-[320px] md:w-[320px] lg:h-[380px] lg:w-[380px]"
+                  />
+                  {/* Slow-morphing abstract shape behind the portrait */}
+                  <div
+                    aria-hidden="true"
+                    className="hero-decor hero-decor-blob h-[168px] w-[148px] sm:h-[204px] sm:w-[180px] md:h-[268px] md:w-[234px] lg:h-[322px] lg:w-[280px]"
+                  />
+                  {/* Orbit strokes inspired by the logo language */}
+                  <div
+                    aria-hidden="true"
+                    className="hero-decor hero-decor-orbit-a h-[190px] w-[138px] sm:h-[230px] sm:w-[166px] md:h-[300px] md:w-[220px] lg:h-[360px] lg:w-[264px]"
                   />
                   <div
                     aria-hidden="true"
-                    className="hero-portrait-orbit absolute left-1/2 top-1/2 h-[190px] w-[138px] -translate-x-1/2 -translate-y-1/2 sm:h-[230px] sm:w-[166px] md:h-[300px] md:w-[220px] lg:h-[360px] lg:w-[264px]"
+                    className="hero-decor hero-decor-orbit-b h-[160px] w-[178px] sm:h-[194px] sm:w-[216px] md:h-[252px] md:w-[282px] lg:h-[304px] lg:w-[338px]"
                   />
-                  <UserAvatar
-                    fullName={user.fullName}
-                    avatarData={user.avatarData}
-                    size="hero"
-                    shape="frameless"
-                    imageFit="natural"
-                  />
+                  {/* Curved connection line with network nodes */}
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 200 260"
+                    fill="none"
+                    className="hero-decor hero-decor-arc h-[200px] w-[154px] sm:h-[240px] sm:w-[185px] md:h-[314px] md:w-[242px] lg:h-[376px] lg:w-[290px]"
+                  >
+                    <defs>
+                      <linearGradient id={heroArcGradientId} x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stopColor="rgb(31 169 184)" stopOpacity="0" />
+                        <stop offset="0.4" stopColor="rgb(31 169 184)" stopOpacity="0.55" />
+                        <stop offset="1" stopColor="rgb(23 62 104)" stopOpacity="0.3" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      className="hero-decor-arc-path"
+                      d="M28 26C132 8 196 92 178 190C170 230 146 250 118 256"
+                      stroke={`url(#${heroArcGradientId})`}
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="28" cy="26" r="3" fill="rgb(31 169 184 / 0.7)" />
+                    <circle cx="187" cy="128" r="2.5" fill="rgb(23 62 104 / 0.4)" />
+                    <circle cx="118" cy="256" r="3" fill="rgb(31 169 184 / 0.5)" />
+                  </svg>
+                  {/* Glowing network dots */}
+                  <span aria-hidden="true" className="hero-decor-node hero-decor-node-1" />
+                  <span aria-hidden="true" className="hero-decor-node hero-decor-node-2" />
+                  <span aria-hidden="true" className="hero-decor-node hero-decor-node-3" />
+                  {user.avatarData ? (
+                    <UserAvatar
+                      fullName={user.fullName}
+                      avatarData={user.avatarData}
+                      size="hero"
+                      shape="frameless"
+                      imageFit="natural"
+                    />
+                  ) : (
+                    /* No photo: keep only the decorative background, sized like the portrait slot */
+                    <div
+                      aria-hidden="true"
+                      className="invisible h-[140px] w-[112px] sm:h-[170px] sm:w-[136px] md:h-[250px] md:w-[200px] lg:h-[300px] lg:w-[240px] xl:h-[320px] xl:w-[256px]"
+                    />
+                  )}
                 </div>
               </div>
             )}
