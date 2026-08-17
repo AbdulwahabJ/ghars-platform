@@ -1,0 +1,120 @@
+Proceed with the production cleanup now.
+
+You already inspected the production database and confirmed the following:
+
+PRESERVE:
+- users
+- sessions
+- user_preferences
+- application_settings
+- implant_system_options
+- lookup_options
+- whatsapp_templates
+- user authentication/permission data
+
+DELETE ALL RECORDS FROM:
+- communications
+- followups
+- payments
+- case_charges
+- case_discounts
+- implants
+- implant_cases
+- patients
+
+Also delete ONLY audit_logs that are related to the deleted business/test entities.
+
+DO NOT delete authentication/user audit logs.
+
+IMPORTANT:
+I am explicitly authorizing the deletion of the current business/test/demo records from the production database.
+
+There is currently no real patient/business data that needs to be preserved.
+
+Before executing:
+1. Confirm which database engine is being used.
+2. Use the existing production DATABASE_URL / production database credentials.
+3. Create a backup/snapshot if the provider supports it.
+4. Record the current user count. It must remain exactly 2.
+
+Then perform the cleanup using a TRANSACTION.
+
+Delete in this dependency order:
+
+1. communications
+2. followups
+3. payments
+4. case_charges
+5. case_discounts
+6. implants
+7. implant_cases
+8. patients
+9. related business audit_logs only
+
+If TRUNCATE cannot be used because of foreign keys, use DELETE FROM in dependency order.
+
+DO NOT:
+- drop any tables
+- modify schema
+- delete migrations
+- delete users
+- delete sessions
+- delete user_preferences
+- delete application_settings
+- delete implant_system_options
+- delete lookup_options
+- delete whatsapp_templates
+- reset passwords
+- change roles or permissions
+
+If the current Replit runtime cannot write to the production database:
+DO NOT stop at saying that write access is required.
+
+Instead:
+1. Inspect how the application connects to the production database.
+2. Identify the production database provider and connection configuration.
+3. Use the project's existing database tooling / ORM / SQL client to connect with write access.
+4. If a deployment/database shell or migration runner is available, use it.
+5. Create a one-time safe cleanup script inside the project if necessary.
+6. Execute that cleanup script against the production database.
+7. Remove the temporary cleanup script afterward so it cannot run accidentally again.
+
+After execution, verify these exact expected results:
+
+users = 2
+patients = 0
+implant_cases = 0
+implants = 0
+payments = 0
+followups = 0
+communications = 0
+case_charges = 0
+case_discounts = 0
+
+Preserved configuration must remain:
+implant_system_options = 10
+lookup_options = 35
+whatsapp_templates = 6
+
+application_settings must remain intact.
+users must remain exactly 2:
+- ADMIN
+- ASSISTANT
+
+Then test:
+- ADMIN login
+- ASSISTANT login
+- dashboard loads
+- creating a new patient works
+- creating a new case works
+- no old fake patient/test data appears anywhere
+
+Do not just provide me with instructions or SQL.
+EXECUTE the cleanup using the available production database connection.
+
+At the end provide:
+- records deleted per table
+- records remaining per table
+- confirmation that both users still exist
+- confirmation that login/authentication still works
+- confirmation that the production database is clean
