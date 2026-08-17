@@ -474,7 +474,7 @@ async function buildOperationalRows(
     FROM implant_cases ic
     JOIN patients p ON p.id = ic.patient_id
     WHERE ${caseFilterFragment(filters)}
-    ORDER BY p.full_name ASC, ic.created_at ASC
+    ORDER BY ic.created_at DESC, p.full_name ASC
   `);
 
   const financeByCase = new Map<

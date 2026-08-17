@@ -326,10 +326,9 @@ export function InlineNewRecord({
     };
 
     quickEntry.mutate(input, {
-      onSuccess: (res) => {
+      onSuccess: () => {
         toast({ title: "تم حفظ السجل بنجاح" });
         onSuccess();
-        setLocation(`/patients/${res.patient.id}`);
       },
       onError: (err) => {
         const apiErr = err instanceof ApiError ? err : undefined;
