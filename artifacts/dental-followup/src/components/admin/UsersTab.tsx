@@ -31,8 +31,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAdminUsers, useAdminUserMutations } from "@/hooks/use-admin";
 import { useAuth } from "@/hooks/use-auth";
+import { ME_QUERY_KEY } from "@/hooks/use-auth";
+import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/lib/api";
 import { formatSaudiDateTime } from "@/lib/datetime";
+import { UserAvatar, AvatarUploader } from "@/components/ui/user-avatar";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: "مدير النظام",
@@ -55,6 +58,7 @@ interface UserFormState {
   password: string;
   canViewFinancials: string;
   canRecordPayments: string;
+  avatarData: string | null;
 }
 
 const EMPTY_FORM: UserFormState = {
@@ -64,10 +68,12 @@ const EMPTY_FORM: UserFormState = {
   password: "",
   canViewFinancials: "default",
   canRecordPayments: "default",
+  avatarData: null,
 };
 
 export function UsersTab() {
   const { user: me } = useAuth();
+  const queryClient = useQueryClient();
   const { data, isLoading } = useAdminUsers();
   const { create, update, setActive, resetPassword } = useAdminUserMutations();
   const { toast } = useToast();
@@ -89,6 +95,9 @@ export function UsersTab() {
       description: err instanceof ApiError ? err.message : "حدث خطأ غير متوقع.",
     });
 
+  const avatarError = (msg: string) =>
+    toast({ variant: "destructive", title: "صورة الملف الشخصي", description: msg });
+
   const submitCreate = () => {
     create.mutate(
       {
@@ -98,6 +107,7 @@ export function UsersTab() {
         password: form.password,
         canViewFinancials: selectToOverride(form.canViewFinancials),
         canRecordPayments: selectToOverride(form.canRecordPayments),
+        avatarData: form.avatarData ?? undefined,
       },
       {
         onSuccess: () => {
@@ -112,6 +122,10 @@ export function UsersTab() {
 
   const submitEdit = () => {
     if (!editUser || !editForm) return;
+
+    // Determine if avatar changed vs original to send only what changed.
+    const avatarChanged = editForm.avatarData !== editUser.avatarData;
+
     update.mutate(
       {
         id: editUser.id,
@@ -120,12 +134,18 @@ export function UsersTab() {
           role: editForm.role,
           canViewFinancials: selectToOverride(editForm.canViewFinancials),
           canRecordPayments: selectToOverride(editForm.canRecordPayments),
+          ...(avatarChanged ? { avatarData: editForm.avatarData } : {}),
         },
       },
       {
         onSuccess: () => {
           toast({ title: "تم حفظ التعديلات." });
           setEditUser(null);
+          // If the admin updated their own profile, refresh the auth user so
+          // the header/hero reflect the new avatar immediately.
+          if (editUser.id === me?.id) {
+            queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
+          }
         },
         onError: fail,
       },
@@ -191,7 +211,16 @@ export function UsersTab() {
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u.id} data-testid={`row-user-${u.username}`}>
-                  <TableCell className="font-medium">{u.fullName}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <UserAvatar
+                        fullName={u.fullName}
+                        avatarData={u.avatarData}
+                        size="sm"
+                      />
+                      <span>{u.fullName}</span>
+                    </div>
+                  </TableCell>
                   <TableCell dir="ltr" className="text-right">
                     {u.username}
                   </TableCell>
@@ -224,6 +253,7 @@ export function UsersTab() {
                             canRecordPayments: overrideToSelect(
                               u.canRecordPaymentsOverride,
                             ),
+                            avatarData: u.avatarData ?? null,
                           });
                         }}
                         data-testid={`button-edit-${u.username}`}
@@ -288,6 +318,16 @@ export function UsersTab() {
             <DialogTitle>مستخدم جديد</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Avatar */}
+            <div className="space-y-2">
+              <Label>صورة المستخدم</Label>
+              <AvatarUploader
+                value={form.avatarData}
+                onChange={(v) => setForm({ ...form, avatarData: v })}
+                onError={avatarError}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="new-username">اسم المستخدم (للدخول)</Label>
               <Input
@@ -371,6 +411,16 @@ export function UsersTab() {
           </DialogHeader>
           {editForm && (
             <div className="space-y-4">
+              {/* Avatar */}
+              <div className="space-y-2">
+                <Label>صورة المستخدم</Label>
+                <AvatarUploader
+                  value={editForm.avatarData}
+                  onChange={(v) => setEditForm({ ...editForm, avatarData: v })}
+                  onError={avatarError}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="edit-fullname">الاسم الكامل</Label>
                 <Input

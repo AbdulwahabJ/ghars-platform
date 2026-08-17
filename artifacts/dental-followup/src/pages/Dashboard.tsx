@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Shell } from "@/components/layout/Shell";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from "lucide-react";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { usePatients } from "@/hooks/use-patients";
 import { Patient, type ReportFilters } from "@workspace/shared";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -147,12 +148,51 @@ export default function Dashboard() {
           </div>
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            {/* Right: greeting + date */}
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                 {greeting}، {user?.fullName}
               </h1>
               <p className="text-muted-foreground text-lg">{todayDate}</p>
             </div>
+
+            {/* Left: signed-in user identity card */}
+            {user && (
+              <div className="hidden md:flex flex-col items-center gap-3 shrink-0">
+                {/* Avatar with brand ring */}
+                <div className="relative">
+                  {/* Subtle orbital decoration */}
+                  <div
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{
+                      background:
+                        "radial-gradient(circle, rgba(13,148,136,0.18) 0%, transparent 70%)",
+                      transform: "scale(1.5)",
+                    }}
+                  />
+                  <UserAvatar
+                    fullName={user.fullName}
+                    avatarData={user.avatarData}
+                    size="xl"
+                    ring
+                  />
+                </div>
+
+                {/* Name & role */}
+                <div className="text-center">
+                  <p className="font-semibold text-foreground text-base leading-tight notranslate">
+                    {user.fullName}
+                  </p>
+                  <p className="text-sm text-primary/80 mt-0.5">
+                    {user.role === "ADMIN"
+                      ? "مدير النظام"
+                      : user.role === "DOCTOR"
+                      ? "طبيب"
+                      : "مساعد"}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-10 max-w-3xl relative z-20" id="tour-global-search" ref={searchContainerRef}>

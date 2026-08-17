@@ -37,5 +37,6 @@ export function toPublicUser(user: User): PublicUser {
     role: user.role,
     canViewFinancials: perms.canViewFinancials,
     canRecordPayments: perms.canRecordPayments,
+    avatarData: user.avatarData ?? null,
   };
 }

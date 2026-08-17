@@ -1,0 +1,326 @@
+MODE: Economy
+
+Add professional user profile photos to the existing user-management system and integrate the signed-in user's identity into the dashboard hero.
+
+This is a focused user-profile enhancement.
+
+Do not redesign unrelated pages.
+Do not change existing roles, permissions, authentication behavior, or business logic.
+
+## 1. USER PROFILE PHOTO
+
+Add an optional profile photo to each user account.
+
+The photo must be manageable by ADMIN from:
+
+* Settings → المستخدمون → إنشاء مستخدم جديد
+* Settings → المستخدمون → تعديل المستخدم
+
+Add a field:
+
+صورة المستخدم
+
+with:
+
+* upload/select image
+* preview
+* replace image
+* remove image
+
+The profile photo is optional.
+
+If no photo exists, preserve a clean fallback avatar using the user's initials.
+
+## 2. IMAGE REQUIREMENTS
+
+Accepted formats:
+
+* JPEG
+* PNG
+* WebP
+
+Do NOT allow SVG.
+
+Use a safe upload limit such as approximately 1 MB after processing.
+
+Validate both frontend and backend.
+
+Do not trust file extensions alone.
+
+Use the existing reliable image-storage approach already used by the application for the clinic logo where appropriate.
+
+Since this system has a relatively small number of staff users, storing the processed avatar safely in the database is acceptable and preferable to depending on ephemeral local filesystem storage.
+
+Do not expose filesystem paths.
+
+## 3. IMAGE PROCESSING
+
+Keep profile images visually consistent.
+
+When uploading:
+
+* show a square preview
+* display the final avatar as a circle
+* use object-fit: cover
+* preserve reasonable quality
+* prevent extremely large uploaded images from creating oversized database records
+
+If lightweight client-side resizing/cropping can be implemented without introducing a heavy dependency, resize the image to a practical avatar size such as approximately 512×512 before upload.
+
+Do not add a large image-editing library just for cropping.
+
+## 4. DATABASE / USER MODEL
+
+Add the minimum required nullable profile-image field to the existing user model.
+
+Create a safe versioned migration.
+
+Do not create a separate complex media-management system.
+
+Existing users must continue working without modification.
+
+The field must be nullable so current users automatically use the fallback avatar.
+
+## 5. CREATE USER WORKFLOW
+
+Inside:
+
+الإعدادات → المستخدمون → مستخدم جديد
+
+add the profile-photo selector to the existing creation form.
+
+Suggested layout:
+
+صورة المستخدم
+[ circular preview ]
+
+[رفع صورة] [إزالة]
+
+Then the existing fields:
+
+* username
+* full name
+* role
+* temporary password
+* financial permissions
+
+Do not make the photo required.
+
+Creating a user without a photo must continue to work.
+
+## 6. EDIT USER WORKFLOW
+
+Inside the existing user-edit form:
+
+* display the current photo
+* allow ADMIN to replace it
+* allow ADMIN to remove it
+
+Removing the photo should return that user to the initials fallback.
+
+Audit:
+
+* profile photo added
+* profile photo changed
+* profile photo removed
+
+Do not store raw image contents in audit logs.
+
+## 7. HEADER AVATAR
+
+The current header contains the signed-in user's small circular avatar/icon.
+
+Replace the generic icon with the actual signed-in user's profile photo when available.
+
+Behavior:
+
+Photo exists:
+→ show the photo inside the current circular avatar.
+
+No photo:
+→ show the user's initials fallback.
+
+Keep the existing header dimensions and layout clean.
+
+Do not make the header significantly taller.
+
+## 8. DASHBOARD HERO — USER IDENTITY AREA
+
+Use the currently empty LEFT side of the dashboard hero as a professional signed-in user identity area.
+
+Do not simply place a giant circular image in the empty space.
+
+Create a balanced identity composition that fits the existing hero.
+
+Suggested structure:
+
+[ profile photo ]
+
+Admin
+مدير النظام
+
+or for another user:
+
+[ profile photo ]
+
+د. همام الكيال
+طبيب
+
+The existing greeting on the RIGHT side remains:
+
+مساء الخير، Admin
+
+and the existing patient search remains unchanged.
+
+The new identity block should complement the greeting rather than duplicate it awkwardly.
+
+## 9. HERO PROFILE DESIGN
+
+Design the hero profile photo professionally.
+
+Recommended visual treatment:
+
+* circular photo approximately 90–120px on desktop
+* subtle teal/navy border or ring inspired by the clinic brand
+* very soft glow/background halo
+* optional small decorative network/orbit elements consistent with the approved logo-inspired dashboard decorations
+* user full name
+* Arabic role label below the name
+
+Do NOT make it look like a social-media profile.
+
+It should feel like:
+
+premium clinical system identity
++
+medical-tech dashboard
+
+Keep it subtle and professional.
+
+## 10. ROLE LABELS
+
+Use existing role information.
+
+Display friendly Arabic labels such as:
+
+ADMIN → مدير النظام
+DOCTOR → طبيب
+ASSISTANT → مساعد
+
+Do not create new roles.
+
+## 11. RESPONSIVE BEHAVIOR
+
+Desktop:
+
+Use the empty left portion of the hero naturally.
+
+Possible composition:
+
+[ avatar ]
+الاسم الكامل
+الدور
+
+Tablet:
+
+Reduce avatar size and spacing.
+
+Mobile:
+
+Do not force the full desktop identity card into the hero.
+
+Use a compact horizontal version or integrate the photo beside the greeting.
+
+No horizontal overflow.
+
+## 12. USER SESSION / CURRENT USER CONTRACT
+
+Ensure the authenticated-user response includes the profile image needed by the frontend.
+
+Do not create additional requests on every component if the current auth/user context can carry it cleanly.
+
+After an ADMIN updates the currently signed-in user's own photo, refresh the auth/user state so the new avatar appears without requiring logout/login.
+
+For another user's photo, it should appear naturally the next time that user logs in or their session user data refreshes.
+
+## 13. FALLBACK AVATAR
+
+If there is no photo:
+
+Generate a clean initials-based avatar.
+
+Examples:
+
+عبدالوهاب الدبيات → ع د
+
+همام الكيال → هـ ك
+
+For English names:
+
+Admin → A
+
+Use the existing brand palette.
+
+Do not show broken-image placeholders.
+
+## 14. SECURITY
+
+Profile-image upload must:
+
+* require ADMIN authorization for user management
+* validate MIME/content type server-side
+* reject unsupported formats
+* enforce size limits
+* never execute uploaded content
+* never expose local server paths
+* never include image data in audit descriptions
+
+Preserve all current user-management protections:
+
+* last-admin protection
+* session invalidation
+* role permissions
+* password security
+
+## 15. PRESERVE EVERYTHING ELSE
+
+Do not change:
+
+* dashboard data
+* KPIs
+* operational report
+* patient search
+* financial calculations
+* patient workflows
+* follow-up workflows
+* implant workflows
+* existing dashboard decorations
+* navigation structure
+
+This is a user-identity/profile enhancement only.
+
+## 16. COST-AWARE VERIFICATION
+
+Do not run the full historical test suite.
+
+Run only:
+
+* migration verification on isolated test DB
+* affected TypeScript checks
+* affected lint
+* focused authorization/upload tests
+* focused browser verification:
+
+1. create user with photo
+2. create user without photo
+3. edit user and replace photo
+4. remove photo and verify initials fallback
+5. login as a user with photo
+6. verify photo appears in header
+7. verify photo appears professionally in dashboard hero
+8. verify responsive/mobile layout
+9. verify unsupported/oversized image is rejected with a clear Arabic error
+
+Do not publish.
+
+Provide a concise completion report and stop.

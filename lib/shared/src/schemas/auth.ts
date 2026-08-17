@@ -22,6 +22,8 @@ export const publicUserSchema = z.object({
   canViewFinancials: z.boolean(),
   /** Effective permission (role default + user-level override applied server-side). */
   canRecordPayments: z.boolean(),
+  /** Profile photo as a base-64 data URL, or null when none is set. */
+  avatarData: z.string().nullable(),
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;
 

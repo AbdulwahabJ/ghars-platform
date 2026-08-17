@@ -5,6 +5,15 @@ import { passwordSchema, userRoleSchema } from "./auth";
 /* User management (Admin)                                             */
 /* ------------------------------------------------------------------ */
 
+/** Data-URL avatar (PNG/JPEG/WebP only, ~1 MB max after 512×512 resize). */
+export const avatarDataUrlSchema = z
+  .string()
+  .regex(
+    /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/,
+    "صيغة الصورة غير مدعومة. الرجاء استخدام PNG أو JPEG أو WebP.",
+  )
+  .max(1_400_000, "حجم الصورة كبير جدًا. الحد الأقصى حوالي 1 ميغابايت.");
+
 export const adminUserSchema = z.object({
   id: z.string().uuid(),
   username: z.string(),
@@ -19,6 +28,8 @@ export const adminUserSchema = z.object({
   canRecordPayments: z.boolean(),
   lastLoginAt: z.string().nullable(),
   createdAt: z.string(),
+  /** Profile photo as a base-64 data URL, or null when none is set. */
+  avatarData: z.string().nullable(),
 });
 export type AdminUser = z.infer<typeof adminUserSchema>;
 
@@ -54,6 +65,8 @@ export const createUserInputSchema = z.object({
   password: passwordSchema,
   canViewFinancials: overrideSchema.optional(),
   canRecordPayments: overrideSchema.optional(),
+  /** Optional profile photo data URL. */
+  avatarData: avatarDataUrlSchema.nullable().optional(),
 });
 export type CreateUserInput = z.infer<typeof createUserInputSchema>;
 
@@ -63,6 +76,12 @@ export const updateUserInputSchema = z
     role: userRoleSchema.optional(),
     canViewFinancials: overrideSchema.optional(),
     canRecordPayments: overrideSchema.optional(),
+    /**
+     * null  = remove photo (revert to initials fallback).
+     * string = replace with new data URL.
+     * absent = do not touch photo.
+     */
+    avatarData: z.union([avatarDataUrlSchema, z.null()]).optional(),
   })
   .refine(
     (v) => Object.keys(v).length > 0,

@@ -6,12 +6,12 @@ import {
   Bell,
   HelpCircle,
   LogOut,
-  User,
   Menu,
   Play,
   Info,
   BookOpen
 } from "lucide-react";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -208,9 +208,11 @@ export function Header({ user }: HeaderProps) {
           <DropdownMenu dir="rtl">
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 px-2 hover:bg-muted">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <User className="h-4 w-4" />
-                </div>
+                <UserAvatar
+                  fullName={user.fullName}
+                  avatarData={user.avatarData}
+                  size="sm"
+                />
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-medium leading-none text-foreground">{user.fullName}</p>
                   <p className="text-xs text-muted-foreground mt-1">{roleName}</p>

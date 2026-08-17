@@ -45,6 +45,7 @@ function toAdminUser(user: User): AdminUser {
     canRecordPayments: perms.canRecordPayments,
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
+    avatarData: user.avatarData ?? null,
   };
 }
 
@@ -120,6 +121,7 @@ router.post("/admin/users", async (req, res) => {
           role: input.role,
           canViewFinancials: input.canViewFinancials ?? null,
           canRecordPayments: input.canRecordPayments ?? null,
+          avatarData: input.avatarData ?? null,
         })
         .returning();
       await writeAudit(
@@ -206,6 +208,14 @@ router.patch("/admin/users/:id", async (req, res) => {
   ) {
     changes.push("صلاحية تسجيل الدفعات");
   }
+  // Track avatar changes for audit — never store the image data itself.
+  if (input.avatarData !== undefined) {
+    const hadAvatar = !!target.avatarData;
+    const hasAvatar = !!input.avatarData;
+    if (!hadAvatar && hasAvatar) changes.push("إضافة صورة الملف الشخصي");
+    else if (hadAvatar && !hasAvatar) changes.push("إزالة صورة الملف الشخصي");
+    else if (hadAvatar && hasAvatar) changes.push("تغيير صورة الملف الشخصي");
+  }
 
   const updated = await db.transaction(async (tx) => {
     const [user] = await tx
@@ -218,6 +228,10 @@ router.patch("/admin/users/:id", async (req, res) => {
           : {}),
         ...(input.canRecordPayments !== undefined
           ? { canRecordPayments: input.canRecordPayments }
+          : {}),
+        // undefined = untouched; null = remove; string = new photo
+        ...(input.avatarData !== undefined
+          ? { avatarData: input.avatarData }
           : {}),
         updatedAt: new Date(),
       })
@@ -236,6 +250,7 @@ router.patch("/admin/users/:id", async (req, res) => {
           role: input.role,
           canViewFinancials: input.canViewFinancials,
           canRecordPayments: input.canRecordPayments,
+          // Never log image contents.
         },
       },
       tx,
