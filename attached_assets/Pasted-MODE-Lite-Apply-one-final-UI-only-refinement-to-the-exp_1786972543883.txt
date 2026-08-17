@@ -1,0 +1,110 @@
+MODE: Lite
+
+Apply one final UI-only refinement to the expanded patient row inside the Operational Report.
+
+Do not redesign unrelated areas.
+Do not change backend logic, APIs, permissions, calculations, queries, workflows, or business rules.
+
+## 1. IMPROVE IMPLANT CARDS
+
+The current implant display is not visually clear enough.
+
+Redesign the implant section so that each implant is displayed inside a clear, readable card.
+
+Requirements:
+
+* Keep each implant fully visible.
+* Show all important implant details clearly.
+* Use a cleaner visual hierarchy similar to the clarity of the existing follow-up cards.
+* Prefer a horizontal / row-oriented layout where appropriate instead of a cramped vertical stack.
+* If a case has multiple implants, show the implant cards next to each other in a responsive row/grid on larger screens.
+* On smaller screens, stack them cleanly.
+
+Each implant card should clearly show:
+
+* site / tooth
+* System
+* full SIZE
+* Q
+* Former
+* Graft
+* graft procedure type if present
+* procedure tags if present
+* implant status
+* NOTE / implant note if present
+
+Do not hide relevant implant details.
+
+Handle empty values cleanly without making the card look broken.
+
+Keep the existing inline implant edit action available.
+
+## 2. IMPROVE PATIENT INFORMATION CARD
+
+Refine the existing patient-information card inside the expanded row.
+
+Make it:
+
+* easier to scan
+* visually cleaner
+* better organized
+* clearer distinction between labels and values
+
+Keep the same data and existing inline edit action.
+
+Do not add or remove patient fields.
+
+## 3. IMPROVE FINANCIAL CARD
+
+Refine the existing financial-summary card so the important values are easier to read at a glance.
+
+Clearly emphasize:
+
+* الإجمالي
+* المدفوع
+* المتبقي
+* حالة السداد
+
+Keep the same financial values, permissions, and calculations.
+
+Do not modify financial logic.
+
+## 4. PRESERVE EVERYTHING ELSE
+
+Do not change:
+
+* operational-table structure
+* expanded-row behavior
+* inline editing workflow
+* quick-action buttons
+* patient full workspace
+* filters
+* statistics
+* follow-ups
+* finance logic
+* permissions
+* WhatsApp behavior
+* API contracts
+* database schema
+
+This task is UI polish only.
+
+## 5. COST-AWARE VERIFICATION
+
+Do not run the full historical test suite.
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* one focused browser visual check of:
+
+  * patient information card
+  * financial card
+  * one implant card
+  * multiple implant cards side-by-side
+  * responsive/mobile stacking
+
+Provide a concise completion report and stop.
+
+Do not publish.

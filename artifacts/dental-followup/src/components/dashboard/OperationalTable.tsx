@@ -14,12 +14,12 @@ import {
 import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
-import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, FollowupType } from "@workspace/shared";
+import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType } from "@workspace/shared";
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
 import { usePatient, useUpdatePatient } from "@/hooks/use-patients";
 import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useImplantOptions } from "@/hooks/use-implant-cases";
-import { useFollowups, useCreateFollowup, useAssignableUsers } from "@/hooks/use-followups";
+import { useFollowups, useCreateFollowup, useUpdateFollowup, useAssignableUsers } from "@/hooks/use-followups";
 import { useCreatePayment } from "@/hooks/use-finance";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -839,6 +839,142 @@ function InlineAddFollowup({
   );
 }
 
+function riyadhDateTimeInput(value: string | null): string {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Riyadh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value)).replace(" ", "T");
+}
+
+function riyadhDateInput(value: string | null): string {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Riyadh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+}
+
+function InlineFollowupEdit({
+  followup,
+  patientId,
+  onDone,
+}: {
+  followup: Followup;
+  patientId: string;
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const update = useUpdateFollowup(patientId);
+  const { data: assignableUsers } = useAssignableUsers();
+  const [followupType, setFollowupType] = useState<FollowupType>(
+    followup.followupType as FollowupType,
+  );
+  const [scheduledAt, setScheduledAt] = useState(() => riyadhDateTimeInput(followup.scheduledAt));
+  const [requiresContact, setRequiresContact] = useState(followup.requiresContact);
+  const [contactDueAt, setContactDueAt] = useState(() => riyadhDateInput(followup.contactDueAt));
+  const [nextAppointmentAt, setNextAppointmentAt] = useState(() => riyadhDateTimeInput(followup.nextAppointmentAt));
+  const [assignedUserId, setAssignedUserId] = useState(followup.assignedUserId ?? "");
+  const [note, setNote] = useState(followup.note ?? "");
+
+  const save = () => {
+    if (!scheduledAt) return;
+    update.mutate(
+      {
+        id: followup.id,
+        input: {
+          followupType,
+          scheduledAt,
+          requiresContact,
+          contactDueAt: requiresContact && contactDueAt ? contactDueAt : null,
+          nextAppointmentAt: nextAppointmentAt || null,
+          assignedUserId: assignedUserId || null,
+          note: note.trim() || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "تم تحديث المتابعة" });
+          onDone();
+        },
+        onError: (error) => {
+          toast({
+            title: "تعذر تحديث المتابعة",
+            description: error instanceof Error ? error.message : undefined,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-3 pt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">نوع المتابعة</Label>
+          <Select dir="rtl" value={followupType} onValueChange={(value) => setFollowupType(value as FollowupType)}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {FOLLOWUP_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">التاريخ والوقت</Label>
+          <Input className="h-8 text-sm" type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} />
+        </div>
+        {assignableUsers && assignableUsers.length > 0 && (
+          <div className="space-y-1">
+            <Label className="text-xs">المسؤول</Label>
+            <Select dir="rtl" value={assignedUserId || "__none__"} onValueChange={(value) => setAssignedUserId(value === "__none__" ? "" : value)}>
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">—</SelectItem>
+                {assignableUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.fullName}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="space-y-1">
+          <Label className="text-xs">الموعد التالي</Label>
+          <Input className="h-8 text-sm" type="datetime-local" value={nextAppointmentAt} onChange={(event) => setNextAppointmentAt(event.target.value)} />
+        </div>
+        <div className="flex items-center gap-2 pt-5">
+          <Checkbox id={`edit-contact-${followup.id}`} checked={requiresContact} onCheckedChange={(value) => setRequiresContact(Boolean(value))} />
+          <Label htmlFor={`edit-contact-${followup.id}`} className="text-xs cursor-pointer">يتطلب تواصلًا</Label>
+        </div>
+        {requiresContact && (
+          <div className="space-y-1">
+            <Label className="text-xs">موعد التواصل</Label>
+            <Input className="h-8 text-sm" type="date" value={contactDueAt} onChange={(event) => setContactDueAt(event.target.value)} />
+          </div>
+        )}
+        <div className="sm:col-span-2 space-y-1">
+          <Label className="text-xs">الملاحظة</Label>
+          <Textarea className="text-sm resize-none" rows={2} value={note} onChange={(event) => setNote(event.target.value)} />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={update.isPending || !scheduledAt} className="h-8 text-xs">
+          {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          حفظ
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={update.isPending} className="h-8 text-xs">
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Expanded Patient Detail                                             */
 /* ------------------------------------------------------------------ */
@@ -861,14 +997,16 @@ function PatientExpandedRow({
   const [editingPatient, setEditingPatient] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
   const [editingImplantId, setEditingImplantId] = useState<string | null>(null);
+  const [editingFollowupId, setEditingFollowupId] = useState<string | null>(null);
   // Inline quick-action state — one form open at a time
   type QuickAction = "implant" | "payment" | "followup";
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
   const [now] = useState(() => Date.now());
 
-  const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); };
-  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); };
-  const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); };
+  const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); setEditingFollowupId(null); };
+  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); };
+  const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); setEditingFollowupId(null); };
+  const startEditFollowup = (id: string) => { setEditingFollowupId(id); setEditingPatient(false); setEditingCaseId(null); setEditingImplantId(null); };
 
   const toggleAction = (action: QuickAction) =>
     setActiveAction((prev) => (prev === action ? null : action));
@@ -923,31 +1061,31 @@ function PatientExpandedRow({
           {editingPatient && p ? (
             <InlinePatientEdit p={p} patientId={group.patientId} onDone={() => setEditingPatient(false)} />
           ) : (
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">الاسم</span>
-                <span className="font-medium notranslate">{p?.fullName ?? group.patientName}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg bg-muted/45 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground mb-0.5">الاسم</p>
+                <p className="font-semibold notranslate truncate">{p?.fullName ?? group.patientName}</p>
               </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">رقم الملف</span>
-                <span dir="ltr">{group.fileNumber}</span>
+              <div className="rounded-lg bg-muted/45 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground mb-0.5">رقم الملف</p>
+                <p dir="ltr" className="font-medium">{group.fileNumber}</p>
               </div>
               {p?.mobileNumber && (
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">الجوال</span>
-                  <span dir="ltr" className="notranslate">{p.mobileNumber}</span>
+                <div className="rounded-lg bg-muted/45 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground mb-0.5">الجوال</p>
+                  <p dir="ltr" className="font-medium notranslate">{p.mobileNumber}</p>
                 </div>
               )}
               {p?.age != null && (
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">العمر</span>
-                  <span>{p.age}</span>
+                <div className="rounded-lg bg-muted/45 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground mb-0.5">العمر</p>
+                  <p className="font-medium">{p.age}</p>
                 </div>
               )}
               {p?.createdAt && (
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">تاريخ الإضافة</span>
-                  <span>{formatSaudiDate(p.createdAt)}</span>
+                <div className="rounded-lg bg-muted/45 px-3 py-2 sm:col-span-2">
+                  <p className="text-[11px] text-muted-foreground mb-0.5">تاريخ الإضافة</p>
+                  <p className="font-medium">{formatSaudiDate(p.createdAt)}</p>
                 </div>
               )}
             </div>
@@ -968,48 +1106,65 @@ function PatientExpandedRow({
                 {allFollowups.length} {allFollowups.length === 1 ? "متابعة" : "متابعات"}
               </p>
               {displayedFollowups.map((followup) => (
-                <div key={followup.id} className="rounded-lg border border-border/70 p-2.5 space-y-1.5 text-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium notranslate">{followup.followupType}</span>
-                    <Badge variant="outline" className={followupStatusClasses(followup.followupStatus)}>
-                      <span className="notranslate">{followup.followupStatus}</span>
-                    </Badge>
-                  </div>
-                  {followup.scheduledAt && (
-                    <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">الموعد</span>
-                      <span>{formatSaudiDateTime(followup.scheduledAt)}</span>
-                    </div>
-                  )}
-                  {followup.assignedUserName && (
-                    <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">المسؤول</span>
-                      <span>{followup.assignedUserName}</span>
-                    </div>
-                  )}
-                  {followup.contactDueAt && (
-                    <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">موعد التواصل</span>
-                      <span>{formatSaudiDate(followup.contactDueAt)}</span>
-                    </div>
-                  )}
-                  {followup.nextAppointmentAt && (
-                    <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">الموعد التالي</span>
-                      <span>{formatSaudiDateTime(followup.nextAppointmentAt)}</span>
-                    </div>
-                  )}
-                  {followup.result && (
-                    <p>
-                      <span className="text-muted-foreground">النتيجة: </span>
-                      {followup.result}
-                    </p>
-                  )}
-                  {followup.note && (
-                    <p>
-                      <span className="text-muted-foreground">الملاحظة: </span>
-                      {followup.note}
-                    </p>
+                <div key={followup.id} className="rounded-lg border border-border/70 bg-background/70 p-2.5 space-y-1.5 text-xs">
+                  {editingFollowupId === followup.id ? (
+                    <InlineFollowupEdit
+                      followup={followup}
+                      patientId={group.patientId}
+                      onDone={() => setEditingFollowupId(null)}
+                    />
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium notranslate">{followup.followupType}</span>
+                          <Badge variant="outline" className={followupStatusClasses(followup.followupStatus)}>
+                            <span className="notranslate">{followup.followupStatus}</span>
+                          </Badge>
+                        </div>
+                        {!["تمت", "ملغاة", "مؤجلة"].includes(followup.followupStatus) && (
+                          <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-muted-foreground" onClick={() => startEditFollowup(followup.id)}>
+                            <Pencil className="h-3 w-3" /> تعديل
+                          </Button>
+                        )}
+                      </div>
+                      {followup.scheduledAt && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">الموعد</span>
+                          <span>{formatSaudiDateTime(followup.scheduledAt)}</span>
+                        </div>
+                      )}
+                      {followup.assignedUserName && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">المسؤول</span>
+                          <span>{followup.assignedUserName}</span>
+                        </div>
+                      )}
+                      {followup.contactDueAt && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">موعد التواصل</span>
+                          <span>{formatSaudiDate(followup.contactDueAt)}</span>
+                        </div>
+                      )}
+                      {followup.nextAppointmentAt && (
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">الموعد التالي</span>
+                          <span>{formatSaudiDateTime(followup.nextAppointmentAt)}</span>
+                        </div>
+                      )}
+                      {followup.result && (
+                        <p>
+                          <span className="text-muted-foreground">النتيجة: </span>
+                          {followup.result}
+                        </p>
+                      )}
+                      {followup.note && (
+                        <p>
+                          <span className="text-muted-foreground">الملاحظة: </span>
+                          {followup.note}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               ))}
@@ -1026,23 +1181,32 @@ function PatientExpandedRow({
             </h4>
             {group.rows.map((row) =>
               row.finance ? (
-                <div key={row.caseId} className="space-y-1 text-sm">
+                <div key={row.caseId} className="space-y-2 text-sm">
                   {group.rows.length > 1 && (
                     <p className="text-xs font-medium text-muted-foreground">
                       الحالة: {row.caseStatus}
                     </p>
                   )}
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">الإجمالي</span>
-                    <span className="tabular-nums">{formatMoney(row.finance.finalTotal)}</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
+                      <p className="text-[11px] text-muted-foreground">الإجمالي</p>
+                      <p className="mt-1 text-base font-bold tabular-nums">{formatMoney(row.finance.finalTotal)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
+                      <p className="text-[11px] text-muted-foreground">المدفوع</p>
+                      <p className="mt-1 text-base font-bold tabular-nums">{formatMoney(row.finance.paid)}</p>
+                    </div>
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+                      <p className="text-[11px] text-muted-foreground">المتبقي</p>
+                      <p className="mt-1 text-base font-bold tabular-nums text-primary">{formatMoney(row.finance.remaining)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
+                      <p className="text-[11px] text-muted-foreground">حالة السداد</p>
+                      <Badge className={`mt-1 text-[10px] ${paymentStatusClass(row.finance.paymentStatus)}`}>
+                        {row.finance.paymentStatus}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">المتبقي</span>
-                    <span className="tabular-nums font-medium">{formatMoney(row.finance.remaining)}</span>
-                  </div>
-                  <Badge className={`text-[10px] ${paymentStatusClass(row.finance.paymentStatus)}`}>
-                    {row.finance.paymentStatus}
-                  </Badge>
                 </div>
               ) : null,
             )}
@@ -1091,47 +1255,92 @@ function PatientExpandedRow({
                       <Activity className="h-3 w-3" />
                       الزرعات ({c.implants.filter((i) => i.status === "active").length})
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                       {c.implants
                         .filter((i) => i.status === "active")
                         .map((imp) => (
                           <div
                             key={imp.id}
-                            className={`bg-muted/50 rounded-lg text-xs transition-all ${
+                            className={`bg-card border border-border/80 rounded-xl text-xs transition-all ${
                               editingImplantId === imp.id
-                                ? "col-span-2 sm:col-span-3 lg:col-span-4 p-3"
-                                : "px-3 py-2 space-y-0.5"
+                                ? "col-span-1 sm:col-span-2 xl:col-span-3 p-3"
+                                : "p-3 space-y-2"
                             }`}
                           >
                             {editingImplantId === imp.id ? (
                               <InlineImplantEdit imp={imp} patientId={group.patientId} onDone={() => setEditingImplantId(null)} />
                             ) : (
                               <>
-                                <div className="flex items-center justify-between gap-1">
-                                  <p className="font-semibold" dir="ltr">{imp.site}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg bg-primary/10 px-2 font-bold text-primary" dir="ltr">{imp.site}</span>
+                                    <div>
+                                      <p className="font-semibold">السن / الموقع</p>
+                                      <p className="text-[11px] text-muted-foreground" dir="ltr">{imp.site}</p>
+                                    </div>
+                                  </div>
                                   <button
                                     type="button"
-                                    className="text-muted-foreground hover:text-foreground transition-colors rounded p-0.5"
+                                    className="text-muted-foreground hover:text-foreground transition-colors rounded p-1.5 hover:bg-muted"
                                     onClick={() => startEditImplant(imp.id)}
                                     title="تعديل الزرعة"
                                   >
-                                    <Pencil className="h-2.5 w-2.5" />
+                                    <Pencil className="h-3 w-3" />
                                   </button>
                                 </div>
-                                {imp.system && <p className="text-muted-foreground notranslate">{imp.system}</p>}
-                                {(imp.diameter || imp.length) && (
-                                  <p className="text-muted-foreground" dir="ltr">
-                                    {imp.diameter ? `Ø${imp.diameter}` : ""}
-                                    {imp.diameter && imp.length ? " × " : ""}
-                                    {imp.length ? `L${imp.length}` : ""}
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-2">
+                                  <div>
+                                    <p className="text-[10px] text-muted-foreground">النظام</p>
+                                    <p className="font-medium notranslate truncate">{imp.system || "—"}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] text-muted-foreground">SIZE</p>
+                                    <p className="font-medium" dir="ltr">
+                                      {imp.diameter != null || imp.length != null
+                                        ? `${imp.diameter != null ? `Ø${imp.diameter}` : "—"}${imp.diameter != null && imp.length != null ? " × " : ""}${imp.length != null ? `L${imp.length}` : ""}`
+                                        : "—"}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] text-muted-foreground">Q</p>
+                                    <p className="font-medium">{imp.qValue || "—"}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] text-muted-foreground">Former</p>
+                                    <p className="font-medium">{imp.formerValue || "—"}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] text-muted-foreground">Graft</p>
+                                    <p className="font-medium">{imp.graftValue || "—"}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] text-muted-foreground">حالة الزرعة</p>
+                                    <Badge variant="outline" className="text-[10px] notranslate">{imp.implantStatus}</Badge>
+                                  </div>
+                                </div>
+                                {imp.graftProcedureType && (
+                                  <p className="rounded-md bg-muted/50 px-2 py-1.5">
+                                    <span className="text-muted-foreground">نوع إجراء الترقيع: </span>
+                                    {imp.graftProcedureType}
                                   </p>
                                 )}
-                                {imp.qValue && <p className="text-muted-foreground">Q: {imp.qValue}</p>}
-                                {imp.formerValue && <p className="text-muted-foreground">Former: {imp.formerValue}</p>}
-                                {imp.graftValue && <p className="text-muted-foreground">Graft: {imp.graftValue}</p>}
-                                <Badge variant="outline" className="text-[9px] notranslate mt-1">
-                                  {imp.implantStatus}
-                                </Badge>
+                                {imp.procedureTags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {imp.procedureTags.map((tag) => (
+                                      <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>
+                                    ))}
+                                  </div>
+                                )}
+                                {imp.graftNote && (
+                                  <p className="text-muted-foreground">
+                                    <span className="font-medium text-foreground">ملاحظة الترقيع: </span>{imp.graftNote}
+                                  </p>
+                                )}
+                                {imp.implantNote && (
+                                  <p className="text-muted-foreground">
+                                    <span className="font-medium text-foreground">الملاحظة: </span>{imp.implantNote}
+                                  </p>
+                                )}
                               </>
                             )}
                           </div>
