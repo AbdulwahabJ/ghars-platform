@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldLabel } from "@/components/implants/FieldLabel";
+import { OperationalDateTimeFields } from "@/components/dashboard/OperationalDatePicker";
 import { usePostponeFollowup } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDateTime } from "@/lib/datetime";
@@ -82,18 +83,13 @@ function PostponeForm({ onOpenChange, patientId, followup }: PostponeDialogProps
             الموعد الحالي: {formatSaudiDateTime(followup!.scheduledAt)}
           </p>
         ) : null}
-        <div className="space-y-2">
-          <FieldLabel label="الموعد الجديد" />
-          <Input
-            type="datetime-local"
-            value={newScheduledAt}
-            onChange={(e) => {
-              setNewScheduledAt(e.target.value);
-              setError(null);
-            }}
-            data-testid="input-postpone-datetime"
-          />
-        </div>
+        <OperationalDateTimeFields
+          label="الموعد الجديد"
+          required
+          value={newScheduledAt}
+          onChange={(v) => { setNewScheduledAt(v); setError(null); }}
+          id="input-postpone-datetime"
+        />
         <div className="space-y-2">
           <FieldLabel label="ملاحظة (اختياري)" />
           <Textarea

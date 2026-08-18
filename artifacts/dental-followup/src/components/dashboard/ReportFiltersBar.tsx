@@ -1,5 +1,5 @@
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
 import {
   Select,
   SelectContent,
@@ -71,10 +71,9 @@ export function ReportFiltersBar({
         {state.period === "specific_day" && (
           <div className="space-y-1.5">
             <Label className="text-xs">التاريخ المحدد</Label>
-            <Input
-              type="date"
+            <OperationalDatePicker
               value={state.customFrom}
-              onChange={(e) => set({ customFrom: e.target.value, customTo: e.target.value })}
+              onChange={(v) => set({ customFrom: v, customTo: v })}
               data-testid="input-report-specific-day"
             />
           </div>
@@ -83,19 +82,17 @@ export function ReportFiltersBar({
           <>
             <div className="space-y-1.5">
               <Label className="text-xs">من</Label>
-              <Input
-                type="date"
+              <OperationalDatePicker
                 value={state.customFrom}
-                onChange={(e) => set({ customFrom: e.target.value })}
+                onChange={(v) => set({ customFrom: v })}
                 data-testid="input-report-from"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">إلى</Label>
-              <Input
-                type="date"
+              <OperationalDatePicker
                 value={state.customTo}
-                onChange={(e) => set({ customTo: e.target.value })}
+                onChange={(v) => set({ customTo: v })}
                 data-testid="input-report-to"
               />
             </div>

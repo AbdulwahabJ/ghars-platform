@@ -18,6 +18,7 @@ import {
   PAYMENT_STATUSES,
   type FinanceFilters,
 } from "@workspace/shared";
+import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
 import { Shell } from "@/components/layout/Shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -235,21 +236,21 @@ export default function Finance() {
               ))}
               {period === "custom" ? (
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="date"
-                    value={customFrom}
-                    onChange={(e) => setCustomFrom(e.target.value)}
-                    className="w-40"
-                    data-testid="input-custom-from"
-                  />
+                  <div className="w-40">
+                    <OperationalDatePicker
+                      value={customFrom}
+                      onChange={setCustomFrom}
+                      data-testid="input-custom-from"
+                    />
+                  </div>
                   <span className="text-muted-foreground text-sm">إلى</span>
-                  <Input
-                    type="date"
-                    value={customTo}
-                    onChange={(e) => setCustomTo(e.target.value)}
-                    className="w-40"
-                    data-testid="input-custom-to"
-                  />
+                  <div className="w-40">
+                    <OperationalDatePicker
+                      value={customTo}
+                      onChange={setCustomTo}
+                      data-testid="input-custom-to"
+                    />
+                  </div>
                 </div>
               ) : null}
             </div>

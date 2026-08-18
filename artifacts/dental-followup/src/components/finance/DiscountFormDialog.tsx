@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldLabel } from "@/components/implants/FieldLabel";
+import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
 import { useCreateDiscount } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
@@ -107,10 +108,9 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
           </div>
           <div className="space-y-2">
             <FieldLabel label="تاريخ الخصم" />
-            <Input
-              type="date"
+            <OperationalDatePicker
               value={discountDate}
-              onChange={(e) => setDiscountDate(e.target.value)}
+              onChange={setDiscountDate}
               data-testid="input-discount-date"
             />
           </div>

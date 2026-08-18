@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FieldLabel } from "@/components/implants/FieldLabel";
+import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
 import { useCreateCharge } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
@@ -141,10 +142,9 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
         </div>
         <div className="space-y-2">
           <FieldLabel label="تاريخ الرسم" />
-          <Input
-            type="date"
+          <OperationalDatePicker
             value={chargeDate}
-            onChange={(e) => setChargeDate(e.target.value)}
+            onChange={setChargeDate}
             data-testid="input-charge-date"
           />
         </div>

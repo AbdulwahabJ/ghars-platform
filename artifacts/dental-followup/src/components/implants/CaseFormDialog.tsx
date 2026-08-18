@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FieldLabel } from "./FieldLabel";
+import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
 import { useCreateImplantCase, useUpdateImplantCase } from "@/hooks/use-implant-cases";
 import { useAppSettings } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
@@ -216,11 +217,10 @@ function CaseForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
         <div className="space-y-2">
           <FieldLabel htmlFor="case-procedure-date" label="تاريخ الإجراء" />
-          <Input
+          <OperationalDatePicker
             id="case-procedure-date"
-            type="date"
             value={procedureDate}
-            onChange={(e) => handleProcedureDateChange(e.target.value)}
+            onChange={handleProcedureDateChange}
           />
         </div>
         <div className="space-y-2">
@@ -284,14 +284,10 @@ function CaseForm({
         </div>
         <div className="space-y-2">
           <FieldLabel htmlFor="case-expected" label="التاريخ المتوقع للتركيب" />
-          <Input
+          <OperationalDatePicker
             id="case-expected"
-            type="date"
             value={expectedDate}
-            onChange={(e) => {
-              setExpectedTouched(true);
-              setExpectedDate(e.target.value);
-            }}
+            onChange={(v) => { setExpectedTouched(true); setExpectedDate(v); }}
           />
           <p className="text-xs text-muted-foreground">
             يُقترح تلقائيًا حسب مدة التركيب ويمكن تعديله.

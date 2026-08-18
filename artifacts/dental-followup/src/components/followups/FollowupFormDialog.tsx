@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -22,6 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FieldLabel } from "@/components/implants/FieldLabel";
+import {
+  OperationalDatePicker,
+  OperationalDateTimeFields,
+} from "@/components/dashboard/OperationalDatePicker";
 import {
   useAssignableUsers,
   useCreateFollowup,
@@ -87,11 +90,6 @@ function FollowupForm({
   const [contactDueAt, setContactDueAt] = useState(
     followup?.contactDueAt ? toRiyadhDateValue(followup.contactDueAt) : "",
   );
-  const [nextAppointmentAt, setNextAppointmentAt] = useState(
-    followup?.nextAppointmentAt
-      ? toRiyadhInputValue(followup.nextAppointmentAt)
-      : "",
-  );
   const [note, setNote] = useState(followup?.note ?? "");
   // New followups prefill from the admin-configured default assignee.
   const [assignedUserId, setAssignedUserId] = useState(
@@ -123,7 +121,13 @@ function FollowupForm({
       scheduledAt,
       requiresContact,
       contactDueAt: requiresContact && contactDueAt ? contactDueAt : null,
-      nextAppointmentAt: nextAppointmentAt || null,
+      // The form now has one clear appointment field. Preserve an existing
+      // suggested appointment when editing so hiding the optional field does
+      // not erase previously saved data.
+      nextAppointmentAt:
+        isEdit && followup?.nextAppointmentAt
+          ? toRiyadhInputValue(followup.nextAppointmentAt)
+          : null,
       note: note.trim() || null,
       assignedUserId: assignedUserId === NONE ? null : assignedUserId,
     };
@@ -201,49 +205,33 @@ function FollowupForm({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <FieldLabel label="موعد المتابعة" />
-            <Input
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(e) => {
-                setScheduledAt(e.target.value);
-                setError(null);
-              }}
-              data-testid="input-followup-scheduled"
-            />
-          </div>
+          <OperationalDateTimeFields
+            label="موعد المتابعة"
+            required
+            value={scheduledAt}
+            onChange={(v) => { setScheduledAt(v); setError(null); }}
+            id="input-followup-scheduled"
+          />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <FieldLabel label="الموظف المسؤول (اختياري)" />
-            <Select
-              value={assignedUserId}
-              onValueChange={setAssignedUserId}
-              dir="rtl"
-            >
-              <SelectTrigger data-testid="select-followup-assignee">
-                <SelectValue placeholder="بدون تحديد" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>بدون تحديد</SelectItem>
-                {(users ?? []).map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.fullName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <FieldLabel label="الموعد القادم المقترح (اختياري)" />
-            <Input
-              type="datetime-local"
-              value={nextAppointmentAt}
-              onChange={(e) => setNextAppointmentAt(e.target.value)}
-              data-testid="input-followup-next"
-            />
-          </div>
+        <div className="space-y-2">
+          <FieldLabel label="الموظف المسؤول (اختياري)" />
+          <Select
+            value={assignedUserId}
+            onValueChange={setAssignedUserId}
+            dir="rtl"
+          >
+            <SelectTrigger data-testid="select-followup-assignee">
+              <SelectValue placeholder="بدون تحديد" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>بدون تحديد</SelectItem>
+              {(users ?? []).map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.fullName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-center gap-2">
           <Checkbox
@@ -262,14 +250,10 @@ function FollowupForm({
         {requiresContact ? (
           <div className="space-y-2">
             <FieldLabel label="تاريخ استحقاق التواصل" />
-            <Input
-              type="date"
+            <OperationalDatePicker
               value={contactDueAt}
-              onChange={(e) => {
-                setContactDueAt(e.target.value);
-                setError(null);
-              }}
-              data-testid="input-contact-due"
+              onChange={(v) => { setContactDueAt(v); setError(null); }}
+              id="input-contact-due"
             />
           </div>
         ) : null}

@@ -16,6 +16,20 @@ import { cn } from "@/lib/utils";
 const SAUDI_TIMEZONE = "Asia/Riyadh";
 const ARABIC_DATE_LOCALE = "ar-SA-u-nu-latn-ca-gregory";
 
+/** Arabic weekday abbreviations — Sunday(0) … Saturday(6) */
+const ARABIC_WEEKDAYS = ["ح", "ن", "ث", "ر", "خ", "ج", "س"] as const;
+/** Arabic month names */
+const ARABIC_MONTHS = [
+  "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+  "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+] as const;
+
+/** Shared DayPicker formatters (Arabic weekdays + months). */
+const ARABIC_FORMATTERS = {
+  formatWeekdayName: (day: Date) => ARABIC_WEEKDAYS[day.getDay()],
+  formatMonthDropdown: (date: Date) => ARABIC_MONTHS[date.getMonth()],
+};
+
 interface DatePickerProps {
   value: string;
   onChange: (value: string) => void;
@@ -39,7 +53,7 @@ function isoFromDate(value: Date): string {
   return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
 }
 
-function todayInRiyadh(): string {
+export function todayInRiyadh(): string {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: SAUDI_TIMEZONE,
     year: "numeric",
@@ -80,6 +94,7 @@ export function OperationalDatePicker({
           className={cn(
             "h-8 w-full justify-between gap-2 px-2.5 text-sm font-normal",
             !value && "text-muted-foreground",
+            ariaInvalid && "border-destructive text-destructive focus-visible:ring-destructive",
             className,
           )}
         >
@@ -96,8 +111,10 @@ export function OperationalDatePicker({
       >
         <Calendar
           mode="single"
+          captionLayout="dropdown"
           selected={dateFromIso(value)}
           defaultMonth={dateFromIso(value) ?? new Date()}
+          formatters={ARABIC_FORMATTERS}
           onSelect={(date) => {
             if (!date) return;
             onChange(isoFromDate(date));
@@ -105,23 +122,33 @@ export function OperationalDatePicker({
           }}
           initialFocus
         />
-        {value && (
-          <div className="border-t p-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 w-full gap-1 text-xs text-muted-foreground"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
-            >
-              <X className="h-3 w-3" />
-              مسح التاريخ
-            </Button>
-          </div>
-        )}
+        <div className="border-t p-2 flex gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 flex-1 text-xs text-primary hover:text-primary"
+            onClick={() => {
+              onChange(todayInRiyadh());
+              setOpen(false);
+            }}
+          >
+            اليوم
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 flex-1 gap-1 text-xs text-muted-foreground"
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+            }}
+          >
+            <X className="h-3 w-3" />
+            مسح
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -265,6 +292,7 @@ interface DateTimeFieldsProps {
   "aria-invalid"?: boolean;
   className?: string;
   id?: string;
+  label?: string;
 }
 
 export function OperationalDateTimeFields({
@@ -274,6 +302,7 @@ export function OperationalDateTimeFields({
   "aria-invalid": ariaInvalid,
   className,
   id,
+  label = "التاريخ والوقت",
 }: DateTimeFieldsProps) {
   const date = value.slice(0, 10);
   const time = value.slice(11, 16);
@@ -297,7 +326,7 @@ export function OperationalDateTimeFields({
   return (
     <div className={cn("space-y-1", className)}>
       <Label htmlFor={id} className="text-xs">
-        التاريخ والوقت {required && <span className="text-destructive">*</span>}
+        {label} {required && <span className="text-destructive">*</span>}
       </Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -329,14 +358,46 @@ export function OperationalDateTimeFields({
         >
           <Calendar
             mode="single"
+            captionLayout="dropdown"
             selected={dateFromIso(date)}
             defaultMonth={dateFromIso(date) ?? new Date()}
+            formatters={ARABIC_FORMATTERS}
             onSelect={(nextDate) => {
               if (!nextDate) return;
               onChange(`${isoFromDate(nextDate)}T${time || fallbackTime}`);
             }}
             initialFocus
           />
+
+          {/* اليوم shortcut */}
+          <div className="border-t p-2 flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 flex-1 text-xs text-primary hover:text-primary"
+              onClick={() => {
+                const today = todayInRiyadh();
+                onChange(`${today}T${time || fallbackTime}`);
+                setOpen(false);
+              }}
+            >
+              اليوم
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 flex-1 gap-1 text-xs text-muted-foreground"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+            >
+              <X className="h-3 w-3" />
+              مسح
+            </Button>
+          </div>
 
           <div className="border-t p-3">
             <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -381,24 +442,6 @@ export function OperationalDateTimeFields({
               </Select>
             </div>
           </div>
-
-          {value && (
-            <div className="border-t p-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 w-full gap-1 text-xs text-muted-foreground"
-                onClick={() => {
-                  onChange("");
-                  setOpen(false);
-                }}
-              >
-                <X className="h-3 w-3" />
-                مسح التاريخ والوقت
-              </Button>
-            </div>
-          )}
         </PopoverContent>
       </Popover>
     </div>

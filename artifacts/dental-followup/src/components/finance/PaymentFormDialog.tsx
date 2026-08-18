@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FieldLabel } from "@/components/implants/FieldLabel";
+import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
 import { useCreatePayment } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
@@ -121,10 +122,9 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
         </div>
         <div className="space-y-2">
           <FieldLabel label="تاريخ الدفعة" />
-          <Input
-            type="date"
+          <OperationalDatePicker
             value={paymentDate}
-            onChange={(e) => setPaymentDate(e.target.value)}
+            onChange={setPaymentDate}
             data-testid="input-payment-date"
           />
         </div>
