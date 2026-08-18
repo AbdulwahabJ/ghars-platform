@@ -310,6 +310,7 @@ export function OperationalDateTimeFields({
             className={cn(
               "h-8 w-full justify-between gap-2 px-2.5 text-sm font-normal",
               !date && "text-muted-foreground",
+              ariaInvalid && "border-destructive text-destructive focus-visible:ring-destructive",
             )}
           >
             <span className="truncate">

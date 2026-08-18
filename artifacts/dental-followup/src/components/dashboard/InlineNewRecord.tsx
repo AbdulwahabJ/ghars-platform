@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -90,6 +90,99 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+type FormErrorDetail = {
+  path: string;
+  label: string;
+  message: string;
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  fileNumber: "رقم الملف",
+  fullName: "اسم المريض",
+  mobileNumber: "رقم الجوال",
+  age: "العمر",
+  procedureDate: "تاريخ العملية",
+  treatingDoctor: "الطبيب المعالج",
+  caseStatus: "حالة الحالة",
+  prosValue: "مدة التركيب",
+  expectedProstheticDate: "تاريخ التركيب المتوقع",
+  generalNote: "ملاحظة الحالة",
+  baseTreatmentAmount: "مبلغ العلاج الأساسي",
+  paymentAmount: "مبلغ الدفعة الأولى",
+  paymentDate: "تاريخ الدفعة",
+  paymentLabel: "وصف الدفعة",
+  paymentMethod: "طريقة الدفع",
+  followupType: "نوع المتابعة",
+  followupScheduledAt: "موعد المتابعة (التاريخ والوقت)",
+  followupAssignedUserId: "مسؤول المتابعة",
+  followupNote: "ملاحظة المتابعة",
+  site: "موقع الزرعة (FDI)",
+  system: "نظام الزرعة",
+  diameter: "قطر الزرعة",
+  length: "طول الزرعة",
+  qValue: "قيمة Q",
+  formerValue: "قيمة Former",
+  graftValue: "قيمة Graft",
+  implantStatus: "حالة الزرعة",
+  implantNote: "ملاحظة الزرعة",
+};
+
+function fieldLabel(path: string): string {
+  const implantPath = /^implants\.(\d+)\.(.+)$/.exec(path);
+  if (implantPath) {
+    const field = FIELD_LABELS[implantPath[2]] ?? implantPath[2];
+    return `الزرعة ${Number(implantPath[1]) + 1}: ${field}`;
+  }
+  const apiPathAliases: Record<string, string> = {
+    "patient.fileNumber": "رقم الملف",
+    "patient.fullName": "اسم المريض",
+    "patient.mobileNumber": "رقم الجوال",
+    "patient.age": "العمر",
+    "case.procedureDate": "تاريخ العملية",
+    "case.treatingDoctor": "الطبيب المعالج",
+    "case.caseStatus": "حالة الحالة",
+    "initialPayment.amount": "مبلغ الدفعة الأولى",
+    "initialPayment.paymentDate": "تاريخ الدفعة",
+    "initialPayment.paymentLabel": "وصف الدفعة",
+    "initialPayment.paymentMethod": "طريقة الدفع",
+    "followup.followupType": "نوع المتابعة",
+    "followup.scheduledAt": "موعد المتابعة (التاريخ والوقت)",
+    "followup.assignedUserId": "مسؤول المتابعة",
+  };
+  return apiPathAliases[path] ?? FIELD_LABELS[path] ?? (path || "البيانات العامة");
+}
+
+function collectFormErrors(node: unknown, path = ""): FormErrorDetail[] {
+  if (!node || typeof node !== "object") return [];
+  const record = node as Record<string, unknown>;
+  if (typeof record.message === "string") {
+    return [{ path, label: fieldLabel(path), message: record.message }];
+  }
+
+  return Object.entries(record).flatMap(([key, value]) => {
+    if (key === "ref" || key === "types") return [];
+    return collectFormErrors(value, path ? `${path}.${key}` : key);
+  });
+}
+
+function collectApiErrors(error: ApiError | undefined): FormErrorDetail[] {
+  if (!error || !error.data || typeof error.data !== "object") return [];
+  const details = (error.data as { details?: unknown }).details;
+  if (!Array.isArray(details)) return [];
+
+  return details.flatMap((detail) => {
+    if (!detail || typeof detail !== "object") return [];
+    const item = detail as { path?: unknown; message?: unknown };
+    if (typeof item.message !== "string") return [];
+    const path = Array.isArray(item.path)
+      ? item.path.map(String).join(".")
+      : typeof item.path === "string"
+        ? item.path
+        : "";
+    return [{ path, label: fieldLabel(path), message: item.message }];
+  });
+}
 
 /* ------------------------------------------------------------------ */
 /* Section toggle header                                               */
@@ -191,6 +284,7 @@ export function InlineNewRecord({
   const includeFollowup = form.watch("includeFollowup");
 
   const [serverError, setServerError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<FormErrorDetail[]>([]);
   const [duplicateInfo, setDuplicateInfo] = useState<{ patientId?: string; code: string } | null>(null);
   const errorBannerRef = useRef<HTMLDivElement>(null);
 
@@ -202,7 +296,10 @@ export function InlineNewRecord({
   }, [serverError]);
 
   // Scroll to first invalid field when client-side validation fails
-  const onInvalid = () => {
+  const onInvalid = (errors: FieldErrors<FormValues>) => {
+    const details = collectFormErrors(errors);
+    setServerError("تعذر حفظ السجل. راجع الحقول المحددة أدناه.");
+    setValidationErrors(details);
     setTimeout(() => {
       const firstInvalid = document.querySelector<HTMLElement>(
         "#qe-form [aria-invalid='true'], #qe-form .text-destructive:not(span)"
@@ -213,6 +310,7 @@ export function InlineNewRecord({
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
+    setValidationErrors([]);
     setDuplicateInfo(null);
 
     // Mobile validation
@@ -220,6 +318,12 @@ export function InlineNewRecord({
       const mobileRes = normalizeMobile(values.mobileNumber);
       if (!mobileRes.ok) {
         form.setError("mobileNumber", { message: mobileRes.message });
+        setServerError("تعذر حفظ السجل. يوجد خطأ في الحقل التالي:");
+        setValidationErrors([{
+          path: "mobileNumber",
+          label: fieldLabel("mobileNumber"),
+          message: mobileRes.message,
+        }]);
         return;
       }
     }
@@ -227,6 +331,12 @@ export function InlineNewRecord({
     // Followup date required when section is included
     if (values.includeFollowup && !values.followupScheduledAt) {
       form.setError("followupScheduledAt", { message: "موعد المتابعة مطلوب" });
+      setServerError("تعذر حفظ السجل. يوجد حقل مطلوب لم يتم تعبئته:");
+      setValidationErrors([{
+        path: "followupScheduledAt",
+        label: fieldLabel("followupScheduledAt"),
+        message: "موعد المتابعة مطلوب",
+      }]);
       setFollowupOpen(true);
       setTimeout(() => {
         document.getElementById("qe-followupScheduledAt")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -332,14 +442,31 @@ export function InlineNewRecord({
       },
       onError: (err) => {
         const apiErr = err instanceof ApiError ? err : undefined;
+          const apiDetails = collectApiErrors(apiErr);
         if (apiErr?.code === "DUPLICATE_ACTIVE" || apiErr?.code === "DUPLICATE_ARCHIVED") {
           setDuplicateInfo({
             patientId: (apiErr.data as { patientId?: string } | undefined)?.patientId,
             code: apiErr.code,
           });
-          setServerError(apiErr.message);
+            setServerError("تعذر حفظ السجل. رقم الملف مستخدم مسبقًا:");
+            setValidationErrors([{
+              path: "fileNumber",
+              label: fieldLabel("fileNumber"),
+              message: apiErr.message,
+            }]);
+          } else if (apiDetails.length > 0) {
+            setServerError("تعذر حفظ السجل. راجع الحقول المحددة أدناه:");
+            setValidationErrors(apiDetails);
+          } else if (apiErr?.code === "INVALID_MOBILE") {
+            setServerError("تعذر حفظ السجل. يوجد خطأ في الحقل التالي:");
+            setValidationErrors([{
+              path: "mobileNumber",
+              label: fieldLabel("mobileNumber"),
+              message: apiErr.message,
+            }]);
         } else {
           setServerError(apiErr?.message ?? err.message ?? "حدث خطأ أثناء الحفظ.");
+            setValidationErrors([]);
         }
       },
     });
@@ -368,9 +495,18 @@ export function InlineNewRecord({
         </Button>
       </div>
 
-      {serverError && (
+      {(serverError || validationErrors.length > 0) && (
         <div ref={errorBannerRef} className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-          {serverError}
+          {serverError && <p className="font-medium">{serverError}</p>}
+          {validationErrors.length > 0 && (
+            <ul className="mt-2 space-y-1 list-disc pr-5">
+              {validationErrors.map((error, index) => (
+                <li key={`${error.path}-${index}`}>
+                  <strong>{error.label}:</strong> {error.message}
+                </li>
+              ))}
+            </ul>
+          )}
           {duplicateInfo?.patientId && (
             <button
               type="button"
@@ -398,7 +534,8 @@ export function InlineNewRecord({
                 {...form.register("fileNumber")}
                 placeholder="مثال: 1001"
                 dir="ltr"
-                className="text-right"
+                aria-invalid={!!form.formState.errors.fileNumber}
+                className={`text-right ${form.formState.errors.fileNumber ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 data-testid="qe-fileNumber"
               />
               {form.formState.errors.fileNumber && (
@@ -413,6 +550,8 @@ export function InlineNewRecord({
                 id="qe-fullName"
                 {...form.register("fullName")}
                 placeholder="الاسم الكامل"
+                aria-invalid={!!form.formState.errors.fullName}
+                className={form.formState.errors.fullName ? "border-destructive focus-visible:ring-destructive" : ""}
                 data-testid="qe-fullName"
               />
               {form.formState.errors.fullName && (
@@ -426,7 +565,8 @@ export function InlineNewRecord({
                 {...form.register("mobileNumber")}
                 placeholder="05XXXXXXXX"
                 dir="ltr"
-                className="text-right"
+                aria-invalid={!!form.formState.errors.mobileNumber}
+                className={`text-right ${form.formState.errors.mobileNumber ? "border-destructive focus-visible:ring-destructive" : ""}`}
               />
               {form.formState.errors.mobileNumber && (
                 <p className="text-xs text-destructive">{form.formState.errors.mobileNumber.message}</p>
@@ -551,7 +691,10 @@ export function InlineNewRecord({
                           value={form.watch(`implants.${index}.site`)}
                           onValueChange={(v) => form.setValue(`implants.${index}.site`, v)}
                         >
-                          <SelectTrigger className="text-right h-8 text-sm">
+                          <SelectTrigger
+                            className={`text-right h-8 text-sm ${form.formState.errors.implants?.[index]?.site ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                            aria-invalid={!!form.formState.errors.implants?.[index]?.site}
+                          >
                             <SelectValue placeholder="اختر" />
                           </SelectTrigger>
                           <SelectContent>

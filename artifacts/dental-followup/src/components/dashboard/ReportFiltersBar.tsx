@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { CASE_STATUSES } from "@workspace/shared";
 import { REPORT_PERIODS, type ReportPeriodId } from "@/lib/report-periods";
+import { todayIso } from "@/lib/money";
 
 export const ALL = "__all__";
 
@@ -45,7 +46,15 @@ export function ReportFiltersBar({
           <Label className="text-xs">الفترة</Label>
           <Select
             value={state.period}
-            onValueChange={(v) => set({ period: v as ReportPeriodId })}
+            onValueChange={(v) => {
+              const period = v as ReportPeriodId;
+              if (period === "specific_day") {
+                const selectedDay = todayIso();
+                set({ period, customFrom: selectedDay, customTo: selectedDay });
+              } else {
+                set({ period });
+              }
+            }}
           >
             <SelectTrigger data-testid="select-report-period">
               <SelectValue />
@@ -59,6 +68,17 @@ export function ReportFiltersBar({
             </SelectContent>
           </Select>
         </div>
+        {state.period === "specific_day" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">التاريخ المحدد</Label>
+            <Input
+              type="date"
+              value={state.customFrom}
+              onChange={(e) => set({ customFrom: e.target.value, customTo: e.target.value })}
+              data-testid="input-report-specific-day"
+            />
+          </div>
+        )}
         {state.period === "custom" && (
           <>
             <div className="space-y-1.5">

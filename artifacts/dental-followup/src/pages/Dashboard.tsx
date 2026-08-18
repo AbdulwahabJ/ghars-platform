@@ -73,6 +73,11 @@ export default function Dashboard() {
                 ? filterState.customTo
                 : filterState.customFrom,
           }
+        : filterState.period === "specific_day"
+          ? {
+              from: filterState.customFrom || today,
+              to: filterState.customFrom || today,
+            }
         : reportPeriodRange(filterState.period, today);
     return {
       ...range,

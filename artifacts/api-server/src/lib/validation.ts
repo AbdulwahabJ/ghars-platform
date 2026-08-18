@@ -17,6 +17,10 @@ export function parseOrRespond<Schema extends z.ZodTypeAny>(
         result.error.issues[0]?.message ??
         "البيانات المدخلة غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.",
       code: "VALIDATION_ERROR",
+      details: result.error.issues.map((issue) => ({
+        path: issue.path.map(String).join("."),
+        message: issue.message,
+      })),
     });
     return undefined;
   }

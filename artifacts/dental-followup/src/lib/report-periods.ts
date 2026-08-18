@@ -4,6 +4,7 @@
  */
 export const REPORT_PERIODS = [
   { id: "today", label: "اليوم" },
+  { id: "specific_day", label: "يوم محدد" },
   { id: "this_week", label: "هذا الأسبوع" },
   { id: "this_month", label: "هذا الشهر" },
   { id: "last_month", label: "الشهر الماضي" },
@@ -24,6 +25,8 @@ export function reportPeriodRange(
 ): { from: string; to: string } {
   switch (period) {
     case "today":
+      return { from: today, to: today };
+    case "specific_day":
       return { from: today, to: today };
     case "this_week": {
       // Saudi work week starts on Sunday.
