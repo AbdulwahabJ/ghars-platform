@@ -464,6 +464,11 @@ export function InlineNewRecord({
               <Label htmlFor="qe-includeCase" className="text-sm cursor-pointer">تضمين</Label>
             </div>
           </div>
+          {!includeCase && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              ⚠ المريض المضاف بدون حالة لن يظهر في الجدول التشغيلي؛ يمكن الوصول إليه عبر قسم المرضى.
+            </p>
+          )}
           {includeCase && caseOpen && (
             <div className="px-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">

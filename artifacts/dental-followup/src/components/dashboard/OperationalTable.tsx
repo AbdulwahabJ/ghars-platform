@@ -46,11 +46,18 @@ interface PatientGroup {
 }
 
 /* ------------------------------------------------------------------ */
-/* Group rows by patient                                               */
+/* Pagination                                                          */
+/* ------------------------------------------------------------------ */
+
+const PAGE_SIZE = 10;
+
+/* ------------------------------------------------------------------ */
+/* Group rows by patient (preserves SQL order: newest case first)     */
 /* ------------------------------------------------------------------ */
 
 function groupByPatient(rows: OperationalRow[]): PatientGroup[] {
   const map = new Map<string, PatientGroup>();
+  // rows already ordered by ic.created_at DESC from the server
   for (const row of rows) {
     let group = map.get(row.patientId);
     if (!group) {
@@ -2090,9 +2097,15 @@ export function OperationalTable({
   const showFinance = Boolean(data?.financialsIncluded);
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const [showNewRecord, setShowNewRecord] = useState(false);
+  const [page, setPage] = useState(1);
 
   const groups = data ? groupByPatient(data.rows) : [];
-  const visibleExpandedPatientId = groups.some(
+  const totalGroups = groups.length;
+  const totalPages = Math.max(1, Math.ceil(totalGroups / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedGroups = groups.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const visibleExpandedPatientId = pagedGroups.some(
     (group) => group.patientId === expandedPatientId,
   )
     ? expandedPatientId
@@ -2105,8 +2118,15 @@ export function OperationalTable({
   const handleSearchChange = (value: string) => {
     if (value !== searchValue) {
       setExpandedPatientId(null);
+      setPage(1);
     }
     onSearchChange(value);
+  };
+
+  const handleFilterChange = (next: ReportFilterState) => {
+    setPage(1);
+    setExpandedPatientId(null);
+    onFilterChange(next);
   };
 
   const colSpan = showFinance ? 9 : 7;
@@ -2115,7 +2135,7 @@ export function OperationalTable({
     <Card data-testid="card-operational-report">
       <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3 flex-wrap">
         <CardTitle className="text-base">
-          الحالات ({groups.length} مريض)
+          الحالات ({totalGroups} مريض)
         </CardTitle>
         <div className="flex gap-2 print:hidden flex-wrap">
           <Button
@@ -2153,7 +2173,7 @@ export function OperationalTable({
       <div className="border-t border-border/60 px-4 py-3 print:hidden">
         <ReportFiltersBar
           state={filterState}
-          onChange={onFilterChange}
+          onChange={handleFilterChange}
           doctorOptions={doctorOptions}
           systemOptions={systemOptions}
         />
@@ -2204,12 +2224,12 @@ export function OperationalTable({
               <div className="border-b border-border">
                 <InlineNewRecord
                   onClose={() => setShowNewRecord(false)}
-                  onSuccess={() => setShowNewRecord(false)}
+                  onSuccess={() => { setShowNewRecord(false); setPage(1); setExpandedPatientId(null); }}
                 />
               </div>
             )}
 
-            {!data || groups.length === 0 ? (
+            {!data || totalGroups === 0 ? (
               !showNewRecord && (
                 <p className="text-sm text-muted-foreground px-6 pb-5 pt-4">
                   {searchValue.trim()
@@ -2240,7 +2260,7 @@ export function OperationalTable({
                       </tr>
                     </thead>
                     <tbody>
-                      {groups.map((group) => (
+                      {pagedGroups.map((group) => (
                         <React.Fragment key={group.patientId}>
                           <PatientSummaryRow
                             group={group}
@@ -2262,7 +2282,7 @@ export function OperationalTable({
 
                 {/* Mobile cards (hidden on desktop) */}
                 <div className="md:hidden p-3 space-y-2">
-                  {groups.map((group) => (
+                  {pagedGroups.map((group) => (
                     <PatientCard
                       key={group.patientId}
                       group={group}
@@ -2272,6 +2292,57 @@ export function OperationalTable({
                     />
                   ))}
                 </div>
+
+                {/* Pagination footer */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-border print:hidden">
+                    <span className="text-xs text-muted-foreground">
+                      صفحة {safePage} من {totalPages} &mdash; إجمالي {totalGroups} مريض
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={safePage === 1}
+                        onClick={() => { setPage(1); setExpandedPatientId(null); }}
+                        title="الصفحة الأولى"
+                      >
+                        <span className="text-sm leading-none">«</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={safePage === 1}
+                        onClick={() => { setPage((p) => Math.max(1, p - 1)); setExpandedPatientId(null); }}
+                        title="الصفحة السابقة"
+                      >
+                        <span className="text-sm leading-none">‹</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={safePage === totalPages}
+                        onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); setExpandedPatientId(null); }}
+                        title="الصفحة التالية"
+                      >
+                        <span className="text-sm leading-none">›</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={safePage === totalPages}
+                        onClick={() => { setPage(totalPages); setExpandedPatientId(null); }}
+                        title="الصفحة الأخيرة"
+                      >
+                        <span className="text-sm leading-none">»</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </>
