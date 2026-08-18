@@ -283,11 +283,11 @@ export function InlineNewRecord({
     // Build payment
     let initialPayment: QuickEntryInput["initialPayment"] = undefined;
     let baseTreatmentAmount: number | undefined = undefined;
-    if (values.includeCase && values.includePayment && canRecordPayments) {
+    if (values.includeCase && canViewFinancials) {
       if (values.baseTreatmentAmount) {
         baseTreatmentAmount = parseFloat(values.baseTreatmentAmount);
       }
-      if (values.paymentAmount && parseFloat(values.paymentAmount) > 0) {
+      if (values.includePayment && canRecordPayments && values.paymentAmount && parseFloat(values.paymentAmount) > 0) {
         initialPayment = {
           amount: parseFloat(values.paymentAmount),
           paymentDate: values.paymentDate || today,
