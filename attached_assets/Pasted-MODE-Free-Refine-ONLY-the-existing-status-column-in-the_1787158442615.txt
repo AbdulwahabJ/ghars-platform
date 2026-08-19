@@ -1,0 +1,259 @@
+MODE: Free
+
+Refine ONLY the existing status column in the Dashboard Operational Table.
+
+The current column:
+
+"حالة الحالة"
+
+is not useful for this table because it currently shows the broad implant-case status such as:
+
+"تمت الزراعة"
+
+I want this column to represent the ACTUAL CURRENT STATUS OF THE PATIENT'S IMPLANTS.
+
+Rename the column to:
+
+"حالة الزرعات"
+
+## CORE REQUIREMENT
+
+The value shown in this column must come ONLY from the canonical current statuses of the patient's active implants.
+
+Do NOT use:
+
+* `implant_cases.case_status`
+* expected prosthetic date
+* follow-up status
+* prosthetic events directly
+* any new patient-level status field
+
+Use the actual existing:
+
+`implants.status`
+
+values.
+
+## EXAMPLE
+
+Patient has:
+
+Implant 24 → فاشلة
+Implant 25 → مرحلة الالتئام
+Implant 26 → جاهزة للتركيب
+
+The same table cell should show all three statuses clearly:
+
+فاشلة ×1
+مرحلة الالتئام ×1
+جاهزة للتركيب ×1
+
+Do not replace them with:
+
+"متعددة"
+
+The purpose of this column is to understand the exact condition of ALL implants for that patient directly from the Operational Table.
+
+## GROUP IDENTICAL STATUSES
+
+If several implants have the same status, group them.
+
+Example:
+
+Implant 24 → تم التركيب
+Implant 25 → تم التركيب
+Implant 26 → تم التركيب
+
+Display:
+
+تم التركيب ×3
+
+Do NOT render three identical badges.
+
+Another example:
+
+2 implants → مرحلة الالتئام
+1 implant → جاهزة للتركيب
+
+Display:
+
+مرحلة الالتئام ×2
+جاهزة للتركيب ×1
+
+## VISUAL DESIGN
+
+Render the statuses as compact professional badges inside the same table cell.
+
+The cell must remain clean and easy to scan.
+
+Use:
+
+* compact rounded badges
+* small readable typography
+* subtle spacing
+* wrapping when necessary
+* no excessive row height
+
+Suggested semantic visual treatment:
+
+* فاشلة → red
+* تحتاج إعادة → red
+* جاهزة للتركيب → amber
+* مرحلة الالتئام → blue
+* مزروعة → teal/neutral
+* تم تركيب مؤقت → soft teal
+* تم التركيب → green
+* تمت إعادة الزراعة → existing appropriate success/clinical color
+
+Reuse existing status colors from the application where possible.
+
+Do not create an unrelated new color system.
+
+## PRIORITY / ORDER
+
+When multiple statuses exist, display the most clinically important statuses first.
+
+Recommended priority:
+
+1. فاشلة
+2. تحتاج إعادة
+3. جاهزة للتركيب
+4. مرحلة الالتئام
+5. مزروعة
+6. تم تركيب مؤقت
+7. تم التركيب
+8. other existing implant statuses
+
+However, use the exact real implant-status enum/options from the current codebase.
+
+Do not invent statuses.
+
+## MULTIPLE CASES
+
+A patient may have implants across multiple implant cases.
+
+The Operational Table has one patient row.
+
+Therefore the "حالة الزرعات" cell should summarize ALL active implants belonging to that patient across their active cases.
+
+Group identical statuses across cases.
+
+Example:
+
+Case A:
+
+* implant → فاشلة
+
+Case B:
+
+* implant → مرحلة الالتئام
+* implant → مرحلة الالتئام
+
+Display:
+
+فاشلة ×1
+مرحلة الالتئام ×2
+
+## ARCHIVED RECORDS
+
+Exclude:
+
+* archived implants
+* implants belonging only to archived cases
+* archived patient records according to existing Operational Report rules
+
+Only current active implant records should affect the displayed status summary.
+
+## NO IMPLANTS
+
+If the patient has no active implants:
+
+display:
+
+—
+
+Do NOT fall back to the implant-case status.
+
+This column is explicitly about implant status only.
+
+## PROSTHETIC WORKFLOW
+
+Preserve the recently implemented synchronized workflow:
+
+* تركيب مؤقت ↔ تم تركيب مؤقت
+* تركيب دائم ↔ تم التركيب
+
+Once that workflow updates `implants.status`, this column should naturally reflect the new current implant status.
+
+Do NOT derive this display from `prosthetic_events`.
+
+## DATA ARCHITECTURE
+
+Do NOT add:
+
+* a new database column
+* a patient status field
+* duplicated status storage
+* dashboard-only status records
+
+This is a derived presentation of existing canonical implant statuses.
+
+## FIRST INSPECT CURRENT DATA RESPONSE
+
+Before changing backend code, inspect the existing Operational Report response.
+
+If the required implant statuses are already included in the response:
+
+implement this as frontend-only.
+
+If the Operational Report response does NOT currently expose the implant statuses needed to build this summary:
+
+STOP and report:
+
+1. exactly what field is missing
+2. the minimum API response addition required
+
+Do not silently expand the task into backend work.
+
+## DO NOT CHANGE
+
+Do not change:
+
+* implant status values
+* implant status editing workflow
+* prosthetic-event workflow
+* case status
+* KPI definitions
+* dashboard work summary
+* statistics
+* patient data
+* finance
+* follow-ups
+* other Operational Table columns
+
+Only replace the current broad case-status presentation with the implant-status summary described above.
+
+## VERIFICATION
+
+Verify:
+
+1. column title is "حالة الزرعات"
+2. one implant shows its exact current status
+3. several identical statuses are grouped with ×count
+4. different statuses are all visible in the same cell
+5. failed + healing + ready-for-installation can appear together
+6. archived implants are excluded
+7. patients with no implants show "—"
+8. no new database/status field was created
+9. table row height remains visually clean and professional
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* focused browser verification
+
+Do not run the full historical test suite.
+Do not publish.
+
+Provide a concise completion report and stop.
