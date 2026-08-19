@@ -51,6 +51,13 @@ function riyadhToday(): string {
 }
 
 const num = (v: unknown): number => Number(v ?? 0);
+const stringList = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+        .map(String)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
 
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
@@ -62,6 +69,7 @@ function escapeLike(value: string): string {
 
 router.get("/dashboard", async (req, res) => {
   const today = riyadhToday();
+  const monthStart = `${today.slice(0, 7)}-01`;
   const closed = CLOSED_FOLLOWUP_STATUSES as readonly string[];
 
   const kpiQuery = db.execute(sql`
@@ -130,9 +138,116 @@ router.get("/dashboard", async (req, res) => {
       LIMIT ${LIST_LIMIT}
     `);
 
-  const [kpiRows, todayRows, overdueRows, readyRows, contactRows, activityRows] =
+  const workSummaryQuery = db.execute(sql`
+    SELECT
+      (SELECT count(DISTINCT p.id)
+       FROM implants i
+       JOIN implant_cases ic ON ic.id = i.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND ic.procedure_date = ${today}::date) AS "todayImplantedPatients",
+      (SELECT count(*)
+       FROM implants i
+       JOIN implant_cases ic ON ic.id = i.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND ic.procedure_date = ${today}::date) AS "todayImplants",
+      (SELECT count(DISTINCT NULLIF(btrim(i.system), ''))
+       FROM implants i
+       JOIN implant_cases ic ON ic.id = i.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND ic.procedure_date = ${today}::date) AS "todaySystemCount",
+      (SELECT COALESCE(array_agg(DISTINCT i.system) FILTER (
+          WHERE NULLIF(btrim(i.system), '') IS NOT NULL
+        ), ARRAY[]::text[])
+       FROM implants i
+       JOIN implant_cases ic ON ic.id = i.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND ic.procedure_date = ${today}::date) AS "todaySystemNames",
+      (SELECT count(DISTINCT ic.patient_id)
+       FROM prosthetic_events pe
+       JOIN implant_cases ic ON ic.id = pe.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       LEFT JOIN implants i ON i.id = pe.implant_id
+       WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+         AND pe.event_date = ${today}::date) AS "todayProstheticPatients",
+      (SELECT count(*)
+       FROM prosthetic_events pe
+       JOIN implant_cases ic ON ic.id = pe.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       LEFT JOIN implants i ON i.id = pe.implant_id
+       WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+         AND pe.event_date = ${today}::date) AS "todayCompletedProsthetics",
+      (SELECT count(DISTINCT p.id)
+       FROM implants i
+       JOIN implant_cases ic ON ic.id = i.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND ic.procedure_date >= ${monthStart}::date
+         AND ic.procedure_date <= ${today}::date) AS "monthImplantedPatients",
+      (SELECT count(*)
+       FROM implants i
+       JOIN implant_cases ic ON ic.id = i.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND ic.procedure_date >= ${monthStart}::date
+         AND ic.procedure_date <= ${today}::date) AS "monthImplants",
+      (SELECT count(DISTINCT NULLIF(btrim(i.system), ''))
+       FROM implants i
+       JOIN implant_cases ic ON ic.id = i.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND ic.procedure_date >= ${monthStart}::date
+         AND ic.procedure_date <= ${today}::date) AS "monthSystemCount",
+      (SELECT COALESCE(array_agg(DISTINCT i.system) FILTER (
+          WHERE NULLIF(btrim(i.system), '') IS NOT NULL
+        ), ARRAY[]::text[])
+       FROM implants i
+       JOIN implant_cases ic ON ic.id = i.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND ic.procedure_date >= ${monthStart}::date
+         AND ic.procedure_date <= ${today}::date) AS "monthSystemNames",
+      (SELECT count(DISTINCT ic.patient_id)
+       FROM prosthetic_events pe
+       JOIN implant_cases ic ON ic.id = pe.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       LEFT JOIN implants i ON i.id = pe.implant_id
+       WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+         AND pe.event_date >= ${monthStart}::date
+         AND pe.event_date <= ${today}::date) AS "monthProstheticPatients",
+      (SELECT count(*)
+       FROM prosthetic_events pe
+       JOIN implant_cases ic ON ic.id = pe.implant_case_id
+       JOIN patients p ON p.id = ic.patient_id
+       LEFT JOIN implants i ON i.id = pe.implant_id
+       WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
+         AND p.archived_at IS NULL
+         AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+         AND pe.event_date >= ${monthStart}::date
+         AND pe.event_date <= ${today}::date) AS "monthCompletedProsthetics"
+  `);
+
+  const [kpiRows, workSummaryRows, todayRows, overdueRows, readyRows, contactRows, activityRows] =
     await Promise.all([
       kpiQuery,
+      workSummaryQuery,
       followupList(
         sql`AND f.followup_status = ${OPEN_FOLLOWUP_STATUS}
             AND f.scheduled_at IS NOT NULL
@@ -176,10 +291,10 @@ router.get("/dashboard", async (req, res) => {
     ]);
 
   const k = kpiRows.rows[0] as Record<string, unknown>;
+  const w = workSummaryRows.rows[0] as Record<string, unknown>;
 
   let financials: DashboardResponse["financials"] = null;
   if (financeViewAllowed(req)) {
-    const monthStart = `${today.slice(0, 7)}-01`;
     const [collectedRows, caseFin] = await Promise.all([
       db.execute(sql`
         SELECT COALESCE(SUM(pay.amount), 0)::text AS total
@@ -225,6 +340,28 @@ router.get("/dashboard", async (req, res) => {
       readyCases: num(k.readyCases),
       failedOrRedoImplants: num(k.failedOrRedoImplants),
       contactTasksDue: num(k.contactTasksDue),
+    },
+    workSummary: {
+      today: {
+        implantedPatients: num(w.todayImplantedPatients),
+        implants: num(w.todayImplants),
+        implantSystems: {
+          count: num(w.todaySystemCount),
+          names: stringList(w.todaySystemNames),
+        },
+        prostheticPatients: num(w.todayProstheticPatients),
+        completedProsthetics: num(w.todayCompletedProsthetics),
+      },
+      month: {
+        implantedPatients: num(w.monthImplantedPatients),
+        implants: num(w.monthImplants),
+        implantSystems: {
+          count: num(w.monthSystemCount),
+          names: stringList(w.monthSystemNames),
+        },
+        prostheticPatients: num(w.monthProstheticPatients),
+        completedProsthetics: num(w.monthCompletedProsthetics),
+      },
     },
     financials,
     todayAppointments: mapItems(todayRows),

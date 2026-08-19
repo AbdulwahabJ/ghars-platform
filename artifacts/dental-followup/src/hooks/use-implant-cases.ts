@@ -5,6 +5,7 @@ import type {
   ImplantCaseUpdate,
   ImplantInput,
   ImplantUpdate,
+  ProstheticEventInput,
 } from "@workspace/shared";
 
 export const getImplantCasesQueryKey = (patientId: string) =>
@@ -28,10 +29,14 @@ export function useImplantCases(patientId: string) {
 
 function useInvalidateCases() {
   const queryClient = useQueryClient();
-  return (patientId: string) =>
-    queryClient.invalidateQueries({
-      queryKey: getImplantCasesQueryKey(patientId),
-    });
+  return async (patientId: string) => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: getImplantCasesQueryKey(patientId),
+      }),
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+    ]);
+  };
 }
 
 export function useCreateImplantCase() {
@@ -116,6 +121,30 @@ export function useArchiveImplant() {
   return useMutation({
     mutationFn: ({ id }: { id: string; patientId: string }) =>
       api.archiveImplant(id),
+    onSuccess: (_res, vars) => invalidate(vars.patientId),
+  });
+}
+
+export function useCreateProstheticEvent() {
+  const invalidate = useInvalidateCases();
+  return useMutation({
+    mutationFn: ({
+      caseId,
+      data,
+    }: {
+      caseId: string;
+      patientId: string;
+      data: ProstheticEventInput;
+    }) => api.createProstheticEvent(caseId, data),
+    onSuccess: (_res, vars) => invalidate(vars.patientId),
+  });
+}
+
+export function useArchiveProstheticEvent() {
+  const invalidate = useInvalidateCases();
+  return useMutation({
+    mutationFn: ({ id }: { id: string; patientId: string }) =>
+      api.archiveProstheticEvent(id),
     onSuccess: (_res, vars) => invalidate(vars.patientId),
   });
 }

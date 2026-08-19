@@ -44,6 +44,29 @@ export const dashboardKpisSchema = z.object({
 });
 export type DashboardKpis = z.infer<typeof dashboardKpisSchema>;
 
+const workSummaryPeriodSchema = z.object({
+  implantedPatients: z.number().int(),
+  implants: z.number().int(),
+  implantSystems: z.object({
+    count: z.number().int(),
+    names: z.array(z.string()),
+  }),
+  prostheticPatients: z.number().int(),
+  completedProsthetics: z.number().int(),
+});
+export type WorkSummaryPeriod = z.infer<typeof workSummaryPeriodSchema>;
+
+/**
+ * Clinical work completed today and month-to-date in Riyadh calendar time.
+ * Implant work is anchored to the case procedure date; prosthetic work is
+ * anchored to explicit, dated prosthetic event records.
+ */
+export const workSummarySchema = z.object({
+  today: workSummaryPeriodSchema,
+  month: workSummaryPeriodSchema,
+});
+export type WorkSummary = z.infer<typeof workSummarySchema>;
+
 /** Present only for users with financial-view permission. */
 export const dashboardFinancialsSchema = z.object({
   collectedThisMonth: z.number(),
@@ -74,6 +97,7 @@ export type DashboardActivity = z.infer<typeof dashboardActivitySchema>;
 
 export const dashboardResponseSchema = z.object({
   kpis: dashboardKpisSchema,
+  workSummary: workSummarySchema,
   /** null when the current user lacks financial-view permission. */
   financials: dashboardFinancialsSchema.nullable(),
   todayAppointments: z.array(dashboardListItemSchema),

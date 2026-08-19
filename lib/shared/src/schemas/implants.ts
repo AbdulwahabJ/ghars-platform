@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { prostheticEventSchema } from "./prosthetic-events";
 
 /**
  * Phase 2 contracts — implant cases and implants.
@@ -213,6 +214,7 @@ export type ImplantUpdate = z.infer<typeof implantUpdateSchema>;
 
 export const implantCaseWithImplantsSchema = implantCaseSchema.extend({
   implants: z.array(implantSchema),
+  prostheticEvents: z.array(prostheticEventSchema),
 });
 export type ImplantCaseWithImplants = z.infer<
   typeof implantCaseWithImplantsSchema

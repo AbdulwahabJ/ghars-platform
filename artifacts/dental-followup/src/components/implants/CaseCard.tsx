@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { Archive, Loader2, Pencil, RefreshCw } from "lucide-react";
+import { Archive, CalendarCheck2, Loader2, Pencil, RefreshCw } from "lucide-react";
 import {
   REIMPLANTABLE_STATUSES,
   type Implant,
   type ImplantCase,
   type ImplantCaseWithImplants,
+  type ProstheticEvent,
 } from "@workspace/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,9 +20,11 @@ import {
 import { FdiToothChart } from "./FdiToothChart";
 import { ImplantCard } from "./ImplantCard";
 import { CaseFormDialog } from "./CaseFormDialog";
+import { ProstheticEventDialog } from "./ProstheticEventDialog";
 import { ImplantFormDialog, type ImplantDialogMode } from "./ImplantFormDialog";
 import {
   useArchiveImplantCase,
+  useArchiveProstheticEvent,
   useRestoreImplantCase,
 } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
@@ -65,11 +68,15 @@ export function CaseCard({
 }: CaseCardProps) {
   const { toast } = useToast();
   const archiveCase = useArchiveImplantCase();
+  const archiveProstheticEvent = useArchiveProstheticEvent();
   const restoreCase = useRestoreImplantCase();
 
   const [editOpen, setEditOpen] = useState(false);
   const [implantDialog, setImplantDialog] = useState<ImplantDialogState | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [prostheticEventOpen, setProstheticEventOpen] = useState(false);
+  const [prostheticEventToArchive, setProstheticEventToArchive] =
+    useState<ProstheticEvent | null>(null);
 
   const isArchived = caseItem.status === "archived";
   const isReadOnly = readOnly || isArchived;
@@ -125,6 +132,25 @@ export function CaseCard({
             variant: "destructive",
             title: "خطأ",
             description: err.message || "تعذر استعادة الحالة.",
+          }),
+      },
+    );
+  };
+
+  const handleArchiveProstheticEvent = () => {
+    if (!prostheticEventToArchive) return;
+    archiveProstheticEvent.mutate(
+      { id: prostheticEventToArchive.id, patientId },
+      {
+        onSuccess: () => {
+          toast({ title: "تمت أرشفة سجل التركيب" });
+          setProstheticEventToArchive(null);
+        },
+        onError: (err: Error) =>
+          toast({
+            variant: "destructive",
+            title: "تعذر أرشفة سجل التركيب",
+            description: err.message,
           }),
       },
     );
@@ -186,6 +212,15 @@ export function CaseCard({
             <div className="flex flex-wrap gap-2 shrink-0">
               {!isArchived ? (
                 <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="btn-outline h-9"
+                    onClick={() => setProstheticEventOpen(true)}
+                  >
+                    <CalendarCheck2 className="h-3.5 w-3.5 ml-1.5" />
+                    توثيق تركيب
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -264,6 +299,71 @@ export function CaseCard({
             {caseItem.generalNote}
           </p>
         )}
+
+        {/* Explicit, dated prosthetic events — separate from case status. */}
+        <div className="border-t border-border pt-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="font-bold text-foreground">سجل التركيبات</h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                يُحتسب في ملخص العمل بحسب تاريخ التركيب الفعلي.
+              </p>
+            </div>
+            <Badge variant="secondary">
+              {caseItem.prostheticEvents.filter((event) => event.status === "active").length}
+            </Badge>
+          </div>
+          {caseItem.prostheticEvents.filter((event) => event.status === "active").length > 0 ? (
+            <div className="space-y-2">
+              {caseItem.prostheticEvents
+                .filter((event) => event.status === "active")
+                .map((event) => {
+                  const implant = event.implantId
+                    ? caseItem.implants.find((item) => item.id === event.implantId)
+                    : null;
+                  return (
+                    <div
+                      key={event.id}
+                      className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                          {event.eventType}
+                        </Badge>
+                        <span className="font-semibold text-foreground">
+                          {formatSaudiDate(event.eventDate)}
+                        </span>
+                        {implant && (
+                          <span className="text-muted-foreground">
+                            السن {implant.site}{implant.system ? ` — ${implant.system}` : ""}
+                          </span>
+                        )}
+                        {canArchive && !isReadOnly && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
+                            onClick={() => setProstheticEventToArchive(event)}
+                          >
+                            <Archive className="h-3.5 w-3.5 ml-1" />
+                            أرشفة السجل
+                          </Button>
+                        )}
+                      </div>
+                      {event.note && (
+                        <p className="mt-1.5 text-muted-foreground leading-relaxed">{event.note}</p>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground rounded-lg bg-muted/30 px-3 py-3">
+              لا توجد تركيبات موثقة لهذه الحالة حتى الآن.
+            </p>
+          )}
+        </div>
 
         {/* FDI chart */}
         <div className="border-t border-border pt-4 space-y-2">
@@ -344,6 +444,44 @@ export function CaseCard({
           initialSite={implantDialog.initialSite}
         />
       )}
+      <ProstheticEventDialog
+        open={prostheticEventOpen}
+        onOpenChange={setProstheticEventOpen}
+        patientId={patientId}
+        caseItem={caseItem}
+      />
+      <Dialog
+        open={Boolean(prostheticEventToArchive)}
+        onOpenChange={(open) => !open && setProstheticEventToArchive(null)}
+      >
+        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-destructive">
+              تأكيد أرشفة سجل التركيب
+            </DialogTitle>
+            <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
+              سيبقى السجل محفوظًا للمراجعة، لكنه لن يُحتسب ضمن ملخص العمل.
+              هل تريد المتابعة؟
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row sm:justify-start gap-3 mt-4">
+            <Button
+              onClick={handleArchiveProstheticEvent}
+              disabled={archiveProstheticEvent.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {archiveProstheticEvent.isPending ? "جارٍ الأرشفة..." : "أرشفة السجل"}
+            </Button>
+            <Button
+              variant="outline"
+              className="btn-outline"
+              onClick={() => setProstheticEventToArchive(null)}
+            >
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
         <DialogContent className="sm:max-w-md text-right" dir="rtl">

@@ -306,7 +306,10 @@ export default function Dashboard() {
 
         {/* Section B: Daily KPI summary + operational action cards */}
         <section id="tour-dashboard-overview" className="space-y-4 print:hidden">
-          <h2 className="text-xl font-bold text-foreground">ملخص العمل اليومي</h2>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">ملخص العمل</h2>
+            <p className="text-sm text-muted-foreground mt-1">اليوم وهذا الشهر</p>
+          </div>
           {dashboard.isLoading ? (
             <div className="flex items-center justify-center py-16 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />

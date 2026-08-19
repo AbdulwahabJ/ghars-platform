@@ -50,6 +50,13 @@
       "when": 1786978800000,
       "tag": "0006_users_avatar",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787142656469,
+      "tag": "0007_tough_valeria_richards",
+      "breakpoints": true
     }
   ]
 }

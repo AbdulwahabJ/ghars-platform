@@ -4,6 +4,7 @@ export * from "./user-preferences";
 export * from "./patients";
 export * from "./implant-cases";
 export * from "./implants";
+export * from "./prosthetic-events";
 export * from "./payments";
 export * from "./case-charges";
 export * from "./case-discounts";

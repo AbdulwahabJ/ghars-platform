@@ -108,6 +108,9 @@ beforeAll(async () => {
   await admin
     .post(`/api/implant-cases/${archivedCaseOfActivePatientId}/implants`)
     .send({ site: "11", system: "Straumann" });
+  await admin
+    .post(`/api/implant-cases/${archivedCaseOfActivePatientId}/prosthetic-events`)
+    .send({ eventType: "تركيب دائم", eventDate: TO });
   await admin.post(`/api/implant-cases/${archivedCaseOfActivePatientId}/followups`).send({
     followupType: "متابعة بعد العملية",
     scheduledAt: `${riyadhDay(0)}T11:00`,
@@ -149,6 +152,9 @@ beforeAll(async () => {
   await admin
     .post(`/api/implant-cases/${cB.body.case.id}/implants`)
     .send({ site: "21", system: "Straumann" });
+  await admin
+    .post(`/api/implant-cases/${cB.body.case.id}/prosthetic-events`)
+    .send({ eventType: "تركيب مؤقت", eventDate: TO });
   await admin.post(`/api/patients/${archivedPatientId}/archive`).send({});
 });
 
@@ -331,5 +337,65 @@ describe("GET /api/reports/operational/export.csv", () => {
       `/api/reports/operational/export.csv?${RANGE}`,
     );
     expect(res.status).toBe(401);
+  });
+});
+
+describe("dashboard work summary", () => {
+  it("counts distinct patients, implants, systems, and dated prosthetic events while excluding archived records", async () => {
+    const todayCase = await admin
+      .post(`/api/patients/${patientAId}/implant-cases`)
+      .send({ procedureDate: TO });
+    const todayCaseId = todayCase.body.case.id;
+
+    const firstImplant = await admin
+      .post(`/api/implant-cases/${todayCaseId}/implants`)
+      .send({ site: "14", system: "Nobel Biocare" });
+    const secondImplant = await admin
+      .post(`/api/implant-cases/${todayCaseId}/implants`)
+      .send({ site: "15", system: "Straumann" });
+
+    await admin
+      .post(`/api/implant-cases/${todayCaseId}/prosthetic-events`)
+      .send({
+        eventType: "تركيب مؤقت",
+        eventDate: TO,
+        implantId: firstImplant.body.implant.id,
+      });
+    await admin
+      .post(`/api/implant-cases/${todayCaseId}/prosthetic-events`)
+      .send({
+        eventType: "تركيب دائم",
+        eventDate: TO,
+        implantId: secondImplant.body.implant.id,
+      });
+    const archivedImplant = await admin
+      .post(`/api/implant-cases/${todayCaseId}/implants`)
+      .send({ site: "16", system: "غير محسوب" });
+    await admin
+      .post(`/api/implant-cases/${todayCaseId}/prosthetic-events`)
+      .send({
+        eventType: "تركيب دائم",
+        eventDate: TO,
+        implantId: archivedImplant.body.implant.id,
+      });
+    await admin.post(`/api/implants/${archivedImplant.body.implant.id}/archive`);
+
+    const res = await admin.get("/api/dashboard");
+    expect(res.status).toBe(200);
+    expect(res.body.workSummary.today).toEqual({
+      implantedPatients: 1,
+      implants: 2,
+      implantSystems: {
+        count: 2,
+        names: expect.arrayContaining(["Nobel Biocare", "Straumann"]),
+      },
+      prostheticPatients: 1,
+      completedProsthetics: 2,
+    });
+    // Month-to-date includes today's records and never leaks archived events.
+    expect(res.body.workSummary.month.implantedPatients).toBeGreaterThanOrEqual(1);
+    expect(res.body.workSummary.month.implants).toBeGreaterThanOrEqual(2);
+    expect(res.body.workSummary.month.prostheticPatients).toBeGreaterThanOrEqual(1);
+    expect(res.body.workSummary.month.completedProsthetics).toBeGreaterThanOrEqual(2);
   });
 });

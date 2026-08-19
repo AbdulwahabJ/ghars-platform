@@ -28,6 +28,8 @@ import type {
   ImplantInput,
   ImplantOptionsResponse,
   ImplantUpdate,
+  ProstheticEvent,
+  ProstheticEventInput,
   LoginInput,
   MeResponse,
   Patient,
@@ -222,6 +224,15 @@ export const api = {
     }),
   archiveImplant: (id: string) =>
     request<{ implant: Implant }>(`/implants/${id}/archive`, {
+      method: "POST",
+    }),
+  createProstheticEvent: (caseId: string, input: ProstheticEventInput) =>
+    request<{ event: ProstheticEvent }>(
+      `/implant-cases/${caseId}/prosthetic-events`,
+      { method: "POST", json: input },
+    ),
+  archiveProstheticEvent: (id: string) =>
+    request<{ event: ProstheticEvent }>(`/prosthetic-events/${id}/archive`, {
       method: "POST",
     }),
 

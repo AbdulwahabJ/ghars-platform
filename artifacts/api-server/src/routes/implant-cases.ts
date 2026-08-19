@@ -7,8 +7,10 @@ import {
   implantSystemOptionsTable,
   lookupOptionsTable,
   patientsTable,
+  prostheticEventsTable,
   type ImplantCaseRow,
   type ImplantRow,
+  type ProstheticEventRow,
 } from "@workspace/db";
 import {
   CASE_ARCHIVED,
@@ -24,9 +26,13 @@ import {
   implantCaseUpdateSchema,
   implantInputSchema,
   implantUpdateSchema,
+  prostheticEventInputSchema,
+  PROSTHETIC_EVENT_NOT_FOUND,
+  riyadhDateOf,
   type Implant,
   type ImplantCase,
   type ImplantOptionsResponse,
+  type ProstheticEvent,
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
 import { parseOrRespond } from "../lib/validation";
@@ -38,6 +44,7 @@ router.use("/patients/:patientId/implant-cases", requireAuth);
 router.use("/implant-cases", requireAuth);
 router.use("/implants", requireAuth);
 router.use("/implant-options", requireAuth);
+router.use("/prosthetic-events", requireAuth);
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -49,6 +56,10 @@ const CASE_NOT_FOUND_BODY = {
 const IMPLANT_NOT_FOUND_BODY = {
   error: "الزرعة غير موجودة.",
   code: IMPLANT_NOT_FOUND,
+};
+const PROSTHETIC_EVENT_NOT_FOUND_BODY = {
+  error: "سجل التركيب غير موجود.",
+  code: PROSTHETIC_EVENT_NOT_FOUND,
 };
 const CASE_ARCHIVED_BODY = {
   error: "حالة الزراعة مؤرشفة. قم باستعادتها أولًا قبل التعديل.",
@@ -121,6 +132,20 @@ function toImplantDto(row: ImplantRow): Implant {
   };
 }
 
+function toProstheticEventDto(row: ProstheticEventRow): ProstheticEvent {
+  return {
+    id: row.id,
+    implantCaseId: row.implantCaseId,
+    implantId: row.implantId,
+    eventType: row.eventType as ProstheticEvent["eventType"],
+    eventDate: row.eventDate,
+    note: row.note,
+    status: row.archivedAt ? "archived" : "active",
+    createdAt: row.createdAt.toISOString(),
+    archivedAt: row.archivedAt?.toISOString() ?? null,
+  };
+}
+
 async function findCase(id: string): Promise<ImplantCaseRow | undefined> {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
@@ -137,6 +162,18 @@ async function findImplant(id: string): Promise<ImplantRow | undefined> {
     .select()
     .from(implantsTable)
     .where(eq(implantsTable.id, id))
+    .limit(1);
+  return row;
+}
+
+async function findProstheticEvent(
+  id: string,
+): Promise<ProstheticEventRow | undefined> {
+  if (!UUID_RE.test(id)) return undefined;
+  const [row] = await db
+    .select()
+    .from(prostheticEventsTable)
+    .where(eq(prostheticEventsTable.id, id))
     .limit(1);
   return row;
 }
@@ -274,12 +311,25 @@ router.get("/patients/:patientId/implant-cases", async (req, res) => {
         .where(inArray(implantsTable.implantCaseId, caseIds))
         .orderBy(asc(implantsTable.createdAt))
     : [];
+  const prostheticEvents = caseIds.length
+    ? await db
+        .select()
+        .from(prostheticEventsTable)
+        .where(inArray(prostheticEventsTable.implantCaseId, caseIds))
+        .orderBy(
+          desc(prostheticEventsTable.eventDate),
+          desc(prostheticEventsTable.createdAt),
+        )
+    : [];
 
   const items = cases.map((c) => ({
     ...toCaseDto(c),
     implants: implants
       .filter((i) => i.implantCaseId === c.id)
       .map(toImplantDto),
+    prostheticEvents: prostheticEvents
+      .filter((event) => event.implantCaseId === c.id)
+      .map(toProstheticEventDto),
   }));
   res.json({ items });
 });
@@ -347,6 +397,69 @@ router.post("/patients/:patientId/implant-cases", async (req, res) => {
     summary: `إنشاء حالة زراعة جديدة (${row.caseStatus})`,
   });
   res.status(201).json({ case: toCaseDto(row) });
+});
+
+router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
+  const parentCase = await findCase(String(req.params.id));
+  if (!parentCase) {
+    res.status(404).json(CASE_NOT_FOUND_BODY);
+    return;
+  }
+  if (parentCase.archivedAt) {
+    res.status(409).json(CASE_ARCHIVED_BODY);
+    return;
+  }
+  if (await isPatientArchived(parentCase.patientId)) {
+    res.status(409).json(PATIENT_ARCHIVED_BODY);
+    return;
+  }
+
+  const input = parseOrRespond(prostheticEventInputSchema, req.body, res);
+  if (!input) return;
+
+  if (input.eventDate > riyadhDateOf(new Date())) {
+    res.status(400).json({
+      error: "لا يمكن توثيق تركيب بتاريخ مستقبلي.",
+      code: "PROSTHETIC_EVENT_DATE_FUTURE",
+    });
+    return;
+  }
+
+  if (input.implantId) {
+    const implant = await findImplant(input.implantId);
+    if (
+      !implant ||
+      implant.implantCaseId !== parentCase.id ||
+      implant.archivedAt
+    ) {
+      res.status(400).json({
+        error: "الزرعة المحددة غير موجودة في هذه الحالة أو مؤرشفة.",
+        code: "PROSTHETIC_EVENT_IMPLANT_INVALID",
+      });
+      return;
+    }
+  }
+
+  const [row] = await db
+    .insert(prostheticEventsTable)
+    .values({
+      implantCaseId: parentCase.id,
+      implantId: input.implantId,
+      eventType: input.eventType,
+      eventDate: input.eventDate,
+      note: input.note,
+      createdBy: req.currentUser!.id,
+    })
+    .returning();
+
+  await writeAudit({
+    userId: req.currentUser!.id,
+    action: "prosthetic_event_create",
+    entityType: "prosthetic_event",
+    entityId: row.id,
+    summary: `توثيق ${row.eventType}`,
+  });
+  res.status(201).json({ event: toProstheticEventDto(row) });
 });
 
 router.patch("/implant-cases/:id", async (req, res) => {
@@ -517,6 +630,60 @@ router.post(
       summary: "استعادة حالة زراعة من الأرشيف",
     });
     res.json({ case: toCaseDto(row) });
+  },
+);
+
+router.post(
+  "/prosthetic-events/:id/archive",
+  requireRole("ADMIN", "DOCTOR"),
+  async (req, res) => {
+    const existing = await findProstheticEvent(String(req.params.id));
+    if (!existing) {
+      res.status(404).json(PROSTHETIC_EVENT_NOT_FOUND_BODY);
+      return;
+    }
+    if (existing.archivedAt) {
+      res.json({ event: toProstheticEventDto(existing) });
+      return;
+    }
+
+    const parentCase = await findCase(existing.implantCaseId);
+    if (!parentCase) {
+      res.status(404).json(CASE_NOT_FOUND_BODY);
+      return;
+    }
+    if (parentCase.archivedAt) {
+      res.status(409).json(CASE_ARCHIVED_BODY);
+      return;
+    }
+    if (await isPatientArchived(parentCase.patientId)) {
+      res.status(409).json(PATIENT_ARCHIVED_BODY);
+      return;
+    }
+
+    const [row] = await db
+      .update(prostheticEventsTable)
+      .set({ archivedAt: new Date() })
+      .where(
+        and(
+          eq(prostheticEventsTable.id, existing.id),
+          isNull(prostheticEventsTable.archivedAt),
+        ),
+      )
+      .returning();
+    if (!row) {
+      res.status(404).json(PROSTHETIC_EVENT_NOT_FOUND_BODY);
+      return;
+    }
+
+    await writeAudit({
+      userId: req.currentUser!.id,
+      action: "prosthetic_event_archive",
+      entityType: "prosthetic_event",
+      entityId: row.id,
+      summary: "أرشفة سجل تركيب",
+    });
+    res.json({ event: toProstheticEventDto(row) });
   },
 );
 
