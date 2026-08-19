@@ -1,0 +1,403 @@
+MODE: Economy
+
+Redesign and update ONLY the dashboard work-summary section.
+
+The current summary contains too many unrelated KPI cards.
+
+I want this section to become a focused DAILY + CURRENT MONTH operational summary for management.
+
+Do not redesign unrelated dashboard sections.
+Do not change patient workflows, finance pages, operational report, permissions, or unrelated business logic.
+
+## GOAL
+
+Replace the current work-summary KPI cards with ONLY these 5 operational metrics:
+
+1. المرضى الذين تم زرعهم
+2. عدد الزرعات
+3. الأنظمة المستخدمة
+4. مرضى التركيب
+5. التركيبات التي تمت
+
+Each metric must show BOTH:
+
+* اليوم
+* هذا الشهر
+
+inside the SAME card.
+
+Do not create separate Daily and Monthly sections.
+
+The result should be a clean 5-card executive summary.
+
+## SECTION TITLE
+
+Rename:
+
+ملخص العمل اليومي
+
+to:
+
+ملخص العمل
+
+Optionally show a subtle subtitle:
+
+اليوم وهذا الشهر
+
+Do not add unnecessary explanatory text.
+
+## CARD DESIGN
+
+Create exactly 5 professional KPI cards.
+
+Each card should clearly contain:
+
+* metric title
+* today's result
+* current month's result
+
+Suggested visual structure:
+
+[ icon ] اسم المؤشر
+
+اليوم
+12
+
+هذا الشهر
+84
+
+Use a compact two-value layout inside each card.
+
+The hierarchy should be immediately understandable.
+
+Numbers should be visually stronger than labels.
+
+Use:
+
+* current teal/navy design language
+* subtle separation between daily and monthly values
+* clean RTL alignment
+* current card radius/shadow language
+* no unnecessary gradients or excessive colors
+
+Desktop:
+5 cards in one responsive row where space allows.
+
+Tablet:
+2–3 cards per row.
+
+Mobile:
+1 or 2 cards per row depending on readability.
+
+## DATE LOGIC
+
+Use Saudi Arabia / Riyadh timezone.
+
+TODAY means:
+the current Riyadh calendar day.
+
+THIS MONTH means:
+from the first day of the current Riyadh calendar month through now.
+
+Example:
+
+If the current date is in August 2026:
+
+اليوم
+= only today's activity
+
+هذا الشهر
+= all activity from August 1, 2026 through the current time
+
+Do not use rolling 30-day logic.
+
+## METRIC 1 — PATIENTS IMPLANTED
+
+Label:
+
+المرضى الذين تم زرعهم
+
+Today:
+Count DISTINCT patients who had at least one implant placed today.
+
+This month:
+Count DISTINCT patients who had at least one implant placed during the current month.
+
+Important:
+
+A patient with multiple implants during the same period counts as ONE patient.
+
+A patient with implants in multiple cases during the same period still counts once.
+
+Use actual implant-placement/procedure records according to the existing data model.
+
+Exclude archived/inactive records consistently with the existing dashboard logic.
+
+## METRIC 2 — IMPLANT COUNT
+
+Label:
+
+عدد الزرعات
+
+Today:
+Total number of implants placed today.
+
+This month:
+Total number of implants placed during the current month.
+
+Count implant records, not patients.
+
+Preserve existing archived/failed/reimplantation rules.
+
+Do not invent a new implant definition.
+
+## METRIC 3 — IMPLANT SYSTEMS USED
+
+Label:
+
+الأنظمة المستخدمة
+
+This card is different because the useful value is a set of systems rather than one simple number.
+
+For TODAY show:
+
+* number of distinct implant systems used today
+* compact list of system names
+
+Example:
+
+اليوم
+2 أنظمة
+Neoss · Nobel
+
+For THIS MONTH show:
+
+هذا الشهر
+4 أنظمة
+Neoss · Nobel · MegaGen · Ora
+
+If many systems exist:
+
+show the distinct system count prominently and display names in a compact wrapping line.
+
+Do not let long system lists make the card excessively tall.
+
+Do not count duplicate system usage multiple times.
+
+Use DISTINCT implant system values.
+
+## METRIC 4 — PROSTHETIC PATIENTS
+
+Label:
+
+مرضى التركيب
+
+Today:
+Count DISTINCT patients who reached an actual prosthetic / تركيب event today.
+
+This month:
+Count DISTINCT patients who reached an actual prosthetic / تركيب event during the current month.
+
+IMPORTANT:
+
+Before implementing, inspect the existing case/implant/follow-up statuses and current system logic and reuse the existing authoritative meaning of a completed prosthetic/installation event.
+
+Do NOT invent a new medical interpretation.
+
+If the system already has statuses such as completed temporary/final prosthetic or equivalent, reuse the existing approved logic.
+
+Count DISTINCT patients.
+
+## METRIC 5 — COMPLETED PROSTHETICS
+
+Label:
+
+التركيبات التي تمت
+
+Today:
+Total number of actual completed prosthetic/installation events today.
+
+This month:
+Total number during the current month.
+
+Unlike "مرضى التركيب", this is the number of completed installations/events, not distinct patients.
+
+Example:
+
+One patient receives two documented installations in the period:
+
+مرضى التركيب = 1
+التركيبات التي تمت = 2
+
+Use existing authoritative data/status logic.
+
+Do not infer completion merely from an expected prosthetic date.
+
+## IMPORTANT DATA RULE
+
+Do NOT use:
+
+* expected prosthetic date alone
+* scheduled follow-up alone
+* planned appointment alone
+
+as proof that an installation was completed.
+
+Only count records that represent an actual completed prosthetic/installation event according to the existing system data model.
+
+If the current data model does not contain enough information to reliably calculate "مرضى التركيب" or "التركيبات التي تمت":
+
+STOP before inventing logic.
+
+Report exactly which existing field/status is missing and propose the minimum safe data-model adjustment.
+
+Do not silently guess.
+
+## API / BACKEND
+
+Prefer one compact dashboard API response such as:
+
+{
+"workSummary": {
+"today": {
+"implantedPatients": 0,
+"implants": 0,
+"implantSystems": {
+"count": 0,
+"names": []
+},
+"prostheticPatients": 0,
+"completedProsthetics": 0
+},
+"month": {
+"implantedPatients": 0,
+"implants": 0,
+"implantSystems": {
+"count": 0,
+"names": []
+},
+"prostheticPatients": 0,
+"completedProsthetics": 0
+}
+}
+}
+
+This structure is only guidance.
+
+Reuse existing dashboard/query helpers where appropriate.
+
+Do not duplicate query logic unnecessarily.
+
+Do not store KPI totals in the database.
+
+All values must be calculated live from the source records.
+
+## REMOVE CURRENT SUMMARY CARDS
+
+Remove the current summary cards that are not part of these 5 requested metrics, including items such as:
+
+* active patients
+* active implant cases
+* overdue follow-ups
+* ready-for-installation cases
+* communication tasks
+* monthly collections
+* total outstanding balance
+* failed/reimplant counts
+
+IMPORTANT:
+
+Only remove them from THIS work-summary KPI section.
+
+Do not delete their underlying functionality, queries, notifications, reports, or data from the system.
+
+Other dashboard/action sections may continue to display operational information where already appropriate.
+
+## KEEP THE REST OF THE DASHBOARD
+
+Do not change:
+
+* Hero
+* greeting
+* patient search
+* user portrait
+* decorative background
+* today's appointments section
+* overdue follow-up section
+* ready cases section
+* communication tasks section
+* operational report
+* filters
+* statistics/charts
+* notifications
+* finance page
+* patient pages
+
+This task is focused on the KPI/work-summary section only.
+
+## EMPTY VALUES
+
+If there is no activity:
+
+show:
+
+0
+
+For implant systems:
+
+0 أنظمة
+
+Do not show blank values.
+
+## PERFORMANCE
+
+Calculate the daily and monthly datasets efficiently.
+
+Do not run one separate heavy database query per card if the metrics can safely be aggregated together.
+
+Reuse indexes and current date columns.
+
+Do not fetch all records into JavaScript merely to count them.
+
+Perform appropriate aggregation in PostgreSQL/server-side queries.
+
+## COST-AWARE VERIFICATION
+
+Do NOT run the full historical test suite.
+
+Run only:
+
+* affected TypeScript checks
+* affected lint
+* focused dashboard summary tests
+
+Verify at minimum:
+
+1. one patient with multiple implants today counts:
+
+   * implanted patients = 1
+   * implants = correct implant count
+
+2. same patient with activity multiple times this month is counted once in patient metrics
+
+3. distinct implant systems are calculated correctly
+
+4. today does not include yesterday
+
+5. current month does not include previous month
+
+6. archived records are excluded consistently
+
+7. prosthetic patient count and completed prosthetic count follow the existing authoritative completion logic
+
+8. dashboard displays exactly 5 KPI cards
+
+9. each card shows both اليوم and هذا الشهر
+
+10. mobile layout remains readable
+
+Do not run unrelated E2E tests.
+
+Do not publish.
+
+Provide a concise completion report and stop.
