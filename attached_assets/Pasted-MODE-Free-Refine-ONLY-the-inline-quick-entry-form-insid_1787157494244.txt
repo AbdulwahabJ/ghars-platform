@@ -1,0 +1,211 @@
+MODE: Free
+
+Refine ONLY the "إضافة سجل جديد" inline quick-entry form inside the Operational Table.
+
+Currently the form has two separate sections:
+
+2. حالة الزراعة
+3. الزرعات
+
+I want them merged into ONE single section because they belong to the same clinical workflow.
+
+Do NOT change backend logic, database schema, APIs, validation rules, permissions, or save behavior.
+
+## GOAL
+
+Replace the two separate sections:
+
+* حالة الزراعة
+* الزرعات
+
+with one unified section:
+
+## حالة الزراعة والزرعات
+
+The user should feel that they are completing one clinical section rather than two separate steps.
+
+## 1. SINGLE INCLUDE TOGGLE
+
+Use only ONE "تضمين" toggle for the unified section.
+
+Current behavior:
+
+حالة الزراعة → تضمين
+الزرعات → separate area
+
+New behavior:
+
+حالة الزراعة والزرعات → تضمين
+
+When enabled:
+
+* show the implant-case fields
+* show the implants area directly underneath
+
+When disabled:
+
+* hide both case fields and implant fields
+* create neither a case nor implants
+
+Do not create an implant without its case.
+
+## 2. UNIFIED LAYOUT
+
+Inside the same expanded section, organize the content in this order:
+
+### بيانات حالة الزراعة
+
+* تاريخ العملية
+* الطبيب المعالج
+* حالة الحالة
+* مدة التركيب (Pros)
+* تاريخ التركيب المتوقع
+* ملاحظة
+
+Then, without another accordion/header:
+
+### الزرعات
+
+* existing repeatable implant cards/rows
+* button: + إضافة زرعة
+
+Do NOT make "الزرعات" another numbered main section.
+
+It should visually belong inside the same clinical section.
+
+## 3. IMPLANT UI
+
+Keep the existing implant fields exactly as they are:
+
+* الموقع (FDI)
+* النظام
+* القطر
+* الطول
+* Q
+* Former
+* Graft
+* حالة الزرعة
+* any existing conditional graft fields
+* notes/tags if currently present
+
+Keep the repeatable implant behavior.
+
+The user must still be able to add multiple implants.
+
+## 4. VISUAL DESIGN
+
+Make the combined section feel like one clean clinical card.
+
+Recommended hierarchy:
+
+2. حالة الزراعة والزرعات
+
+[ بيانات الحالة ]
+
+---
+
+الزرعات (1)
+
+[ Implant 1 fields ]
+
+[ + إضافة زرعة ]
+
+Use subtle internal dividers instead of separate large accordion sections.
+
+Keep:
+
+* current RTL layout
+* current spacing system
+* current field styles
+* existing validation/error feedback
+
+## 5. SECTION NUMBERING
+
+After merging the sections, update the visible numbering:
+
+1. بيانات المريض
+2. حالة الزراعة والزرعات
+3. المالية
+4. المتابعة
+
+Do not leave numbering as 1 / 2 / 4 / 5.
+
+## 6. SAVE LOGIC
+
+Do NOT rewrite the existing quick-entry transaction.
+
+The current save should continue creating:
+
+patient
+→ implant case
+→ implants
+→ finance/payment if included
+→ follow-up if included
+
+using the existing atomic quick-entry backend behavior.
+
+This is primarily a frontend composition change.
+
+## 7. VALIDATION
+
+Preserve existing validation.
+
+If the unified clinical section is included:
+
+* apply the same implant-case validation currently used
+* validate each implant independently
+* preserve exact field-level Arabic errors
+
+Do not introduce new required fields.
+
+## 8. PRESERVE EVERYTHING ELSE
+
+Do not change:
+
+* patient fields
+* finance section
+* follow-up section
+* quick-entry API
+* transaction behavior
+* prosthetic-event workflow
+* implant-status workflow
+* dashboard KPIs
+* Operational Table rows
+* patient workspace
+
+Only merge the existing Case + Implants sections visually and structurally inside the quick-entry form.
+
+## 9. RESPONSIVE
+
+Desktop:
+
+* keep the current efficient multi-column field layout
+
+Mobile/tablet:
+
+* stack fields cleanly
+* implants remain easy to scan
+* no horizontal overflow
+
+## VERIFICATION
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* focused browser verification
+
+Verify:
+
+1. only one clinical section is visible
+2. only one "تضمين" toggle controls case + implants
+3. case fields and implants appear together
+4. multiple implants still work
+5. saving patient + case + implants still works
+6. finance and follow-up section numbering is updated
+7. no backend behavior changed
+
+Do not run the full historical test suite.
+Do not publish.
+
+Provide a concise completion report and stop.

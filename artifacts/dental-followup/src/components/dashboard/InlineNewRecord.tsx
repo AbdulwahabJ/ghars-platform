@@ -238,7 +238,6 @@ export function InlineNewRecord({
 
   // Section open states
   const [caseOpen, setCaseOpen] = useState(true);
-  const [implantsOpen, setImplantsOpen] = useState(true);
   const [financeOpen, setFinanceOpen] = useState(false);
   const [followupOpen, setFollowupOpen] = useState(false);
 
@@ -586,11 +585,11 @@ export function InlineNewRecord({
           </div>
         </div>
 
-        {/* Section 2: حالة الزراعة (optional) */}
+        {/* Section 2: حالة الزراعة والزرعات (optional) */}
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <SectionHeader
-              title="٢. حالة الزراعة"
+              title="٢. حالة الزراعة والزرعات"
               open={caseOpen}
               onToggle={() => setCaseOpen((v) => !v)}
               optional
@@ -610,65 +609,59 @@ export function InlineNewRecord({
             </p>
           )}
           {includeCase && caseOpen && (
-            <div className="px-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>تاريخ العملية</Label>
-                <OperationalDatePicker
-                  value={form.watch("procedureDate") ?? ""}
-                  onChange={(value) => form.setValue("procedureDate", value, { shouldDirty: true, shouldValidate: true })}
-                />
+            <div className="px-1 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>تاريخ العملية</Label>
+                  <OperationalDatePicker
+                    value={form.watch("procedureDate") ?? ""}
+                    onChange={(value) => form.setValue("procedureDate", value, { shouldDirty: true, shouldValidate: true })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>الطبيب المعالج</Label>
+                  <Input {...form.register("treatingDoctor")} placeholder={defaultDoctor} />
+                </div>
+                <div className="space-y-1">
+                  <Label>حالة الحالة</Label>
+                  <Select
+                    dir="rtl"
+                    value={form.watch("caseStatus")}
+                    onValueChange={(v) => form.setValue("caseStatus", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CASE_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>مدة التركيب (Pros)</Label>
+                  <Input {...form.register("prosValue")} placeholder="مثال: 3M" />
+                </div>
+                <div className="space-y-1">
+                  <Label>تاريخ التركيب المتوقع</Label>
+                  <OperationalDatePicker
+                    value={form.watch("expectedProstheticDate") ?? ""}
+                    onChange={(value) => form.setValue("expectedProstheticDate", value, { shouldDirty: true, shouldValidate: true })}
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label>ملاحظة</Label>
+                  <Textarea {...form.register("generalNote")} rows={2} className="resize-none" placeholder="ملاحظات عامة..." />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>الطبيب المعالج</Label>
-                <Input {...form.register("treatingDoctor")} placeholder={defaultDoctor} />
-              </div>
-              <div className="space-y-1">
-                <Label>حالة الحالة</Label>
-                <Select
-                  dir="rtl"
-                  value={form.watch("caseStatus")}
-                  onValueChange={(v) => form.setValue("caseStatus", v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CASE_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>مدة التركيب (Pros)</Label>
-                <Input {...form.register("prosValue")} placeholder="مثال: 3M" />
-              </div>
-              <div className="space-y-1">
-                <Label>تاريخ التركيب المتوقع</Label>
-                <OperationalDatePicker
-                  value={form.watch("expectedProstheticDate") ?? ""}
-                  onChange={(value) => form.setValue("expectedProstheticDate", value, { shouldDirty: true, shouldValidate: true })}
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label>ملاحظة</Label>
-                <Textarea {...form.register("generalNote")} rows={2} className="resize-none" placeholder="ملاحظات عامة..." />
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Section 3: الزرعات (optional) */}
-        {includeCase && (
-          <div className="space-y-3">
-            <SectionHeader
-              title="٣. الزرعات"
-              open={implantsOpen}
-              onToggle={() => setImplantsOpen((v) => !v)}
-              optional
-            />
-            {implantsOpen && (
-              <div className="px-1 space-y-3">
+              <div className="border-t border-border/60 pt-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-muted-foreground">
+                    الزرعات ({implantFields.length})
+                  </p>
+                </div>
                 {implantFields.map((field, index) => (
                   <div key={field.id} className="border border-border rounded-xl p-3 space-y-3 relative">
                     <div className="flex items-center justify-between">
@@ -832,11 +825,11 @@ export function InlineNewRecord({
                   إضافة زرعة
                 </Button>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
-        {/* Section 4: المالية
+        {/* Section 3: المالية
             Visibility rules (per spec):
             - Section is visible when canViewFinancials (includes ADMIN)
             - Base treatment amount: canViewFinancials only
@@ -846,7 +839,7 @@ export function InlineNewRecord({
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <SectionHeader
-                title="٤. المالية"
+                title="٣. المالية"
                 open={financeOpen}
                 onToggle={() => setFinanceOpen((v) => !v)}
                 optional
@@ -942,12 +935,12 @@ export function InlineNewRecord({
           </div>
         )}
 
-        {/* Section 5: المتابعة (optional) */}
+        {/* Section 4: المتابعة (optional) */}
         {includeCase && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <SectionHeader
-                title="٥. المتابعة"
+                title="٤. المتابعة"
                 open={followupOpen}
                 onToggle={() => setFollowupOpen((v) => !v)}
                 optional
