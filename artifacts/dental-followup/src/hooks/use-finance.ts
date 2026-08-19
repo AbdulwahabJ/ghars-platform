@@ -32,11 +32,15 @@ function useInvalidateFinance() {
 }
 
 export function useUpdateBaseAmount() {
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateFinance();
   return useMutation({
     mutationFn: ({ caseId, data }: { caseId: string; data: BaseAmountInput }) =>
       api.updateBaseAmount(caseId, data),
-    onSuccess: (_res, vars) => invalidate(vars.caseId),
+    onSuccess: (_res, vars) => {
+      invalidate(vars.caseId);
+      void queryClient.invalidateQueries({ queryKey: ["operational-report"] });
+    },
   });
 }
 

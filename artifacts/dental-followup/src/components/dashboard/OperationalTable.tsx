@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { InlineNewRecord } from "./InlineNewRecord";
 import { ProstheticEventDialog } from "@/components/implants/ProstheticEventDialog";
+import { FinalTotalDialog } from "@/components/finance/FinalTotalDialog";
 import {
   OperationalDatePicker,
   OperationalDateTimeFields,
@@ -1264,6 +1265,69 @@ function CasePaymentsSection({
         </div>
       ))}
     </div>
+  );
+}
+
+function OperationalFinanceSummary({
+  row,
+  canManage,
+}: {
+  row: OperationalRow;
+  canManage: boolean;
+}) {
+  const financeQuery = useCaseFinance(row.caseId, true);
+  const [finalTotalOpen, setFinalTotalOpen] = useState(false);
+  const summary = financeQuery.data?.summary;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
+          <div className="flex items-start justify-between gap-1">
+            <p className="text-[11px] text-muted-foreground">الإجمالي</p>
+            {canManage && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1.5 text-[10px] gap-1 text-muted-foreground"
+                onClick={() => setFinalTotalOpen(true)}
+                disabled={!summary}
+                data-testid={`button-edit-final-total-${row.caseId}`}
+              >
+                <Pencil className="h-3 w-3" />
+                تعديل
+              </Button>
+            )}
+          </div>
+          <p className="mt-1 text-base font-bold tabular-nums">{formatMoney(row.finance!.finalTotal)}</p>
+        </div>
+        <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
+          <p className="text-[11px] text-muted-foreground">المدفوع</p>
+          <p className="mt-1 text-base font-bold tabular-nums">{formatMoney(row.finance!.paid)}</p>
+        </div>
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+          <p className="text-[11px] text-muted-foreground">المتبقي</p>
+          <p className="mt-1 text-base font-bold tabular-nums text-primary">{formatMoney(row.finance!.remaining)}</p>
+        </div>
+        <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
+          <p className="text-[11px] text-muted-foreground">حالة السداد</p>
+          <Badge className={`mt-1 text-[10px] ${paymentStatusClass(row.finance!.paymentStatus)}`}>
+            {row.finance!.paymentStatus}
+          </Badge>
+        </div>
+      </div>
+      {summary && (
+        <FinalTotalDialog
+          open={finalTotalOpen}
+          onOpenChange={setFinalTotalOpen}
+          caseId={row.caseId}
+          currentFinalTotal={summary.finalTotal}
+          chargesTotal={summary.chargesTotal}
+          discountsTotal={summary.discountsTotal}
+        />
+      )}
+    </>
   );
 }
 
