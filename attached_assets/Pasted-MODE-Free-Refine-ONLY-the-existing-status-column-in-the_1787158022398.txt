@@ -1,0 +1,205 @@
+MODE: Free
+
+Refine ONLY the existing status column in the Dashboard Operational Table.
+
+Do NOT add a new column.
+
+The current column is labeled:
+
+"حالة الحالة"
+
+Rename it to:
+
+"الحالة"
+
+## GOAL
+
+Instead of showing only the broad implant-case status such as:
+
+* حالة جديدة
+* تمت الزراعة
+
+I want this column to show the patient's ACTUAL current implant status/statuses based on the canonical implant records already stored in the system.
+
+Examples of actual statuses already used by the system may include:
+
+* مزروعة
+* مرحلة الالتئام
+* جاهزة للتركيب
+* تم تركيب مؤقت
+* تم التركيب
+* فاشلة
+* تحتاج إعادة
+* تمت إعادة الزراعة
+
+Use the EXACT existing status values from the codebase/database.
+
+Do NOT create new statuses and do NOT rename existing canonical status values.
+
+## SINGLE IMPLANT / SAME STATUS
+
+If the patient has one active implant:
+
+show that implant's exact current status.
+
+Example:
+
+الحالة
+مرحلة الالتئام
+
+If the patient has several active implants and ALL of them have the same status:
+
+show that status once.
+
+Example:
+
+3 implants all = مزروعة
+
+Display:
+
+مزروعة
+
+Do not repeat the same label three times.
+
+## MULTIPLE DIFFERENT STATUSES
+
+If the patient has multiple active implants with different statuses:
+
+show the actual distinct statuses compactly.
+
+Example:
+
+زرعة 36 = مرحلة الالتئام
+زرعة 37 = تم التركيب
+
+Display:
+
+مرحلة الالتئام · تم التركيب
+
+Another example:
+
+زرعة 24 = فاشلة
+زرعة 25 = مزروعة
+
+Display:
+
+فاشلة · مزروعة
+
+Do NOT replace these with a generic label such as:
+
+"متعددة"
+
+The purpose is to let the user understand the real patient status directly from the table.
+
+## VISUAL DESIGN
+
+Use compact status badges/chips, but keep the table row clean.
+
+Suggested semantic styling:
+
+* فاشلة / تحتاج إعادة → red
+* جاهزة للتركيب → amber or highlighted
+* مرحلة الالتئام → soft blue
+* مزروعة → neutral/teal
+* تم تركيب مؤقت → soft teal
+* تم التركيب → green/teal
+* تمت إعادة الزراعة → appropriate existing success/clinical style
+
+Reuse the existing design system and existing status colors where available.
+
+Do not introduce a new unrelated color system.
+
+If multiple statuses exist, render small compact badges next to each other.
+
+Do not increase row height excessively.
+
+## NO ACTIVE IMPLANTS
+
+If the patient has no active implants:
+
+fall back to the existing implant-case status if that is the most accurate available canonical status.
+
+Do not invent an implant status.
+
+If there is genuinely no applicable status, show:
+
+—
+
+## IMPORTANT DATA RULE
+
+This column must be DERIVED from the same canonical implant/case records already written by the Operational Table.
+
+Do NOT add:
+
+* a new database field
+* a manual patient-status field
+* a duplicated status record
+* dashboard-only status storage
+
+The database remains the single source of truth.
+
+## ARCHIVED RECORDS
+
+Exclude archived implants/cases exactly as the existing Operational Report does.
+
+Do not allow an archived implant status to affect the displayed current status.
+
+## PROSTHETIC STATUS
+
+Preserve the recently implemented synchronized workflow:
+
+* تركيب مؤقت ↔ تم تركيب مؤقت
+* تركيب دائم ↔ تم التركيب
+
+If the implant status is synchronized after prosthetic documentation, this table should naturally display the updated implant status from the same canonical record.
+
+Do NOT derive this column directly from `prosthetic_events`.
+
+Use the current implant status as the display source.
+
+## DO NOT CHANGE
+
+Do not change:
+
+* implant status workflow
+* prosthetic event workflow
+* case status storage
+* KPI definitions
+* dashboard summary
+* statistics
+* patient details
+* API contracts unless the existing Operational Report response truly does not contain the required implant statuses
+
+First inspect the current Operational Report data.
+
+If the required implant statuses are already present:
+implement this as frontend-only.
+
+If they are NOT present:
+STOP and report the minimum API field required before changing backend code.
+
+Do not silently expand the task.
+
+## VERIFICATION
+
+Verify:
+
+1. "حالة الحالة" is renamed to "الحالة"
+2. one implant shows its exact status
+3. multiple implants with same status show one status
+4. multiple implants with different statuses show all distinct statuses
+5. failed status is clearly visible
+6. temporary/final installation statuses appear correctly
+7. archived implants do not affect the result
+8. no new status field or duplicate source of truth was created
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* focused browser verification
+
+Do not run the full historical test suite.
+Do not publish.
+
+Provide a concise completion report and stop.
