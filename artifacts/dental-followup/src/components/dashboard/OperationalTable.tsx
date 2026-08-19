@@ -1781,6 +1781,109 @@ function PatientExpandedRow({
                     </div>
                   </div>
                 )}
+
+                 {/* D — أحداث التركيب الفعلية لهذه الحالة فقط */}
+                 <div className="mt-3 border-t border-border/60 pt-3 space-y-2">
+                   <div className="flex items-center justify-between gap-2">
+                     <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                       <CalendarCheck2 className="h-3 w-3" />
+                       سجل التركيبات
+                     </p>
+                     <Badge variant="secondary" className="text-[10px]">
+                       {c.prostheticEvents.filter((event) => event.status === "active").length}
+                     </Badge>
+                   </div>
+                   {c.prostheticEvents.filter((event) => event.status === "active").length > 0 ? (
+                     <div className="space-y-2">
+                       {c.prostheticEvents
+                         .filter((event) => event.status === "active")
+                         .map((event) => {
+                           const implant = event.implantId
+                             ? c.implants.find((item) => item.id === event.implantId)
+                             : null;
+                           return (
+                             <div
+                               key={event.id}
+                               className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs space-y-1.5"
+                             >
+                               <div className="flex flex-wrap items-center justify-between gap-2">
+                                 <div className="flex flex-wrap items-center gap-2">
+                                   <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                                     {event.eventType}
+                                   </Badge>
+                                   <span className="font-medium">{formatSaudiDate(event.eventDate)}</span>
+                                   {implant && (
+                                     <span className="text-muted-foreground">
+                                       السن {implant.site}{implant.system ? ` — ${implant.system}` : ""}
+                                     </span>
+                                   )}
+                                 </div>
+                                 {canArchiveProstheticEvents && (
+                                   <Button
+                                     type="button"
+                                     variant="ghost"
+                                     size="sm"
+                                     className="h-6 px-2 text-[11px] gap-1 text-destructive hover:text-destructive"
+                                     onClick={() => setConfirmArchiveProstheticEventId(event.id)}
+                                   >
+                                     <Archive className="h-3 w-3" />
+                                     أرشفة
+                                   </Button>
+                                 )}
+                               </div>
+                               {event.note && <p className="text-muted-foreground">{event.note}</p>}
+                               {confirmArchiveProstheticEventId === event.id && (
+                                 <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2 space-y-2">
+                                   <p className="text-[11px] flex items-start gap-1.5">
+                                     <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                                     سيتم استبعاد هذا السجل من ملخص العمل مع الاحتفاظ به في السجل.
+                                   </p>
+                                   <div className="flex gap-2">
+                                     <Button
+                                       type="button"
+                                       size="sm"
+                                       variant="destructive"
+                                       className="h-6 text-[11px]"
+                                       onClick={() => doArchiveProstheticEvent(event.id)}
+                                       disabled={archiveProstheticEvent.isPending}
+                                     >
+                                       {archiveProstheticEvent.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                                       تأكيد الأرشفة
+                                     </Button>
+                                     <Button
+                                       type="button"
+                                       size="sm"
+                                       variant="outline"
+                                       className="h-6 text-[11px]"
+                                       onClick={() => setConfirmArchiveProstheticEventId(null)}
+                                       disabled={archiveProstheticEvent.isPending}
+                                     >
+                                       إلغاء
+                                     </Button>
+                                   </div>
+                                 </div>
+                               )}
+                             </div>
+                           );
+                         })}
+                     </div>
+                   ) : (
+                     <p className="text-xs text-muted-foreground rounded-lg bg-muted/30 px-3 py-2">
+                       لا توجد تركيبات موثقة لهذه الحالة حتى الآن.
+                     </p>
+                   )}
+                 </div>
+
+                 {prostheticEventCase?.id === c.id && (
+                   <ProstheticEventDialog
+                     open
+                     onOpenChange={(open) => {
+                       if (!open) setProstheticEventCase(null);
+                     }}
+                     patientId={group.patientId}
+                     caseItem={c}
+                   />
+                 )}
               </div>
             ))}
           </div>
@@ -1912,16 +2015,6 @@ function PatientExpandedRow({
           </p>
         )}
 
-        {prostheticEventCase && (
-          <ProstheticEventDialog
-            open
-            onOpenChange={(open) => {
-              if (!open) setProstheticEventCase(null);
-            }}
-            patientId={group.patientId}
-            caseItem={prostheticEventCase}
-          />
-        )}
       </div>
     </div>
   );
