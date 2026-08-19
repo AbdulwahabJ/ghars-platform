@@ -11,6 +11,8 @@ Three backend-enforced tiers, all derived from effective permissions (`user over
 2. **Clinic-wide finance** (`/finance/overview`, CSV export): `canViewFinancials` only.
 3. **Financial management** (base amount, charges, discounts, payment void): ADMIN, or DOCTOR with `canViewFinancials`. Assistants never manage, regardless of overrides.
 
+4. **Direct final-total edits** adjust the base treatment amount to preserve existing charges and discounts; the final total remains derived and is never stored as an override.
+
 Other binding decisions:
 - Payment status "مؤجل ماليًا" is derived from case status "مؤجل" (no stored flag); ordering: overpaid > fully paid > deferred > partial > unpaid. Shared `calcPaymentStatus` in lib/shared is the single source — backend and any future frontend use must call it.
 - All money arithmetic in integer cents (`toCents`); SQL SUMs come back as strings → `Number()` → cents. Derived totals are never stored.
@@ -18,4 +20,4 @@ Other binding decisions:
 - CSV exports need a UTF-8 BOM prefix or Arabic breaks in Excel.
 
 **Why:** spec mandates DOCTOR sees financials only if explicitly enabled and ASSISTANT gets no broader access from payment recording; deferred is a case-level clinical state, not a payment record.
-**How to apply:** Phase 4–6 features (dashboards, reports, settings) touching money must reuse these tiers and `calcPaymentStatus`, not invent new checks.
+**How to apply:** Phase 4–6 features (dashboards, reports, settings) touching money must reuse these tiers and `calcPaymentStatus`, not invent new checks. When offering an editable final total, calculate the required base amount from the current charges and discounts rather than adding a second total field.

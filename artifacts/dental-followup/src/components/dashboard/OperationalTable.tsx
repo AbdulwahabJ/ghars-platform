@@ -1317,7 +1317,7 @@ function OperationalFinanceSummary({
           </Badge>
         </div>
       </div>
-      {summary && (
+      {summary && finalTotalOpen && (
         <FinalTotalDialog
           open={finalTotalOpen}
           onOpenChange={setFinalTotalOpen}
@@ -1661,26 +1661,10 @@ function PatientExpandedRow({
                       الحالة: {row.caseStatus}
                     </p>
                   )}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
-                      <p className="text-[11px] text-muted-foreground">الإجمالي</p>
-                      <p className="mt-1 text-base font-bold tabular-nums">{formatMoney(row.finance.finalTotal)}</p>
-                    </div>
-                    <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
-                      <p className="text-[11px] text-muted-foreground">المدفوع</p>
-                      <p className="mt-1 text-base font-bold tabular-nums">{formatMoney(row.finance.paid)}</p>
-                    </div>
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
-                      <p className="text-[11px] text-muted-foreground">المتبقي</p>
-                      <p className="mt-1 text-base font-bold tabular-nums text-primary">{formatMoney(row.finance.remaining)}</p>
-                    </div>
-                    <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
-                      <p className="text-[11px] text-muted-foreground">حالة السداد</p>
-                      <Badge className={`mt-1 text-[10px] ${paymentStatusClass(row.finance.paymentStatus)}`}>
-                        {row.finance.paymentStatus}
-                      </Badge>
-                    </div>
-                  </div>
+                   <OperationalFinanceSummary
+                     row={row}
+                     canManage={canManageFinancials}
+                   />
                   <CasePaymentsSection caseId={row.caseId} canManage={canManageFinancials} />
                 </div>
               ) : null,
