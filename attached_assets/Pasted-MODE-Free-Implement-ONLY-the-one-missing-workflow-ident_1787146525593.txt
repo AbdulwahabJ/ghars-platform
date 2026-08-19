@@ -1,0 +1,263 @@
+MODE: Free
+
+Implement ONLY the one missing workflow identified by the completed data-flow audit.
+
+Do not rebuild or refactor any existing data domain.
+
+The audit confirmed that:
+
+* patients are already correctly connected
+* implant cases are already correctly connected
+* implants are already correctly connected
+* finance is already using canonical records
+* follow-ups are already using canonical records
+* dashboard/statistics/reports already read from the same canonical database records
+
+The ONLY missing Operational Table connection is:
+
+PROSTHETIC / INSTALLATION EVENT DOCUMENTATION.
+
+==================================================
+GOAL
+====
+
+Allow the user to document an actual prosthetic / installation event directly from the expanded patient/case area inside:
+
+Dashboard → Operational Table
+
+This must reuse the prosthetic-event functionality that already exists.
+
+Do NOT create a new data model.
+Do NOT create another API.
+Do NOT create another dialog.
+Do NOT create another source of truth.
+
+Reuse:
+
+* `ProstheticEventDialog`
+* existing prosthetic-event hooks
+* `POST /implant-cases/:id/prosthetic-events`
+* existing `prosthetic_events` table
+* existing permissions
+* existing audit behavior
+* existing validation
+
+==================================================
+
+1. ADD ACTION INSIDE EACH CASE
+   ==================================================
+
+Inside each implant-case section of the expanded Operational Table patient row, add a clear action:
+
+توثيق تركيب
+
+Place it near the existing case actions such as تعديل, but keep the design clean.
+
+This action belongs to the specific implant case.
+
+Do NOT add one ambiguous patient-level button when the patient may have multiple cases.
+
+==================================================
+2. REUSE THE EXISTING DIALOG
+============================
+
+Clicking:
+
+توثيق تركيب
+
+must open the EXISTING `ProstheticEventDialog`.
+
+Do not navigate away from the dashboard.
+
+Do not open the full patient file.
+
+Reuse the current fields and rules already implemented by that dialog, including:
+
+* prosthetic / installation type
+* actual event date
+* optional related implant where supported
+* note if already supported
+
+Do not add new fields unnecessarily.
+
+==================================================
+3. IMPORTANT — ACTUAL EVENT ONLY
+================================
+
+Do NOT automatically create a prosthetic event merely because:
+
+* case status becomes "تم التركيب"
+* expected prosthetic date is reached
+* follow-up is scheduled
+* case status changes
+
+The prosthetic event must remain an explicitly documented ACTUAL event.
+
+This is required so:
+
+* مرضى التركيب اليوم
+* التركيبات التي تمت اليوم
+* مرضى التركيب هذا الشهر
+* التركيبات التي تمت هذا الشهر
+
+remain accurate and auditable.
+
+==================================================
+4. AFTER SAVE
+=============
+
+After successful prosthetic-event documentation:
+
+* close the dialog
+* keep the patient Operational Table row expanded
+* refresh that case's details
+* refresh any visible prosthetic-event data
+* refresh `/dashboard`
+* update the 5-card work summary immediately
+
+The user should see the values change without manually refreshing the page.
+
+For example:
+
+Before:
+
+مرضى التركيب
+اليوم: 0
+هذا الشهر: 0
+
+After documenting one actual installation today for one patient:
+
+مرضى التركيب
+اليوم: 1
+
+التركيبات التي تمت
+اليوم: 1
+
+If the same patient receives another documented installation:
+
+مرضى التركيب
+اليوم: 1
+
+التركيبات التي تمت
+اليوم: 2
+
+Use the existing backend calculation logic exactly as it currently works.
+
+==================================================
+5. SHOW EXISTING PROSTHETIC EVENTS IN THE EXPANDED CASE
+=======================================================
+
+If the case already has documented prosthetic events, show them compactly inside the expanded case section.
+
+Keep this small and readable.
+
+Each record may show the existing available data such as:
+
+* type
+* actual date
+* related implant/site if available
+
+Do not create a large additional table.
+
+Use a compact row/card consistent with the existing case design.
+
+==================================================
+6. CORRECTION / ARCHIVE
+
+If the existing prosthetic-event workflow already supports archiving an incorrectly entered event:
+
+make that existing correction action accessible from the same expanded case area where appropriate.
+
+Reuse:
+
+`POST /prosthetic-events/:id/archive`
+
+Do not hard-delete events.
+
+Require the existing confirmation/permissions.
+
+After archive:
+
+* refresh the case
+* refresh `/dashboard`
+* the archived event must immediately stop contributing to today's/month's KPI values
+
+Do not create new archive behavior if it already exists — only expose/reuse the current implementation.
+
+==================================================
+7. PERMISSIONS
+
+Preserve all existing prosthetic-event permissions.
+
+Do not expand access.
+
+The frontend may hide unavailable actions, but server-side authorization remains authoritative.
+
+==================================================
+8. DO NOT CHANGE ANYTHING ELSE
+
+Do NOT change:
+
+* patient writes
+* case writes
+* implant writes
+* payment workflows
+* finance calculations
+* follow-up workflows
+* communications
+* dashboard KPI definitions
+* statistics
+* operational report queries
+* database schema
+* migrations
+* prosthetic-event calculation logic
+* case-status logic
+
+The data-flow audit confirmed those areas are already correct.
+
+Do not perform unnecessary refactoring.
+
+==================================================
+9. QUERY INVALIDATION
+
+Use the existing query/cache architecture.
+
+After create/archive, invalidate only the relevant queries, including where applicable:
+
+* selected patient's expanded case details
+* implant cases
+* operational report row if required
+* dashboard/work summary
+
+Do not trigger a full application reload.
+
+==================================================
+10. COST-AWARE VERIFICATION
+
+Do not run the full historical test suite.
+
+Run only:
+
+* affected TypeScript check
+* affected lint
+* one focused browser flow:
+
+1. expand a patient in Operational Table
+2. locate one case
+3. click "توثيق تركيب"
+4. document an installation dated today
+5. remain on the dashboard
+6. verify the patient row remains expanded
+7. verify the event appears in the case
+8. verify "مرضى التركيب" updates
+9. verify "التركيبات التي تمت" updates
+10. archive/correct the test event if using isolated test data
+11. verify the KPI values recalculate
+
+Use isolated test data for automated verification.
+
+Do not modify real development patient data during automated testing.
+
+Do not publish.
+
+Provide a concise completion report and stop.

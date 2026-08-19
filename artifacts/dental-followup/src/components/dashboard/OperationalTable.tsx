@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Calendar, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard } from "lucide-react";
+import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Calendar, CalendarCheck2, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,13 +18,14 @@ import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient,
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
 import { useArchivePatient, usePatient, useUpdatePatient } from "@/hooks/use-patients";
-import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useImplantOptions } from "@/hooks/use-implant-cases";
+import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useArchiveProstheticEvent, useImplantOptions } from "@/hooks/use-implant-cases";
 import { useFollowups, useCreateFollowup, useUpdateFollowup, useFollowupOutcome, useAssignableUsers } from "@/hooks/use-followups";
 import { useCreatePayment, useUpdatePayment, useVoidPayment, useCaseFinance } from "@/hooks/use-finance";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { InlineNewRecord } from "./InlineNewRecord";
+import { ProstheticEventDialog } from "@/components/implants/ProstheticEventDialog";
 import {
   OperationalDatePicker,
   OperationalDateTimeFields,
@@ -1259,6 +1260,7 @@ function PatientExpandedRow({
   const canRecordPayments = user?.role === "ADMIN" || user?.canRecordPayments;
   const canManageFinancials = user?.role === "ADMIN" || (user?.role === "DOCTOR" && user?.canViewFinancials);
   const canDeleteRows = user?.role === "ADMIN";
+  const canArchiveProstheticEvents = user?.role === "ADMIN" || user?.role === "DOCTOR";
 
   const patient = usePatient(group.patientId);
   const casesQuery = useImplantCases(group.patientId);
@@ -1266,6 +1268,7 @@ function PatientExpandedRow({
   const { toast } = useToast();
   const qc = useQueryClient();
   const archiveImplant = useArchiveImplant();
+  const archiveProstheticEvent = useArchiveProstheticEvent();
   const archivePatient = useArchivePatient();
   const followupOutcome = useFollowupOutcome(group.patientId);
 
@@ -1277,14 +1280,16 @@ function PatientExpandedRow({
   // Destructive confirmations
   const [confirmArchiveImplantId, setConfirmArchiveImplantId] = useState<string | null>(null);
   const [confirmArchivePatient, setConfirmArchivePatient] = useState(false);
+  const [confirmArchiveProstheticEventId, setConfirmArchiveProstheticEventId] = useState<string | null>(null);
   const [confirmCancelFollowupId, setConfirmCancelFollowupId] = useState<string | null>(null);
   // Inline quick-action state — one form open at a time
   type QuickAction = "implant" | "payment" | "followup";
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
   const [now] = useState(() => Date.now());
+  const [prostheticEventCase, setProstheticEventCase] = useState<ImplantCaseWithImplants | null>(null);
 
   const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
-  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
+  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmArchiveProstheticEventId(null); setConfirmCancelFollowupId(null); setProstheticEventCase(null); };
   const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
   const startEditFollowup = (id: string) => { setEditingFollowupId(id); setEditingPatient(false); setEditingCaseId(null); setEditingImplantId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
 
@@ -1300,6 +1305,25 @@ function PatientExpandedRow({
         onError: (error) => {
           toast({
             title: "تعذر حذف الزرعة",
+            description: error instanceof Error ? error.message : undefined,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  const doArchiveProstheticEvent = (eventId: string) => {
+    archiveProstheticEvent.mutate(
+      { id: eventId, patientId: group.patientId },
+      {
+        onSuccess: () => {
+          toast({ title: "تمت أرشفة سجل التركيب" });
+          setConfirmArchiveProstheticEventId(null);
+        },
+        onError: (error) => {
+          toast({
+            title: "تعذر أرشفة سجل التركيب",
             description: error instanceof Error ? error.message : undefined,
             variant: "destructive",
           });
@@ -1607,9 +1631,20 @@ function PatientExpandedRow({
                       </p>
                       {c.generalNote && <p className="text-xs text-muted-foreground">{c.generalNote}</p>}
                     </div>
-                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-muted-foreground shrink-0" onClick={() => startEditCase(c.id)}>
-                      <Pencil className="h-3 w-3" /> تعديل
-                    </Button>
+                     <div className="flex flex-wrap items-center gap-1 shrink-0">
+                       <Button
+                         type="button"
+                         variant="ghost"
+                         size="sm"
+                         className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary"
+                         onClick={() => setProstheticEventCase(c)}
+                       >
+                         <CalendarCheck2 className="h-3 w-3" /> توثيق تركيب
+                       </Button>
+                       <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => startEditCase(c.id)}>
+                         <Pencil className="h-3 w-3" /> تعديل
+                       </Button>
+                     </div>
                   </div>
                 )}
 
@@ -1875,6 +1910,17 @@ function PatientExpandedRow({
           <p className="text-sm text-muted-foreground px-1">
             لا توجد حالات نشطة. أضف حالة زراعة أولًا عبر الملف الكامل.
           </p>
+        )}
+
+        {prostheticEventCase && (
+          <ProstheticEventDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setProstheticEventCase(null);
+            }}
+            patientId={group.patientId}
+            caseItem={prostheticEventCase}
+          />
         )}
       </div>
     </div>
