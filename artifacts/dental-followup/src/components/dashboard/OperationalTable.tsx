@@ -817,6 +817,7 @@ function InlineAddFollowup({
           value={scheduledAt}
           onChange={setScheduledAt}
           required
+          label="موعد المتابعة"
         />
         {assignableUsers && assignableUsers.length > 0 && (
           <div className="space-y-1">
@@ -833,6 +834,7 @@ function InlineAddFollowup({
         <OperationalDateTimeFields
           value={nextAppointmentAt}
           onChange={setNextAppointmentAt}
+          label="الموعد التالي"
         />
         <div className="col-span-1 sm:col-span-2 flex items-center gap-2 pt-1">
           <Checkbox
