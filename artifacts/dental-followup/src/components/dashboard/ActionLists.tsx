@@ -85,7 +85,7 @@ export function ActionLists({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <ListCard
-        title="مواعيد اليوم"
+        title="حالات المراجعة"
         icon={<CalendarDays className="h-4 w-4 text-primary" />}
         items={todayAppointments}
         emptyText="لا توجد مواعيد متابعة اليوم."
