@@ -1,0 +1,409 @@
+MODE: Power
+
+Refine the existing prosthetic / installation workflow so the user does NOT have to manually perform two separate actions:
+
+1. change the implant status to "تم التركيب" / "تم تركيب مؤقت"
+2. then separately click "توثيق تركيب"
+
+The database architecture should remain correct:
+
+* `implants.status` = the CURRENT state of the implant
+* `prosthetic_events` = the historical, dated, auditable record of an ACTUAL prosthetic installation
+
+We need BOTH records.
+
+The goal is to remove duplicate USER WORK while preserving both canonical records.
+
+==================================================
+IMPORTANT — INSPECT BEFORE IMPLEMENTING
+=======================================
+
+Before changing code, inspect the CURRENT:
+
+* implant status enum/options
+* prosthetic event type enum/options
+* `ProstheticEventDialog`
+* create/archive prosthetic-event APIs
+* implant update API
+* permissions
+* audit behavior
+* dashboard KPI calculations
+
+Do NOT invent a new prosthetic type or status.
+
+Determine the exact existing mapping between statuses such as:
+
+* تم تركيب مؤقت
+* تم التركيب
+
+and the existing prosthetic-event types.
+
+If there is NOT a safe and unambiguous mapping in the current system:
+
+STOP and report the exact conflict.
+
+Do not guess.
+
+If the mapping is clear, proceed.
+
+==================================================
+
+1. PRIMARY USER WORKFLOW
+   ==================================================
+
+Inside the expanded Operational Table row, when the user edits an implant and changes its status to a status that represents an ACTUAL installation, such as:
+
+تم تركيب مؤقت
+
+or:
+
+تم التركيب
+
+do NOT immediately save that status by itself.
+
+Instead automatically open the EXISTING:
+
+`ProstheticEventDialog`
+
+for that specific implant/case.
+
+The user should complete the actual installation information there.
+
+The dialog should reuse existing fields, such as:
+
+* installation/prosthetic type
+* actual installation date
+* related implant/site
+* note where already supported
+
+The related implant should already be known and preselected when the flow started from that implant.
+
+Do not make the user select the implant again unless technically required.
+
+==================================================
+2. ATOMIC SAVE
+==============
+
+When the user confirms the prosthetic documentation:
+
+perform BOTH changes as one reliable operation:
+
+A. create the canonical `prosthetic_event`
+
+AND
+
+B. update the implant status to the matching installation status
+
+The result must never be:
+
+* status changed successfully but prosthetic event failed
+
+or:
+
+* prosthetic event created but status update failed
+
+Use a server-side database transaction.
+
+If the existing APIs cannot guarantee this atomically, implement the MINIMUM safe server-side orchestration/action required.
+
+Do not create a second data model.
+
+Do not duplicate financial/case/implant logic.
+
+==================================================
+3. CANCEL BEHAVIOR
+==================
+
+If the user changes the implant status to an installation status but then CANCELS the prosthetic documentation dialog:
+
+* do NOT save the new implant status
+* do NOT create a prosthetic event
+* return the implant editor to its previous status/value
+
+No partial change should remain.
+
+==================================================
+4. DIRECT DOCUMENTATION WORKFLOW
+================================
+
+The system should still allow documentation of an actual prosthetic installation directly when necessary.
+
+However, do not keep a large duplicate "توثيق تركيب" action beside "تعديل" that makes the normal workflow feel duplicated.
+
+Preferred UX:
+
+Inside the case's:
+
+سجل التركيبات
+
+show a small action:
+
+* إضافة تركيب
+
+Use the existing `ProstheticEventDialog`.
+
+When an event is documented directly:
+
+* create the prosthetic event
+* automatically update the related implant status to the correct matching installation status where the event is linked to an implant
+
+The user must not have to manually edit the implant status afterward.
+
+If an event is case-level and is not linked to a specific implant, preserve the existing safe behavior and do not guess which implant to update.
+
+==================================================
+5. TEMPORARY VS FINAL INSTALLATION
+==================================
+
+Temporary and final installation must remain distinguishable.
+
+Example product behavior:
+
+Temporary installation documented
+→ prosthetic event = existing temporary type
+→ implant status = تم تركيب مؤقت
+
+Final installation documented
+→ prosthetic event = existing final/completed type
+→ implant status = تم التركيب
+
+Use the REAL existing values from the codebase.
+
+Do not create these mappings from this prompt if the current enum terminology differs.
+
+==================================================
+6. DO NOT CREATE DUPLICATE EVENTS
+
+Changing/editing an implant that is ALREADY in an installation status must not silently create another prosthetic event.
+
+A prosthetic event should be created only through an explicit confirmed documentation flow.
+
+Examples:
+
+Existing implant:
+status = تم التركيب
+
+User opens edit and changes Q only
+→ update Q only
+→ NO new prosthetic event
+
+User changes:
+تم تركيب مؤقت → تم التركيب
+→ open documentation dialog for the new actual final installation
+→ create the final event after confirmation
+
+Do not infer historical events merely from an existing status.
+
+==================================================
+7. EXISTING HISTORICAL DATA
+
+Do NOT backfill `prosthetic_events` from existing implant statuses automatically.
+
+An old implant with:
+
+status = تم التركيب
+
+but no prosthetic event:
+
+must NOT receive an invented installation date.
+
+Leave historical data unchanged unless manually documented.
+
+Dashboard KPIs must continue using actual `prosthetic_events` only.
+
+==================================================
+8. ARCHIVING / CORRECTION
+
+Preserve the existing prosthetic-event archive/correction workflow.
+
+If an event is archived:
+
+* it must stop contributing to dashboard daily/monthly KPIs as it does currently
+* preserve audit history
+* do not hard-delete it
+
+IMPORTANT:
+
+Do NOT automatically roll back the implant's current status when an old historical event is archived if newer prosthetic events exist.
+
+If status reconciliation after archive is already implemented safely, reuse it.
+
+If not, do not invent automatic historical reconstruction in this task.
+
+==================================================
+9. DASHBOARD KPI SOURCE
+
+Do NOT change KPI definitions.
+
+These cards must continue reading from actual canonical `prosthetic_events`:
+
+* مرضى التركيب — اليوم
+* مرضى التركيب — هذا الشهر
+* التركيبات التي تمت — اليوم
+* التركيبات التي تمت — هذا الشهر
+
+The synchronized workflow simply ensures that when the user records an actual installation from the Operational Table, the proper event is created automatically.
+
+Do not calculate these cards from `implants.status`.
+
+==================================================
+10. OPERATIONAL TABLE REMAINS THE PRIMARY WORKSPACE
+
+The user-facing workflow should remain centered in the Operational Table.
+
+The intended experience:
+
+Edit implant
+→ select installation status
+→ prosthetic documentation opens automatically
+→ enter actual date/type
+→ Save
+→ event + status save together
+→ row stays expanded
+→ dashboard KPIs refresh automatically
+
+No navigation to the full patient file is required.
+
+==================================================
+11. QUERY INVALIDATION / UI REFRESH
+
+After successful save:
+
+* close the dialog
+* exit implant edit mode
+* keep the patient row expanded
+* refresh the implant
+* refresh the case/prosthetic event list
+* refresh the Operational Report row if needed
+* invalidate/refetch `/dashboard`
+
+The updated daily/monthly KPI values should appear without full-page reload.
+
+==================================================
+12. VALIDATION / ERRORS
+
+If the combined operation fails:
+
+* keep the form/dialog open
+* preserve entered values
+* show the exact Arabic reason
+* do not partially save either record
+
+Examples:
+
+"تاريخ التركيب الفعلي مطلوب."
+
+"تاريخ التركيب لا يمكن أن يكون في المستقبل."
+
+"لا يمكن توثيق التركيب لهذه الزرعة."
+
+"ليس لديك صلاحية لتنفيذ هذا الإجراء."
+
+Do not display raw SQL/Zod/internal errors.
+
+==================================================
+13. PERMISSIONS AND AUDIT
+
+Reuse all existing permissions.
+
+Do not expand access.
+
+Audit must correctly record:
+
+* prosthetic event creation
+* implant status change
+
+Prefer one coherent business-action audit context if the existing audit architecture supports it, while preserving the existing required audit records.
+
+Never trust frontend-supplied user identity.
+
+==================================================
+14. DO NOT CHANGE
+
+Do NOT change:
+
+* patient workflow
+* case-status logic
+* finance
+* payments
+* follow-ups
+* communications
+* implant clinical fields unrelated to status
+* KPI definitions
+* statistics definitions
+* database source-of-truth architecture
+* unrelated OperationalTable UI
+* WhatsApp
+* dashboard design
+
+This task is ONLY about unifying implant installation status + prosthetic-event documentation into one user workflow.
+
+==================================================
+15. FOCUSED VERIFICATION
+
+Do NOT run the full historical test suite.
+
+Run:
+
+* affected TypeScript checks
+* affected lint
+* focused backend transaction/workflow tests
+* one focused browser flow
+
+Verify:
+
+1. Change implant status from a non-installation status to temporary installation.
+
+2. Existing prosthetic dialog opens automatically.
+
+3. Cancel:
+
+   * no event created
+   * status unchanged.
+
+4. Repeat and confirm:
+
+   * one prosthetic event created
+   * implant becomes temporary-installed
+   * dashboard KPIs refresh.
+
+5. Change same implant from temporary installation to final installation.
+
+6. Document final installation:
+
+   * second appropriate historical event created
+   * implant current status becomes final-installed.
+
+7. Edit Q/Former/Graft afterward:
+
+   * no extra prosthetic event is created.
+
+8. Directly use "+ إضافة تركيب" from سجل التركيبات:
+
+   * event is created
+   * linked implant status synchronizes appropriately.
+
+9. Simulate backend failure:
+
+   * neither status nor event is partially committed.
+
+10. Verify one patient with multiple installation events:
+
+* مرضى التركيب counts the patient once per period
+* التركيبات التي تمت counts actual events correctly.
+
+Use isolated test data for automated/browser verification.
+
+Do not alter real development patient records.
+
+Do not publish.
+
+At completion report:
+
+1. exact status ↔ event-type mappings used
+2. how atomic synchronization was implemented
+3. whether any endpoint had to be minimally added/extended
+4. focused test results
+5. confirmation that KPI definitions were unchanged
+
+Stop.
