@@ -58,6 +58,7 @@ interface ProstheticEventContext {
 /* ------------------------------------------------------------------ */
 
 const PAGE_SIZE = 10;
+const SHOW_PROSTHETIC_EVENT_LOG = false;
 
 /* ------------------------------------------------------------------ */
 /* Group rows by patient (preserves SQL order: newest case first)     */
@@ -1854,7 +1855,7 @@ function PatientExpandedRow({
                   </div>
                 )}
 
-                 {/* D — أحداث التركيب الفعلية لهذه الحالة فقط */}
+                 {SHOW_PROSTHETIC_EVENT_LOG && (
                  <div className="mt-3 border-t border-border/60 pt-3 space-y-2">
                    <div className="flex items-center justify-between gap-2">
                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -1957,6 +1958,7 @@ function PatientExpandedRow({
                      </p>
                    )}
                  </div>
+                 )}
 
                  {prostheticEventContext?.caseItem.id === c.id && (
                    <ProstheticEventDialog
