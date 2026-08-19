@@ -14,8 +14,8 @@ import {
 import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
-import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment } from "@workspace/shared";
-import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS } from "@workspace/shared";
+import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment, ProstheticEventType } from "@workspace/shared";
+import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS, PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
 import { useArchivePatient, usePatient, useUpdatePatient } from "@/hooks/use-patients";
 import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useArchiveProstheticEvent, useImplantOptions } from "@/hooks/use-implant-cases";
@@ -44,6 +44,12 @@ interface PatientGroup {
   patientName: string;
   fileNumber: string;
   rows: OperationalRow[];
+}
+
+interface ProstheticEventContext {
+  caseItem: ImplantCaseWithImplants;
+  initialImplantId?: string;
+  initialEventType?: ProstheticEventType;
 }
 
 /* ------------------------------------------------------------------ */
@@ -291,10 +297,12 @@ function InlineImplantEdit({
   imp,
   patientId,
   onDone,
+  onRequestProstheticDocumentation,
 }: {
   imp: Implant;
   patientId: string;
   onDone: () => void;
+  onRequestProstheticDocumentation: (eventType: ProstheticEventType) => void;
 }) {
   const { toast } = useToast();
   const update = useUpdateImplant();
@@ -307,6 +315,18 @@ function InlineImplantEdit({
   const [formerValue, setFormerValue] = useState(imp.formerValue ?? "");
   const [graftValue, setGraftValue] = useState(imp.graftValue ?? "");
   const [implantStatus, setImplantStatus] = useState(imp.implantStatus);
+
+  const handleStatusChange = (nextStatus: ImplantStatus) => {
+    const eventType = PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS[
+      nextStatus as keyof typeof PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS
+    ];
+    if (eventType && nextStatus !== imp.implantStatus) {
+      setImplantStatus(imp.implantStatus);
+      onRequestProstheticDocumentation(eventType);
+      return;
+    }
+    setImplantStatus(nextStatus);
+  };
 
   const save = () => {
     update.mutate(
@@ -400,7 +420,7 @@ function InlineImplantEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">الحالة</Label>
-          <Select dir="rtl" value={implantStatus} onValueChange={(v) => setImplantStatus(v as typeof IMPLANT_STATUSES[number])}>
+          <Select dir="rtl" value={implantStatus} onValueChange={(v) => handleStatusChange(v as ImplantStatus)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -1286,10 +1306,10 @@ function PatientExpandedRow({
   type QuickAction = "implant" | "payment" | "followup";
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
   const [now] = useState(() => Date.now());
-  const [prostheticEventCase, setProstheticEventCase] = useState<ImplantCaseWithImplants | null>(null);
+  const [prostheticEventContext, setProstheticEventContext] = useState<ProstheticEventContext | null>(null);
 
   const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
-  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmArchiveProstheticEventId(null); setConfirmCancelFollowupId(null); setProstheticEventCase(null); };
+  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmArchiveProstheticEventId(null); setConfirmCancelFollowupId(null); setProstheticEventContext(null); };
   const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
   const startEditFollowup = (id: string) => { setEditingFollowupId(id); setEditingPatient(false); setEditingCaseId(null); setEditingImplantId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
 
@@ -1632,15 +1652,6 @@ function PatientExpandedRow({
                       {c.generalNote && <p className="text-xs text-muted-foreground">{c.generalNote}</p>}
                     </div>
                      <div className="flex flex-wrap items-center gap-1 shrink-0">
-                       <Button
-                         type="button"
-                         variant="ghost"
-                         size="sm"
-                         className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary"
-                         onClick={() => setProstheticEventCase(c)}
-                       >
-                         <CalendarCheck2 className="h-3 w-3" /> توثيق تركيب
-                       </Button>
                        <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => startEditCase(c.id)}>
                          <Pencil className="h-3 w-3" /> تعديل
                        </Button>
@@ -1668,7 +1679,18 @@ function PatientExpandedRow({
                             }`}
                           >
                             {editingImplantId === imp.id ? (
-                              <InlineImplantEdit imp={imp} patientId={group.patientId} onDone={() => setEditingImplantId(null)} />
+                              <InlineImplantEdit
+                                imp={imp}
+                                patientId={group.patientId}
+                                onDone={() => setEditingImplantId(null)}
+                                onRequestProstheticDocumentation={(eventType) => {
+                                  setProstheticEventContext({
+                                    caseItem: c,
+                                    initialImplantId: imp.id,
+                                    initialEventType: eventType,
+                                  });
+                                }}
+                              />
                             ) : (
                               <>
                                 <div className="flex items-center justify-between gap-2">
@@ -1789,9 +1811,21 @@ function PatientExpandedRow({
                        <CalendarCheck2 className="h-3 w-3" />
                        سجل التركيبات
                      </p>
-                     <Badge variant="secondary" className="text-[10px]">
-                       {c.prostheticEvents.filter((event) => event.status === "active").length}
-                     </Badge>
+                     <div className="flex items-center gap-1">
+                       <Badge variant="secondary" className="text-[10px]">
+                         {c.prostheticEvents.filter((event) => event.status === "active").length}
+                       </Badge>
+                       <Button
+                         type="button"
+                         variant="ghost"
+                         size="sm"
+                         className="h-6 px-2 text-[11px] gap-1 text-primary hover:text-primary"
+                         onClick={() => setProstheticEventContext({ caseItem: c })}
+                       >
+                         <Plus className="h-3 w-3" />
+                         إضافة تركيب
+                       </Button>
+                     </div>
                    </div>
                    {c.prostheticEvents.filter((event) => event.status === "active").length > 0 ? (
                      <div className="space-y-2">
@@ -1874,14 +1908,21 @@ function PatientExpandedRow({
                    )}
                  </div>
 
-                 {prostheticEventCase?.id === c.id && (
+                 {prostheticEventContext?.caseItem.id === c.id && (
                    <ProstheticEventDialog
                      open
                      onOpenChange={(open) => {
-                       if (!open) setProstheticEventCase(null);
+                       if (!open) setProstheticEventContext(null);
                      }}
                      patientId={group.patientId}
                      caseItem={c}
+                     initialImplantId={prostheticEventContext.initialImplantId}
+                     initialEventType={prostheticEventContext.initialEventType}
+                     onSuccess={() => {
+                       if (prostheticEventContext.initialImplantId) {
+                         setEditingImplantId(null);
+                       }
+                     }}
                    />
                  )}
               </div>

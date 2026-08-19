@@ -7,6 +7,16 @@ export const PROSTHETIC_EVENT_TYPES = [
 export const prostheticEventTypeSchema = z.enum(PROSTHETIC_EVENT_TYPES);
 export type ProstheticEventType = z.infer<typeof prostheticEventTypeSchema>;
 
+export const IMPLANT_STATUS_BY_PROSTHETIC_EVENT = {
+  "تركيب مؤقت": "تم تركيب مؤقت",
+  "تركيب دائم": "تم التركيب",
+} as const;
+
+export const PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS = {
+  "تم تركيب مؤقت": "تركيب مؤقت",
+  "تم التركيب": "تركيب دائم",
+} as const;
+
 const isoDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "صيغة التاريخ غير صحيحة.")

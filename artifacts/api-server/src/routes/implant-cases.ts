@@ -26,6 +26,7 @@ import {
   implantCaseUpdateSchema,
   implantInputSchema,
   implantUpdateSchema,
+  IMPLANT_STATUS_BY_PROSTHETIC_EVENT,
   prostheticEventInputSchema,
   PROSTHETIC_EVENT_NOT_FOUND,
   riyadhDateOf,
@@ -425,6 +426,7 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
     return;
   }
 
+  let linkedImplant: ImplantRow | null = null;
   if (input.implantId) {
     const implant = await findImplant(input.implantId);
     if (
@@ -438,28 +440,82 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
       });
       return;
     }
+    linkedImplant = implant;
   }
 
-  const [row] = await db
-    .insert(prostheticEventsTable)
-    .values({
-      implantCaseId: parentCase.id,
-      implantId: input.implantId,
-      eventType: input.eventType,
-      eventDate: input.eventDate,
-      note: input.note,
-      createdBy: req.currentUser!.id,
-    })
-    .returning();
+  const { row: event, implant } = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(prostheticEventsTable)
+      .values({
+        implantCaseId: parentCase.id,
+        implantId: input.implantId,
+        eventType: input.eventType,
+        eventDate: input.eventDate,
+        note: input.note,
+        createdBy: req.currentUser!.id,
+      })
+      .returning();
 
-  await writeAudit({
-    userId: req.currentUser!.id,
-    action: "prosthetic_event_create",
-    entityType: "prosthetic_event",
-    entityId: row.id,
-    summary: `توثيق ${row.eventType}`,
+    await writeAudit(
+      {
+        userId: req.currentUser!.id,
+        action: "prosthetic_event_create",
+        entityType: "prosthetic_event",
+        entityId: row.id,
+        summary: `توثيق ${row.eventType}`,
+      },
+      tx,
+    );
+
+    if (!linkedImplant) {
+      return { row, implant: null };
+    }
+
+    const targetStatus = IMPLANT_STATUS_BY_PROSTHETIC_EVENT[input.eventType];
+    if (linkedImplant.implantStatus === targetStatus) {
+      return { row, implant: linkedImplant };
+    }
+
+    const [updatedImplant] = await tx
+      .update(implantsTable)
+      .set({
+        implantStatus: targetStatus,
+        updatedBy: req.currentUser!.id,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(implantsTable.id, linkedImplant.id),
+          isNull(implantsTable.archivedAt),
+        ),
+      )
+      .returning();
+    if (!updatedImplant) {
+      throw new Error("لا يمكن توثيق التركيب لهذه الزرعة.");
+    }
+
+    await writeAudit(
+      {
+        userId: req.currentUser!.id,
+        action: "implant_update",
+        entityType: "implant",
+        entityId: updatedImplant.id,
+        summary: `تحديث حالة زرعة السن ${updatedImplant.site}`,
+        details: {
+          changedFields: ["implantStatus"],
+          source: "prosthetic_event_create",
+          eventType: row.eventType,
+        },
+      },
+      tx,
+    );
+    return { row, implant: updatedImplant };
   });
-  res.status(201).json({ event: toProstheticEventDto(row) });
+
+  res.status(201).json({
+    event: toProstheticEventDto(event),
+    implant: implant ? toImplantDto(implant) : undefined,
+  });
 });
 
 router.patch("/implant-cases/:id", async (req, res) => {

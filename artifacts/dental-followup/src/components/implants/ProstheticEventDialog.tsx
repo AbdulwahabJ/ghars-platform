@@ -3,6 +3,7 @@ import {
   PROSTHETIC_EVENT_TYPES,
   type Implant,
   type ImplantCaseWithImplants,
+  type ProstheticEventType,
 } from "@workspace/shared";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,9 @@ interface ProstheticEventDialogProps {
   onOpenChange: (open: boolean) => void;
   patientId: string;
   caseItem: ImplantCaseWithImplants;
+  initialEventType?: ProstheticEventType;
+  initialImplantId?: string | null;
+  onSuccess?: () => void;
 }
 
 export function ProstheticEventDialog({
@@ -40,6 +44,9 @@ export function ProstheticEventDialog({
   onOpenChange,
   patientId,
   caseItem,
+  initialEventType,
+  initialImplantId,
+  onSuccess,
 }: ProstheticEventDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,6 +55,9 @@ export function ProstheticEventDialog({
           patientId={patientId}
           caseItem={caseItem}
           onClose={() => onOpenChange(false)}
+          initialEventType={initialEventType}
+          initialImplantId={initialImplantId}
+          onSuccess={onSuccess}
         />
       </DialogContent>
     </Dialog>
@@ -58,16 +68,19 @@ function ProstheticEventForm({
   patientId,
   caseItem,
   onClose,
+  initialEventType,
+  initialImplantId,
+  onSuccess,
 }: Omit<ProstheticEventDialogProps, "open" | "onOpenChange"> & {
   onClose: () => void;
 }) {
   const { toast } = useToast();
   const createEvent = useCreateProstheticEvent();
-  const [eventType, setEventType] = useState<(typeof PROSTHETIC_EVENT_TYPES)[number]>(
-    "تركيب دائم",
+  const [eventType, setEventType] = useState<ProstheticEventType>(
+    initialEventType ?? "تركيب دائم",
   );
   const [eventDate, setEventDate] = useState(todayInRiyadh);
-  const [implantId, setImplantId] = useState(CASE_LEVEL);
+  const [implantId, setImplantId] = useState(initialImplantId ?? CASE_LEVEL);
   const [note, setNote] = useState("");
   const activeImplants = caseItem.implants.filter((implant) => implant.status === "active");
 
@@ -90,6 +103,7 @@ function ProstheticEventForm({
       {
         onSuccess: () => {
           toast({ title: "تم توثيق التركيب في السجل" });
+              onSuccess?.();
           onClose();
         },
         onError: (error: Error) =>
@@ -131,7 +145,11 @@ function ProstheticEventForm({
 
         <div className="space-y-2">
           <FieldLabel label="الزرعة المرتبطة (اختياري)" />
-          <Select value={implantId} onValueChange={setImplantId}>
+          <Select
+            value={implantId}
+            onValueChange={setImplantId}
+            disabled={Boolean(initialImplantId)}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent dir="rtl">
               <SelectItem value={CASE_LEVEL}>تركيب للحالة كاملة</SelectItem>

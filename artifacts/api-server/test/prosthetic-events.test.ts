@@ -84,6 +84,59 @@ describe("prosthetic events", () => {
     expect(row.prostheticEvents).toEqual([
       expect.objectContaining({ id: eventId, note: "تركيب نهائي موثق" }),
     ]);
+    expect(row.implants.find((item: { id: string }) => item.id === implantId))
+      .toMatchObject({ implantStatus: "تم التركيب" });
+  });
+
+  it("synchronizes a linked temporary event but leaves case-level events from guessing an implant", async () => {
+    const temporary = await admin
+      .post(`/api/implant-cases/${caseId}/prosthetic-events`)
+      .send({
+        eventType: "تركيب مؤقت",
+        eventDate: riyadhToday(),
+        implantId,
+        note: "تركيب مؤقت موثق",
+      });
+    expect(temporary.status).toBe(201);
+    expect(temporary.body.implant).toMatchObject({
+      id: implantId,
+      implantStatus: "تم تركيب مؤقت",
+    });
+
+    const caseLevel = await admin
+      .post(`/api/implant-cases/${caseId}/prosthetic-events`)
+      .send({
+        eventType: "تركيب دائم",
+        eventDate: riyadhToday(),
+        note: "تركيب على مستوى الحالة",
+      });
+    expect(caseLevel.status).toBe(201);
+    expect(caseLevel.body.implant).toBeUndefined();
+
+    const list = await admin.get(`/api/patients/${patientId}/implant-cases`);
+    const row = list.body.items.find((item: { id: string }) => item.id === caseId);
+    expect(row.implants.find((item: { id: string }) => item.id === implantId))
+      .toMatchObject({ implantStatus: "تم تركيب مؤقت" });
+  });
+
+  it("does not create an event when unrelated implant fields are edited", async () => {
+    const before = await admin.get(`/api/patients/${patientId}/implant-cases`);
+    const beforeRow = before.body.items.find((item: { id: string }) => item.id === caseId);
+    const eventCount = beforeRow.prostheticEvents.length;
+
+    const update = await admin.patch(`/api/implants/${implantId}`).send({
+      qValue: "30",
+    });
+    expect(update.status).toBe(200);
+    expect(update.body.implant).toMatchObject({
+      id: implantId,
+      qValue: "30",
+      implantStatus: "تم تركيب مؤقت",
+    });
+
+    const after = await admin.get(`/api/patients/${patientId}/implant-cases`);
+    const afterRow = after.body.items.find((item: { id: string }) => item.id === caseId);
+    expect(afterRow.prostheticEvents).toHaveLength(eventCount);
   });
 
   it("rejects future dates and implants from another case", async () => {
