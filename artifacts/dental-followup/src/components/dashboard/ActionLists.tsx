@@ -2,8 +2,6 @@ import { Link } from "wouter";
 import {
   AlarmClock,
   CalendarDays,
-  CheckCircle2,
-  PhoneCall,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,13 +78,9 @@ function ListCard({
 export function ActionLists({
   todayAppointments,
   overdueFollowups,
-  readyCases,
-  contactTasks,
 }: {
   todayAppointments: DashboardListItem[];
   overdueFollowups: DashboardListItem[];
-  readyCases: DashboardListItem[];
-  contactTasks: DashboardListItem[];
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -103,20 +97,6 @@ export function ActionLists({
         items={overdueFollowups}
         emptyText="لا توجد متابعات متأخرة."
         testId="list-overdue-followups"
-      />
-      <ListCard
-        title="حالات جاهزة للتركيب"
-        icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
-        items={readyCases}
-        emptyText="لا توجد حالات جاهزة للتركيب حاليًا."
-        testId="list-ready-cases"
-      />
-      <ListCard
-        title="مهام التواصل المستحقة"
-        icon={<PhoneCall className="h-4 w-4 text-amber-600" />}
-        items={contactTasks}
-        emptyText="لا توجد مهام تواصل مستحقة."
-        testId="list-contact-tasks"
       />
     </div>
   );

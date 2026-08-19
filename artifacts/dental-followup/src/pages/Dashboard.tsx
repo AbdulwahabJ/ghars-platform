@@ -324,8 +324,6 @@ export default function Dashboard() {
               <ActionLists
                 todayAppointments={dashboard.data.todayAppointments}
                 overdueFollowups={dashboard.data.overdueFollowups}
-                readyCases={dashboard.data.readyCases}
-                contactTasks={dashboard.data.contactTasks}
               />
             </>
           )}
