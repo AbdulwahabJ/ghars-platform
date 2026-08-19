@@ -1,0 +1,93 @@
+MODE: Free
+
+Refine ONLY the "الأنظمة المستخدمة" KPI card inside the dashboard work-summary section.
+
+Do not change backend calculations, API responses, dashboard logic, other KPI cards, or any business rules.
+
+## CURRENT ISSUE
+
+The implant-system names are currently rendered as chips/tags at the bottom of the card.
+
+This makes the card visually cluttered and breaks the clean alignment with the other KPI cards.
+
+## REQUIRED CHANGE
+
+Remove the permanently visible implant-system name chips from the card.
+
+The card should visually match the other summary cards and show only the primary daily/monthly values.
+
+Recommended display:
+
+الأنظمة المستخدمة
+
+اليوم
+0
+
+هذا الشهر
+5
+
+Do not show the system names permanently inside the card body.
+
+## OPTIONAL DETAIL ACCESS
+
+Keep the system-name information available in a lightweight secondary interaction.
+
+Preferred behavior:
+
+* when the user clicks or hovers the "هذا الشهر" value, or a small info icon,
+* show a compact tooltip/popover containing the system names.
+
+Example:
+
+الأنظمة المستخدمة هذا الشهر:
+Neoss
+Nobel
+MegaGen
+Ora
+Neodent
+
+For touch/mobile:
+
+* use click/tap, not hover-only behavior.
+
+If there are no systems:
+show:
+
+لا توجد أنظمة مستخدمة في هذه الفترة.
+
+## VISUAL RULES
+
+* Keep exactly the same card dimensions and visual hierarchy as the other 4 KPI cards.
+* Do not increase card height.
+* Do not add permanent extra rows under the monthly value.
+* Keep the existing icon and title.
+* Preserve RTL alignment and current brand styling.
+
+## DO NOT CHANGE
+
+Do not change:
+
+* system counting logic
+* distinct-system logic
+* today/month date logic
+* API contract unless absolutely unnecessary
+* other KPI cards
+* dashboard layout
+* backend
+
+This is UI cleanup only.
+
+## VERIFICATION
+
+Verify visually that:
+
+1. the card no longer shows system chips at the bottom
+2. the card height aligns with the other KPI cards
+3. today/month values remain correct
+4. system names remain accessible through the optional tooltip/popover
+5. mobile layout remains clean
+
+Do not run the full test suite.
+Do not publish.
+
+Provide a concise completion report and stop.

@@ -1,11 +1,38 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Hexagon, Layers, UserCheck, CheckCircle } from "lucide-react";
+import {
+  CheckCircle,
+  Hexagon,
+  Info,
+  Layers,
+  UserCheck,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import type { DashboardResponse } from "@workspace/shared";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+type SystemNames = {
+  today: string[];
+  month: string[];
+};
+
+type KpiCard = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  today: number;
+  month: number;
+  systemNames?: SystemNames;
+};
 
 export function KpiCards({ data }: { data: DashboardResponse }) {
   const ws = data.workSummary;
 
-  const cards = [
+  const cards: KpiCard[] = [
     {
       id: "implanted-patients",
       label: "المرضى الذين تم زرعهم",
@@ -26,10 +53,10 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
       icon: Layers,
       today: ws.today.implantSystems?.count ?? 0,
       month: ws.month.implantSystems?.count ?? 0,
-      names: Array.from(new Set([
-          ...ws.today.implantSystems.names,
-          ...ws.month.implantSystems.names
-      ]))
+      systemNames: {
+        today: ws.today.implantSystems.names,
+        month: ws.month.implantSystems.names,
+      },
     },
     {
       id: "prosthetic-patients",
@@ -59,6 +86,33 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
               <p className="text-sm font-semibold text-foreground leading-snug">
                 {c.label}
               </p>
+              {c.systemNames && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="عرض أسماء أنظمة الزرعات"
+                      className="mr-auto rounded-full p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    dir="rtl"
+                    className="w-64 space-y-3 text-right"
+                  >
+                    <SystemNamesList
+                      label="الأنظمة المستخدمة اليوم"
+                      names={c.systemNames.today}
+                    />
+                    <SystemNamesList
+                      label="الأنظمة المستخدمة هذا الشهر"
+                      names={c.systemNames.month}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 divide-x divide-x-reverse divide-border/50">
@@ -76,18 +130,36 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
               </div>
             </div>
 
-            {c.names && c.names.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {c.names.map(name => (
-                  <span key={name} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-[4px] leading-none whitespace-nowrap">
-                    {name}
-                  </span>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+function SystemNamesList({
+  label,
+  names,
+}: {
+  label: string;
+  names: string[];
+}) {
+  const uniqueNames = Array.from(new Set(names));
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-foreground">{label}</p>
+      {uniqueNames.length > 0 ? (
+        <ul className="space-y-1 text-xs text-muted-foreground">
+          {uniqueNames.map((name) => (
+            <li key={name}>{name}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          لا توجد أنظمة مستخدمة في هذه الفترة.
+        </p>
+      )}
     </div>
   );
 }
