@@ -1,0 +1,261 @@
+MODE: Power
+
+READ-ONLY ARCHITECTURE / DATA-FLOW AUDIT ONLY.
+
+Do NOT implement anything.
+Do NOT modify code.
+Do NOT create migrations.
+Do NOT change the database.
+Do NOT refactor.
+Do NOT fix issues yet.
+Do NOT create new UI.
+Do NOT publish.
+
+I want you to inspect the current system and explain exactly how data flows from the Operational Table into the rest of the application.
+
+The purpose of this audit is to avoid unnecessary work if the architecture is already correct.
+
+==================================================
+CORE PRODUCT INTENT
+===================
+
+From the user's point of view, the Operational Table on the Dashboard is the PRIMARY operational entry point.
+
+From that table / expanded patient row we create or edit things such as:
+
+* patient data
+* implant case data
+* implants
+* implant dates
+* case status
+* payments
+* follow-ups
+* follow-up outcomes
+* financial information
+* prosthetic / installation information
+* any other operational patient/case data exposed there
+
+The Operational Table itself should NOT become the database.
+
+The intended architecture is:
+
+Operational Table / inline forms
+↓
+canonical database records
+↓
+Dashboard KPIs
+Statistics
+Reports
+Patient summary
+Notifications
+Finance
+Follow-up lists
+etc.
+
+The database remains the single source of truth.
+
+==================================================
+MAIN QUESTION
+=============
+
+Inspect the CURRENT implementation and tell me:
+
+Is this already how the system works?
+
+In other words:
+
+When data is entered or edited from the Operational Table, do all Dashboard KPIs, statistics, reports, summaries, notifications, and other derived screens already read from those SAME canonical records?
+
+Or are there any areas using:
+
+* separate duplicate data,
+* special dashboard-only records,
+* stale duplicated logic,
+* fields not written by the Operational Table,
+* or another data source that requires separate manual entry?
+
+==================================================
+TRACE EACH DATA DOMAIN
+======================
+
+For each domain below, trace:
+
+1. where the Operational Table writes the data
+2. which database table/field becomes the canonical record
+3. which API/endpoint performs the write
+4. which APIs / query helpers / statistics read from it
+5. whether Dashboard / Reports / Statistics use the same source
+6. whether there is any duplicate source of truth
+
+Audit:
+
+A. Patients
+
+* name
+* file number
+* phone
+* age
+* other patient fields
+
+B. Implant cases
+
+* procedure date
+* treating doctor
+* referring doctor
+* case status
+* Pros
+* expected prosthetic date
+* notes
+
+C. Implants
+
+* FDI site
+* system
+* diameter
+* length
+* Q
+* Former
+* Graft
+* tags
+* status
+* notes
+
+D. Financials
+
+* base treatment amount
+* charges
+* discounts
+* payments
+* payment voids
+* total
+* paid
+* remaining
+* payment status
+
+E. Follow-ups
+
+* type
+* scheduled date/time
+* assignee
+* contact requirement
+* next appointment
+* outcome
+* postponement
+* cancellation
+
+F. Communications
+
+* WhatsApp/manual communication results
+* contact outcomes
+
+G. Prosthetic / installation data
+
+* actual installation/completion event
+* installation date
+* installation type
+* related implant/case
+* archived/corrected installation events
+
+==================================================
+DASHBOARD + REPORT TRACE
+========================
+
+Then inspect these derived areas and tell me exactly what canonical data they use:
+
+* Dashboard work-summary cards
+* Today's appointments
+* Overdue follow-ups
+* Ready-for-installation cases
+* Contact tasks
+* Operational Report
+* Statistics/charts
+* Patient Summary tab
+* Finance page
+* Notifications bell
+* CSV/print reports
+
+For every area, state whether it reads directly or indirectly from the same canonical records written by the Operational Table.
+
+==================================================
+SPECIAL FOCUS — PROSTHETIC DATA
+===============================
+
+This is the area I suspect may still be disconnected.
+
+The new Dashboard cards include:
+
+* مرضى التركيب
+* التركيبات التي تمت
+
+You recently added a dated prosthetic/installation event record so these values would not be guessed from expected dates or case status.
+
+Inspect whether that prosthetic-event record can currently be CREATED / EDITED / ARCHIVED from the Operational Table itself.
+
+If NOT, clearly state:
+
+* where it can currently be entered
+* why the Dashboard values therefore remain 0 even though patient/case/implant data exists
+* the minimum UI connection required so prosthetic events can be recorded from the same Operational Table workflow
+
+Do NOT implement this yet.
+
+==================================================
+IMPORTANT DISTINCTION
+=====================
+
+Do NOT interpret "the statistics should read from the table" literally as reading rendered frontend rows.
+
+The intended architecture is:
+
+Operational Table writes canonical records.
+
+Statistics/KPIs read those canonical records.
+
+The Operational Table is the user's operational interface, not the physical source of data.
+
+Confirm whether the current system follows this pattern.
+
+==================================================
+NO UNNECESSARY CHANGES
+======================
+
+If patients, cases, implants, payments, follow-ups, etc. are already correctly connected:
+
+DO NOT propose rebuilding them.
+
+Simply mark them:
+
+"Already correct — no change required."
+
+Only identify actual missing/disconnected flows.
+
+==================================================
+OUTPUT FORMAT
+=============
+
+Return a concise audit report with this table:
+
+Domain | Operational Table writes to | Dashboard/Stats reads from | Same source? | Action needed?
+
+Use rows for:
+
+* Patients
+* Cases
+* Implants
+* Finance
+* Follow-ups
+* Communications
+* Prosthetic events
+
+Then provide:
+
+1. Overall architecture verdict
+2. What is already correct
+3. Any duplicated/disconnected sources
+4. Exact prosthetic-event status
+5. Minimum change required, if any
+6. Files/endpoints involved in that minimum change
+
+Do NOT implement the change.
+
+Stop after the audit.
