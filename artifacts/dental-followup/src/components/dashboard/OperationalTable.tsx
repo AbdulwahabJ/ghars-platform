@@ -72,10 +72,6 @@ const NORMAL_IMPLANT_STATUS_PROGRESSION: readonly ImplantStatus[] = [
   "تم تركيب مؤقت",
   "تم التركيب",
 ];
-const EXCEPTIONAL_IMPLANT_STATUSES = IMPLANT_STATUSES.filter(
-  (status) =>
-    !NORMAL_IMPLANT_STATUS_PROGRESSION.includes(status) && status !== "مؤرشفة",
-) as ImplantStatus[];
 
 /* ------------------------------------------------------------------ */
 /* Group rows by patient (preserves SQL order: newest case first)     */
@@ -313,33 +309,6 @@ function ImplantStatusStepper({
         <TooltipContent dir="rtl">المرحلة التالية</TooltipContent>
       </Tooltip>
 
-      <Select
-        onValueChange={(value) => requestStatusChange(value as ImplantStatus)}
-        disabled={busy}
-      >
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <SelectTrigger
-              className="h-7 w-7 shrink-0 px-0"
-              aria-label="الحالات الاستثنائية"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-            </SelectTrigger>
-          </TooltipTrigger>
-          <TooltipContent dir="rtl">الحالات الاستثنائية</TooltipContent>
-        </Tooltip>
-        <SelectContent dir="rtl">
-          {EXCEPTIONAL_IMPLANT_STATUSES.map((status) => (
-            <SelectItem
-              key={status}
-              value={status}
-              disabled={status === implant.implantStatus}
-            >
-              {status}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
     </div>
   );
 }
