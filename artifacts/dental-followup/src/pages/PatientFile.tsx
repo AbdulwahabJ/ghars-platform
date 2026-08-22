@@ -17,7 +17,6 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { usePatient, useArchivePatient, useRestorePatient } from "@/hooks/use-patients";
 import { useToast } from "@/hooks/use-toast";
-import { formatSaudiDate } from "@/lib/datetime";
 import { PatientDetailsSection } from "@/components/patients/PatientDetailsSection";
 import { ImplantsTab } from "@/components/implants/ImplantsTab";
 import { PaymentsTab } from "@/components/finance/PaymentsTab";
@@ -109,31 +108,12 @@ export default function PatientFile() {
           </Button>
         </div>
 
-        <header className="border-b border-border pb-5">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-            <div className="flex items-start gap-3">
-              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold ${isArchived ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
-                {patient.fullName.charAt(0)}
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold text-foreground">{patient.fullName}</h1>
-                  {isArchived ? <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">مؤرشف</span> : null}
-                </div>
-                <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
-                  <div><dt className="sr-only">رقم الملف</dt><dd>رقم الملف: <span dir="ltr" className="font-mono text-foreground">{patient.fileNumber}</span></dd></div>
-                  <div><dt className="sr-only">رقم الجوال</dt><dd>الجوال: <span dir="ltr" className="font-mono text-foreground">{patient.mobileNumber || "—"}</span></dd></div>
-                  <div><dt className="sr-only">العمر</dt><dd>العمر: <span className="text-foreground">{patient.age ? `${patient.age} سنة` : "—"}</span></dd></div>
-                  <div><dt className="sr-only">تاريخ الإضافة</dt><dd>أضيف في: <span className="text-foreground">{formatSaudiDate(patient.createdAt)}</span></dd></div>
-                </dl>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 self-start print:hidden">
-              <Switch id="patient-show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
-              <Label htmlFor="patient-show-archived" className="cursor-pointer text-sm text-muted-foreground">
-                إظهار العناصر المؤرشفة
-              </Label>
-            </div>
+        <header className="flex justify-end border-b border-border pb-5 print:hidden">
+          <div className="flex items-center gap-2">
+            <Switch id="patient-show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
+            <Label htmlFor="patient-show-archived" className="cursor-pointer text-sm text-muted-foreground">
+              إظهار العناصر المؤرشفة
+            </Label>
           </div>
         </header>
 
