@@ -124,7 +124,6 @@ export function CaseFinancePanel({
         canManage={canManage && writable}
       />
       <ChargesSection data={data} caseItem={caseItem} canManage={canManage && writable} />
-      <DiscountsSection data={data} caseItem={caseItem} canManage={canManage && writable} />
     </div>
   );
 }

@@ -1,6 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Archive, AlertCircle, ArrowRight, Loader2, Printer } from "lucide-react";
+import {
+  Archive,
+  AlertCircle,
+  ArrowRight,
+  ClipboardList,
+  CreditCard,
+  Loader2,
+  MessageCircle,
+  Printer,
+  UserRound,
+} from "lucide-react";
 import { Shell } from "@/components/layout/Shell";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,10 +33,10 @@ import { PaymentsTab } from "@/components/finance/PaymentsTab";
 import { FollowupsTab } from "@/components/followups/FollowupsTab";
 
 const sectionLinks = [
-  { id: "patient-details", label: "بيانات المريض" },
-  { id: "implant-cases", label: "الزراعة" },
-  { id: "patient-finance", label: "المالية" },
-  { id: "patient-followups", label: "المتابعات" },
+  { id: "patient-details", label: "بيانات المريض", icon: UserRound },
+  { id: "implant-cases", label: "الزراعة", icon: ClipboardList },
+  { id: "patient-finance", label: "المالية", icon: CreditCard },
+  { id: "patient-followups", label: "المتابعات", icon: MessageCircle },
 ];
 
 export default function PatientFile() {
@@ -39,13 +49,37 @@ export default function PatientFile() {
   const restorePatient = useRestorePatient();
   const [showArchived, setShowArchived] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [activeSection, setActiveSection] = useState(sectionLinks[0].id);
 
   const patient = data?.patient;
   const canArchive = user?.role === "ADMIN";
 
   const scrollTo = (sectionId: string) => {
+    setActiveSection(sectionId);
     document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  useEffect(() => {
+    if (!patient) return;
+
+    const sections = sectionLinks
+      .map((link) => document.getElementById(link.id))
+      .filter((section): section is HTMLElement => Boolean(section));
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]?.target.id) setActiveSection(visible[0].target.id);
+      },
+      { rootMargin: "-112px 0px -58% 0px", threshold: [0, 0.1, 0.5] },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [patient]);
 
   const handleArchive = () => {
     if (!id) return;
@@ -124,12 +158,31 @@ export default function PatientFile() {
           </Alert>
         ) : null}
 
-        <nav aria-label="أقسام الملف" className="sticky top-0 z-10 -mx-2 mt-5 flex gap-1 overflow-x-auto border-y border-border bg-background/95 px-2 py-2 backdrop-blur print:hidden">
+        <nav
+          aria-label="أقسام الملف"
+          className="sticky top-0 z-10 -mx-2 mt-5 overflow-x-auto border-y border-border bg-background/95 px-2 py-2 shadow-sm backdrop-blur print:hidden"
+        >
+          <div className="flex min-w-max gap-1 rounded-xl border border-border/80 bg-muted/35 p-1">
           {sectionLinks.map((link) => (
-            <Button key={link.id} variant="ghost" size="sm" className="shrink-0 text-muted-foreground" onClick={() => scrollTo(link.id)}>
+            <Button
+              key={link.id}
+              variant="ghost"
+              size="sm"
+              aria-current={activeSection === link.id ? "location" : undefined}
+              data-active={activeSection === link.id}
+              data-testid={`patient-section-${link.id}`}
+              className={`shrink-0 gap-2 rounded-lg px-3 transition-all ${
+                activeSection === link.id
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground"
+                  : "text-muted-foreground hover:bg-background hover:text-foreground"
+              }`}
+              onClick={() => scrollTo(link.id)}
+            >
+              <link.icon className="h-4 w-4" />
               {link.label}
             </Button>
           ))}
+          </div>
         </nav>
 
          <div className="space-y-5 pt-5">

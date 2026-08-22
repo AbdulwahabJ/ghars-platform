@@ -11,7 +11,9 @@ import {
   PAYMENT_LABELS,
   PAYMENT_METHODS,
   DEFAULT_TREATING_DOCTOR,
+  addCalendarMonths,
   normalizeMobile,
+  splitInstallmentAmount,
   type QuickEntryInput,
 } from "@workspace/shared";
 import { useQuickEntry } from "@/hooks/use-quick-entry";
@@ -21,7 +23,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useAppSettings } from "@/hooks/use-settings";
 import { ApiError } from "@/lib/api";
-import { todayIso } from "@/lib/money";
+import { formatMoney, todayIso } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +78,10 @@ const formSchema = z.object({
   // Finance
   includePayment: z.boolean(),
   baseTreatmentAmount: z.string().optional(),
+  includeInstallmentPlan: z.boolean(),
+  installmentTotalAmount: z.string().optional(),
+  installmentCount: z.string().optional(),
+  installmentFirstDueDate: z.string().optional(),
   paymentAmount: z.string().optional(),
   paymentDate: z.string().optional(),
   paymentLabel: z.string().optional(),
@@ -109,6 +115,9 @@ const FIELD_LABELS: Record<string, string> = {
   expectedProstheticDate: "تاريخ التركيب المتوقع",
   generalNote: "ملاحظة الحالة",
   baseTreatmentAmount: "مبلغ العلاج الأساسي",
+  installmentTotalAmount: "مبلغ التقسيط",
+  installmentCount: "عدد الدفعات",
+  installmentFirstDueDate: "أول استحقاق",
   paymentAmount: "مبلغ الدفعة الأولى",
   paymentDate: "تاريخ الدفعة",
   paymentLabel: "وصف الدفعة",
@@ -261,6 +270,10 @@ export function InlineNewRecord({
       implants: [],
       includePayment: false,
       baseTreatmentAmount: "",
+      includeInstallmentPlan: false,
+      installmentTotalAmount: "",
+      installmentCount: "3",
+      installmentFirstDueDate: today,
       paymentAmount: "",
       paymentDate: today,
       paymentLabel: "دفعة أولى",
@@ -280,7 +293,31 @@ export function InlineNewRecord({
 
   const includeCase = form.watch("includeCase");
   const includePayment = form.watch("includePayment");
+  const includeInstallmentPlan = form.watch("includeInstallmentPlan");
+  const baseTreatmentAmountValue = form.watch("baseTreatmentAmount");
+  const installmentTotalAmount = form.watch("installmentTotalAmount");
+  const installmentCount = form.watch("installmentCount");
+  const installmentFirstDueDate = form.watch("installmentFirstDueDate");
   const includeFollowup = form.watch("includeFollowup");
+
+  const scheduledInstallmentAmount = Number(
+    installmentTotalAmount || baseTreatmentAmountValue,
+  );
+  const scheduledInstallmentCount = Number(installmentCount);
+  const installmentPreview =
+    includeInstallmentPlan &&
+    Number.isFinite(scheduledInstallmentAmount) &&
+    scheduledInstallmentAmount > 0 &&
+    Number.isInteger(scheduledInstallmentCount) &&
+    scheduledInstallmentCount >= 1 &&
+    scheduledInstallmentCount <= 60
+      ? splitInstallmentAmount(scheduledInstallmentAmount, scheduledInstallmentCount).map(
+          (amount, index) => ({
+            amount,
+            date: addCalendarMonths(installmentFirstDueDate || today, index),
+          }),
+        )
+      : [];
 
   const [serverError, setServerError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<FormErrorDetail[]>([]);
@@ -391,10 +428,52 @@ export function InlineNewRecord({
 
     // Build payment
     let initialPayment: QuickEntryInput["initialPayment"] = undefined;
+    let installmentPlan: QuickEntryInput["installmentPlan"] = undefined;
     let baseTreatmentAmount: number | undefined = undefined;
     if (values.includeCase && canViewFinancials) {
       if (values.baseTreatmentAmount) {
         baseTreatmentAmount = parseFloat(values.baseTreatmentAmount);
+      }
+      if (values.includeInstallmentPlan) {
+        const scheduledAmount = values.installmentTotalAmount
+          ? parseFloat(values.installmentTotalAmount)
+          : baseTreatmentAmount;
+        const installmentCount = Number(values.installmentCount);
+        if (!scheduledAmount || scheduledAmount <= 0) {
+          setServerError("تعذر حفظ السجل. أدخل مبلغ العلاج أو مبلغ التقسيط.");
+          setValidationErrors([{
+            path: "installmentTotalAmount",
+            label: fieldLabel("installmentTotalAmount"),
+            message: "مبلغ التقسيط مطلوب عند تفعيل التقسيط.",
+          }]);
+          setFinanceOpen(true);
+          return;
+        }
+        if (!Number.isInteger(installmentCount) || installmentCount < 1 || installmentCount > 60) {
+          setServerError("تعذر حفظ السجل. عدد الدفعات يجب أن يكون بين 1 و60.");
+          setValidationErrors([{
+            path: "installmentCount",
+            label: fieldLabel("installmentCount"),
+            message: "عدد الدفعات يجب أن يكون بين 1 و60.",
+          }]);
+          setFinanceOpen(true);
+          return;
+        }
+        if (!baseTreatmentAmount || scheduledAmount > baseTreatmentAmount) {
+          setServerError("تعذر حفظ السجل. مبلغ التقسيط لا يمكن أن يتجاوز مبلغ العلاج.");
+          setValidationErrors([{
+            path: "installmentTotalAmount",
+            label: fieldLabel("installmentTotalAmount"),
+            message: "مبلغ التقسيط لا يمكن أن يتجاوز مبلغ العلاج الأساسي.",
+          }]);
+          setFinanceOpen(true);
+          return;
+        }
+        installmentPlan = {
+          totalAmount: scheduledAmount,
+          installmentCount,
+          firstDueDate: values.installmentFirstDueDate || today,
+        };
       }
       if (values.includePayment && canRecordPayments && values.paymentAmount && parseFloat(values.paymentAmount) > 0) {
         initialPayment = {
@@ -432,6 +511,7 @@ export function InlineNewRecord({
       implants,
       baseTreatmentAmount,
       initialPayment,
+      installmentPlan,
       followup,
     };
 
@@ -872,6 +952,91 @@ export function InlineNewRecord({
                     {...form.register("baseTreatmentAmount")}
                   />
                 </div>
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2">
+                    <Checkbox
+                      id="qe-includeInstallmentPlan"
+                      checked={includeInstallmentPlan}
+                      onCheckedChange={(value) => {
+                        form.setValue("includeInstallmentPlan", Boolean(value), {
+                          shouldDirty: true,
+                        });
+                        if (value) setFinanceOpen(true);
+                      }}
+                    />
+                    <span>تقسيط المبلغ</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    سيتم إنشاء جدول استحقاقات دون تغيير إجمالي الحالة أو الدفعات الفعلية.
+                  </p>
+                </div>
+                {includeInstallmentPlan ? (
+                  <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/[0.03] p-3 space-y-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="space-y-1">
+                        <Label>مبلغ التقسيط (ر.س)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0.01}
+                          placeholder="يستخدم مبلغ العلاج تلقائيًا"
+                          {...form.register("installmentTotalAmount")}
+                          data-testid="qe-installment-total"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>عدد الدفعات</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={60}
+                          step={1}
+                          {...form.register("installmentCount")}
+                          data-testid="qe-installment-count"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>أول استحقاق</Label>
+                        <OperationalDatePicker
+                          value={installmentFirstDueDate || today}
+                          onChange={(value) =>
+                            form.setValue("installmentFirstDueDate", value, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            })
+                          }
+                          data-testid="qe-installment-first-date"
+                        />
+                      </div>
+                    </div>
+                    {installmentPreview.length > 0 ? (
+                      <div className="rounded-md bg-muted/50 p-2.5">
+                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                          معاينة جدول الدفعات
+                        </p>
+                        <div className="grid grid-cols-1 gap-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                          {installmentPreview.slice(0, 6).map((item, index) => (
+                            <div key={`${item.date}-${index}`} className="flex justify-between gap-2">
+                              <span>دفعة {index + 1}</span>
+                              <span className="font-medium tabular-nums">
+                                {formatMoney(item.amount)} — {item.date}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {installmentPreview.length > 6 ? (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            + {installmentPreview.length - 6} دفعات أخرى
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        أدخل مبلغ العلاج وعدد الدفعات لعرض المعاينة.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
                 {/* Payment fields — canRecordPayments only */}
                 {canRecordPayments && includePayment && (
                 <div className="space-y-1">

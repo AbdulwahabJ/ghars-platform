@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { patientInputSchema, patientSchema } from "./patients";
 import { implantCaseInputSchema, implantCaseSchema, implantInputSchema, implantSchema } from "./implants";
-import { paymentInputSchema, paymentSchema } from "./finance";
+import {
+  installmentPlanInputSchema,
+  paymentInputSchema,
+  paymentSchema,
+} from "./finance";
 import { followupInputSchema, followupSchema } from "./followups";
 
 /* ------------------------------------------------------------------ */
@@ -44,6 +48,11 @@ export const quickEntryInputSchema = z.object({
    * Requires canRecordPayments on the server.
    */
   initialPayment: paymentInputSchema.optional(),
+  /**
+   * Optional payment schedule for the new case.
+   * The schedule is planning data; actual collection remains in payments.
+   */
+  installmentPlan: installmentPlanInputSchema.optional(),
   /**
    * Optional initial follow-up for the new case.
    * Ignored when case is omitted.

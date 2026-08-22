@@ -7,6 +7,8 @@ import {
   implantsTable,
   paymentsTable,
   followupsTable,
+  installmentPlansTable,
+  installmentsTable,
   type ImplantRow,
   type PaymentRow,
   type FollowupRow,
@@ -18,7 +20,9 @@ import {
   FORBIDDEN_FINANCIAL,
   normalizeArabicSearchText,
   normalizeMobile,
+  addCalendarMonths,
   quickEntryInputSchema,
+  splitInstallmentAmount,
   toEnglishDigits,
   type ImplantCase,
   type Implant,
@@ -172,7 +176,57 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
       }
 
-      // --- 5. Implants ---
+      // --- 5. Optional installment plan ---
+      if (input.installmentPlan) {
+        if (
+          typeof input.baseTreatmentAmount !== "number" ||
+          input.baseTreatmentAmount <= 0 ||
+          input.installmentPlan.totalAmount > input.baseTreatmentAmount
+        ) {
+          throw {
+            __quick_entry_conflict: true,
+            code: "INVALID_INSTALLMENT_PLAN",
+            error: "مبلغ التقسيط لا يمكن أن يتجاوز مبلغ العلاج الأساسي.",
+          };
+        }
+
+        const [planRow] = await tx
+          .insert(installmentPlansTable)
+          .values({
+            implantCaseId: caseRow.id,
+            totalAmount: input.installmentPlan.totalAmount.toFixed(2),
+            installmentCount: input.installmentPlan.installmentCount,
+            firstDueDate: input.installmentPlan.firstDueDate,
+            createdBy: user.id,
+            updatedBy: user.id,
+          })
+          .returning();
+        const amounts = splitInstallmentAmount(
+          input.installmentPlan.totalAmount,
+          input.installmentPlan.installmentCount,
+        );
+        await tx.insert(installmentsTable).values(
+          amounts.map((amount, index) => ({
+            planId: planRow.id,
+            sequence: index + 1,
+            dueDate: addCalendarMonths(input.installmentPlan!.firstDueDate, index),
+            amount: amount.toFixed(2),
+          })),
+        );
+        await writeAudit(
+          {
+            userId: user.id,
+            action: "installment_plan_create",
+            entityType: "installment_plan",
+            entityId: planRow.id,
+            summary: `إنشاء خطة تقسيط من ${input.installmentPlan.installmentCount} دفعات بإجمالي ${input.installmentPlan.totalAmount.toFixed(2)}`,
+            details: input.installmentPlan,
+          },
+          tx,
+        );
+      }
+
+      // --- 6. Implants ---
       const implantRows: ImplantRow[] = [];
       const seenSites = new Set<string>();
 
@@ -245,7 +299,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
       }
 
-      // --- 6. Initial payment ---
+      // --- 7. Initial payment ---
       let paymentRow: PaymentRow | null = null;
       if (input.initialPayment) {
         const [pr] = await tx
@@ -276,7 +330,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
       }
 
-      // --- 7. Initial follow-up ---
+      // --- 8. Initial follow-up ---
       let followupRow: FollowupRow | null = null;
       if (input.followup) {
         const [fr] = await tx
