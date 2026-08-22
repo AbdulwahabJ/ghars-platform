@@ -1,0 +1,524 @@
+MODE: Power
+
+Add BONE GRAFT PROCEDURES as a first-class clinical workflow inside the existing:
+
+Operational Table → إضافة سجل → حالة الزراعة والزرعات
+
+IMPORTANT:
+A patient may undergo bone grafting WITHOUT receiving any implants.
+
+Therefore bone grafting must NOT depend on creating an implant.
+
+Do not model bone grafting only as a boolean field inside `implants`.
+
+==================================================
+1. INSPECT CURRENT IMPLEMENTATION FIRST
+==================================================
+
+Before changing anything, inspect the current project for:
+
+- existing `implants.graft` / Graft field
+- existing graft-related fields
+- existing bone-graft charges in `case_charges`
+- existing patient-file rendering
+- existing Operational Table quick-entry flow
+- existing statistics/report queries
+
+Determine whether a canonical bone-graft procedure model already exists.
+
+If an equivalent canonical model already exists:
+REUSE IT.
+
+If not:
+add the minimum normalized bone-graft procedure model described below.
+
+Do not create duplicate graft truth.
+
+==================================================
+2. CLINICAL MODEL
+==================================================
+
+Bone grafting is a PROCEDURE belonging primarily to an implant case.
+
+It must be possible to have:
+
+Patient
+→ Implant Case
+→ 0 implants
+→ 1 or more bone graft procedures
+
+A graft may optionally relate to:
+- an FDI tooth/site
+- an implant
+
+but neither is mandatory unless clinically required by the specific record.
+
+Recommended canonical entity:
+
+`bone_graft_procedures`
+
+Minimum fields:
+
+- id
+- implant_case_id
+- implant_id nullable
+- procedure_date
+- site / FDI region nullable
+- graft_type
+- graft_material / source nullable
+- membrane_used boolean
+- membrane_type nullable
+- quantity_or_size nullable
+- treating_doctor / clinician using the project's existing clinician convention
+- status
+- notes nullable
+- created_at
+- updated_at
+- archived_at or existing archival convention
+
+Use appropriate date/date-time types consistent with the project.
+
+Do not use hard delete if the rest of the clinical system uses archive.
+
+==================================================
+3. GRAFT TYPES
+==================================================
+
+Do not invent rigid values if the system already has configurable lookup patterns.
+
+Prefer configurable lookup/options.
+
+Useful initial clinical types may include equivalents of:
+
+- GBR / guided bone regeneration
+- Socket preservation
+- Ridge augmentation
+- Sinus lift
+- Block graft
+- Other
+
+For sinus lift, if the existing clinical workflow needs distinction, support:
+
+- Open sinus lift
+- Closed sinus lift
+
+But do NOT overcomplicate V1 if those options are not currently required.
+
+Arabic UI labels must be professional and clear.
+
+==================================================
+4. GRAFT MATERIAL / SOURCE
+==================================================
+
+Support an optional material/source field.
+
+Prefer configurable values such as:
+
+- ذاتي
+- بشري / Allograft
+- حيواني / Xenograft
+- صناعي / Alloplast
+- مختلط
+- أخرى
+
+Do not force this field if the clinic does not always record it.
+
+==================================================
+5. MEMBRANE
+==================================================
+
+Support:
+
+استخدام غشاء
+[ نعم / لا ]
+
+If yes, allow an optional:
+
+نوع الغشاء
+
+Do not require membrane details when no membrane was used.
+
+==================================================
+6. QUICK ENTRY UI
+==================================================
+
+Inside the existing unified section:
+
+2. حالة الزراعة والزرعات
+
+keep the existing case fields first.
+
+Then:
+
+الزرعات (N)
+[ existing implant rows ]
+[ + إضافة زرعة ]
+
+Then directly below, add:
+
+زراعة العظم (N)
+
+[ + إضافة زراعة عظم ]
+
+Do NOT create another major numbered section.
+
+It belongs inside the same clinical workflow.
+
+The structure should be:
+
+2. حالة الزراعة والزرعات
+   - بيانات الحالة
+   - الزرعات
+   - زراعة العظم
+
+==================================================
+7. ADD BONE GRAFT INLINE
+==================================================
+
+Clicking:
+
++ إضافة زراعة عظم
+
+should create a clean inline graft row/form.
+
+Preferred fields:
+
+تاريخ الإجراء *
+الموقع / السن (اختياري)
+نوع زراعة العظم *
+مادة العظم (اختياري)
+استخدام غشاء
+نوع الغشاء (conditional)
+الكمية / المقاس (اختياري)
+الطبيب
+الحالة
+ملاحظة
+
+Keep the form compact.
+
+Do not use a large modal.
+
+==================================================
+8. IMPORTANT — ZERO IMPLANTS MUST WORK
+==================================================
+
+The quick-entry workflow must allow:
+
+Implant Case included = YES
+Implants = 0
+Bone graft procedures = 1+
+
+Example:
+
+Patient:
+عبدالوهاب
+
+Case:
+22 August 2026
+
+Implants:
+0
+
+Bone graft:
+GBR
+Site 36
+Procedure date 22 August 2026
+
+This must save successfully.
+
+Do NOT require an implant merely because a graft exists.
+
+==================================================
+9. RELATION TO IMPLANT
+==================================================
+
+If a graft is specifically associated with an existing implant:
+
+allow optional `implant_id`.
+
+But do not force it.
+
+Example:
+
+Case-level graft:
+implant_id = null
+
+Implant-specific graft:
+implant_id = implant 36
+
+==================================================
+10. EXISTING `Graft` FIELD ON IMPLANTS
+==================================================
+
+Inspect the existing `implants.graft` field carefully.
+
+Do NOT silently delete it.
+
+Do NOT create contradictory values.
+
+If it is currently a historical Y/N clinical field:
+
+preserve existing data.
+
+For NEW detailed bone-graft records, the canonical detailed information should come from the new/existing bone-graft procedure records.
+
+If safe, the implant-level Graft display may later be derived or treated as legacy shorthand, but do not migrate or invent historical graft details in this task.
+
+Report exactly how this compatibility was handled.
+
+==================================================
+11. FINANCIAL COST
+==================================================
+
+Do NOT store graft cost in two places.
+
+The clinical bone-graft record represents:
+
+WHAT WAS DONE.
+
+Financial cost must continue using the canonical financial system:
+
+`case_charges`
+
+If the user wants to add graft cost, provide an optional action:
+
++ إضافة تكلفة
+
+which creates/reuses the appropriate case charge.
+
+Do not store another mutable `graft_cost` field in the clinical graft table.
+
+==================================================
+12. PATIENT MEDICAL FILE
+==================================================
+
+The single-page Patient Medical File must display bone-graft procedures under the relevant implant case.
+
+Use the same summary/document style already approved.
+
+Do NOT use large graft cards.
+
+Preferred row/table:
+
+زراعة العظم
+
+التاريخ | الموقع | النوع | المادة | الغشاء | الحالة | الإجراء
+
+Example:
+
+22 أغسطس 2026 | 36 | GBR | Xenograft | قابل للامتصاص | تمت | تعديل
+
+Allow:
+
+- add
+- inline edit
+- archive/correction
+
+from the Patient File using the SAME canonical endpoints.
+
+==================================================
+13. OPERATIONAL TABLE EXPANDED ROW
+==================================================
+
+When a patient row is expanded in the Operational Table, show the graft procedures under the appropriate case.
+
+Keep them compact.
+
+Allow:
+
++ إضافة زراعة عظم
+
+from the expanded case as well.
+
+Operational Table and Patient File MUST use the same canonical records.
+
+==================================================
+14. SYSTEM-WIDE SYNCHRONIZATION
+==================================================
+
+This is mandatory.
+
+Any bone-graft:
+
+CREATE
+EDIT
+ARCHIVE
+STATUS CHANGE
+
+from:
+
+Operational Table
+
+must immediately be reflected in:
+
+Patient Medical File
+Statistics
+Reports where relevant
+
+And vice versa.
+
+Correct architecture:
+
+mutation
+→ canonical backend record
+→ React Query invalidation/refetch
+→ all affected views update
+
+Do NOT implement frontend-to-frontend synchronization.
+
+Do NOT create duplicate graft state.
+
+==================================================
+15. STATISTICS
+==================================================
+
+Because the system now has a centralized Statistics page, include bone graft analytics based ONLY on canonical bone-graft procedure records.
+
+Add a concise section:
+
+زراعة العظم
+
+Useful metrics:
+
+- عدد إجراءات زراعة العظم
+- عدد المرضى الذين أُجريت لهم زراعة عظم
+- زراعة عظم بدون زرعة
+- زراعة عظم مرتبطة بزرعة
+
+Useful distributions where enough data exists:
+
+- حسب النوع
+- حسب المادة
+- عبر الزمن
+- حسب الطبيب
+
+Do not create unsupported clinical conclusions.
+
+These are descriptive operational statistics only.
+
+==================================================
+16. REPORT / OPERATIONAL SUMMARY
+==================================================
+
+Where useful, expose in the Operational Report a compact value such as:
+
+زراعة العظم
+
+Example:
+2
+
+or summary of types if already appropriate.
+
+Do not overcrowd the primary table if this damages readability.
+
+At minimum the expanded patient row must show full graft information.
+
+==================================================
+17. ARCHIVE RULES
+==================================================
+
+Archived graft procedures:
+
+- remain auditable
+- are excluded from active counts
+- are excluded from active statistics according to existing reporting semantics
+- can appear when "إظهار العناصر المؤرشفة" is enabled
+
+Do not hard-delete clinical history.
+
+==================================================
+18. PERMISSIONS / AUDIT
+==================================================
+
+Reuse existing clinical permissions.
+
+Do not create weaker authorization.
+
+Audit:
+
+- graft created
+- graft edited
+- graft archived
+- financial graft charge separately if created
+
+Do not log sensitive full payloads unnecessarily.
+
+==================================================
+19. QUICK ENTRY TRANSACTION
+==================================================
+
+The existing quick-entry process is atomic.
+
+Extend it safely so this can be created together:
+
+patient
++ implant case
++ 0 or more implants
++ 0 or more bone graft procedures
++ finance
++ follow-up
+
+If any required part fails:
+
+do not leave a half-created graft or half-created case.
+
+==================================================
+20. DO NOT CHANGE
+==================================================
+
+Do NOT change:
+
+- implant status workflow
+- Task #18 prosthetic synchronization
+- patient workflow
+- finance formulas
+- follow-up rules
+- dashboard Work Summary cards
+- existing implant data
+- existing graft historical values without explicit safe handling
+
+==================================================
+21. VERIFICATION
+==================================================
+
+Run focused verification.
+
+Test at minimum:
+
+1. Create patient + case + ONE graft + ZERO implants.
+2. Save successfully.
+3. Patient Medical File shows graft.
+4. Operational Table expanded row shows same graft.
+5. Statistics count the graft.
+6. Add an implant later to the same case.
+7. Existing graft remains intact.
+8. Create graft linked to an implant.
+9. Edit graft from Patient File → Operational Table updates.
+10. Edit graft from Operational Table → Patient File updates.
+11. Archive graft → active views/statistics update.
+12. Existing implant Graft historical data is not corrupted.
+13. Any graft financial charge remains separate from the clinical record.
+14. No duplicate graft data source exists.
+
+Run:
+- affected TypeScript
+- affected lint
+- focused API tests
+- focused authenticated browser flow
+
+Do not run the full historical suite.
+Do not publish.
+
+At completion report:
+
+- whether a graft model already existed
+- schema/migration changes
+- exact fields implemented
+- how legacy implant `Graft` was handled
+- how case-only graft with zero implants works
+- synchronization/invalidation behavior
+- Statistics integration
+- focused test results
+- checkpoint hash
+
+Stop.

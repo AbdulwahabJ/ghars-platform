@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, todayIso } from "@/lib/money";
 import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment, ProstheticEventType } from "@workspace/shared";
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS, PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
@@ -166,6 +166,14 @@ function paymentStatusClass(status: string): string {
   if (status === "لم يدفع") return "bg-red-100 text-red-800";
   if (status === "مدفوع جزئيًا") return "bg-amber-100 text-amber-800";
   if (status === "رصيد زائد") return "bg-blue-100 text-blue-800";
+  return "bg-muted text-muted-foreground";
+}
+
+function installmentStatusClass(status: string): string {
+  if (status === "مدفوع") return "bg-emerald-100 text-emerald-800";
+  if (status === "مدفوع جزئيًا") return "bg-amber-100 text-amber-800";
+  if (status === "متأخر") return "bg-red-100 text-red-800";
+  if (status === "مستحق اليوم") return "bg-sky-100 text-sky-800";
   return "bg-muted text-muted-foreground";
 }
 
@@ -1479,13 +1487,16 @@ function CasePaymentsSection({
 function OperationalFinanceSummary({
   row,
   canManage,
+  canRecord,
 }: {
   row: OperationalRow;
   canManage: boolean;
+  canRecord: boolean;
 }) {
   const financeQuery = useCaseFinance(row.caseId, true);
   const [finalTotalOpen, setFinalTotalOpen] = useState(false);
   const summary = financeQuery.data?.summary;
+  const installmentPlan = financeQuery.data?.installmentPlan;
 
   return (
     <>
@@ -1525,6 +1536,26 @@ function OperationalFinanceSummary({
           </Badge>
         </div>
       </div>
+      {installmentPlan ? (
+        <div className="mt-3 rounded-lg border border-primary/20 bg-primary/[0.03] p-2.5" data-testid={`operational-installment-plan-${row.caseId}`}>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-foreground">تقسيم الدفعات</p>
+            <span className="text-[11px] text-muted-foreground">
+              {installmentPlan.installmentCount} دفعات — {formatMoney(installmentPlan.totalAmount)}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {installmentPlan.installments.map((installment) => (
+              <OperationalInstallmentRow
+                key={installment.id}
+                installment={installment}
+                caseId={row.caseId}
+                canRecord={canRecord}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
       {summary && finalTotalOpen && (
         <FinalTotalDialog
           open={finalTotalOpen}
@@ -1536,6 +1567,144 @@ function OperationalFinanceSummary({
         />
       )}
     </>
+  );
+}
+
+function OperationalInstallmentRow({
+  installment,
+  caseId,
+  canRecord,
+}: {
+  installment: NonNullable<NonNullable<ReturnType<typeof useCaseFinance>["data"]>["installmentPlan"]>["installments"][number];
+  caseId: string;
+  canRecord: boolean;
+}) {
+  const { toast } = useToast();
+  const createPayment = useCreatePayment();
+  const [paying, setPaying] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_METHODS)[number]>("شبكة");
+  const [error, setError] = useState<string | null>(null);
+  const isPaid = installment.outstanding <= 0;
+
+  const openPayment = () => {
+    setAmount(String(Math.max(0, installment.outstanding)));
+    setPaymentDate(todayIso());
+    setPaymentMethod("شبكة");
+    setError(null);
+    setPaying(true);
+  };
+
+  const submitPayment = () => {
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0 || value > installment.outstanding) {
+      setError("أدخل مبلغًا لا يتجاوز المتبقي من القسط.");
+      return;
+    }
+    createPayment.mutate(
+      {
+        caseId,
+        data: {
+          amount: Math.round(value * 100) / 100,
+          paymentDate,
+          paymentLabel: "دفعة إضافية",
+          paymentMethod,
+          referenceNumber: null,
+          note: `قسط رقم ${installment.sequence}`,
+          installmentId: installment.id,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "تم تسجيل دفع القسط." });
+          setPaying(false);
+        },
+        onError: (err) => {
+          toast({
+            title: "تعذر تسجيل دفع القسط",
+            description: err instanceof Error ? err.message : undefined,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  return (
+    <div
+      className="rounded-md border border-border/60 bg-background/70 px-2 py-1.5 text-[11px]"
+      data-testid={`operational-installment-${installment.id}`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
+          {installment.sequence}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{formatSaudiDate(installment.dueDate)}</p>
+          <p className="text-muted-foreground">
+            مجدول {formatMoney(installment.amount)} — مسدد {formatMoney(installment.paidAmount)}
+          </p>
+        </div>
+        <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] ${installmentStatusClass(installment.status)}`}>
+          {installment.status}
+        </span>
+        {!isPaid && canRecord ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-[10px] gap-1"
+            onClick={openPayment}
+            data-testid={`button-pay-operational-installment-${installment.id}`}
+          >
+            <Check className="h-3 w-3" />
+            تم الدفع
+          </Button>
+        ) : isPaid ? (
+          <Check className="h-4 w-4 text-emerald-600" aria-label="تم الدفع" />
+        ) : null}
+      </div>
+      {paying ? (
+        <div className="mt-2 grid items-end gap-2 rounded-md bg-muted/40 p-2 sm:grid-cols-4" data-testid={`form-pay-operational-installment-${installment.id}`}>
+          <div className="space-y-1">
+            <Label className="text-[10px]">المبلغ</Label>
+            <Input
+              type="number"
+              min={0.01}
+              max={installment.outstanding}
+              step="0.01"
+              value={amount}
+              onChange={(event) => { setAmount(event.target.value); setError(null); }}
+              className="h-7 text-xs"
+              data-testid={`input-pay-operational-installment-${installment.id}`}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">التاريخ</Label>
+            <Input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} className="h-7 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">الطريقة</Label>
+            <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as (typeof PAYMENT_METHODS)[number])}>
+              <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PAYMENT_METHODS.map((method) => <SelectItem key={method} value={method}>{method}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-1">
+            <Button type="button" size="sm" className="h-7 text-[10px]" onClick={submitPayment} disabled={createPayment.isPending || !paymentDate}>
+              {createPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حفظ"}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[10px]" onClick={() => setPaying(false)}>
+              إلغاء
+            </Button>
+          </div>
+          {error ? <p className="text-[10px] text-destructive sm:col-span-4">{error}</p> : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -1872,6 +2041,7 @@ function PatientExpandedRow({
                    <OperationalFinanceSummary
                      row={row}
                      canManage={canManageFinancials}
+                     canRecord={Boolean(canRecordPayments)}
                    />
                   <CasePaymentsSection caseId={row.caseId} canManage={canManageFinancials} />
                 </div>
