@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import {
   Archive,
   AlertCircle,
   ArrowRight,
-  ClipboardList,
-  CreditCard,
   Loader2,
-  MessageCircle,
-  Printer,
-  UserRound,
 } from "lucide-react";
 import { Shell } from "@/components/layout/Shell";
 import { Button } from "@/components/ui/button";
@@ -31,13 +26,10 @@ import { PatientDetailsSection } from "@/components/patients/PatientDetailsSecti
 import { ImplantsTab } from "@/components/implants/ImplantsTab";
 import { PaymentsTab } from "@/components/finance/PaymentsTab";
 import { FollowupsTab } from "@/components/followups/FollowupsTab";
+import { SummaryTab } from "@/components/summary/SummaryTab";
+import { formatSaudiDate } from "@/lib/datetime";
 
-const sectionLinks = [
-  { id: "patient-details", label: "بيانات المريض", icon: UserRound },
-  { id: "implant-cases", label: "الزراعة", icon: ClipboardList },
-  { id: "patient-finance", label: "المالية", icon: CreditCard },
-  { id: "patient-followups", label: "المتابعات", icon: MessageCircle },
-];
+type PatientTab = "summary" | "procedures";
 
 export default function PatientFile() {
   const { id } = useParams<{ id: string }>();
@@ -49,37 +41,10 @@ export default function PatientFile() {
   const restorePatient = useRestorePatient();
   const [showArchived, setShowArchived] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-  const [activeSection, setActiveSection] = useState(sectionLinks[0].id);
+  const [activeTab, setActiveTab] = useState<PatientTab>("summary");
 
   const patient = data?.patient;
   const canArchive = user?.role === "ADMIN";
-
-  const scrollTo = (sectionId: string) => {
-    setActiveSection(sectionId);
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  useEffect(() => {
-    if (!patient) return;
-
-    const sections = sectionLinks
-      .map((link) => document.getElementById(link.id))
-      .filter((section): section is HTMLElement => Boolean(section));
-    if (!sections.length) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]?.target.id) setActiveSection(visible[0].target.id);
-      },
-      { rootMargin: "-112px 0px -58% 0px", threshold: [0, 0.1, 0.5] },
-    );
-
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, [patient]);
 
   const handleArchive = () => {
     if (!id) return;
@@ -136,18 +101,30 @@ export default function PatientFile() {
             <ArrowRight className="h-4 w-4" />
             العودة للقائمة
           </Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 ms-1.5" />
-            طباعة الملف
-          </Button>
         </div>
 
-        <header className="flex justify-end border-b border-border pb-5 print:hidden">
-          <div className="flex items-center gap-2">
-            <Switch id="patient-show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
-            <Label htmlFor="patient-show-archived" className="cursor-pointer text-sm text-muted-foreground">
-              إظهار العناصر المؤرشفة
-            </Label>
+        <header className="border-b border-border pb-5 print:hidden">
+          <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">الاسم الكامل</p>
+              <p className="truncate font-bold text-foreground">{patient.fullName}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">رقم الملف</p>
+              <p className="font-semibold text-foreground notranslate" dir="ltr">{patient.fileNumber}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">رقم الجوال</p>
+              <p className="font-semibold text-foreground notranslate" dir="ltr">{patient.mobileNumber || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">العمر</p>
+              <p className="font-semibold text-foreground">{patient.age != null ? `${patient.age} سنة` : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">تاريخ الإضافة</p>
+              <p className="font-semibold text-foreground">{formatSaudiDate(patient.createdAt)}</p>
+            </div>
           </div>
         </header>
 
@@ -159,59 +136,88 @@ export default function PatientFile() {
         ) : null}
 
         <nav
-          aria-label="أقسام الملف"
+          aria-label="تبويبات ملف المريض"
           className="sticky top-0 z-10 -mx-2 mt-5 overflow-x-auto border-y border-border bg-background/95 px-2 py-2 shadow-sm backdrop-blur print:hidden"
         >
-          <div className="flex min-w-max gap-1 rounded-xl border border-border/80 bg-muted/35 p-1">
-          {sectionLinks.map((link) => (
+          <div className="grid min-w-[280px] grid-cols-2 gap-1 rounded-xl border border-border/80 bg-muted/35 p-1 sm:min-w-0">
             <Button
-              key={link.id}
               variant="ghost"
-              size="sm"
-              aria-current={activeSection === link.id ? "location" : undefined}
-              data-active={activeSection === link.id}
-              data-testid={`patient-section-${link.id}`}
-              className={`shrink-0 gap-2 rounded-lg px-3 transition-all ${
-                activeSection === link.id
+              aria-selected={activeTab === "summary"}
+              data-testid="patient-tab-summary"
+              className={`rounded-lg px-4 py-2.5 transition-all ${
+                activeTab === "summary"
                   ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground"
                   : "text-muted-foreground hover:bg-background hover:text-foreground"
               }`}
-              onClick={() => scrollTo(link.id)}
+              onClick={() => setActiveTab("summary")}
             >
-              <link.icon className="h-4 w-4" />
-              {link.label}
+              بيانات المريض
             </Button>
-          ))}
+            <Button
+              variant="ghost"
+              aria-selected={activeTab === "procedures"}
+              data-testid="patient-tab-procedures"
+              className={`rounded-lg px-4 py-2.5 transition-all ${
+                activeTab === "procedures"
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground"
+                  : "text-muted-foreground hover:bg-background hover:text-foreground"
+              }`}
+              onClick={() => setActiveTab("procedures")}
+            >
+              إجراءات المريض
+            </Button>
           </div>
         </nav>
 
-         <div className="space-y-5 pt-5">
-           <section className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
-            <PatientDetailsSection
+        <div className="pt-5">
+          {activeTab === "summary" ? (
+            <SummaryTab
               patient={patient}
-              canArchive={canArchive}
-              onArchive={() => setShowArchiveConfirm(true)}
-              onRestore={handleRestore}
-              isRestoring={restorePatient.isPending}
+              showArchived={showArchived}
+              onManage={() => setActiveTab("procedures")}
             />
-           </section>
-           <section id="implant-cases" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
-            <ImplantsTab patient={patient} showArchived={showArchived} />
-          </section>
-           <section id="patient-finance" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
-             <div className="mb-5">
-              <h2 className="text-lg font-bold text-foreground">المالية</h2>
-               <p className="text-sm text-muted-foreground">ملخص العلاج والدفعات والرسوم لكل حالة نشطة.</p>
+          ) : (
+            <div className="space-y-5 print:hidden">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/25 p-4 print:hidden">
+                <div>
+                  <h2 className="font-bold text-foreground">إجراءات المريض</h2>
+                  <p className="text-sm text-muted-foreground">مساحة العمل الكاملة لإدارة الملف وسجلاته.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch id="patient-show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
+                  <Label htmlFor="patient-show-archived" className="cursor-pointer text-sm text-muted-foreground">
+                    إظهار العناصر المؤرشفة
+                  </Label>
+                </div>
+              </div>
+              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+                <PatientDetailsSection
+                  patient={patient}
+                  canArchive={canArchive}
+                  onArchive={() => setShowArchiveConfirm(true)}
+                  onRestore={handleRestore}
+                  isRestoring={restorePatient.isPending}
+                />
+              </section>
+              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+                <ImplantsTab patient={patient} showArchived={showArchived} />
+              </section>
+              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+                <div className="mb-5">
+                  <h2 className="text-lg font-bold text-foreground">المالية</h2>
+                  <p className="text-sm text-muted-foreground">ملخص العلاج والدفعات والرسوم لكل حالة نشطة.</p>
+                </div>
+                <PaymentsTab patient={patient} />
+              </section>
+              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+                <div className="mb-5">
+                  <h2 className="text-lg font-bold text-foreground">المتابعات وسجل التواصل</h2>
+                  <p className="text-sm text-muted-foreground">المواعيد والنتائج وسجل التواصل المرتبط بالملف.</p>
+                </div>
+                <FollowupsTab patient={patient} />
+              </section>
             </div>
-            <PaymentsTab patient={patient} />
-          </section>
-           <section id="patient-followups" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
-             <div className="mb-5">
-              <h2 className="text-lg font-bold text-foreground">المتابعات وسجل التواصل</h2>
-              <p className="text-sm text-muted-foreground">المواعيد والنتائج وسجل التواصل المرتبط بالملف.</p>
-            </div>
-            <FollowupsTab patient={patient} />
-          </section>
+          )}
         </div>
       </main>
 

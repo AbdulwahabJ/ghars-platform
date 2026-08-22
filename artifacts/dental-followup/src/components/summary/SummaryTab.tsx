@@ -1,227 +1,297 @@
-import { useState } from "react";
 import { Loader2, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { useImplantCases } from "@/hooks/use-implant-cases";
 import { useFollowups, useCommunications } from "@/hooks/use-followups";
 import { useCaseFinance } from "@/hooks/use-finance";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
+import { bucketFollowups } from "@/components/followups/followup-utils";
 import type {
   Followup,
   ImplantCaseWithImplants,
   Patient,
 } from "@workspace/shared";
 import {
-  OPEN_FOLLOWUP_STATUS,
   FOLLOWUP_OUTCOME_STATUSES,
+  OPEN_FOLLOWUP_STATUS,
 } from "@workspace/shared";
 
-/** Label/value pair used across the summary sections. */
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex gap-2 text-sm">
-      <span className="text-muted-foreground shrink-0">{label}:</span>
-      <span className="font-medium notranslate">{value ?? "—"}</span>
+      <span className="shrink-0 text-muted-foreground">{label}:</span>
+      <span className="font-medium text-foreground notranslate">{value ?? "—"}</span>
     </div>
   );
 }
 
 function CaseFinanceSummaryRow({ caseId }: { caseId: string }) {
   const { data, isLoading } = useCaseFinance(caseId, true);
+
   if (isLoading) {
-    return (
-      <p className="text-xs text-muted-foreground">جارٍ تحميل الملخص المالي…</p>
-    );
+    return <p className="text-xs text-muted-foreground">جارٍ تحميل الملخص المالي…</p>;
   }
+
   if (!data) return null;
-  const s = data.summary;
+
+  const { summary, installmentPlan } = data;
+  const paidInstallments = installmentPlan?.installments.filter(
+    (installment) => installment.status === "مدفوع",
+  ).length ?? 0;
+  const dueInstallments = installmentPlan?.installments.filter((installment) =>
+    ["مستحق اليوم", "متأخر", "مدفوع جزئيًا"].includes(installment.status),
+  ).length ?? 0;
+  const scheduledInstallments = installmentPlan?.installments.filter(
+    (installment) => installment.status === "مجدول",
+  ).length ?? 0;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-muted/40 rounded-lg p-3">
-      <Field label="الإجمالي النهائي" value={formatMoney(s.finalTotal)} />
-      <Field label="المدفوع" value={formatMoney(s.paidAmount)} />
-      <Field label="المتبقي" value={formatMoney(s.outstanding)} />
-      <Field label="حالة السداد" value={s.paymentStatus} />
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-y border-border/70 py-3 md:grid-cols-4">
+        <Field label="الإجمالي النهائي" value={formatMoney(summary.finalTotal)} />
+        <Field label="المدفوع" value={formatMoney(summary.paidAmount)} />
+        <Field label="المتبقي" value={formatMoney(summary.outstanding)} />
+        <Field label="حالة السداد" value={summary.paymentStatus} />
+      </div>
+      {installmentPlan ? (
+        <div className="border-s border-border ps-3 text-sm">
+          <p className="font-medium text-foreground">خطة السداد</p>
+          <p className="mt-1 text-muted-foreground">
+            {installmentPlan.installmentCount} أقساط — {paidInstallments} مدفوعة — {dueInstallments} مستحقة — {scheduledInstallments} مجدولة
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ImplantTable({
+  implantCase,
+  showArchived,
+}: {
+  implantCase: ImplantCaseWithImplants;
+  showArchived: boolean;
+}) {
+  const implants = implantCase.implants.filter(
+    (implant) => showArchived || implant.status === "active",
+  );
+
+  if (!implants.length) {
+    return <p className="text-sm text-muted-foreground">لا توجد زرعات مسجلة في هذه الحالة.</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[620px] border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-border text-right text-xs text-muted-foreground">
+            <th className="px-2 py-1.5 font-medium">الموقع</th>
+            <th className="px-2 py-1.5 font-medium">النظام</th>
+            <th className="px-2 py-1.5 font-medium">القياس</th>
+            <th className="px-2 py-1.5 font-medium">Q</th>
+            <th className="px-2 py-1.5 font-medium">Former</th>
+            <th className="px-2 py-1.5 font-medium">Graft</th>
+            <th className="px-2 py-1.5 font-medium">الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {implants.map((implant) => (
+            <tr key={implant.id} className="border-b border-border/50 last:border-0">
+              <td className="px-2 py-1.5 notranslate" dir="ltr">{implant.site}</td>
+              <td className="px-2 py-1.5 notranslate">{implant.system ?? "—"}</td>
+              <td className="px-2 py-1.5 notranslate" dir="ltr">
+                {implant.diameter != null && implant.length != null
+                  ? `${implant.diameter} × ${implant.length}`
+                  : implant.diameter != null
+                    ? String(implant.diameter)
+                    : implant.length != null
+                      ? String(implant.length)
+                      : "—"}
+              </td>
+              <td className="px-2 py-1.5 notranslate">{implant.qValue ?? "—"}</td>
+              <td className="px-2 py-1.5 notranslate">{implant.formerValue ?? "—"}</td>
+              <td className="px-2 py-1.5 notranslate">
+                {implant.graftValue ?? "—"}
+                {implant.graftProcedureType ? ` (${implant.graftProcedureType})` : ""}
+              </td>
+              <td className="px-2 py-1.5">
+                <span className="notranslate">{implant.implantStatus}</span>
+                {implant.status === "archived" ? (
+                  <Badge variant="secondary" className="ms-1 text-[10px]">مؤرشفة</Badge>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BoneGraftSummary({
+  implantCase,
+  showArchived,
+}: {
+  implantCase: ImplantCaseWithImplants;
+  showArchived: boolean;
+}) {
+  const procedures = implantCase.boneGraftProcedures.filter(
+    (procedure) => showArchived || procedure.status === "active",
+  );
+
+  if (!procedures.length) return null;
+
+  return (
+    <div className="space-y-2">
+      <h5 className="text-sm font-bold text-foreground">زراعة العظم</h5>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[620px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-border text-right text-xs text-muted-foreground">
+              <th className="px-2 py-1.5 font-medium">التاريخ</th>
+              <th className="px-2 py-1.5 font-medium">الموقع</th>
+              <th className="px-2 py-1.5 font-medium">النوع</th>
+              <th className="px-2 py-1.5 font-medium">المادة</th>
+              <th className="px-2 py-1.5 font-medium">الغشاء</th>
+              <th className="px-2 py-1.5 font-medium">الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {procedures.map((procedure) => (
+              <tr key={procedure.id} className="border-b border-border/50 last:border-0">
+                <td className="px-2 py-1.5">{formatSaudiDate(procedure.procedureDate)}</td>
+                <td className="px-2 py-1.5">{procedure.site ?? "—"}</td>
+                <td className="px-2 py-1.5">{procedure.procedureType}</td>
+                <td className="px-2 py-1.5">{procedure.material ?? "—"}</td>
+                <td className="px-2 py-1.5">{procedure.membrane ?? "—"}</td>
+                <td className="px-2 py-1.5">
+                  {procedure.procedureStatus}
+                  {procedure.status === "archived" ? (
+                    <Badge variant="secondary" className="ms-1 text-[10px]">مؤرشفة</Badge>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ProstheticSummary({
+  implantCase,
+  showArchived,
+}: {
+  implantCase: ImplantCaseWithImplants;
+  showArchived: boolean;
+}) {
+  const events = implantCase.prostheticEvents.filter(
+    (event) => showArchived || event.status === "active",
+  );
+
+  if (!events.length) return null;
+
+  return (
+    <div className="space-y-2">
+      <h5 className="text-sm font-bold text-foreground">سجل التركيبات</h5>
+      <div className="divide-y divide-border/60 border-y border-border/60">
+        {events.map((event) => {
+          const implant = event.implantId
+            ? implantCase.implants.find((item) => item.id === event.implantId)
+            : null;
+          return (
+            <div key={event.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+              <span>{formatSaudiDate(event.eventDate)} | {event.eventType}</span>
+              <span className="text-muted-foreground">
+                {implant ? `السن ${implant.site}` : "على مستوى الحالة"}
+                {event.status === "archived" ? " — مؤرشف" : ""}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 function CaseSummary({
   implantCase,
-  showFinance,
-  showArchivedImplants,
-  onPrintCase,
+  showArchived,
 }: {
   implantCase: ImplantCaseWithImplants;
-  showFinance: boolean;
-  showArchivedImplants: boolean;
-  onPrintCase: (caseId: string) => void;
+  showArchived: boolean;
 }) {
-  const c = implantCase;
-  const implants = c.implants.filter(
-    (i) => showArchivedImplants || i.status === "active",
-  );
   return (
-    <div className="border border-border rounded-xl p-4 space-y-3 break-inside-avoid">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h4 className="font-bold text-foreground notranslate">
-            حالة زراعة — {c.caseStatus}
-          </h4>
-          {c.status === "archived" && (
-            <Badge variant="secondary">مؤرشفة</Badge>
-          )}
-          {c.isReimplantation && <Badge variant="outline">إعادة زراعة</Badge>}
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="print:hidden"
-          onClick={() => onPrintCase(c.id)}
-          data-testid={`button-print-case-${c.id}`}
-        >
-          <Printer className="h-4 w-4" />
-          <span>طباعة الحالة</span>
-        </Button>
+    <article className="space-y-4 border-b border-border pb-6 last:border-0 last:pb-0">
+      <div className="flex flex-wrap items-center gap-2">
+        <h4 className="font-bold text-foreground">حالة زراعة — {implantCase.caseStatus}</h4>
+        {implantCase.status === "archived" ? <Badge variant="secondary">مؤرشفة</Badge> : null}
+        {implantCase.isReimplantation ? <Badge variant="outline">إعادة زراعة</Badge> : null}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+      <div className="grid gap-x-6 gap-y-2 border-y border-border/70 py-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <Field
           label="تاريخ العملية"
-          value={c.procedureDate ? formatSaudiDate(c.procedureDate) : "—"}
+          value={implantCase.procedureDate ? formatSaudiDate(implantCase.procedureDate) : "—"}
         />
-        <Field label="الطبيب المعالج" value={c.treatingDoctor} />
-        <Field label="الطبيب المحوِّل" value={c.referringDoctor ?? "—"} />
-        <Field label="Pros" value={c.prosValue ?? "—"} />
+        <Field label="الطبيب المعالج" value={implantCase.treatingDoctor} />
+        <Field label="Pros" value={implantCase.prosValue ?? "—"} />
         <Field
           label="تاريخ التركيب المتوقع"
-          value={
-            c.expectedProstheticDate
-              ? formatSaudiDate(c.expectedProstheticDate)
-              : "—"
-          }
+          value={implantCase.expectedProstheticDate ? formatSaudiDate(implantCase.expectedProstheticDate) : "—"}
         />
-        {c.isReimplantation && (
-          <Field label="سبب إعادة الزراعة" value={c.reimplantationReason ?? "—"} />
-        )}
+        {implantCase.referringDoctor ? (
+          <Field label="الطبيب المحوِّل" value={implantCase.referringDoctor} />
+        ) : null}
+        {implantCase.generalNote ? <Field label="ملاحظة عامة" value={implantCase.generalNote} /> : null}
       </div>
-      {c.generalNote && <Field label="ملاحظة عامة" value={c.generalNote} />}
-
-      {implants.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          لا توجد زرعات مسجلة في هذه الحالة.
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-right text-xs text-muted-foreground border-b border-border">
-                <th className="py-1.5 px-2 font-medium">الموقع</th>
-                <th className="py-1.5 px-2 font-medium">النظام</th>
-                <th className="py-1.5 px-2 font-medium">القياس</th>
-                <th className="py-1.5 px-2 font-medium">Q</th>
-                <th className="py-1.5 px-2 font-medium">Former</th>
-                <th className="py-1.5 px-2 font-medium">Graft</th>
-                <th className="py-1.5 px-2 font-medium">الإجراءات</th>
-                <th className="py-1.5 px-2 font-medium">الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {implants.map((i) => (
-                <tr key={i.id} className="border-b border-border/50 last:border-0">
-                  <td className="py-1.5 px-2 notranslate" dir="ltr">
-                    {i.site}
-                  </td>
-                  <td className="py-1.5 px-2 notranslate">{i.system ?? "—"}</td>
-                  <td className="py-1.5 px-2 notranslate" dir="ltr">
-                    {i.diameter != null && i.length != null
-                      ? `${i.diameter} × ${i.length}`
-                      : i.diameter != null
-                        ? String(i.diameter)
-                        : i.length != null
-                          ? String(i.length)
-                          : "—"}
-                  </td>
-                  <td className="py-1.5 px-2 notranslate">{i.qValue ?? "—"}</td>
-                  <td className="py-1.5 px-2 notranslate">
-                    {i.formerValue ?? "—"}
-                  </td>
-                  <td className="py-1.5 px-2 notranslate">
-                    {i.graftValue ?? "—"}
-                    {i.graftProcedureType ? ` (${i.graftProcedureType})` : ""}
-                  </td>
-                  <td className="py-1.5 px-2 notranslate">
-                    {i.procedureTags.length > 0
-                      ? i.procedureTags.join("، ")
-                      : "—"}
-                  </td>
-                  <td className="py-1.5 px-2">
-                    <span className="notranslate">{i.implantStatus}</span>
-                    {i.status === "archived" && (
-                      <Badge variant="secondary" className="mr-1 text-[10px]">
-                        مؤرشفة
-                      </Badge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {showFinance && <CaseFinanceSummaryRow caseId={c.id} />}
-    </div>
+      <ImplantTable implantCase={implantCase} showArchived={showArchived} />
+      <BoneGraftSummary implantCase={implantCase} showArchived={showArchived} />
+      <ProstheticSummary implantCase={implantCase} showArchived={showArchived} />
+    </article>
   );
 }
 
-/**
- * Patient الملخص tab — composes existing data into a single read-only view
- * with browser printing. Financial summaries render only for users with
- * financial permissions (the backend enforces this regardless).
- */
-export function SummaryTab({ patient }: { patient: Patient }) {
+export function SummaryTab({
+  patient,
+  showArchived = false,
+  onManage,
+}: {
+  patient: Patient;
+  showArchived?: boolean;
+  onManage?: () => void;
+}) {
   const { user } = useAuth();
-  const showFinance = Boolean(
+  const canViewFinancials = Boolean(
     user?.canViewFinancials || user?.canRecordPayments,
   );
-  const [showArchived, setShowArchived] = useState(false);
-  const [printCaseId, setPrintCaseId] = useState<string | null>(null);
-
-  const { data: casesData, isLoading: casesLoading } = useImplantCases(
-    patient.id,
-  );
-  const { data: followupsData, isLoading: followupsLoading } = useFollowups(
-    patient.id,
-  );
-  const { data: commsData } = useCommunications(patient.id);
+  const { data: casesData, isLoading: casesLoading } = useImplantCases(patient.id);
+  const { data: followupsData, isLoading: followupsLoading } = useFollowups(patient.id);
+  const { data: communicationsData } = useCommunications(patient.id);
 
   const allCases = casesData?.items ?? [];
-  const cases = allCases.filter(
-    (c) => showArchived || c.status === "active",
-  );
+  const cases = allCases.filter((implantCase) => showArchived || implantCase.status === "active");
   const followups: Followup[] = followupsData ?? [];
   const openFollowups = followups.filter(
-    (f) => f.followupStatus === OPEN_FOLLOWUP_STATUS,
+    (followup) => followup.followupStatus === OPEN_FOLLOWUP_STATUS,
   );
-  const outcomeStatuses = FOLLOWUP_OUTCOME_STATUSES as readonly string[];
-  const completedFollowups = followups.filter((f) =>
-    outcomeStatuses.includes(f.followupStatus),
+  const completedFollowups = followups.filter((followup) =>
+    (FOLLOWUP_OUTCOME_STATUSES as readonly string[]).includes(followup.followupStatus),
   );
+  const overdueFollowups = bucketFollowups(followups).overdue;
   const nextFollowup = openFollowups
-    .filter((f) => f.scheduledAt)
-    .sort((a, b) => (a.scheduledAt! < b.scheduledAt! ? -1 : 1))[0];
-  const comms = commsData ?? [];
-
-  const handlePrintCase = (caseId: string) => {
-    setPrintCaseId(caseId);
-    requestAnimationFrame(() => {
-      window.print();
-      setPrintCaseId(null);
-    });
-  };
+    .filter((followup) => followup.scheduledAt)
+    .sort((first, second) => first.scheduledAt!.localeCompare(second.scheduledAt!))[0];
+  const communications = communicationsData ?? [];
+  const recentCommunications = communications
+    .slice()
+    .sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+  const latestCommunication = recentCommunications[0];
+  const latestCommunicationWithResult = recentCommunications.find(
+    (communication) => communication.communicationResult,
+  );
 
   if (casesLoading || followupsLoading) {
     return (
@@ -232,98 +302,81 @@ export function SummaryTab({ patient }: { patient: Patient }) {
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-6" data-testid="summary-tab">
-      {/* Print-only header */}
+    <div className="space-y-7" data-testid="summary-tab">
       <div className="hidden print:block">
         <h1 className="text-xl font-bold">مجمع السن الرقمي الطبي</h1>
-        <p className="text-sm mt-1">
-          {printCaseId ? "ملخص حالة زراعة" : "ملخص ملف مريض"}
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">
-          رقم الملف: <span dir="ltr">{patient.fileNumber}</span> — تاريخ
-          الإنشاء: {formatSaudiDateTime(new Date())}
+        <p className="mt-1 text-sm">ملخص ملف مريض</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          رقم الملف: <span dir="ltr">{patient.fileNumber}</span> — تاريخ الطباعة: {formatSaudiDateTime(new Date())}
         </p>
       </div>
 
-      {/* Actions row */}
-      <div className="flex items-center justify-between gap-3 flex-wrap print:hidden">
-        <div className="flex items-center gap-2">
-          <Switch
-            id="summary-show-archived"
-            checked={showArchived}
-            onCheckedChange={setShowArchived}
-            data-testid="switch-show-archived"
-          />
-          <Label htmlFor="summary-show-archived" className="text-sm">
-            إظهار العناصر المؤرشفة
-          </Label>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4 print:hidden">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">بيانات المريض</h2>
+          <p className="mt-1 text-sm text-muted-foreground">ملخص طبي مختصر للقراءة والمراجعة والطباعة.</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => window.print()}
-          data-testid="button-print-summary"
-        >
-          <Printer className="h-4 w-4" />
-          <span>طباعة الملخص</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {onManage ? (
+            <Button variant="outline" size="sm" onClick={onManage} data-testid="button-manage-patient">
+              إدارة / تعديل الملف
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => window.print()} data-testid="button-print-summary">
+            <Printer className="ms-1.5 h-4 w-4" />
+            طباعة الملف
+          </Button>
+        </div>
       </div>
 
-      {/* Patient info */}
-      <section className={printCaseId ? "print:hidden" : ""}>
-        <h3 className="font-bold text-foreground mb-3">بيانات المريض</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <section>
+        <h3 className="mb-3 font-bold text-foreground">بيانات المريض</h3>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-2 border-y border-border/70 py-3 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="الاسم الكامل" value={patient.fullName} />
-          <Field
-            label="رقم الملف"
-            value={<span dir="ltr">{patient.fileNumber}</span>}
-          />
-          <Field
-            label="رقم الجوال"
-            value={<span dir="ltr">{patient.mobileNumber || "—"}</span>}
-          />
-          <Field
-            label="العمر"
-            value={patient.age != null ? `${patient.age} سنة` : "—"}
-          />
+          <Field label="رقم الملف" value={<span dir="ltr">{patient.fileNumber}</span>} />
+          <Field label="رقم الجوال" value={<span dir="ltr">{patient.mobileNumber || "—"}</span>} />
+          <Field label="العمر" value={patient.age != null ? `${patient.age} سنة` : "—"} />
+          <Field label="تاريخ الإضافة" value={formatSaudiDate(patient.createdAt)} />
+          <Field label="ملاحظة إدارية" value={patient.administrativeNote ?? "—"} />
         </div>
       </section>
 
-      {/* Cases + implants */}
       <section>
-        <h3 className={`font-bold text-foreground mb-3 ${printCaseId ? "print:hidden" : ""}`}>
-          حالات الزراعة ({cases.length})
-        </h3>
+        <h3 className="mb-3 font-bold text-foreground">حالات الزراعة ({cases.length})</h3>
         {cases.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            لا توجد حالات زراعة مسجلة.
-          </p>
+          <p className="text-sm text-muted-foreground">لا توجد حالات زراعة مسجلة.</p>
         ) : (
-          <div className="space-y-4">
-            {cases.map((c) => (
-              <div
-                key={c.id}
-                className={
-                  printCaseId && printCaseId !== c.id ? "print:hidden" : ""
-                }
-              >
-                <CaseSummary
-                  implantCase={c}
-                  showFinance={showFinance}
-                  showArchivedImplants={showArchived}
-                  onPrintCase={handlePrintCase}
-                />
-              </div>
+          <div className="space-y-6">
+            {cases.map((implantCase) => (
+              <CaseSummary key={implantCase.id} implantCase={implantCase} showArchived={showArchived} />
             ))}
           </div>
         )}
       </section>
 
-      {/* Follow-up summary */}
-      <section className={printCaseId ? "print:hidden" : ""}>
-        <h3 className="font-bold text-foreground mb-3">ملخص المتابعات</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      {canViewFinancials ? (
+        <section>
+          <h3 className="mb-3 font-bold text-foreground">الملخص المالي</h3>
+          {cases.length === 0 ? (
+            <p className="text-sm text-muted-foreground">لا توجد حالات زراعة نشطة لعرض ملخص مالي.</p>
+          ) : (
+            <div className="space-y-4">
+              {cases.map((implantCase) => (
+                <div key={`finance-${implantCase.id}`} className="break-inside-avoid">
+                  <p className="mb-2 text-sm font-medium">حالة زراعة — {implantCase.caseStatus}</p>
+                  <CaseFinanceSummaryRow caseId={implantCase.id} />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      <section>
+        <h3 className="mb-3 font-bold text-foreground">ملخص المتابعات</h3>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-y border-border/70 py-3 md:grid-cols-5">
           <Field label="متابعات مجدولة" value={openFollowups.length} />
+          <Field label="متابعات متأخرة" value={overdueFollowups.length} />
           <Field label="متابعات منجزة" value={completedFollowups.length} />
           <Field
             label="المتابعة القادمة"
@@ -334,36 +387,28 @@ export function SummaryTab({ patient }: { patient: Patient }) {
             }
           />
           <Field
-            label="آخر نتيجة"
+            label="آخر نتيجة متابعة"
             value={
-              completedFollowups.length > 0
-                ? completedFollowups
-                    .slice()
-                    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))[0]
-                    .followupStatus
-                : "—"
+              completedFollowups
+                .slice()
+                .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt))[0]
+                ?.followupStatus ?? "—"
             }
           />
         </div>
       </section>
 
-      {/* Communications summary */}
-      <section className={printCaseId ? "print:hidden" : ""}>
-        <h3 className="font-bold text-foreground mb-3">ملخص التواصل</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Field label="عدد مرات التواصل" value={comms.length} />
+      <section>
+        <h3 className="mb-3 font-bold text-foreground">ملخص التواصل</h3>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-y border-border/70 py-3 md:grid-cols-3">
+          <Field label="عدد مرات التواصل" value={communications.length} />
           <Field
             label="آخر تواصل"
-            value={
-              comms.length > 0 ? formatSaudiDateTime(comms[0].createdAt) : "—"
-            }
+            value={latestCommunication ? formatSaudiDateTime(latestCommunication.createdAt) : "—"}
           />
           <Field
             label="آخر نتيجة تواصل"
-            value={
-              comms.find((c: { communicationResult: string | null }) => c.communicationResult)?.communicationResult ??
-              "—"
-            }
+            value={latestCommunicationWithResult?.communicationResult ?? "—"}
           />
         </div>
       </section>
