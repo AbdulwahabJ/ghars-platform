@@ -7,6 +7,7 @@ import type {
   ImplantUpdate,
   ProstheticEventInput,
 } from "@workspace/shared";
+import { invalidateOperationalViews } from "@/lib/query-invalidation";
 
 export const getImplantCasesQueryKey = (patientId: string) =>
   ["patient", patientId, "implant-cases"] as const;
@@ -34,7 +35,7 @@ function useInvalidateCases() {
       queryClient.invalidateQueries({
         queryKey: getImplantCasesQueryKey(patientId),
       }),
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      invalidateOperationalViews(queryClient),
     ]);
   };
 }

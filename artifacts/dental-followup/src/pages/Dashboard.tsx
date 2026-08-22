@@ -58,6 +58,7 @@ export default function Dashboard() {
     customTo: todayIso(),
     treatingDoctor: ALL,
     implantSystem: ALL,
+    implantStatus: ALL,
     caseStatus: ALL,
   });
   const [operationalSearch, setOperationalSearch] = useState("");
@@ -89,6 +90,10 @@ export default function Dashboard() {
         filterState.implantSystem === ALL
           ? undefined
           : filterState.implantSystem,
+      implantStatus:
+        filterState.implantStatus === ALL
+          ? undefined
+          : filterState.implantStatus,
       caseStatus:
         filterState.caseStatus === ALL
           ? undefined

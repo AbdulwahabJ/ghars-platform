@@ -17,6 +17,7 @@ import {
   type OperationalRow,
   type ReportFilters,
   type StatCount,
+  type StatisticsHub,
   type StatisticsResponse,
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
@@ -438,6 +439,15 @@ function caseFilterFragment(filters: ReportFilters) {
               AND ix.system = ${filters.implantSystem})`
         : sql``
     }
+    ${
+      filters.implantStatus
+        ? sql`AND EXISTS (
+            SELECT 1 FROM implants ix
+            WHERE ix.implant_case_id = ic.id
+              AND ix.archived_at IS NULL
+              AND ix.implant_status = ${filters.implantStatus})`
+        : sql``
+    }
     ${searchFragment}
   `;
 }
@@ -457,6 +467,476 @@ const toCounts = (rows: { rows: unknown[] }): StatCount[] =>
     count: num(r.count),
   }));
 
+const toMetricBuckets = (rows: { rows: unknown[] }) =>
+  (rows.rows as Array<{ bucket: string; count: unknown }>).map((row) => ({
+    bucket: String(row.bucket),
+    count: num(row.count),
+  }));
+
+function firstRow(result: { rows: unknown[] }): Record<string, unknown> {
+  return (result.rows[0] as Record<string, unknown> | undefined) ?? {};
+}
+
+async function buildStatisticsHub(
+  filters: ReportFilters,
+  where: ReturnType<typeof sql>,
+  grouping: "day" | "month",
+  includeFinancials: boolean,
+): Promise<StatisticsHub> {
+  const bucketExpr = grouping === "day"
+    ? sql`(ic.procedure_date::text)`
+    : sql`LEFT(ic.procedure_date::text, 7)`;
+  const followupBucketExpr = grouping === "day"
+    ? sql`(f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date::text`
+    : sql`LEFT((f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date::text, 7)`;
+  const communicationBucketExpr = grouping === "day"
+    ? sql`(c.created_at AT TIME ZONE 'Asia/Riyadh')::date::text`
+    : sql`LEFT((c.created_at AT TIME ZONE 'Asia/Riyadh')::date::text, 7)`;
+  const prostheticBucketExpr = grouping === "day"
+    ? sql`pe.event_date::text`
+    : sql`LEFT(pe.event_date::text, 7)`;
+  const today = riyadhToday();
+
+  const [
+    overviewRows,
+    readyCaseRows,
+    patientTrendRows,
+    prostheticSummaryRows,
+    prostheticTrendRows,
+    prostheticDoctorRows,
+    followupSummaryRows,
+    followupTrendRows,
+    followupTypesRows,
+    followupOutcomesRows,
+    followupAssigneesRows,
+    communicationSummaryRows,
+    communicationTrendRows,
+    communicationResultsRows,
+    communicationReasonsRows,
+    doctorRows,
+    financeSummaryRows,
+    paymentMethodsRows,
+    paymentStatusesRows,
+    collectionTrendRows,
+  ] = await Promise.all([
+    db.execute(sql`
+      SELECT
+        (SELECT count(DISTINCT p.id)
+         FROM implant_cases ic JOIN patients p ON p.id = ic.patient_id
+         WHERE ${where}) AS patients,
+        (SELECT count(DISTINCT p.id)
+         FROM implants i
+         JOIN implant_cases ic ON ic.id = i.implant_case_id
+         JOIN patients p ON p.id = ic.patient_id
+         WHERE i.archived_at IS NULL AND ${where}) AS "implantedPatients",
+        (SELECT count(*)
+         FROM implant_cases ic JOIN patients p ON p.id = ic.patient_id
+         WHERE ${where}) AS cases,
+        (SELECT count(*)
+         FROM implants i
+         JOIN implant_cases ic ON ic.id = i.implant_case_id
+         JOIN patients p ON p.id = ic.patient_id
+         WHERE i.archived_at IS NULL AND ${where}) AS implants,
+        (SELECT count(DISTINCT NULLIF(btrim(i.system), ''))
+         FROM implants i
+         JOIN implant_cases ic ON ic.id = i.implant_case_id
+         JOIN patients p ON p.id = ic.patient_id
+         WHERE i.archived_at IS NULL AND ${where}) AS systems,
+        (SELECT count(DISTINCT p.id)
+         FROM prosthetic_events pe
+         JOIN implant_cases ic ON ic.id = pe.implant_case_id
+         JOIN patients p ON p.id = ic.patient_id
+         WHERE pe.archived_at IS NULL AND ${where}
+           AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}) AS "prostheticPatients",
+        (SELECT count(*)
+         FROM prosthetic_events pe
+         JOIN implant_cases ic ON ic.id = pe.implant_case_id
+         JOIN patients p ON p.id = ic.patient_id
+         WHERE pe.archived_at IS NULL AND ${where}
+           AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}) AS "prostheticEvents",
+        (SELECT count(*)
+         FROM followups f
+         JOIN implant_cases ic ON ic.id = f.implant_case_id
+         JOIN patients p ON p.id = f.patient_id
+         WHERE ${where}
+           AND COALESCE(f.scheduled_at, f.updated_at AT TIME ZONE 'UTC')
+               BETWEEN ${filters.from}::date AND (${filters.to}::date + 1)) AS followups,
+        (SELECT count(*)
+         FROM followups f
+         JOIN implant_cases ic ON ic.id = f.implant_case_id
+         JOIN patients p ON p.id = f.patient_id
+         WHERE ${where}
+           AND f.followup_status = ${OPEN_FOLLOWUP_STATUS}
+           AND f.scheduled_at IS NOT NULL
+           AND (f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date < ${today}::date) AS "overdueFollowups",
+        (SELECT count(*)
+         FROM implants i
+         JOIN implant_cases ic ON ic.id = i.implant_case_id
+         JOIN patients p ON p.id = ic.patient_id
+         WHERE i.archived_at IS NULL AND i.implant_status = ${FAILED_IMPLANT_STATUS}
+           AND ${where}) AS "failedImplants",
+        (SELECT count(*)
+         FROM implants i
+         JOIN implant_cases ic ON ic.id = i.implant_case_id
+         JOIN patients p ON p.id = ic.patient_id
+         WHERE i.archived_at IS NULL AND i.implant_status = ${REDO_IMPLANT_STATUS}
+           AND ${where}) AS "needsRedoImplants"
+    `),
+    db.execute(sql`
+      SELECT count(*) AS count
+      FROM implant_cases ic JOIN patients p ON p.id = ic.patient_id
+      WHERE ic.case_status = ${READY_CASE_STATUS} AND ${where}
+    `),
+    db.execute(sql`
+      SELECT (p.created_at AT TIME ZONE 'Asia/Riyadh')::date::text AS bucket,
+             count(DISTINCT p.id) AS count
+      FROM patients p
+      JOIN implant_cases ic ON ic.patient_id = p.id
+      WHERE p.archived_at IS NULL
+        AND (p.created_at AT TIME ZONE 'Asia/Riyadh')::date
+            BETWEEN ${filters.from} AND ${filters.to}
+        AND ${where}
+      GROUP BY 1 ORDER BY 1
+    `),
+    db.execute(sql`
+      SELECT
+        count(DISTINCT p.id) AS patients,
+        count(*) AS events,
+        count(*) FILTER (WHERE pe.event_type = 'تركيب مؤقت') AS temporary,
+        count(*) FILTER (WHERE pe.event_type = 'تركيب دائم') AS permanent
+      FROM prosthetic_events pe
+      JOIN implant_cases ic ON ic.id = pe.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE pe.archived_at IS NULL AND ${where}
+        AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}
+    `),
+    db.execute(sql`
+      SELECT ${prostheticBucketExpr} AS bucket, count(*) AS count
+      FROM prosthetic_events pe
+      JOIN implant_cases ic ON ic.id = pe.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE pe.archived_at IS NULL AND ${where}
+        AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 1
+    `),
+    db.execute(sql`
+      SELECT ic.treating_doctor AS name, count(*) AS count
+      FROM prosthetic_events pe
+      JOIN implant_cases ic ON ic.id = pe.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE pe.archived_at IS NULL AND ${where}
+        AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT
+        count(*) AS total,
+        count(*) FILTER (WHERE f.followup_status = ${OPEN_FOLLOWUP_STATUS}) AS scheduled,
+        count(*) FILTER (WHERE f.followup_status = ${OPEN_FOLLOWUP_STATUS}
+          AND f.scheduled_at IS NOT NULL
+          AND (f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date = ${today}::date) AS "dueToday",
+        count(*) FILTER (WHERE f.followup_status = ${OPEN_FOLLOWUP_STATUS}
+          AND f.scheduled_at IS NOT NULL
+          AND (f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date < ${today}::date) AS overdue,
+        count(*) FILTER (WHERE f.followup_status IN (${sql.join(
+          (FOLLOWUP_OUTCOME_STATUSES as readonly string[]).map((s) => sql`${s}`),
+          sql`, `,
+        )})) AS completed,
+        count(*) FILTER (WHERE f.followup_status IN ('ملغاة', 'ملغي')) AS cancelled,
+        count(*) FILTER (WHERE f.followup_status = 'تحتاج إعادة تواصل') AS "needsRecontact"
+      FROM followups f
+      JOIN implant_cases ic ON ic.id = f.implant_case_id
+      JOIN patients p ON p.id = f.patient_id
+      WHERE ${where}
+        AND COALESCE(f.scheduled_at, f.updated_at AT TIME ZONE 'UTC')
+            BETWEEN ${filters.from}::date AND (${filters.to}::date + 1)
+    `),
+    db.execute(sql`
+      SELECT ${followupBucketExpr} AS bucket, count(*) AS count
+      FROM followups f
+      JOIN implant_cases ic ON ic.id = f.implant_case_id
+      JOIN patients p ON p.id = f.patient_id
+      WHERE ${where} AND f.scheduled_at IS NOT NULL
+        AND (f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date
+            BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 1
+    `),
+    db.execute(sql`
+      SELECT f.followup_type AS name, count(*) AS count
+      FROM followups f
+      JOIN implant_cases ic ON ic.id = f.implant_case_id
+      JOIN patients p ON p.id = f.patient_id
+      WHERE ${where}
+        AND COALESCE(f.scheduled_at, f.updated_at AT TIME ZONE 'UTC')
+            BETWEEN ${filters.from}::date AND (${filters.to}::date + 1)
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT f.followup_status AS name, count(*) AS count
+      FROM followups f
+      JOIN implant_cases ic ON ic.id = f.implant_case_id
+      JOIN patients p ON p.id = f.patient_id
+      WHERE ${where}
+        AND COALESCE(f.scheduled_at, f.updated_at AT TIME ZONE 'UTC')
+            BETWEEN ${filters.from}::date AND (${filters.to}::date + 1)
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT COALESCE(u.full_name, 'غير محدد') AS name, count(*) AS count
+      FROM followups f
+      JOIN implant_cases ic ON ic.id = f.implant_case_id
+      JOIN patients p ON p.id = f.patient_id
+      LEFT JOIN users u ON u.id = f.assigned_user_id
+      WHERE ${where}
+        AND COALESCE(f.scheduled_at, f.updated_at AT TIME ZONE 'UTC')
+            BETWEEN ${filters.from}::date AND (${filters.to}::date + 1)
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT count(*) AS total,
+             count(*) FILTER (WHERE c.communication_result IS NOT NULL) AS "withResults"
+      FROM communications c
+      JOIN patients p ON p.id = c.patient_id
+      LEFT JOIN implant_cases ic ON ic.id = c.implant_case_id
+      WHERE p.archived_at IS NULL
+        AND (ic.id IS NULL OR ${where})
+        AND (c.created_at AT TIME ZONE 'Asia/Riyadh')::date
+            BETWEEN ${filters.from} AND ${filters.to}
+    `),
+    db.execute(sql`
+      SELECT ${communicationBucketExpr} AS bucket, count(*) AS count
+      FROM communications c
+      JOIN patients p ON p.id = c.patient_id
+      LEFT JOIN implant_cases ic ON ic.id = c.implant_case_id
+      WHERE p.archived_at IS NULL
+        AND (ic.id IS NULL OR ${where})
+        AND (c.created_at AT TIME ZONE 'Asia/Riyadh')::date
+            BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 1
+    `),
+    db.execute(sql`
+      SELECT COALESCE(c.communication_result, 'بدون نتيجة') AS name, count(*) AS count
+      FROM communications c
+      JOIN patients p ON p.id = c.patient_id
+      LEFT JOIN implant_cases ic ON ic.id = c.implant_case_id
+      WHERE p.archived_at IS NULL
+        AND (ic.id IS NULL OR ${where})
+        AND (c.created_at AT TIME ZONE 'Asia/Riyadh')::date
+            BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT COALESCE(NULLIF(btrim(c.communication_reason), ''), 'غير محدد') AS name,
+             count(*) AS count
+      FROM communications c
+      JOIN patients p ON p.id = c.patient_id
+      LEFT JOIN implant_cases ic ON ic.id = c.implant_case_id
+      WHERE p.archived_at IS NULL
+        AND (ic.id IS NULL OR ${where})
+        AND (c.created_at AT TIME ZONE 'Asia/Riyadh')::date
+            BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT ic.treating_doctor AS name,
+             count(DISTINCT p.id) AS patients,
+             count(DISTINCT ic.id) AS cases,
+             count(DISTINCT i.id) FILTER (WHERE i.archived_at IS NULL) AS implants,
+             count(DISTINCT pe.id) FILTER (WHERE pe.archived_at IS NULL) AS prosthetics,
+             count(DISTINCT f.id) AS followups
+      FROM implant_cases ic
+      JOIN patients p ON p.id = ic.patient_id
+      LEFT JOIN implants i ON i.implant_case_id = ic.id
+      LEFT JOIN prosthetic_events pe ON pe.implant_case_id = ic.id
+      LEFT JOIN followups f ON f.implant_case_id = ic.id
+      WHERE ${where}
+      GROUP BY 1 ORDER BY cases DESC, name
+    `),
+    db.execute(sql`
+      SELECT
+        ic.base_treatment_amount
+          + COALESCE((SELECT SUM(ch.amount) FROM case_charges ch
+             WHERE ch.implant_case_id = ic.id
+               AND ch.charge_date BETWEEN ${filters.from} AND ${filters.to}), 0)
+          - COALESCE((SELECT SUM(cd.amount) FROM case_discounts cd
+             WHERE cd.implant_case_id = ic.id
+               AND cd.discount_date BETWEEN ${filters.from} AND ${filters.to}), 0) AS "treatmentValue",
+        COALESCE((SELECT SUM(pay.amount) FROM payments pay
+          WHERE pay.implant_case_id = ic.id AND pay.voided_at IS NULL), 0) AS collected,
+        COALESCE((SELECT SUM(ch.amount) FROM case_charges ch
+          WHERE ch.implant_case_id = ic.id
+            AND ch.charge_date BETWEEN ${filters.from} AND ${filters.to}), 0) AS charges,
+        COALESCE((SELECT SUM(cd.amount) FROM case_discounts cd
+          WHERE cd.implant_case_id = ic.id
+            AND cd.discount_date BETWEEN ${filters.from} AND ${filters.to}), 0) AS discounts,
+        COALESCE((SELECT SUM(pay.amount) FROM payments pay
+          WHERE pay.implant_case_id = ic.id
+            AND pay.voided_at IS NULL
+            AND pay.payment_date BETWEEN ${filters.from} AND ${filters.to}), 0) AS "periodCollected",
+        (SELECT count(*) FROM payments pay
+          WHERE pay.implant_case_id = ic.id
+            AND pay.voided_at IS NULL
+            AND pay.payment_date BETWEEN ${filters.from} AND ${filters.to}) AS payments
+      FROM implant_cases ic
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE ${where}
+    `),
+    db.execute(sql`
+      SELECT COALESCE(NULLIF(btrim(pay.payment_method), ''), 'غير محدد') AS name,
+             count(*) AS count
+      FROM payments pay
+      JOIN implant_cases ic ON ic.id = pay.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE pay.voided_at IS NULL AND pay.payment_date BETWEEN ${filters.from} AND ${filters.to}
+        AND ${where}
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT CASE
+               WHEN paid.total_paid = 0 THEN 'لم يدفع'
+               WHEN paid.total_paid < obligation.final_total THEN 'مدفوع جزئيًا'
+               WHEN paid.total_paid = obligation.final_total THEN 'مدفوع بالكامل'
+               ELSE 'رصيد زائد'
+             END AS name,
+             count(*) AS count
+      FROM (
+        SELECT ic.id,
+          (ic.base_treatment_amount
+            + COALESCE((SELECT SUM(amount) FROM case_charges WHERE implant_case_id = ic.id), 0)
+            - COALESCE((SELECT SUM(amount) FROM case_discounts WHERE implant_case_id = ic.id), 0)) AS final_total,
+          COALESCE((SELECT SUM(amount) FROM payments
+            WHERE implant_case_id = ic.id AND voided_at IS NULL), 0) AS total_paid
+        FROM implant_cases ic JOIN patients p ON p.id = ic.patient_id
+        WHERE ${where}
+      ) paid
+      CROSS JOIN LATERAL (SELECT paid.final_total) obligation
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT ${grouping === "day"
+        ? sql`pay.payment_date::text`
+        : sql`LEFT(pay.payment_date::text, 7)`} AS bucket,
+             COALESCE(SUM(pay.amount), 0) AS count
+      FROM payments pay
+      JOIN implant_cases ic ON ic.id = pay.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE pay.voided_at IS NULL
+        AND pay.payment_date BETWEEN ${filters.from} AND ${filters.to}
+        AND ${where}
+      GROUP BY 1 ORDER BY 1
+    `),
+  ]);
+
+  const overview = firstRow(overviewRows);
+  const prosthetic = firstRow(prostheticSummaryRows);
+  const followup = firstRow(followupSummaryRows);
+  const communication = firstRow(communicationSummaryRows);
+  const financialRows = financeSummaryRows.rows as Array<Record<string, unknown>>;
+  const financialsTotal = financialRows.reduce<{
+    treatmentValue: number;
+    collected: number;
+    charges: number;
+    discounts: number;
+    periodCollected: number;
+    payments: number;
+  }>(
+    (total, row) => ({
+      treatmentValue: total.treatmentValue + num(row.treatmentValue),
+      collected: total.collected + num(row.collected),
+      charges: total.charges + num(row.charges),
+      discounts: total.discounts + num(row.discounts),
+      periodCollected: total.periodCollected + num(row.periodCollected),
+      payments: total.payments + num(row.payments),
+    }),
+    {
+      treatmentValue: 0,
+      collected: 0,
+      charges: 0,
+      discounts: 0,
+      periodCollected: 0,
+      payments: 0,
+    },
+  );
+
+  const doctors = (doctorRows.rows as Array<Record<string, unknown>>).map((row) => ({
+    name: String(row.name),
+    patients: num(row.patients),
+    cases: num(row.cases),
+    implants: num(row.implants),
+    prosthetics: num(row.prosthetics),
+    followups: num(row.followups),
+  }));
+
+  const hub: StatisticsHub = {
+    overview: {
+      patients: num(overview.patients),
+      implantedPatients: num(overview.implantedPatients),
+      cases: num(overview.cases),
+      implants: num(overview.implants),
+      systems: num(overview.systems),
+      prostheticPatients: num(overview.prostheticPatients),
+      prostheticEvents: num(overview.prostheticEvents),
+      followups: num(overview.followups),
+      overdueFollowups: num(overview.overdueFollowups),
+      failedImplants: num(overview.failedImplants),
+      needsRedoImplants: num(overview.needsRedoImplants),
+    },
+    patients: {
+      newPatients: num((patientTrendRows.rows as Array<Record<string, unknown>>).reduce((sum, row) => sum + num(row.count), 0)),
+      implantedPatients: num(overview.implantedPatients),
+      casePatients: num(overview.patients),
+      prostheticPatients: num(overview.prostheticPatients),
+      overTime: toMetricBuckets(patientTrendRows),
+    },
+    prosthetics: {
+      patients: num(prosthetic.patients),
+      events: num(prosthetic.events),
+      temporary: num(prosthetic.temporary),
+      permanent: num(prosthetic.permanent),
+      readyCases: num(firstRow(readyCaseRows).count),
+      overTime: toMetricBuckets(prostheticTrendRows),
+      byDoctor: toCounts(prostheticDoctorRows),
+    },
+    followups: {
+      total: num(followup.total),
+      scheduled: num(followup.scheduled),
+      dueToday: num(followup.dueToday),
+      overdue: num(followup.overdue),
+      completed: num(followup.completed),
+      cancelled: num(followup.cancelled),
+      needsRecontact: num(followup.needsRecontact),
+      overTime: toMetricBuckets(followupTrendRows),
+      types: toCounts(followupTypesRows),
+      outcomes: toCounts(followupOutcomesRows),
+      byAssignee: toCounts(followupAssigneesRows),
+    },
+    communications: {
+      total: num(communication.total),
+      withResults: num(communication.withResults),
+      overTime: toMetricBuckets(communicationTrendRows),
+      results: toCounts(communicationResultsRows),
+      reasons: toCounts(communicationReasonsRows),
+    },
+    financials: includeFinancials
+      ? {
+          treatmentValue: financialsTotal.treatmentValue,
+          collected: financialsTotal.periodCollected,
+          remaining: Math.max(0, financialsTotal.treatmentValue - financialsTotal.collected),
+          charges: financialsTotal.charges,
+          discounts: financialsTotal.discounts,
+          payments: financialsTotal.payments,
+          outstandingPatients: 0,
+          paymentMethods: toCounts(paymentMethodsRows),
+          paymentStatuses: toCounts(paymentStatusesRows),
+          collectionsOverTime: toMetricBuckets(collectionTrendRows),
+        }
+      : null,
+    doctors,
+  };
+
+  return hub;
+}
+
 /* ------------------------------------------------------------------ */
 /* GET /statistics — filtered clinical statistics                      */
 /* ------------------------------------------------------------------ */
@@ -472,7 +952,7 @@ router.get("/statistics", async (req, res) => {
       : sql`LEFT(COALESCE(ic.procedure_date::text, (ic.created_at AT TIME ZONE 'Asia/Riyadh')::date::text), 7)`;
   const outcomes = FOLLOWUP_OUTCOME_STATUSES as readonly string[];
 
-  const [caseBuckets, implantBuckets, systems, caseStatuses, implantStatuses, outcomeRows, reimplantRows, doctorRows] =
+  const [caseBuckets, implantBuckets, systems, caseStatuses, implantStatuses, outcomeRows, reimplantRows, doctorRows, hub] =
     await Promise.all([
       db.execute(sql`
         SELECT ${bucketExpr} AS bucket, count(*) AS count
@@ -535,6 +1015,7 @@ router.get("/statistics", async (req, res) => {
         WHERE ic.archived_at IS NULL AND p.archived_at IS NULL
         ORDER BY 1
       `),
+      buildStatisticsHub(filters, where, grouping, financeViewAllowed(req)),
     ]);
 
   const bucketMap = new Map<string, { cases: number; implants: number }>();
@@ -568,6 +1049,7 @@ router.get("/statistics", async (req, res) => {
     doctorOptions: (doctorRows.rows as Array<{ name: string }>).map(
       (r) => r.name,
     ),
+    hub,
   };
   res.json(response);
 });
@@ -596,6 +1078,14 @@ async function buildOperationalRows(
         FROM implants i
         WHERE i.implant_case_id = ic.id AND i.archived_at IS NULL
           AND i.system IS NOT NULL) AS "implantSystems",
+      (SELECT COALESCE(array_agg(i.implant_status ORDER BY i.implant_status), '{}')
+        FROM implants i
+        JOIN implant_cases active_ic ON active_ic.id = i.implant_case_id
+        JOIN patients active_p ON active_p.id = active_ic.patient_id
+        WHERE active_ic.patient_id = ic.patient_id
+          AND i.archived_at IS NULL
+          AND active_ic.archived_at IS NULL
+          AND active_p.archived_at IS NULL) AS "implantStatuses",
       (SELECT MIN(f.scheduled_at) FROM followups f
         WHERE f.implant_case_id = ic.id
           AND f.followup_status = ${OPEN_FOLLOWUP_STATUS}
@@ -636,6 +1126,7 @@ async function buildOperationalRows(
       procedureDate: r.procedureDate ? String(r.procedureDate) : null,
       implantCount: num(r.implantCount),
       implantSystems: (r.implantSystems as string[] | null) ?? [],
+      implantStatuses: (r.implantStatuses as string[] | null) ?? [],
       nextFollowupAt: r.nextFollowupAt
         ? new Date(r.nextFollowupAt as string).toISOString()
         : null,

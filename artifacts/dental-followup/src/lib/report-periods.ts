@@ -8,6 +8,7 @@ export const REPORT_PERIODS = [
   { id: "this_week", label: "هذا الأسبوع" },
   { id: "this_month", label: "هذا الشهر" },
   { id: "last_month", label: "الشهر الماضي" },
+  { id: "last_3_months", label: "آخر 3 أشهر" },
   { id: "this_year", label: "هذه السنة" },
   { id: "custom", label: "فترة مخصصة" },
 ] as const;
@@ -39,6 +40,8 @@ export function reportPeriodRange(
       const lastOfPrev = shiftDays(`${today.slice(0, 7)}-01`, -1);
       return { from: `${lastOfPrev.slice(0, 7)}-01`, to: lastOfPrev };
     }
+    case "last_3_months":
+      return { from: shiftDays(today, -89), to: today };
     case "this_year":
       return { from: `${today.slice(0, 4)}-01-01`, to: today };
     default:

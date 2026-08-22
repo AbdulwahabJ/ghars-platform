@@ -460,6 +460,7 @@ export function reportQs(filters: ReportFilters): string {
   if (filters.search) params.set("search", filters.search);
   if (filters.treatingDoctor) params.set("treatingDoctor", filters.treatingDoctor);
   if (filters.implantSystem) params.set("implantSystem", filters.implantSystem);
+  if (filters.implantStatus) params.set("implantStatus", filters.implantStatus);
   if (filters.caseStatus) params.set("caseStatus", filters.caseStatus);
   return params.toString();
 }

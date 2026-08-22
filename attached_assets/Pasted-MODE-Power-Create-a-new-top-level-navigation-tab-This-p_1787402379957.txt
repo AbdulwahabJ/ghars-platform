@@ -1,0 +1,1273 @@
+MODE: Power
+
+Create a new top-level navigation tab:
+
+**الإحصائيات**
+
+This page will become the CENTRAL ANALYTICS HUB for the entire system.
+
+It must gather ALL meaningful statistics, charts, trends, distributions, and operational analytics into one professional page covering:
+
+* Patients
+* Implant cases
+* Implants
+* Implant systems
+* Implant statuses
+* Prosthetic / installation activity
+* Follow-ups
+* Follow-up outcomes
+* Communications
+* Financials
+* Payments
+* Discounts
+* Charges
+* Installment plans if already implemented
+* Failure / reimplantation
+* Treating-doctor activity
+* Operational trends
+
+IMPORTANT:
+
+DO NOT REMOVE OR MODIFY the existing Dashboard section:
+
+**ملخص العمل**
+
+The existing 5 Daily + Monthly cards on the Home page must remain exactly where they are and continue working exactly as they do now.
+
+==================================================
+0. CRITICAL SYSTEM-WIDE DATA CONSISTENCY CONTRACT
+=================================================
+
+This requirement is MORE IMPORTANT than the Statistics page itself.
+
+The entire application must remain connected to ONE CANONICAL SOURCE OF TRUTH.
+
+Any CREATE / UPDATE / STATUS CHANGE / ARCHIVE / VOID / CORRECTION made anywhere in the system must be reflected everywhere else that depends on that data.
+
+Examples:
+
+Operational Table
+Patient Medical File
+Finance page
+Statistics page
+Dashboard KPIs
+Operational Report
+Notifications
+Follow-ups
+Patient summaries
+Charts
+Exports
+Print views
+
+must all represent the SAME canonical database records.
+
+DO NOT create separate or duplicated statistics data.
+
+DO NOT solve synchronization with frontend copying.
+
+The correct architecture is:
+
+User action
+↓
+Canonical backend mutation
+↓
+Database
+↓
+Shared query invalidation / refetch
+↓
+Every affected page reads the new canonical state
+
+This applies to:
+
+* patients
+* implant cases
+* implants
+* implant statuses
+* prosthetic events
+* follow-ups
+* communications
+* payments
+* installment plans
+* charges
+* discounts
+* archive/correction actions
+
+==================================================
+
+1. AUDIT DATA FLOW BEFORE IMPLEMENTATION
+   ==================================================
+
+Before creating the new Statistics page, audit the current system architecture.
+
+For every domain identify:
+
+* canonical database table(s)
+* GET/query source
+* mutation endpoint(s)
+* shared server query helper(s)
+* frontend query keys/hooks
+* every current page consuming the data
+
+Audit:
+
+A. patients
+
+B. implant_cases
+
+C. implants
+
+D. prosthetic_events
+
+E. followups
+
+F. communications
+
+G. payments
+
+H. installment-plan records if already implemented
+
+I. case_charges
+
+J. case_discounts
+
+K. dashboard/report/statistics aggregations
+
+The purpose is to ensure there are NO duplicate/stale calculation paths before building the analytics hub.
+
+If an existing area is already correct:
+
+mark internally:
+
+"Already correct — reuse."
+
+Do NOT rebuild it unnecessarily.
+
+==================================================
+2. GLOBAL MUTATION CONSISTENCY
+==============================
+
+Every mutation must invalidate/refetch all affected dependent views.
+
+Example:
+
+PATIENT UPDATE
+→ patient file
+→ Operational Table
+→ patient search where relevant
+→ statistics patient analytics
+
+CASE UPDATE
+→ patient file
+→ Operational Table
+→ dashboard readiness
+→ operational report
+→ statistics
+
+IMPLANT UPDATE
+→ patient file
+→ Operational Table
+→ implant count
+→ implant-status distribution
+→ system distribution
+→ dashboard summary where affected
+→ statistics
+
+IMPLANT STATUS CHANGE
+→ all of the above
+→ prosthetic workflow if applicable
+
+PROSTHETIC EVENT CREATE/ARCHIVE
+→ patient file
+→ Operational Table
+→ implant status where synchronized
+→ Dashboard prosthetic KPIs
+→ Statistics prosthetic analytics
+
+FOLLOW-UP CREATE/EDIT/POSTPONE/CANCEL/OUTCOME
+→ patient file
+→ Operational Table
+→ Home appointments
+→ overdue follow-ups
+→ notification bell
+→ follow-up statistics
+
+PAYMENT CREATE/EDIT/VOID
+→ patient file
+→ Operational Table finance
+→ Finance page
+→ collection KPIs
+→ Statistics financial analytics
+
+INSTALLMENT PLAN CHANGE
+→ patient finance
+→ Operational Table finance
+→ Statistics installment analytics where applicable
+
+CHARGE / DISCOUNT CHANGE
+→ all financial totals
+→ Finance page
+→ Operational Table
+→ Patient File
+→ Statistics finance section
+
+==================================================
+3. SHARED CACHE INVALIDATION
+============================
+
+Inspect the existing React Query architecture.
+
+Avoid scattered manual invalidation logic.
+
+Where practical, create or reuse shared invalidation helpers.
+
+Conceptually:
+
+invalidatePatientData(patientId)
+
+invalidateCaseData(caseId, patientId)
+
+invalidateImplantData(patientId, caseId)
+
+invalidateFinanceData(patientId, caseId)
+
+invalidateFollowupData(patientId)
+
+invalidateProstheticData(patientId, caseId)
+
+Names may differ according to the real codebase.
+
+These helpers should invalidate the REAL existing query keys.
+
+Do NOT invalidate the entire application after every mutation.
+
+Invalidate only what is logically affected.
+
+==================================================
+4. NO FRONTEND MIRRORING
+========================
+
+Never solve data consistency by:
+
+* localStorage synchronization
+* duplicating patient objects
+* manually pushing updated values into unrelated components
+* maintaining separate Dashboard state
+* maintaining separate Statistics state
+
+All views must reload from canonical backend records.
+
+==================================================
+5. DELETE / ARCHIVE / VOID CONSISTENCY
+======================================
+
+Preserve the existing deletion philosophy.
+
+If the system uses archive/void instead of hard delete:
+
+continue doing so.
+
+Example:
+
+Archive implant
+→ disappears from active patient file
+→ Operational Table count updates
+→ implant status summary updates
+→ Statistics excludes it according to existing reporting semantics
+
+Void payment
+→ paid decreases
+→ remaining recalculates
+→ Operational Table updates
+→ Finance page updates
+→ Statistics collections recalculate
+
+Archive prosthetic event
+→ prosthetic KPIs recalculate
+→ Statistics prosthetic counts recalculate
+
+Do NOT hard-delete historical records merely to keep statistics clean.
+
+==================================================
+6. STATUS CHANGES MUST PROPAGATE EVERYWHERE
+===========================================
+
+Status changes are particularly important.
+
+A change to:
+
+implant status
+
+must automatically affect every view that derives information from:
+
+`implants.status`
+
+Examples:
+
+Operational Table "حالة الزرعات"
+Patient Medical File
+implant-status statistics
+ready/failure analytics where applicable
+
+Case-status changes must similarly propagate to every case-based report.
+
+Do NOT create a statistics-specific status field.
+
+==================================================
+7. PRESERVE TASK #18 PROSTHETIC WORKFLOW
+========================================
+
+Keep the approved atomic mappings:
+
+تركيب مؤقت ↔ تم تركيب مؤقت
+
+تركيب دائم ↔ تم التركيب
+
+The Statistics page must NEVER infer completed installations merely from implant status.
+
+Actual prosthetic analytics must continue using canonical:
+
+`prosthetic_events`
+
+The status is current clinical state.
+
+The event is the dated historical installation record.
+
+Do not merge these concepts.
+
+==================================================
+8. TOP NAVIGATION
+=================
+
+Add:
+
+الإحصائيات
+
+Recommended navigation:
+
+الرئيسية
+المرضى
+المالية
+الإحصائيات
+الإعدادات
+
+Respect existing role permissions.
+
+==================================================
+9. PAGE DESIGN
+==============
+
+The Statistics page should be ONE vertically scrollable analytics page.
+
+Use clear sections:
+
+1. النظرة العامة
+2. المرضى
+3. حالات الزراعة
+4. الزرعات
+5. أنظمة الزرعات
+6. التركيبات
+7. المتابعات
+8. التواصل
+9. المالية
+10. الفشل وإعادة الزراعة
+11. النشاط حسب الطبيب
+
+A lightweight sticky section navigator is acceptable.
+
+Do not create another complicated nested tab system.
+
+==================================================
+10. GLOBAL FILTERS
+==================
+
+Add one global filter bar.
+
+Date presets:
+
+* اليوم
+* هذا الأسبوع
+* هذا الشهر
+* الشهر الماضي
+* آخر 3 أشهر
+* هذه السنة
+* فترة مخصصة
+
+Use Riyadh timezone.
+
+Additional valid filters:
+
+* الطبيب المعالج
+* نظام الزرعة
+* حالة الحالة
+* حالة الزرعة
+
+Do not create filters with no meaningful relationship to a dataset.
+
+==================================================
+11. DATE SEMANTICS
+==================
+
+Every statistic must use its correct authoritative date.
+
+Do NOT apply one date field to everything.
+
+Examples:
+
+New patients:
+patient creation/addition date.
+
+Implant cases:
+actual case/procedure date according to existing reports.
+
+Implants:
+authoritative implant-placement/procedure date.
+
+Prosthetics:
+`prosthetic_events.event_date`.
+
+Follow-ups:
+scheduled/completed/outcome date depending on metric.
+
+Payments:
+actual payment date.
+
+Communications:
+actual communication timestamp.
+
+All calendar boundaries use Riyadh timezone.
+
+==================================================
+12. SECTION — النظرة العامة
+===========================
+
+Provide filtered-period executive KPIs such as:
+
+* عدد المرضى
+* المرضى الذين تم زرعهم
+* عدد حالات الزراعة
+* عدد الزرعات
+* عدد الأنظمة المستخدمة
+* مرضى التركيب
+* التركيبات التي تمت
+* المتابعات
+* المتابعات المتأخرة
+* زرعات فاشلة / تحتاج إعادة
+
+Financial values when authorized:
+
+* المقبوض
+* المتبقي
+* الرسوم
+* الخصومات
+
+This overview must NOT replace Home "ملخص العمل".
+
+==================================================
+13. SECTION — المرضى
+====================
+
+KPIs:
+
+* المرضى الجدد
+* المرضى الذين تم زرعهم
+* المرضى أصحاب حالات زراعة
+* مرضى التركيب
+
+Charts:
+
+A. المرضى الجدد عبر الزمن
+
+B. المرضى الذين تم زرعهم عبر الزمن
+
+Count DISTINCT patients where required.
+
+Do not invent unsupported patient categories.
+
+==================================================
+14. SECTION — حالات الزراعة
+===========================
+
+KPIs:
+
+* إجمالي الحالات
+* الحالات الجديدة
+* الجاهزة للتركيب
+* المكتملة where canonical logic supports it
+
+Charts:
+
+A. توزيع حالات الزراعة
+
+B. حالات الزراعة عبر الزمن
+
+C. الحالات حسب الطبيب
+
+Use real existing case-status values.
+
+==================================================
+15. SECTION — الزرعات
+=====================
+
+KPIs:
+
+* إجمالي الزرعات
+* المرضى الذين تم زرعهم
+* متوسط الزرعات لكل مريض مزروع
+* الزرعات النشطة
+* الزرعات الفاشلة
+* تحتاج إعادة
+* تمت إعادة الزراعة
+
+Charts:
+
+A. الزرعات عبر الزمن
+
+B. توزيع حالات الزرعات
+
+Use canonical:
+
+`implants.status`
+
+C. توزيع الزرعات حسب FDI site
+
+Prefer readable horizontal bars or tooth-style distribution.
+
+Avoid unreadable 32-slice charts.
+
+==================================================
+16. SECTION — أنظمة الزرعات
+===========================
+
+KPIs:
+
+* عدد الأنظمة المستخدمة
+
+Charts:
+
+A. توزيع الأنظمة
+
+Show:
+
+* system name
+* implant count
+* percentage
+
+B. استخدام الأنظمة عبر الزمن
+
+C. optional systems by doctor if operationally useful
+
+Use horizontal bars when many systems exist.
+
+==================================================
+17. SECTION — التركيبات
+=======================
+
+Use ONLY:
+
+`prosthetic_events`
+
+for actual completed installation statistics.
+
+KPIs:
+
+* مرضى التركيب
+* التركيبات الفعلية
+* تركيب مؤقت
+* تركيب دائم
+* الجاهزين للتركيب
+
+Charts:
+
+A. التركيبات عبر الزمن
+
+B. مؤقت مقابل دائم
+
+C. التركيبات حسب الطبيب
+
+D. ready vs completed where meaningful
+
+Count:
+
+Patients = DISTINCT patient
+
+Installations = prosthetic events
+
+==================================================
+18. SECTION — المتابعات
+=======================
+
+KPIs:
+
+* إجمالي المتابعات
+* المجدولة
+* المستحقة اليوم
+* المتأخرة
+* المكتملة
+* الملغاة
+* تحتاج إعادة تواصل
+
+Charts:
+
+A. المتابعات عبر الزمن
+
+B. أنواع المتابعات
+
+C. نتائج المتابعات
+
+D. المتابعات حسب المسؤول
+
+Use exact existing types/outcomes.
+
+==================================================
+19. SECTION — التواصل
+=====================
+
+Use canonical communications.
+
+KPIs:
+
+* عدد مرات التواصل
+* النتائج المسجلة
+
+Charts:
+
+A. نتائج التواصل
+
+B. التواصل عبر الزمن
+
+C. أكثر أسباب/قوالب التواصل استخدامًا
+
+Do not claim delivery/read status that the current manual WhatsApp workflow cannot prove.
+
+==================================================
+20. SECTION — المالية
+=====================
+
+SERVER-SIDE permission gate required.
+
+If user cannot view financials:
+
+financial statistics must not be included in backend response.
+
+KPIs:
+
+* قيمة العلاج
+* المقبوض
+* المتبقي
+* الرسوم
+* الخصومات
+* عدد الدفعات
+* المرضى أصحاب مبالغ متبقية
+
+If installment-plan functionality is already implemented, include:
+
+* الأقساط المجدولة
+* المستحقة
+* المتأخرة
+* المدفوعة
+* المدفوعة جزئيًا
+
+Do not create installment analytics if installment feature is not canonical yet.
+
+==================================================
+21. FINANCE CHARTS
+==================
+
+Charts:
+
+A. التحصيل عبر الزمن
+
+B. توزيع طرق الدفع
+
+C. حالة السداد
+
+D. الالتزام مقابل التحصيل where mathematically valid
+
+E. الخصومات عبر الزمن
+
+F. الرسوم الإضافية عبر الزمن
+
+If installment model exists:
+
+G. الأقساط المستحقة عبر الزمن
+
+H. حالة الأقساط
+
+==================================================
+22. AUTHORITATIVE FINANCIAL LOGIC
+=================================
+
+Reuse:
+
+`loadCaseFinancials`
+
+`calcPaymentStatus`
+
+and current finance report helpers.
+
+Never independently calculate finance inside frontend statistics.
+
+Canonical formula:
+
+base amount
+
+* charges
+
+- discounts
+  = final obligation
+
+actual non-voided payments
+= paid
+
+final obligation - paid
+= remaining
+
+Planned installments are NOT actual collections.
+
+==================================================
+23. FAILURE / REIMPLANTATION
+============================
+
+Section:
+
+الفشل وإعادة الزراعة
+
+KPIs:
+
+* زرعات فاشلة
+* تحتاج إعادة
+* تمت إعادة الزراعة
+
+Charts:
+
+A. activity over time
+
+B. failures by implant system
+
+C. failures by FDI site
+
+Only descriptive analytics.
+
+Do not make unsupported clinical causation claims.
+
+==================================================
+24. ACTIVITY BY DOCTOR
+======================
+
+Section:
+
+النشاط حسب الطبيب
+
+Possible metrics:
+
+* distinct patients
+* implant cases
+* implants
+* prosthetic events
+* follow-ups
+
+Do NOT create subjective rankings such as:
+
+أفضل طبيب
+
+or quality scores unsupported by data.
+
+==================================================
+25. CHART DESIGN
+================
+
+Use charts intentionally.
+
+Time:
+line / vertical bars.
+
+Statuses:
+horizontal bars.
+
+Small categorical distributions:
+donut.
+
+Comparisons:
+grouped/stacked bars when clear.
+
+Avoid excessive donut charts.
+
+Use current teal/navy visual identity.
+
+Arabic labels and tooltips.
+
+Responsive RTL.
+
+==================================================
+26. STATISTICAL DEFINITIONS
+===========================
+
+Every metric must have an explicit definition in code.
+
+Document:
+
+* entity being counted
+* date field
+* DISTINCT or not
+* archive behavior
+* financial permission requirement
+
+Examples:
+
+Implanted patients:
+COUNT DISTINCT patient_id
+
+Implants:
+COUNT implants.id
+
+Prosthetic patients:
+COUNT DISTINCT patient_id FROM prosthetic_events
+
+Completed prosthetics:
+COUNT prosthetic_events.id
+
+Collections:
+SUM actual non-voided payments
+
+==================================================
+27. CROSS-PAGE CONSISTENCY TESTS
+================================
+
+This requirement is mandatory.
+
+Do NOT test Statistics page only.
+
+Verify that mutations made elsewhere are immediately reflected in Statistics.
+
+### Patient test
+
+Create/edit patient from Operational Table or Patient File.
+
+Statistics patient values update correctly.
+
+### Implant test
+
+Add implant.
+
+Statistics implant count updates.
+
+Change implant status.
+
+Implant status chart updates.
+
+Archive implant.
+
+It disappears from active counts according to existing rules.
+
+### Case test
+
+Create/edit case.
+
+Case distributions update.
+
+### Prosthetic test
+
+Document installation.
+
+Statistics:
+
+* prosthetic patients
+* actual installations
+* temporary/final distribution
+
+update.
+
+Archive/correct the event.
+
+Statistics recalculate.
+
+### Follow-up test
+
+Create follow-up.
+
+Follow-up statistics update.
+
+Postpone / complete / cancel.
+
+Correct bucket updates.
+
+### Payment test
+
+Record payment.
+
+Collections update.
+
+Void payment.
+
+Collections recalculate.
+
+### Charge/discount test
+
+Add charge or discount.
+
+Financial summaries update.
+
+### Installment test
+
+If installment feature exists:
+change installment schedule/payment state.
+
+Statistics updates without changing actual collections incorrectly.
+
+==================================================
+28. CROSS-SURFACE READ CONSISTENCY
+==================================
+
+Verify a small test entity across:
+
+Operational Table
+
+Patient File
+
+Finance page
+
+Statistics page
+
+Dashboard
+
+Reports
+
+Each must show values derived from the same canonical state.
+
+There must be no scenario such as:
+
+Operational Table says status A
+
+Patient File says status B
+
+Statistics counts status C
+
+This is unacceptable.
+
+==================================================
+29. ARCHIVED DATA
+=================
+
+Follow the existing canonical reporting semantics.
+
+Do not silently include archived records in one page and exclude them in another.
+
+Where a historical report intentionally includes archived history, document it explicitly.
+
+==================================================
+30. EMPTY STATES
+================
+
+Never show broken chart axes.
+
+Show:
+
+"لا توجد بيانات خلال الفترة المحددة."
+
+==================================================
+31. DRILL-DOWN
+==============
+
+Where simple and useful, allow KPI/chart drill-down.
+
+Example:
+
+فاشلة = 3
+
+clicking may show the 3 affected patients/implants or route to Operational Table with equivalent filters.
+
+Do not build a complex BI engine.
+
+==================================================
+32. HOME PAGE — ABSOLUTELY DO NOT TOUCH
+=======================================
+
+Do NOT change:
+
+**ملخص العمل**
+
+Keep all 5 existing cards:
+
+* المرضى الذين تم زرعهم
+* عدد الزرعات
+* الأنظمة المستخدمة
+* مرضى التركيب
+* التركيبات التي تمت
+
+Keep:
+
+اليوم
+هذا الشهر
+
+Keep all current calculations and styling unchanged.
+
+==================================================
+33. EXISTING FINANCE / HOME ANALYTICS
+=====================================
+
+Do NOT remove existing charts/reports from other pages in this task.
+
+Create the new Statistics Hub first.
+
+Potential duplication can be reviewed later.
+
+Safety > cleanup.
+
+==================================================
+34. SINGLE SOURCE OF TRUTH
+==========================
+
+The Statistics page is READ-ONLY.
+
+It may never become an editable source.
+
+All statistics must come from canonical domain records.
+
+No:
+
+* statistics table
+* manual KPI fields
+* stored chart totals
+* duplicate snapshots
+
+==================================================
+35. API ARCHITECTURE
+====================
+
+Reuse existing analytical helpers.
+
+Prefer modular analytics functions.
+
+Possible conceptual grouping:
+
+statistics/
+patients
+cases
+implants
+prosthetics
+followups
+communications
+finance
+
+Avoid:
+
+* one enormous SQL query
+* N+1 queries
+* full raw-record browser aggregation
+
+Aggregate server-side using PostgreSQL.
+
+==================================================
+36. PERFORMANCE
+===============
+
+Use:
+
+COUNT
+COUNT DISTINCT
+SUM
+GROUP BY
+date buckets
+
+server-side.
+
+Do not fetch all records to React to calculate statistics.
+
+Use existing indexes.
+
+If a missing index appears essential:
+
+report it before adding a migration unless clearly safe.
+
+==================================================
+37. PERMISSIONS
+===============
+
+Clinical analytics:
+current authenticated access rules.
+
+Financial analytics:
+effective `canViewFinancials`.
+
+Backend must not return financial analytics to unauthorized users.
+
+Do not expose them in:
+
+* hidden payload
+* tooltip
+* CSV
+* print
+* frontend state
+
+==================================================
+38. EXPORT / PRINT
+==================
+
+Add:
+
+طباعة التقرير
+
+and appropriate:
+
+تصدير CSV
+
+Print/export must respect:
+
+* selected filters
+* period
+* Riyadh timestamp
+* permissions
+
+Reuse current print-first strategy.
+
+==================================================
+39. RESPONSIVE
+==============
+
+Desktop:
+2-column chart layout where appropriate.
+
+Tablet:
+1–2 columns.
+
+Mobile:
+single-column.
+
+No horizontal overflow.
+
+==================================================
+40. NO UNSUPPORTED ASSUMPTIONS
+==============================
+
+If a statistic cannot be calculated reliably from canonical data:
+
+DO NOT guess.
+
+Omit it and mention it in the completion report.
+
+Do not infer clinical facts from notes.
+
+==================================================
+41. DO NOT CHANGE BUSINESS LOGIC
+================================
+
+Do NOT change:
+
+* patient workflows
+* Operational Table workflows
+* Patient File workflows
+* implant statuses
+* Task #18 prosthetic logic
+* finance formulas
+* follow-up business rules
+* communications architecture
+* archive rules
+* Dashboard summary definitions
+
+This task is:
+
+ANALYTICS CONSOLIDATION
++
+SYSTEM-WIDE DATA CONSISTENCY VERIFICATION
+
+==================================================
+42. FOCUSED TEST DATA CROSS-CHECK
+=================================
+
+Use isolated test data.
+
+Example:
+
+Patient A:
+2 implants
+1 temporary prosthetic
+1 final prosthetic
+2 follow-ups
+1 payment
+
+Patient B:
+1 failed implant
+1 overdue follow-up
+2 payments
+
+Manually calculate expected analytics.
+
+Compare backend results mathematically.
+
+Do not rely only on screenshots.
+
+==================================================
+43. REQUIRED VERIFICATION
+=========================
+
+Run:
+
+* affected TypeScript
+* affected lint
+* focused statistics API tests
+* financial permission tests
+* targeted cross-surface consistency tests
+* authenticated browser verification
+
+Verify:
+
+1. Statistics top-level nav exists
+2. Home "ملخص العمل" unchanged
+3. filters work
+4. patient analytics correct
+5. case analytics correct
+6. implant analytics correct
+7. status distribution correct
+8. systems correct
+9. prosthetic counts correct
+10. follow-up statistics correct
+11. communication statistics correct
+12. financial values correct
+13. installment analytics correct if implemented
+14. finance permission enforced server-side
+15. archived records behave consistently
+16. empty states clean
+17. mobile works
+18. print/export permissions correct
+
+AND verify system-wide consistency:
+
+19. edit patient elsewhere → Statistics updates
+20. edit case elsewhere → Statistics updates
+21. add implant → Statistics updates
+22. change implant status → Statistics updates
+23. archive implant → Statistics updates
+24. document prosthetic → Statistics updates
+25. archive prosthetic → Statistics updates
+26. create/edit follow-up → Statistics updates
+27. create payment → Statistics updates
+28. void payment → Statistics updates
+29. charge/discount change → Statistics updates
+30. no page shows stale conflicting information
+
+==================================================
+44. FINAL REPORT
+================
+
+At completion report:
+
+1. new Statistics route/page
+2. sections implemented
+3. existing helpers reused
+4. new shared helpers added
+5. canonical source for every analytics domain
+6. exact metric definitions
+7. date semantics
+8. permission behavior
+9. mutation/query invalidation strategy
+10. cross-surface consistency verification
+11. confirmation there are no duplicate data sources
+12. unsupported metrics omitted
+13. confirmation Home "ملخص العمل" remained untouched
+14. database/migration changes if any
+15. test results
+16. exact checkpoint hash
+
+Do not publish.
+
+Create a stable checkpoint and stop.

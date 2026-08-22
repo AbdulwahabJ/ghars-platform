@@ -1,0 +1,226 @@
+MODE: Power
+
+Proceed with the MINIMUM implementation identified by the previous audit.
+
+Do not redesign or refactor unrelated code.
+
+The previous inspection confirmed that the Operational Report response currently contains:
+
+* `caseStatus`
+* `implantCount`
+* `implantSystems`
+
+but does NOT contain the actual active implant statuses needed for the table.
+
+Implement exactly this missing data flow and the requested UI.
+
+## 1. API — MINIMUM ADDITION
+
+Extend the existing Operational Report response with:
+
+`implantStatuses: string[]`
+
+This field must contain the ACTUAL current statuses of all active implants belonging to that patient across all active implant cases.
+
+Source:
+
+`implants.status`
+
+Exclude:
+
+* archived implants
+* implants belonging to archived implant cases
+* archived patients
+
+Do not derive this from:
+
+* `implant_cases.case_status`
+* follow-ups
+* expected prosthetic dates
+* prosthetic events directly
+
+Use the canonical current implant status only.
+
+Do not create a new database field or table.
+
+## 2. GROUPING BEHAVIOR
+
+The API may return raw active statuses, for example:
+
+[
+"فاشلة",
+"مرحلة الالتئام",
+"مرحلة الالتئام",
+"جاهزة للتركيب"
+]
+
+The frontend should group identical values.
+
+Display:
+
+فاشلة ×1
+مرحلة الالتئام ×2
+جاهزة للتركيب ×1
+
+If only one implant has a status:
+
+display only:
+
+مرحلة الالتئام
+
+Do not show ×1 unless multiple grouped statuses make the count useful.
+
+If all 3 implants share the same status:
+
+display:
+
+تم التركيب ×3
+
+## 3. COLUMN
+
+Rename the existing Operational Table column:
+
+"حالة الحالة"
+
+to:
+
+"حالة الزرعات"
+
+Remove the broad case-status value from this column.
+
+This column must now display ONLY the grouped current implant statuses.
+
+## 4. MULTIPLE DIFFERENT STATUSES
+
+If a patient has multiple implants with different statuses, show ALL distinct statuses in the same cell.
+
+Example:
+
+Implant 24 → فاشلة
+Implant 25 → مرحلة الالتئام
+Implant 26 → جاهزة للتركيب
+
+Display three compact badges:
+
+فاشلة
+مرحلة الالتئام
+جاهزة للتركيب
+
+Do NOT display:
+
+"متعددة"
+
+The purpose is to see the patient's implant situation immediately without opening the row.
+
+## 5. STATUS ORDER
+
+When multiple statuses exist, order them by clinical importance.
+
+Use the existing real status values in the codebase.
+
+Preferred priority:
+
+1. فاشلة
+2. تحتاج إعادة
+3. جاهزة للتركيب
+4. مرحلة الالتئام
+5. مزروعة
+6. تم تركيب مؤقت
+7. تم التركيب
+8. تمت إعادة الزراعة
+9. any remaining existing statuses
+
+Do not invent or rename statuses.
+
+## 6. VISUAL DESIGN
+
+Use compact professional badges.
+
+Reuse the application's existing semantic colors where available.
+
+Suggested treatment:
+
+* فاشلة / تحتاج إعادة → red
+* جاهزة للتركيب → amber
+* مرحلة الالتئام → blue
+* مزروعة → teal
+* تم تركيب مؤقت → soft teal
+* تم التركيب → green
+* تمت إعادة الزراعة → appropriate existing clinical success style
+
+Keep the table row compact.
+
+Allow badges to wrap neatly if there are several statuses.
+
+Do not make the row excessively tall.
+
+## 7. NO IMPLANTS
+
+If the patient has no active implants:
+
+display:
+
+—
+
+Do NOT fall back to the case status.
+
+This column is explicitly for implant statuses.
+
+## 8. PROSTHETIC WORKFLOW
+
+Preserve the existing synchronized workflow:
+
+* تركيب مؤقت ↔ تم تركيب مؤقت
+* تركيب دائم ↔ تم التركيب
+
+Because this column reads `implants.status`, it should update naturally after the existing Task #18 workflow completes.
+
+Do not change prosthetic-event logic.
+
+## 9. DO NOT CHANGE
+
+Do not change:
+
+* database schema
+* migrations
+* implant status enum
+* implant status update workflow
+* prosthetic workflow
+* dashboard KPI definitions
+* finance
+* follow-ups
+* statistics
+* other Operational Table columns
+* case-status storage
+
+This task is only:
+
+Operational Report API exposes `implantStatuses`
++
+Operational Table renders the grouped implant-status summary.
+
+## 10. VERIFICATION
+
+Run only:
+
+* affected API TypeScript check
+* affected frontend TypeScript check
+* affected lint
+* focused Operational Table browser verification
+
+Verify:
+
+1. column title = "حالة الزرعات"
+2. one implant displays its exact status
+3. several identical statuses group correctly
+4. different statuses all appear in the same cell
+5. failed + healing + ready statuses can coexist visibly
+6. archived implants/cases do not contribute
+7. no implants → "—"
+8. recently synchronized prosthetic statuses appear correctly
+9. no new source of truth was created
+
+Do not run the full historical test suite.
+Do not publish.
+
+Provide a concise completion report and stop.

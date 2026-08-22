@@ -1,0 +1,1134 @@
+MODE: Power
+
+Redesign the Patient Medical File into ONE clean, scrollable, editable medical-record page AND ensure complete bidirectional consistency with the Dashboard Operational Table.
+
+This is NOT just a visual redesign.
+
+The most important architectural requirement is:
+
+THE PATIENT FILE AND THE OPERATIONAL TABLE MUST ALWAYS REPRESENT THE SAME CANONICAL DATA.
+
+Any create / edit / status change / payment / follow-up / prosthetic documentation / archive / correction made from either surface must be reflected by the other surface automatically.
+
+Do NOT create duplicated patient data or separate "patient-page" records.
+
+==================================================
+0. FIRST — AUDIT CURRENT DATA FLOW BEFORE CHANGING UI
+=====================================================
+
+Before implementation, inspect the existing architecture.
+
+For every domain below, identify:
+
+* canonical database table(s)
+* existing GET endpoint(s)
+* existing mutation endpoint(s)
+* frontend query keys/hooks
+* OperationalTable mutation implementation
+* Patient-page mutation implementation
+
+Audit:
+
+* patients
+* implant_cases
+* implants
+* prosthetic_events
+* payments
+* installment plan, IF already implemented
+* case_charges
+* case_discounts
+* followups
+* communications
+
+The intended architecture must be:
+
+Operational Table
+↓
+same canonical APIs / records
+↑
+Patient Medical File
+
+Dashboard / Reports / Statistics / Finance / Notifications
+↓
+same canonical records
+
+Do NOT implement frontend-to-frontend synchronization.
+
+Do NOT make the Patient page "sync with the table".
+
+Both must independently read/write the SAME backend source of truth.
+
+If any existing domain currently uses duplicated/stale data, fix only the minimum necessary architecture before completing the UI.
+
+==================================================
+
+1. SINGLE SOURCE OF TRUTH — BINDING RULE
+   ==================================================
+
+These two interfaces:
+
+A. Dashboard Operational Table
+B. Patient Medical File `/patients/:id`
+
+must be two views over the SAME canonical records.
+
+Example:
+
+Operational Table edits implant 36:
+
+status:
+مرحلة الالتئام → جاهزة للتركيب
+
+Then opening the patient file must immediately show:
+
+جاهزة للتركيب
+
+without duplicate/manual synchronization.
+
+And vice versa:
+
+Patient file edits implant 36:
+
+Q = 70
+
+Then returning to the Operational Table must show the updated information wherever relevant.
+
+This applies to ALL supported write operations.
+
+==================================================
+2. CREATE / UPDATE / ARCHIVE CONSISTENCY
+========================================
+
+For every supported entity, ensure both interfaces use the same canonical mutation path.
+
+### Patient
+
+Create/update/archive patient.
+
+### Implant Case
+
+Create/update/archive case.
+
+### Implant
+
+Create/update/status change/archive implant.
+
+### Prosthetic Event
+
+Create/archive/correct prosthetic documentation.
+
+### Finance
+
+Where currently supported:
+
+* treatment/base amount
+* payments
+* payment voids
+* charges
+* discounts
+* installment plans
+
+### Follow-ups
+
+* create
+* edit
+* outcome
+* postpone
+* cancel/archive
+
+### Communications
+
+Preserve the current canonical communication workflow.
+
+There must NOT be separate:
+
+* "OperationalTable version"
+* "PatientPage version"
+
+of the same business operation.
+
+Reuse existing server APIs and shared mutation hooks where practical.
+
+==================================================
+3. QUERY INVALIDATION / REFRESH STRATEGY
+========================================
+
+Create a clear shared cache-invalidation strategy.
+
+After any relevant mutation, invalidate/refetch the canonical affected query keys.
+
+For example, an implant update may need to refresh:
+
+* patient implant/case details
+* Operational Report
+* Dashboard summary if affected
+* statistics if affected
+* patient summary/current page
+
+Do NOT rely on a full browser refresh.
+
+Do NOT rely on stale local component state.
+
+Use the project's existing React Query architecture.
+
+Prefer shared helper(s) for invalidation rather than manually duplicating different query-key lists throughout multiple components.
+
+Example conceptual helper:
+
+invalidatePatientDomain(patientId, caseId)
+
+which may invalidate the appropriate existing query keys.
+
+Use actual project query keys, not this exact name if the architecture differs.
+
+==================================================
+4. PATIENT FILE — REMOVE TABS
+=============================
+
+The current patient workspace uses:
+
+* البيانات
+* الزرعات
+* الدفعات
+* المتابعة
+* الملخص
+
+Remove this tab-based workflow.
+
+The Patient Medical File should become ONE continuous vertical page.
+
+No content should be hidden behind tabs.
+
+The main route remains:
+
+`/patients/:id`
+
+==================================================
+5. DESIGN DIRECTION — EDITABLE SUMMARY
+======================================
+
+The visual direction must be based on the CURRENT "الملخص" page.
+
+I do NOT want a dashboard full of cards.
+
+Think:
+
+CLINICAL MEDICAL RECORD
++
+EDITABILITY
++
+INLINE ACTIONS
+
+Use:
+
+* section titles
+* simple label/value rows
+* compact tables
+* subtle dividers
+* restrained badges
+* white space
+* RTL typography
+
+Avoid:
+
+* excessive cards
+* card inside card
+* excessive rounded boxes
+* unnecessary shadows
+* giant forms
+* permanent input fields
+
+Default state must be:
+
+READ MODE
+
+Edit controls appear only when requested.
+
+==================================================
+6. FINAL PAGE STRUCTURE
+=======================
+
+Recommended order:
+
+### Patient Header
+
+### بيانات المريض
+
+### حالات الزراعة والزرعات
+
+### المالية
+
+### المتابعات
+
+### سجل التواصل
+
+### optional chronological summary if existing logic can be reused safely
+
+Everything appears vertically on one page.
+
+==================================================
+7. PATIENT HEADER
+=================
+
+Keep the existing patient identity header.
+
+Show compactly:
+
+* patient name
+* file number
+* phone
+* age
+* date added
+* archived status if applicable
+
+Keep:
+
+العودة للقائمة
+
+and existing appropriate patient-level controls.
+
+Do NOT make this header unnecessarily large.
+
+==================================================
+8. PATIENT INFORMATION SECTION
+==============================
+
+Section:
+
+بيانات المريض
+
+Use summary-style label/value layout.
+
+Example:
+
+الاسم الكامل: أحمد محمد
+رقم الملف: 1234
+رقم الجوال: 05XXXXXXXX
+العمر: 35
+تاريخ الإضافة: 22 أغسطس 2026
+ملاحظة إدارية: ...
+
+Do NOT place every field in an individual mini-card.
+
+Add:
+
+تعديل ✎
+
+Clicking edit turns ONLY this section into an inline form.
+
+Show:
+
+إلغاء
+حفظ
+
+Use the SAME canonical patient update endpoint used elsewhere.
+
+After save:
+
+* return to read mode
+* refresh patient data
+* invalidate Operational Report data
+
+Any changed patient name / phone / age etc. must be reflected in the Operational Table.
+
+==================================================
+9. IMPLANT CASES SECTION
+========================
+
+Section:
+
+حالات الزراعة والزرعات
+
+This is the most important clinical section.
+
+For each case:
+
+show a clean case heading.
+
+Example:
+
+حالة زراعة — تمت الزراعة
+
+Then a compact metadata row:
+
+تاريخ العملية
+الطبيب المعالج
+الطبيب المحوّل where existing
+Pros
+تاريخ التركيب المتوقع
+ملاحظة
+
+Use subtle separators, NOT a huge card.
+
+Add:
+
+تعديل ✎
+
+for inline case editing.
+
+==================================================
+10. CASE CHANGES MUST REFLECT EVERYWHERE
+========================================
+
+If a case is edited from the Patient File:
+
+* Operational Table must show the new values
+* reports/statistics continue reading the same canonical case
+* dashboard readiness logic remains correct
+
+If a case is edited from the Operational Table:
+
+Patient File must show the same updated case.
+
+Do NOT duplicate case-status state.
+
+==================================================
+11. IMPLANTS — TABLE/ROW DESIGN
+===============================
+
+Do NOT show implants as cards.
+
+Inside each case show:
+
+الزرعات (N)
+
+Then a compact clinical table.
+
+Preferred columns:
+
+الموقع
+النظام
+القياس
+Q
+Former
+Graft
+الحالة
+الإجراء
+
+Where:
+
+القياس = diameter × length
+
+Example:
+
+| الموقع | النظام | القياس | Q | Former | Graft | الحالة | |
+| 36 | Neodent | 3.5 × 10 | 50 | MU30 | N | مرحلة الالتئام | ✎ |
+| 35 | Nobel | 4.3 × 11.5 | 70 | MU17 | Y | تم التركيب | ✎ |
+
+Use the exact real fields.
+
+==================================================
+12. INLINE IMPLANT EDIT
+=======================
+
+Clicking the implant pencil should expand an inline edit row directly underneath that implant.
+
+No modal.
+No navigation.
+
+Use existing fields.
+
+After save:
+
+* collapse editor
+* keep page position
+* refresh case/implant data
+* invalidate Operational Report
+* refresh any affected statistics/dashboard summaries
+
+The same data must appear immediately in the Operational Table.
+
+==================================================
+13. ADD IMPLANT INLINE
+======================
+
+At the bottom of each implant table:
+
+* إضافة زرعة
+
+Clicking inserts an inline new implant row.
+
+Reuse the SAME implant-create endpoint already used by OperationalTable.
+
+Do not implement a separate PatientFile implant-create API.
+
+After create:
+
+* show implant immediately
+* update implant count
+* invalidate Operational Report
+* update Dashboard KPIs/statistics where applicable
+
+==================================================
+14. QUICK IMPLANT STATUS
+========================
+
+Preserve/reuse the current quick implant-status workflow.
+
+The Patient File should support the SAME status behavior as the Operational Table.
+
+Do NOT build a second status implementation.
+
+If the existing OperationalTable quick-status control has:
+
+* normal progression
+* exception states
+* prosthetic integration
+
+extract/reuse the shared behavior where practical.
+
+Both surfaces must use the same underlying mutation/business logic.
+
+==================================================
+15. TASK #18 PROSTHETIC SYNCHRONIZATION
+=======================================
+
+Preserve the approved mappings:
+
+تركيب مؤقت ↔ تم تركيب مؤقت
+
+تركيب دائم ↔ تم التركيب
+
+Changing an implant into a prosthetic status must continue using the existing atomic workflow:
+
+prosthetic_event
++
+implant status
+
+inside one database transaction.
+
+Do NOT bypass this from the Patient File.
+
+Do NOT directly PATCH an installation status without prosthetic documentation.
+
+Both Patient File and Operational Table must trigger the SAME Task #18 workflow.
+
+==================================================
+16. PROSTHETIC HISTORY
+======================
+
+Below the implant table:
+
+سجل التركيبات
+
+Use compact rows.
+
+Example:
+
+19 أغسطس 2026 | تركيب مؤقت | السن 36
+20 نوفمبر 2026 | تركيب دائم | السن 36
+
+Actions:
+
+* إضافة تركيب
+
+and existing safe archive/correction behavior.
+
+If a prosthetic event is created/archived from the Patient File:
+
+* Operational Table must reflect the associated implant status/data
+* Dashboard prosthetic KPIs must refresh according to existing logic
+
+Do not create duplicate prosthetic records.
+
+==================================================
+17. ARCHIVE / DELETE BEHAVIOR
+=============================
+
+This is critical.
+
+When the user says "حذف" in the UI, preserve the existing business rule.
+
+If the system currently archives rather than hard-deletes:
+
+continue ARCHIVING.
+
+Do NOT introduce hard deletion.
+
+Example:
+
+Archive implant from Patient File
+→ implant disappears from active Patient File data
+→ Operational Table active implant count/statuses update
+→ reports/statistics exclude it according to existing rules
+
+Archive from Operational Table
+→ Patient File reflects the same archived state.
+
+The same applies to:
+
+* patients
+* cases
+* implants
+* prosthetic events
+* payments where void behavior is used
+* follow-ups where cancellation/archive is used
+
+Preserve audit history.
+
+==================================================
+18. FINANCE SECTION — SUMMARY STYLE
+===================================
+
+Section:
+
+المالية
+
+Do not build several separate finance cards.
+
+Use one clean section.
+
+Top summary row:
+
+الإجمالي
+المدفوع
+المتبقي
+حالة السداد
+
+Then subtle divider.
+
+Then where available:
+
+خطة السداد
+
+Then:
+
+سجل الدفعات
+
+Then:
+
+الرسوم
+الخصومات
+
+Use compact rows.
+
+==================================================
+19. FINANCE SOURCE OF TRUTH
+===========================
+
+Patient File finance and OperationalTable finance must use the SAME:
+
+* base amount
+* charges
+* discounts
+* payments
+* installment data, if already implemented
+
+Do not implement missing installment functionality as part of this patient-file redesign if it does not exist yet.
+
+Only render/reuse what currently exists.
+
+Financial formulas remain unchanged.
+
+==================================================
+20. FINANCIAL MUTATION SYNC
+===========================
+
+Example:
+
+Record payment in Patient File.
+
+Immediately after save:
+
+Patient File:
+المدفوع updates
+المتبقي updates
+
+Operational Table:
+financial summary reflects the payment
+
+Finance page:
+same payment appears
+
+Dashboard collections:
+updates according to existing payment logic
+
+The same must happen when payment is recorded from Operational Table.
+
+No duplicate finance totals.
+
+==================================================
+21. PAYMENT VOID / EDIT
+=======================
+
+Preserve existing payment update/void behavior.
+
+If payment is corrected from Patient File:
+
+all other financial views must update.
+
+Do not manually update calculated totals.
+
+Always recalculate from canonical records.
+
+==================================================
+22. FOLLOW-UPS SECTION
+======================
+
+Section:
+
+المتابعات
+
+Use a simple table/list.
+
+Show:
+
+* type
+* date/time
+* assignee
+* status
+* result
+* next date where applicable
+* actions
+
+Actions may include existing:
+
+* إضافة متابعة
+* تعديل
+* تسجيل النتيجة
+* تأجيل
+* إلغاء
+
+Do not make each follow-up a large card.
+
+==================================================
+23. FOLLOW-UP SYNCHRONIZATION
+=============================
+
+A follow-up created/edited from Patient File must automatically affect:
+
+* Dashboard today's appointments
+* overdue follow-ups
+* notifications
+* Operational Table next follow-up
+* patient follow-up section
+
+And vice versa.
+
+Use the canonical `followups` records.
+
+Do not store Patient-page-specific follow-ups.
+
+==================================================
+24. COMMUNICATION SECTION
+=========================
+
+Section:
+
+سجل التواصل
+
+Compact history rows:
+
+* date/time
+* reason/template
+* result
+* responsible user
+
+Keep the existing WhatsApp/manual communication architecture unchanged.
+
+Do not rebuild WhatsApp.
+
+==================================================
+25. ARCHIVED ITEMS TOGGLE
+=========================
+
+Keep one page-level control:
+
+إظهار العناصر المؤرشفة
+
+When OFF:
+only active relevant records.
+
+When ON:
+show archived elements with clearly muted/archived styling.
+
+Do not create separate archived copies.
+
+==================================================
+26. OPTIONAL SECTION NAVIGATION
+===============================
+
+No tabs.
+
+If useful for long pages, add a lightweight sticky anchor navigation:
+
+بيانات المريض
+الزراعة
+المالية
+المتابعات
+
+Clicking smooth-scrolls only.
+
+It must NOT hide/show content.
+
+It is not a tab system.
+
+==================================================
+27. PRINT
+=========
+
+Keep one action:
+
+طباعة الملف
+
+Print view should resemble a professional clinical summary.
+
+Hide:
+
+* edit icons
+* add buttons
+* status arrows
+* archive actions
+* form inputs
+
+Include read-only patient information.
+
+Reuse existing RTL print logic.
+
+==================================================
+28. MUTATION REUSE — IMPORTANT IMPLEMENTATION RULE
+==================================================
+
+Do NOT copy OperationalTable mutation logic into the Patient page.
+
+Where both surfaces perform the same business operation, prefer shared hooks/services such as conceptual:
+
+useUpdatePatient
+useUpdateCase
+useCreateImplant
+useUpdateImplant
+useCreateProstheticEvent
+useRecordPayment
+useUpdateFollowup
+
+Names may differ.
+
+If these hooks already exist, reuse them.
+
+If OperationalTable currently contains mutation logic inline, extract only the minimal reusable operation when necessary.
+
+Do NOT perform a large unrelated refactor.
+
+==================================================
+29. CACHE INVALIDATION MATRIX
+=============================
+
+Before coding, establish a small internal mapping such as:
+
+PATIENT MUTATION
+→ patient query
+→ operational report
+
+CASE MUTATION
+→ case query
+→ patient workspace
+→ operational report
+→ dashboard where relevant
+→ statistics where relevant
+
+IMPLANT MUTATION
+→ implants/case
+→ operational report
+→ dashboard work summary
+→ statistics
+
+PROSTHETIC MUTATION
+→ case/events
+→ implant
+→ operational report
+→ dashboard KPIs
+
+PAYMENT MUTATION
+→ case financials
+→ operational report
+→ finance page
+→ dashboard financial metrics where existing
+
+FOLLOWUP MUTATION
+→ followups
+→ operational report
+→ dashboard
+→ notifications
+
+Implement using the REAL existing query keys.
+
+Do not blindly invalidate everything after every action.
+
+==================================================
+30. CROSS-SURFACE ACCEPTANCE REQUIREMENT
+========================================
+
+This task is NOT complete until mutations work BOTH directions.
+
+Required examples:
+
+### Test A — Patient
+
+Operational Table:
+change patient name
+
+Patient File:
+must show new name
+
+Then:
+
+Patient File:
+change phone
+
+Operational Table:
+must show new phone after data refresh/refetch.
+
+### Test B — Implant
+
+Operational Table:
+change implant Q
+
+Patient File:
+must show new Q
+
+Patient File:
+change Former
+
+Operational Table:
+must reflect it where that detail is shown.
+
+### Test C — Implant Status
+
+Operational Table:
+change status
+
+Patient File:
+must display new status.
+
+Patient File:
+change status
+
+Operational Table:
+must display new status.
+
+### Test D — Archive Implant
+
+Archive from Patient File.
+
+Operational Table:
+implant count/status summary updates.
+
+### Test E — Prosthetic
+
+Document installation from Patient File.
+
+Operational Table:
+implant status updates.
+
+Dashboard:
+prosthetic KPI updates.
+
+### Test F — Payment
+
+Record payment from Patient File.
+
+Operational Table finance:
+paid/remaining updates.
+
+Finance page:
+payment exists.
+
+### Test G — Follow-up
+
+Create follow-up from Patient File.
+
+Dashboard / notifications / Operational Table:
+must all reflect it.
+
+==================================================
+31. SAME SOURCE — NO FRONTEND MIRRORING
+=======================================
+
+Do NOT solve the above tests by pushing data manually between frontend components.
+
+Correct solution:
+
+mutation
+→ canonical backend
+→ query invalidation/refetch
+→ all views read updated canonical data
+
+Do not use:
+
+* localStorage synchronization
+* duplicated patient snapshots
+* global mutable patient objects
+* frontend-only mirrored records
+
+==================================================
+32. URL / ROUTING
+=================
+
+Keep:
+
+`/patients/:id`
+
+Old patient tab URLs, if they currently exist, should safely redirect/open the unified Patient File rather than breaking.
+
+Do not create five new section routes.
+
+==================================================
+33. MOBILE / TABLET
+===================
+
+The unified file must work on mobile.
+
+Desktop:
+use table/row presentation.
+
+Mobile:
+convert complex tables into compact label/value rows when required.
+
+Do NOT create large decorative cards on mobile.
+
+No horizontal overflow.
+
+==================================================
+34. PERFORMANCE
+===============
+
+Removing tabs must not result in uncontrolled duplicate API calls.
+
+Inspect the current tab queries.
+
+Reuse cached data.
+
+Avoid fetching the same case/implant/finance data multiple times.
+
+Do not create one giant duplicated endpoint unless necessary.
+
+==================================================
+35. DATABASE
+============
+
+Expected database schema changes:
+
+NONE.
+
+Do NOT create migrations for this UI restructuring.
+
+If implementation appears to require new patient/implant/etc. tables merely to synchronize surfaces:
+
+STOP.
+
+That would indicate the architecture is wrong.
+
+==================================================
+36. DO NOT CHANGE BUSINESS RULES
+================================
+
+Do NOT change:
+
+* implant status values
+* Task #18 mappings
+* financial formulas
+* payment status formulas
+* prosthetic KPI definitions
+* follow-up rules
+* archive behavior
+* authorization
+* auditing
+* WhatsApp behavior
+* statistics definitions
+
+This task is:
+
+PATIENT WORKSPACE RECOMPOSITION
++
+SHARED DATA FLOW / INVALIDATION CORRECTNESS
+
+not a business-logic rewrite.
+
+==================================================
+37. IMPLEMENTATION STRUCTURE
+============================
+
+Avoid creating one massive component.
+
+Prefer composition such as:
+
+PatientPage
+PatientHeader
+PatientDetailsSection
+ImplantCasesSection
+ImplantCaseSection
+ImplantTable
+PatientFinanceSection
+PatientFollowupsSection
+PatientCommunicationsSection
+
+Use existing components where they already fit.
+
+Do not duplicate old tab implementations wholesale.
+
+==================================================
+38. FOCUSED VERIFICATION
+========================
+
+Run:
+
+* affected TypeScript checks
+* affected lint
+* focused API tests only where shared mutation behavior was changed
+* authenticated browser workflow
+
+Do NOT run the full historical suite unless a shared foundational API was actually changed.
+
+==================================================
+39. REQUIRED BROWSER VERIFICATION
+=================================
+
+Verify at minimum:
+
+1. open patient
+2. no tabs exist
+3. all sections visible vertically
+4. patient editing works
+5. case editing works
+6. implant editing works inline
+7. implant status change works
+8. Task #18 prosthetic flow works
+9. archive/correction behaves correctly
+10. payment data remains correct
+11. follow-ups work
+12. print works
+13. mobile layout is readable
+
+Then verify synchronization:
+
+14. change data from Operational Table → Patient File reflects it
+15. change data from Patient File → Operational Table reflects it
+16. archive from one → disappears/archives correctly in the other
+17. create implant from one → count/list updates in the other
+18. document prosthetic from one → status/KPI updates everywhere
+19. payment from one → financial totals update everywhere
+20. follow-up from one → dashboard/notifications/other view update
+
+No manual browser reload should be required where both views are active within the same application navigation lifecycle; normal query refetch on route navigation is acceptable, but stale cache must not preserve old values.
+
+==================================================
+40. FINAL REPORT
+================
+
+At completion, report:
+
+1. old patient components reused
+2. components extracted/recomposed
+3. tabs/routes removed or redirected
+4. canonical API used for each domain
+5. shared mutation/query invalidation changes
+6. confirmation that no duplicate source of truth exists
+7. database schema change confirmation
+8. OperationalTable → PatientFile synchronization verification
+9. PatientFile → OperationalTable synchronization verification
+10. focused tests/browser verification results
+11. known limitations
+
+Do not publish.
+
+Create a checkpoint and stop.

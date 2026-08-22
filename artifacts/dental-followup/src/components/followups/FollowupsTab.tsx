@@ -91,7 +91,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
   };
 
   return (
-    <div className="p-6 space-y-6" data-testid="followups-tab">
+    <div className="space-y-6" data-testid="followups-tab">
       {/* Action bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-foreground">المتابعة</h2>

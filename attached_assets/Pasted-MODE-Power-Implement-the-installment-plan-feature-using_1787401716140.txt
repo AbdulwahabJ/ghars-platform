@@ -1,0 +1,387 @@
+MODE: Power
+
+Implement the installment-plan feature using ONE unified, clean Finance card inside the expanded Operational Table patient row.
+
+Do NOT create separate cards for:
+
+* financial summary
+* installment plan
+* actual payments
+
+Everything should live inside ONE compact, professional Finance card.
+
+The goal is simplicity:
+
+At one glance, the user should understand:
+
+1. total treatment amount
+2. amount actually paid
+3. remaining balance
+4. payment status
+5. installment plan
+6. which installments are paid / partial / due / scheduled
+7. ability to record payment directly from the same card
+
+==================================================
+
+1. ONE FINANCE CARD ONLY
+   ==================================================
+
+Keep the existing card title:
+
+المالية
+
+Inside it, organize the content into three visual levels, NOT separate cards.
+
+### Top — financial summary
+
+Show the existing core values prominently:
+
+الإجمالي
+المدفوع
+المتبقي
+حالة السداد
+
+Example:
+
+الإجمالي
+10,000 ر.س
+
+المدفوع
+2,500 ر.س
+
+المتبقي
+7,500 ر.س
+
+مدفوع جزئيًا
+
+Use the existing authoritative financial calculations.
+
+Do not create new totals.
+
+==================================================
+2. INSTALLMENT PLAN INSIDE THE SAME CARD
+========================================
+
+Below the summary, add one subtle divider and:
+
+خطة السداد          4 دفعات
+
+Then show the installments as compact rows.
+
+Example:
+
+✓ 1   2,500 ر.س   22 أغسطس 2026      مدفوع
+
+2   2,500 ر.س   22 سبتمبر 2026     مستحق
+تسجيل دفع
+
+3   2,500 ر.س   22 أكتوبر 2026     مجدول
+
+4   2,500 ر.س   22 نوفمبر 2026     مجدول
+
+Do NOT place each installment inside a large individual card.
+
+Use simple rows with:
+
+* subtle separators
+* compact typography
+* clear status badge
+* one contextual action
+
+Keep the Finance card visually light.
+
+==================================================
+3. INSTALLMENT STATUS
+=====================
+
+Statuses must be derived from the actual linked payment records.
+
+Use:
+
+* مدفوع
+* مدفوع جزئيًا
+* مستحق اليوم
+* متأخر
+* مجدول
+
+Do NOT allow the user to manually toggle a checkbox called "تم الدفع".
+
+An installment becomes paid ONLY because actual payment records satisfy it.
+
+==================================================
+4. INLINE "تسجيل دفع"
+=====================
+
+For an unpaid or partially paid installment, show:
+
+تسجيل دفع
+
+or:
+
+استكمال الدفع
+
+Clicking it must NOT navigate to another page and must NOT open a large modal.
+
+Expand that installment row inline inside the same Finance card.
+
+Show a compact form:
+
+المبلغ
+[ remaining installment amount prefilled ]
+
+التاريخ
+[ today ]
+
+طريقة الدفع
+[ select ]
+
+الوصف
+[ optional ]
+
+[إلغاء] [حفظ]
+
+After save:
+
+* collapse the inline form
+* create the real canonical payment
+* link it to the installment
+* update المدفوع
+* update المتبقي
+* update حالة السداد
+* update the installment status
+
+without full-page reload.
+
+==================================================
+5. PARTIAL PAYMENTS
+===================
+
+Support partial installment payments.
+
+Example:
+
+Installment amount:
+2,500 ر.س
+
+Actual paid:
+1,000 ر.س
+
+Show compactly:
+
+القسط 2
+2,500 ر.س
+
+مدفوع 1,000 ر.س
+متبقي 1,500 ر.س
+
+[مدفوع جزئيًا]   [استكمال الدفع]
+
+Do not create another card for this information.
+
+==================================================
+6. ADDITIONAL PAYMENT
+=====================
+
+At the bottom of the SAME card, allow:
+
+* تسجيل دفعة أخرى
+
+This is for an actual payment that is not necessarily initiated from one specific installment.
+
+Reuse the existing payment-recording logic.
+
+Where appropriate, allow optional installment association.
+
+Do not duplicate payment APIs.
+
+==================================================
+7. PAYMENT HISTORY
+==================
+
+Do not permanently show a large payment-history block below the plan.
+
+If actual payment history needs to remain accessible, use a compact collapsible row:
+
+سجل الدفعات (3)  ▾
+
+When expanded, show the existing payment records compactly.
+
+When collapsed, the Finance card remains short and clean.
+
+==================================================
+8. PLAN CREATION / EDITING
+==========================
+
+When creating or editing the patient's financial setup, allow:
+
+مبلغ العلاج الأساسي
+عدد الدفعات
+تاريخ أول استحقاق
+
+Generate the installment schedule automatically.
+
+Before final save, allow the user to review/edit:
+
+* amount
+* due date
+* description if supported
+
+The sum of planned installments must exactly equal the scheduled amount.
+
+Use exact money arithmetic.
+
+No floats.
+
+==================================================
+9. PLAN VS ACTUAL PAYMENT
+=========================
+
+Maintain the strict distinction:
+
+INSTALLMENT PLAN
+= expected future payment schedule
+
+PAYMENT
+= money actually received
+
+Example:
+
+10,000 treatment amount
+4 scheduled installments
+0 actual payments
+
+Must display:
+
+الإجمالي = 10,000
+المدفوع = 0
+المتبقي = 10,000
+
+Collections = 0
+
+The existence of planned installments must never increase paid/collection values.
+
+==================================================
+10. VISUAL DESIGN
+=================
+
+The final Finance card should feel like ONE coherent component.
+
+Do not create nested heavy cards.
+
+Use:
+
+* one outer Finance card
+* subtle internal separators
+* compact installment rows
+* small semantic badges
+* clean whitespace
+* RTL layout
+* existing teal/navy design identity
+
+Avoid:
+
+* excessive borders
+* boxes inside boxes
+* large colored backgrounds
+* oversized buttons
+* unnecessary icons
+
+The card should remain easy to scan even with 4–6 installments.
+
+==================================================
+11. RESPONSIVE
+==============
+
+Desktop:
+
+summary values may appear in one compact row/grid.
+
+Installments appear as compact horizontal rows.
+
+Mobile:
+
+stack installment details naturally while keeping each installment easy to understand.
+
+No horizontal scrolling.
+
+==================================================
+12. PERMISSIONS
+
+Preserve existing finance permissions.
+
+Users without financial visibility must not receive or see financial values.
+
+Recording actual payment remains protected by the existing payment-record permission.
+
+==================================================
+13. DATA ARCHITECTURE
+
+Preserve:
+
+payments
+= actual money
+
+installments
+= payment schedule
+
+Do not duplicate:
+
+* paid totals
+* remaining totals
+* payment status
+
+Derive those from canonical financial records.
+
+==================================================
+14. DO NOT CHANGE
+
+Do not change:
+
+* implant workflow
+* prosthetic workflow
+* follow-ups
+* patient data
+* financial calculation formulas
+* dashboard collection KPI definitions
+* unrelated Operational Table design
+
+==================================================
+15. ACCEPTANCE FLOW
+
+The desired experience:
+
+Open patient row
+
+→ see ONE Finance card
+
+→ immediately see:
+10,000 total
+2,500 paid
+7,500 remaining
+
+→ below it see:
+4 scheduled installments
+
+→ click "تسجيل دفع" on installment 2
+
+→ small inline payment form opens in the same row/card
+
+→ Save
+
+→ installment status updates
+
+→ totals update
+
+→ no navigation
+→ no modal
+→ no page reload
+
+Keep the experience extremely simple.
+
+Run focused TypeScript/lint/finance verification only.
+
+Do not run the full historical suite.
+Do not publish.
+
+Provide a concise completion report and stop.

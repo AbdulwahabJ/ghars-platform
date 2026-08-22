@@ -9,6 +9,7 @@ import type {
   PaymentUpdateInput,
   VoidPaymentInput,
 } from "@workspace/shared";
+import { invalidateFinancialViews } from "@/lib/query-invalidation";
 
 export const getCaseFinanceQueryKey = (caseId: string) =>
   ["case-finance", caseId] as const;
@@ -23,23 +24,23 @@ export function useCaseFinance(caseId: string, enabled = true) {
 
 function useInvalidateFinance() {
   const queryClient = useQueryClient();
-  return (caseId: string) => {
-    void queryClient.invalidateQueries({
+  return async (caseId: string) => {
+    await Promise.all([
+      queryClient.invalidateQueries({
       queryKey: getCaseFinanceQueryKey(caseId),
-    });
-    void queryClient.invalidateQueries({ queryKey: ["finance-overview"] });
+      }),
+      invalidateFinancialViews(queryClient),
+    ]);
   };
 }
 
 export function useUpdateBaseAmount() {
-  const queryClient = useQueryClient();
   const invalidate = useInvalidateFinance();
   return useMutation({
     mutationFn: ({ caseId, data }: { caseId: string; data: BaseAmountInput }) =>
       api.updateBaseAmount(caseId, data),
     onSuccess: (_res, vars) => {
-      invalidate(vars.caseId);
-      void queryClient.invalidateQueries({ queryKey: ["operational-report"] });
+      void invalidate(vars.caseId);
     },
   });
 }
@@ -89,7 +90,6 @@ export function useCreatePayment() {
 }
 
 export function useUpdatePayment() {
-  const queryClient = useQueryClient();
   const invalidate = useInvalidateFinance();
   return useMutation({
     mutationFn: ({
@@ -101,14 +101,12 @@ export function useUpdatePayment() {
       data: PaymentUpdateInput;
     }) => api.updatePayment(id, data),
     onSuccess: (_res, vars) => {
-      invalidate(vars.caseId);
-      void queryClient.invalidateQueries({ queryKey: ["operational-report"] });
+      void invalidate(vars.caseId);
     },
   });
 }
 
 export function useVoidPayment() {
-  const queryClient = useQueryClient();
   const invalidate = useInvalidateFinance();
   return useMutation({
     mutationFn: ({
@@ -120,8 +118,7 @@ export function useVoidPayment() {
       data: VoidPaymentInput;
     }) => api.voidPayment(id, data),
     onSuccess: (_res, vars) => {
-      invalidate(vars.caseId);
-      void queryClient.invalidateQueries({ queryKey: ["operational-report"] });
+      void invalidate(vars.caseId);
     },
   });
 }

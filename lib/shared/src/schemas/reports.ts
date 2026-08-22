@@ -21,6 +21,7 @@ export const reportFiltersSchema = z
     search: z.string().trim().min(1).max(200).optional(),
     treatingDoctor: z.string().trim().min(1).max(200).optional(),
     implantSystem: z.string().trim().min(1).max(200).optional(),
+    implantStatus: z.string().trim().min(1).max(100).optional(),
     caseStatus: caseStatusSchema.optional(),
   })
   .refine((v) => v.from <= v.to, {
@@ -121,6 +122,87 @@ export const statCountSchema = z.object({
 });
 export type StatCount = z.infer<typeof statCountSchema>;
 
+const metricBucketSchema = z.object({
+  bucket: z.string(),
+  count: z.number(),
+});
+const doctorMetricSchema = z.object({
+  name: z.string(),
+  patients: z.number().int(),
+  cases: z.number().int(),
+  implants: z.number().int(),
+  prosthetics: z.number().int(),
+  followups: z.number().int(),
+});
+
+export const statisticsHubSchema = z.object({
+  overview: z.object({
+    patients: z.number().int(),
+    implantedPatients: z.number().int(),
+    cases: z.number().int(),
+    implants: z.number().int(),
+    systems: z.number().int(),
+    prostheticPatients: z.number().int(),
+    prostheticEvents: z.number().int(),
+    followups: z.number().int(),
+    overdueFollowups: z.number().int(),
+    failedImplants: z.number().int(),
+    needsRedoImplants: z.number().int(),
+  }),
+  patients: z.object({
+    newPatients: z.number().int(),
+    implantedPatients: z.number().int(),
+    casePatients: z.number().int(),
+    prostheticPatients: z.number().int(),
+    overTime: z.array(metricBucketSchema),
+  }),
+  prosthetics: z.object({
+    patients: z.number().int(),
+    events: z.number().int(),
+    temporary: z.number().int(),
+    permanent: z.number().int(),
+    readyCases: z.number().int(),
+    overTime: z.array(metricBucketSchema),
+    byDoctor: z.array(statCountSchema),
+  }),
+  followups: z.object({
+    total: z.number().int(),
+    scheduled: z.number().int(),
+    dueToday: z.number().int(),
+    overdue: z.number().int(),
+    completed: z.number().int(),
+    cancelled: z.number().int(),
+    needsRecontact: z.number().int(),
+    overTime: z.array(metricBucketSchema),
+    types: z.array(statCountSchema),
+    outcomes: z.array(statCountSchema),
+    byAssignee: z.array(statCountSchema),
+  }),
+  communications: z.object({
+    total: z.number().int(),
+    withResults: z.number().int(),
+    overTime: z.array(metricBucketSchema),
+    results: z.array(statCountSchema),
+    reasons: z.array(statCountSchema),
+  }),
+  financials: z
+    .object({
+      treatmentValue: z.number(),
+      collected: z.number(),
+      remaining: z.number(),
+      charges: z.number(),
+      discounts: z.number(),
+      payments: z.number().int(),
+      outstandingPatients: z.number().int(),
+      paymentMethods: z.array(statCountSchema),
+      paymentStatuses: z.array(statCountSchema),
+      collectionsOverTime: z.array(metricBucketSchema),
+    })
+    .nullable(),
+  doctors: z.array(doctorMetricSchema),
+});
+export type StatisticsHub = z.infer<typeof statisticsHubSchema>;
+
 export const statisticsResponseSchema = z.object({
   overTime: z.array(statBucketSchema),
   overTimeGrouping: z.enum(["day", "month"]),
@@ -132,6 +214,7 @@ export const statisticsResponseSchema = z.object({
   needsRedoImplants: z.number().int(),
   reimplantationCases: z.number().int(),
   doctorOptions: z.array(z.string()),
+  hub: statisticsHubSchema,
 });
 export type StatisticsResponse = z.infer<typeof statisticsResponseSchema>;
 
@@ -154,6 +237,7 @@ export const operationalRowSchema = z.object({
   procedureDate: z.string().nullable(),
   implantCount: z.number().int(),
   implantSystems: z.array(z.string()),
+  implantStatuses: z.array(z.string()),
   nextFollowupAt: z.string().nullable(),
   isOverdue: z.boolean(),
   isReady: z.boolean(),

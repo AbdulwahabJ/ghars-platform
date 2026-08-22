@@ -72,6 +72,16 @@ const NORMAL_IMPLANT_STATUS_PROGRESSION: readonly ImplantStatus[] = [
   "تم تركيب مؤقت",
   "تم التركيب",
 ];
+const IMPLANT_STATUS_PRIORITY: Record<string, number> = {
+  "فاشلة": 1,
+  "تحتاج إعادة": 2,
+  "جاهزة للتركيب": 3,
+  "مرحلة الالتئام": 4,
+  "مزروعة": 5,
+  "تم تركيب مؤقت": 6,
+  "تم التركيب": 7,
+  "تمت إعادة الزراعة": 8,
+};
 
 /* ------------------------------------------------------------------ */
 /* Group rows by patient (preserves SQL order: newest case first)     */
@@ -95,9 +105,16 @@ function groupByPatient(rows: OperationalRow[]): PatientGroup[] {
 /* Summary helpers                                                     */
 /* ------------------------------------------------------------------ */
 
-function summaryStatus(rows: OperationalRow[]): string {
-  if (rows.length === 1) return rows[0].caseStatus;
-  return "متعددة";
+function summaryImplantStatuses(rows: OperationalRow[]): Array<[string, number]> {
+  const counts = new Map<string, number>();
+  for (const status of rows[0]?.implantStatuses ?? []) {
+    counts.set(status, (counts.get(status) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort(
+    ([a], [b]) =>
+      (IMPLANT_STATUS_PRIORITY[a] ?? Number.MAX_SAFE_INTEGER) -
+      (IMPLANT_STATUS_PRIORITY[b] ?? Number.MAX_SAFE_INTEGER),
+  );
 }
 
 function summaryDoctor(rows: OperationalRow[]): string {
@@ -171,6 +188,29 @@ function implantStatusClass(status: ImplantStatus): string {
     default:
       return "bg-muted text-muted-foreground border-border";
   }
+}
+
+function ImplantStatusBadges({ rows }: { rows: OperationalRow[] }) {
+  const statuses = summaryImplantStatuses(rows);
+  if (statuses.length === 0) return <>—</>;
+
+  const showCounts =
+    statuses.length > 1 || statuses.some(([, count]) => count > 1);
+  return (
+    <div className="flex flex-wrap gap-1">
+      {statuses.map(([status, count]) => (
+        <Badge
+          key={status}
+          className={`text-[10px] ${implantStatusClass(status as ImplantStatus)}`}
+        >
+          <span className="notranslate">
+            {status}
+            {showCounts ? ` ×${count}` : ""}
+          </span>
+        </Badge>
+      ))}
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -2353,7 +2393,7 @@ function PatientSummaryRow({
         </div>
       </td>
       <td className="px-4 py-3 text-sm" dir="ltr">{group.fileNumber}</td>
-      <td className="px-4 py-3 text-sm notranslate">{summaryStatus(group.rows)}</td>
+      <td className="px-4 py-3 text-sm"><ImplantStatusBadges rows={group.rows} /></td>
       <td className="px-4 py-3 text-sm notranslate">{summaryDoctor(group.rows)}</td>
       <td className="px-4 py-3 text-sm tabular-nums">{summaryImplantCount(group.rows)}</td>
       <td className="px-4 py-3 text-sm notranslate">
@@ -2414,7 +2454,7 @@ function PatientCard({
           <div className="flex gap-1 mt-1 flex-wrap">
             {overdue && <Badge variant="destructive" className="text-[10px]">متأخرة</Badge>}
             {ready && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px]">جاهزة للتركيب</Badge>}
-            <Badge variant="outline" className="text-[10px] notranslate">{summaryStatus(group.rows)}</Badge>
+            <ImplantStatusBadges rows={group.rows} />
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2 text-xs text-muted-foreground">
             <span>{summaryImplantCount(group.rows)} زرعة</span>
@@ -2670,7 +2710,7 @@ export function OperationalTable({
                       <tr className="border-b border-border bg-muted/30">
                         <th className="px-4 py-3 font-medium text-muted-foreground">المريض</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">رقم الملف</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">حالة الحالة</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">حالة الزرعات</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">الطبيب المعالج</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">الزرعات</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">الأنظمة</th>

@@ -1,20 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useLocation, useParams } from "wouter";
+import { Archive, AlertCircle, ArrowRight, Loader2, Printer } from "lucide-react";
 import { Shell } from "@/components/layout/Shell";
-import { usePatient, useUpdatePatient, useArchivePatient, useRestorePatient } from "@/hooks/use-patients";
-import { formatSaudiDate } from "@/lib/datetime";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Archive, RefreshCw, Save, AlertCircle, ArrowRight } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { PatientUpdate } from "@workspace/shared";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ImplantsTab } from "@/components/implants/ImplantsTab";
-import { PaymentsTab } from "@/components/finance/PaymentsTab";
-import { FollowupsTab } from "@/components/followups/FollowupsTab";
-import { SummaryTab } from "@/components/summary/SummaryTab";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -23,105 +14,65 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/use-auth";
+import { usePatient, useArchivePatient, useRestorePatient } from "@/hooks/use-patients";
+import { useToast } from "@/hooks/use-toast";
+import { formatSaudiDate } from "@/lib/datetime";
+import { PatientDetailsSection } from "@/components/patients/PatientDetailsSection";
+import { ImplantsTab } from "@/components/implants/ImplantsTab";
+import { PaymentsTab } from "@/components/finance/PaymentsTab";
+import { FollowupsTab } from "@/components/followups/FollowupsTab";
+
+const sectionLinks = [
+  { id: "patient-details", label: "بيانات المريض" },
+  { id: "implant-cases", label: "الزراعة" },
+  { id: "patient-finance", label: "المالية" },
+  { id: "patient-followups", label: "المتابعات" },
+];
 
 export default function PatientFile() {
   const { id } = useParams<{ id: string }>();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { data, isLoading } = usePatient(id || "");
-  const updatePatient = useUpdatePatient();
+  const { data, isLoading } = usePatient(id ?? "");
   const archivePatient = useArchivePatient();
   const restorePatient = useRestorePatient();
+  const [showArchived, setShowArchived] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   const patient = data?.patient;
   const canArchive = user?.role === "ADMIN";
 
-  const requestedTab = new URLSearchParams(location.split("?")[1] ?? "").get("tab");
-  const [activeTab, setActiveTab] = useState<"data" | "implants" | "payments" | "followup" | "summary">(
-    requestedTab === "followup" ? "followup" : "data",
-  );
-  
-  // Local state for editing
-  const [formData, setFormData] = useState<PatientUpdate>({});
-  const [isDirty, setIsDirty] = useState(false);
-  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
-  const [pendingTab, setPendingTab] = useState<typeof activeTab | null>(null);
-  
-  const initializedForId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (patient && initializedForId.current !== patient.id) {
-      initializedForId.current = patient.id;
-      setFormData({
-        fileNumber: patient.fileNumber,
-        fullName: patient.fullName,
-        mobileNumber: patient.mobileNumber,
-        age: patient.age,
-        administrativeNote: patient.administrativeNote
-      });
-      setIsDirty(false);
-    }
-  }, [patient]);
-
-  const handleFieldChange = <K extends keyof PatientUpdate>(field: K, value: PatientUpdate[K]) => {
-    setFormData((prev: PatientUpdate) => ({ ...prev, [field]: value }));
-    setIsDirty(true);
-  };
-
-  const handleSave = () => {
-    if (!id || !isDirty) return;
-    updatePatient.mutate({ id, data: formData }, {
-      onSuccess: () => {
-        toast({ title: "تم حفظ التعديلات بنجاح" });
-        setIsDirty(false);
-      },
-      onError: (err: Error) => {
-        toast({ variant: "destructive", title: "خطأ", description: err.message || "فشل حفظ التعديلات" });
-      }
-    });
+  const scrollTo = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleArchive = () => {
     if (!id) return;
     archivePatient.mutate(id, {
       onSuccess: () => {
-        toast({ title: "تم أرشفة الملف" });
+        toast({ title: "تمت أرشفة ملف المريض" });
         setShowArchiveConfirm(false);
-      }
+      },
+      onError: (error: Error) =>
+        toast({ variant: "destructive", title: "تعذر الأرشفة", description: error.message }),
     });
   };
 
   const handleRestore = () => {
     if (!id) return;
     restorePatient.mutate(id, {
-      onSuccess: () => {
-        toast({ title: "تم استعادة الملف" });
-      }
+      onSuccess: () => toast({ title: "تمت استعادة ملف المريض" }),
+      onError: (error: Error) =>
+        toast({ variant: "destructive", title: "تعذرت الاستعادة", description: error.message }),
     });
-  };
-
-  const tryChangeTab = (tab: typeof activeTab) => {
-    if (isDirty) {
-      setPendingTab(tab);
-      setShowUnsavedWarning(true);
-    } else {
-      setActiveTab(tab);
-    }
-  };
-
-  const confirmLeave = () => {
-    setIsDirty(false);
-    setShowUnsavedWarning(false);
-    if (pendingTab) setActiveTab(pendingTab);
-    setPendingTab(null);
   };
 
   if (isLoading) {
     return (
       <Shell>
-        <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </Shell>
@@ -131,9 +82,9 @@ export default function PatientFile() {
   if (!patient) {
     return (
       <Shell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-          <h2 className="text-xl font-bold mb-2">المريض غير موجود</h2>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+          <AlertCircle className="mb-4 h-12 w-12 text-destructive" />
+          <h2 className="mb-2 text-xl font-bold">المريض غير موجود</h2>
           <Button onClick={() => setLocation("/patients")} variant="outline" className="mt-4">
             العودة لقائمة المرضى
           </Button>
@@ -144,233 +95,106 @@ export default function PatientFile() {
 
   const isArchived = patient.status === "archived";
 
-  const tabs = [
-    { id: "data", label: "البيانات" },
-    { id: "implants", label: "الزرعات" },
-    { id: "payments", label: "الدفعات" },
-    { id: "followup", label: "المتابعة" },
-    { id: "summary", label: "الملخص" },
-  ] as const;
-
   return (
     <Shell>
-      <div className="space-y-6 animate-in fade-in duration-500 pb-20" id="tour-patient-workspace">
-        
-        {/* Navigation Back */}
-        <div className="print:hidden">
-          <Button variant="ghost" onClick={() => setLocation("/patients")} className="text-muted-foreground hover:text-foreground gap-2 -ml-4">
+      <main className="animate-in fade-in duration-500 pb-20" id="tour-patient-workspace">
+        <div className="mb-5 flex items-center justify-between gap-3 print:hidden">
+          <Button variant="ghost" onClick={() => setLocation("/patients")} className="-ms-4 gap-2 text-muted-foreground hover:text-foreground">
             <ArrowRight className="h-4 w-4" />
             العودة للقائمة
           </Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Printer className="h-4 w-4 ms-1.5" />
+            طباعة الملف
+          </Button>
         </div>
 
-        {/* Compact Patient Header */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
-          <div className="flex items-start gap-4">
-            <div className={`h-14 w-14 rounded-full flex items-center justify-center shrink-0 text-xl font-bold ${
-              isArchived ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
-            }`}>
-              {patient.fullName.charAt(0)}
+        <header className="border-b border-border pb-5">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+            <div className="flex items-start gap-3">
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold ${isArchived ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                {patient.fullName.charAt(0)}
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold text-foreground">{patient.fullName}</h1>
+                  {isArchived ? <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">مؤرشف</span> : null}
+                </div>
+                <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+                  <div><dt className="sr-only">رقم الملف</dt><dd>رقم الملف: <span dir="ltr" className="font-mono text-foreground">{patient.fileNumber}</span></dd></div>
+                  <div><dt className="sr-only">رقم الجوال</dt><dd>الجوال: <span dir="ltr" className="font-mono text-foreground">{patient.mobileNumber || "—"}</span></dd></div>
+                  <div><dt className="sr-only">العمر</dt><dd>العمر: <span className="text-foreground">{patient.age ? `${patient.age} سنة` : "—"}</span></dd></div>
+                  <div><dt className="sr-only">تاريخ الإضافة</dt><dd>أضيف في: <span className="text-foreground">{formatSaudiDate(patient.createdAt)}</span></dd></div>
+                </dl>
+              </div>
             </div>
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-bold text-foreground">{patient.fullName}</h1>
-                {isArchived && (
-                  <span className="bg-muted text-muted-foreground px-2 py-1 rounded text-xs font-medium">مؤرشف</span>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground mt-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">رقم الملف:</span>
-                  <span dir="ltr" className="font-mono">{patient.fileNumber}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">الجوال:</span>
-                  <span dir="ltr" className="font-mono">{patient.mobileNumber || "-"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">العمر:</span>
-                  <span>{patient.age ? `${patient.age} سنة` : "-"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">تاريخ الإضافة:</span>
-                  <span>{formatSaudiDate(patient.createdAt)}</span>
-                </div>
-              </div>
+            <div className="flex items-center gap-2 self-start print:hidden">
+              <Switch id="patient-show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
+              <Label htmlFor="patient-show-archived" className="cursor-pointer text-sm text-muted-foreground">
+                إظهار العناصر المؤرشفة
+              </Label>
             </div>
           </div>
-          
-        </div>
+        </header>
 
-        {/* Tabs Navigation */}
-        <div className="flex overflow-x-auto hide-scrollbar border-b border-border bg-card rounded-t-2xl px-2 pt-2 print:hidden">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => tryChangeTab(tab.id)}
-              className={`px-6 py-3 font-medium whitespace-nowrap border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? "border-primary text-primary bg-primary/5 rounded-t-lg"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-t-lg"
-              }`}
-            >
-              {tab.label}
-            </button>
+        {isArchived ? (
+          <Alert className="mt-5 print:hidden">
+            <Archive className="h-4 w-4" />
+            <AlertDescription>هذا الملف مؤرشف. يمكن مراجعته، وتصبح إجراءات التعديل متاحة بعد استعادته.</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <nav aria-label="أقسام الملف" className="sticky top-0 z-10 -mx-2 mt-5 flex gap-1 overflow-x-auto border-y border-border bg-background/95 px-2 py-2 backdrop-blur print:hidden">
+          {sectionLinks.map((link) => (
+            <Button key={link.id} variant="ghost" size="sm" className="shrink-0 text-muted-foreground" onClick={() => scrollTo(link.id)}>
+              {link.label}
+            </Button>
           ))}
-        </div>
+        </nav>
 
-        {/* Tab Content */}
-        <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-sm min-h-[400px]">
-          {activeTab === "data" ? (
-            <div className="p-6 md:p-8">
-              {isArchived && (
-                <Alert className="mb-6 bg-muted border-muted-foreground/20 text-muted-foreground">
-                  <Archive className="h-4 w-4" />
-                  <AlertDescription>
-                    هذا الملف مؤرشف. لا يمكن تعديل البيانات. يمكنك استعادة الملف لتفعيل التعديل.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="max-w-2xl space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">رقم الملف</label>
-                    <Input 
-                      value={formData.fileNumber || ""} 
-                      onChange={(e) => handleFieldChange("fileNumber", e.target.value)}
-                      disabled={isArchived}
-                      dir="ltr"
-                      className="text-right disabled:opacity-50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">الاسم الكامل</label>
-                    <Input 
-                      value={formData.fullName || ""} 
-                      onChange={(e) => handleFieldChange("fullName", e.target.value)}
-                      disabled={isArchived}
-                      className="disabled:opacity-50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">رقم الجوال</label>
-                    <Input 
-                      value={formData.mobileNumber || ""} 
-                      onChange={(e) => handleFieldChange("mobileNumber", e.target.value)}
-                      disabled={isArchived}
-                      dir="ltr"
-                      className="text-right disabled:opacity-50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">العمر</label>
-                    <Input 
-                      type="number"
-                      value={formData.age ?? ""} 
-                      onChange={(e) => handleFieldChange("age", e.target.value === "" ? null : Number(e.target.value))}
-                      disabled={isArchived}
-                      className="disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">ملاحظة إدارية</label>
-                  <Textarea 
-                    value={formData.administrativeNote || ""} 
-                    onChange={(e) => handleFieldChange("administrativeNote", e.target.value)}
-                    disabled={isArchived}
-                    rows={4}
-                    className="resize-none disabled:opacity-50"
-                  />
-                </div>
-
-                {!isArchived ? (
-                  <div className="flex items-center justify-between pt-6 border-t border-border mt-8">
-                    {canArchive && (
-                      <Button
-                        onClick={() => setShowArchiveConfirm(true)}
-                        variant="outline"
-                        className="text-destructive border-destructive hover:bg-destructive/10"
-                      >
-                        <Archive className="h-4 w-4 mr-2 ml-2" />
-                        أرشفة الملف
-                      </Button>
-                    )}
-                    <Button 
-                      onClick={handleSave} 
-                      disabled={!isDirty || updatePatient.isPending}
-                      className="btn-primary"
-                    >
-                      {updatePatient.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2 ml-2" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2 ml-2" />
-                      )}
-                      <span>حفظ التعديلات</span>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="pt-6 border-t border-border mt-8 flex justify-end">
-                    <Button onClick={handleRestore} disabled={restorePatient.isPending} className="btn-primary">
-                      {restorePatient.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2 ml-2" /> : <RefreshCw className="h-4 w-4 mr-2 ml-2" />}
-                      <span>استعادة الملف</span>
-                    </Button>
-                  </div>
-                )}
-              </div>
+        <div className="divide-y divide-border">
+          <div className="py-7">
+            <PatientDetailsSection
+              patient={patient}
+              canArchive={canArchive}
+              onArchive={() => setShowArchiveConfirm(true)}
+              onRestore={handleRestore}
+              isRestoring={restorePatient.isPending}
+            />
+          </div>
+          <section id="implant-cases" className="scroll-mt-24 py-7">
+            <ImplantsTab patient={patient} showArchived={showArchived} />
+          </section>
+          <section id="patient-finance" className="scroll-mt-24 py-7">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold text-foreground">المالية</h2>
+              <p className="text-sm text-muted-foreground">ملخص العلاج والدفعات والرسوم والخصومات لكل حالة نشطة.</p>
             </div>
-          ) : activeTab === "implants" ? (
-            <ImplantsTab patient={patient} />
-          ) : activeTab === "payments" ? (
             <PaymentsTab patient={patient} />
-          ) : activeTab === "followup" ? (
+          </section>
+          <section id="patient-followups" className="scroll-mt-24 py-7">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold text-foreground">المتابعات وسجل التواصل</h2>
+              <p className="text-sm text-muted-foreground">المواعيد والنتائج وسجل التواصل المرتبط بالملف.</p>
+            </div>
             <FollowupsTab patient={patient} />
-          ) : (
-            <SummaryTab patient={patient} />
-          )}
+          </section>
         </div>
-      </div>
+      </main>
 
-      {/* Archive Confirm Dialog */}
       <Dialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+        <DialogContent className="text-right sm:max-w-md" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-destructive">تأكيد الأرشفة</DialogTitle>
-            <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
-              هل أنت متأكد من رغبتك في أرشفة ملف المريض "{patient.fullName}"؟
-              لن تتمكن من تعديل بياناته أثناء وجوده في الأرشيف.
+            <DialogTitle className="text-xl font-bold text-destructive">تأكيد أرشفة الملف</DialogTitle>
+            <DialogDescription className="mt-4 text-base leading-relaxed text-foreground">
+              هل أنت متأكد من أرشفة ملف المريض &quot;{patient.fullName}&quot;؟ ستبقى بياناته محفوظة للمراجعة، ولا يمكن تعديلها حتى استعادته.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
-            <Button onClick={handleArchive} disabled={archivePatient.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto px-6 h-[46px] rounded-[10px]">
-              {archivePatient.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>نعم، أرشفة</span>}
+          <DialogFooter className="mt-5 flex-row gap-3 sm:justify-start">
+            <Button onClick={handleArchive} disabled={archivePatient.isPending} variant="destructive">
+              {archivePatient.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "أرشفة الملف"}
             </Button>
-            <Button variant="outline" onClick={() => setShowArchiveConfirm(false)} className="btn-outline w-full sm:w-auto">
-              إلغاء
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Unsaved Changes Warning */}
-      <Dialog open={showUnsavedWarning} onOpenChange={setShowUnsavedWarning}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-primary">تغييرات غير محفوظة</DialogTitle>
-            <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
-              لقد قمت بإجراء تعديلات على بيانات المريض ولم تقم بحفظها. 
-              إذا انتقلت الآن ستفقد هذه التعديلات.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
-            <Button onClick={() => setShowUnsavedWarning(false)} className="btn-primary w-full sm:w-auto">
-              البقاء للحفظ
-            </Button>
-            <Button variant="outline" onClick={confirmLeave} className="btn-outline text-destructive border-destructive hover:bg-destructive/10 w-full sm:w-auto">
-              تجاهل التعديلات والانتقال
-            </Button>
+            <Button variant="outline" onClick={() => setShowArchiveConfirm(false)}>إلغاء</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

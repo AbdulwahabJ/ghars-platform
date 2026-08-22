@@ -82,7 +82,7 @@ export function PaymentsTab({ patient }: PaymentsTabProps) {
     activeCases.find((c) => c.id === selectedCaseId) ?? activeCases[0];
 
   return (
-    <div className="p-5 md:p-6 space-y-5">
+    <div className="space-y-5">
       {activeCases.length > 1 ? (
         <div className="max-w-sm">
           <label className="text-sm font-medium text-foreground mb-1.5 block">

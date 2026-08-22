@@ -269,6 +269,35 @@ describe("GET /api/statistics", () => {
     );
     expect(cases).toBe(0);
   });
+
+  it("returns the centralized hub and never exposes financial aggregates without permission", async () => {
+    const adminRes = await admin.get(`/api/statistics?${RANGE}`);
+    expect(adminRes.status).toBe(200);
+    expect(adminRes.body.hub).toBeDefined();
+    expect(adminRes.body.hub.overview.cases).toBe(2);
+    expect(adminRes.body.hub.overview.implants).toBe(3);
+    expect(adminRes.body.hub.financials).toMatchObject({
+      collected: 400,
+      payments: 1,
+    });
+
+    const assistantRes = await assistant.get(`/api/statistics?${RANGE}`);
+    expect(assistantRes.status).toBe(200);
+    expect(assistantRes.body.hub.financials).toBeNull();
+    expect(JSON.stringify(assistantRes.body.hub)).not.toContain(
+      "treatmentValue",
+    );
+    expect(assistantRes.body.hub.overview.cases).toBe(2);
+  });
+
+  it("accepts an implant-status filter for the hub", async () => {
+    const res = await admin.get(
+      `/api/statistics?${RANGE}&implantStatus=${encodeURIComponent("فاشلة")}`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.hub.overview.failedImplants).toBe(1);
+    expect(res.body.hub.overview.cases).toBe(1);
+  });
 });
 
 describe("GET /api/reports/operational", () => {

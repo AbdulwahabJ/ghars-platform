@@ -9,6 +9,7 @@ import Setup from '@/pages/Setup';
 import PatientsList from '@/pages/PatientsList';
 import PatientFile from '@/pages/PatientFile';
 import Finance from '@/pages/Finance';
+import Statistics from '@/pages/Statistics';
 import Settings from '@/pages/Settings';
 import NotFound from '@/pages/not-found';
 
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/patients" component={PatientsList} />
       <Route path="/patients/:id" component={PatientFile} />
       <Route path="/finance" component={Finance} />
+      <Route path="/statistics" component={Statistics} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>

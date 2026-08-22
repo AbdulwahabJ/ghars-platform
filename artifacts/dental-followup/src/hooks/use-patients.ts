@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { PatientInput, PatientListQuery, PatientUpdate } from "@workspace/shared";
+import { invalidateOperationalViews } from "@/lib/query-invalidation";
 
 export const getPatientsQueryKey = (query: PatientListQuery) => ["patients", query];
 export const getPatientQueryKey = (id: string) => ["patient", id];
@@ -38,6 +39,7 @@ export function useUpdatePatient() {
     onSuccess: (response, variables) => {
       queryClient.setQueryData(getPatientQueryKey(variables.id), response);
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void invalidateOperationalViews(queryClient);
     },
   });
 }
@@ -49,6 +51,7 @@ export function useArchivePatient() {
     onSuccess: (response, id) => {
       queryClient.setQueryData(getPatientQueryKey(id), response);
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void invalidateOperationalViews(queryClient);
     },
   });
 }
@@ -60,6 +63,7 @@ export function useRestorePatient() {
     onSuccess: (response, id) => {
       queryClient.setQueryData(getPatientQueryKey(id), response);
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void invalidateOperationalViews(queryClient);
     },
   });
 }

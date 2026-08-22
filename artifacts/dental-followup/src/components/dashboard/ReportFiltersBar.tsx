@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CASE_STATUSES } from "@workspace/shared";
+import { CASE_STATUSES, IMPLANT_STATUSES } from "@workspace/shared";
 import { REPORT_PERIODS, type ReportPeriodId } from "@/lib/report-periods";
 import { todayIso } from "@/lib/money";
 
@@ -19,6 +19,7 @@ export interface ReportFilterState {
   customTo: string;
   treatingDoctor: string;
   implantSystem: string;
+  implantStatus: string;
   caseStatus: string;
 }
 
@@ -41,7 +42,7 @@ export function ReportFiltersBar({
     onChange({ ...state, ...patch });
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end" data-testid="card-report-filters">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3 items-end" data-testid="card-report-filters">
         <div className="space-y-1.5">
           <Label className="text-xs">الفترة</Label>
           <Select
@@ -148,6 +149,25 @@ export function ReportFiltersBar({
             <SelectContent>
               <SelectItem value={ALL}>الكل</SelectItem>
               {CASE_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  <span className="notranslate">{s}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">حالة الزرعة</Label>
+          <Select
+            value={state.implantStatus}
+            onValueChange={(v) => set({ implantStatus: v })}
+          >
+            <SelectTrigger data-testid="select-report-implant-status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>الكل</SelectItem>
+              {IMPLANT_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
                   <span className="notranslate">{s}</span>
                 </SelectItem>

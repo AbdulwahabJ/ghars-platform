@@ -8,6 +8,7 @@ import type {
   FollowupUpdate,
 } from "@workspace/shared";
 import { api } from "@/lib/api";
+import { invalidateFollowupViews } from "@/lib/query-invalidation";
 
 export const getFollowupsQueryKey = (patientId: string) =>
   ["patient", patientId, "followups"] as const;
@@ -59,11 +60,13 @@ export function useNotifications() {
 
 function useInvalidateFollowups(patientId: string) {
   const queryClient = useQueryClient();
-  return () => {
-    void queryClient.invalidateQueries({
+  return async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
       queryKey: getFollowupsQueryKey(patientId),
-    });
-    void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+      }),
+      invalidateFollowupViews(queryClient),
+    ]);
   };
 }
 

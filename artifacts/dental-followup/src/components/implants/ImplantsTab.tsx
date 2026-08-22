@@ -10,9 +10,10 @@ import { useAuth } from "@/hooks/use-auth";
 
 interface ImplantsTabProps {
   patient: Patient;
+  showArchived?: boolean;
 }
 
-export function ImplantsTab({ patient }: ImplantsTabProps) {
+export function ImplantsTab({ patient, showArchived = false }: ImplantsTabProps) {
   const { user } = useAuth();
   const { data, isLoading, isError } = useImplantCases(patient.id);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
@@ -45,10 +46,10 @@ export function ImplantsTab({ patient }: ImplantsTabProps) {
   const archivedCases = cases.filter((c) => c.status === "archived");
 
   return (
-    <div className="p-5 md:p-6 space-y-5">
+    <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-foreground">حالات الزراعة</h2>
+          <h2 className="text-lg font-bold text-foreground">حالات الزراعة والزرعات</h2>
           <p className="text-sm text-muted-foreground">
             يمكن تسجيل أكثر من حالة زراعة لنفس المريض.
           </p>
@@ -87,7 +88,7 @@ export function ImplantsTab({ patient }: ImplantsTabProps) {
               readOnly={patientArchived}
             />
           ))}
-          {archivedCases.length > 0 && (
+          {showArchived && archivedCases.length > 0 && (
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-muted-foreground border-t border-border pt-5">
                 الحالات المؤرشفة ({archivedCases.length})
