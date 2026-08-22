@@ -7,8 +7,6 @@ import {
   implantsTable,
   paymentsTable,
   followupsTable,
-  type PatientRow,
-  type ImplantCaseRow,
   type ImplantRow,
   type PaymentRow,
   type FollowupRow,
