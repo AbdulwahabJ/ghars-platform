@@ -26,7 +26,7 @@ import {
 
 export default function PatientFile() {
   const { id } = useParams<{ id: string }>();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { data, isLoading } = usePatient(id || "");
@@ -37,7 +37,10 @@ export default function PatientFile() {
   const patient = data?.patient;
   const canArchive = user?.role === "ADMIN";
 
-  const [activeTab, setActiveTab] = useState<"data" | "implants" | "payments" | "followup" | "summary">("data");
+  const requestedTab = new URLSearchParams(location.split("?")[1] ?? "").get("tab");
+  const [activeTab, setActiveTab] = useState<"data" | "implants" | "payments" | "followup" | "summary">(
+    requestedTab === "followup" ? "followup" : "data",
+  );
   
   // Local state for editing
   const [formData, setFormData] = useState<PatientUpdate>({});

@@ -64,7 +64,7 @@ function ListCard({
                   className="shrink-0"
                   data-testid={`link-open-patient-${item.patientId}`}
                 >
-                  <Link href={`/patients/${item.patientId}`}>فتح الملف</Link>
+                  <Link href={`/patients/${item.patientId}?tab=followup`}>فتح الملف</Link>
                 </Button>
               </li>
             ))}

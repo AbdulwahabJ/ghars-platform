@@ -187,7 +187,7 @@ export function Header({ user }: HeaderProps) {
                     <DropdownMenuItem
                       key={`${item.kind}-${item.followupId ?? item.implantCaseId ?? idx}`}
                       className="cursor-pointer flex flex-col items-start gap-0.5 py-2"
-                      onClick={() => setLocation(`/patients/${item.patientId}`)}
+                      onClick={() => setLocation(`/patients/${item.patientId}?tab=followup`)}
                       data-testid={`notification-item-${idx}`}
                     >
                       <span className="text-sm font-medium notranslate">{item.patientName}</span>
