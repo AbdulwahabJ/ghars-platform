@@ -15,6 +15,8 @@ import type {
   DiscountInput,
   FinanceFilters,
   FinanceOverview,
+  InstallmentPlan,
+  InstallmentPlanInput,
   Payment,
   PaymentInput,
   PaymentUpdateInput,
@@ -239,6 +241,11 @@ export const api = {
   // Phase 3 — financial tracking
   getCaseFinance: (caseId: string) =>
     request<CaseFinanceResponse>(`/implant-cases/${caseId}/finance`),
+  saveInstallmentPlan: (caseId: string, input: InstallmentPlanInput) =>
+    request<{ installmentPlan: InstallmentPlan }>(
+      `/implant-cases/${caseId}/installment-plan`,
+      { method: "PUT", json: input },
+    ),
   updateBaseAmount: (caseId: string, input: BaseAmountInput) =>
     request<{ baseTreatmentAmount: number }>(
       `/implant-cases/${caseId}/base-amount`,

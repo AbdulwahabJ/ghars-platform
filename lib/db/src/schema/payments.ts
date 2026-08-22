@@ -10,6 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { implantCasesTable } from "./implant-cases";
+import { installmentsTable } from "./installment-plans";
 import { usersTable } from "./users";
 
 /**
@@ -25,6 +26,7 @@ export const paymentsTable = pgTable(
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
+    installmentId: uuid("installment_id").references(() => installmentsTable.id),
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
     paymentDate: date("payment_date").notNull(),
     paymentLabel: text("payment_label"),

@@ -50,9 +50,6 @@ export function Header({ user }: HeaderProps) {
     { label: "الرئيسية", path: "/" },
     { label: "المرضى", path: "/patients" },
     { label: "الإحصائيات", path: "/statistics" },
-    // Backend enforces this too; hiding the tab avoids a dead page for
-    // users without the financial-visibility permission.
-    ...(user.canViewFinancials ? [{ label: "المالية", path: "/finance" }] : []),
     ...(user.role === "ADMIN" ? [{ label: "الإعدادات", path: "/settings" }] : []),
   ];
 

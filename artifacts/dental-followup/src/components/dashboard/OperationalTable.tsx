@@ -886,6 +886,7 @@ function InlineRecordPayment({
         caseId,
         data: {
           amount: parseFloat(amount),
+          installmentId: null,
           paymentLabel,
           paymentMethod,
           paymentDate: paymentDate,

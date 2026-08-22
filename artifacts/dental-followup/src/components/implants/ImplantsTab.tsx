@@ -77,7 +77,7 @@ export function ImplantsTab({ patient, showArchived = false }: ImplantsTabProps)
           )}
         </div>
       ) : (
-        <div className="space-y-5">
+         <div className="space-y-5">
           {activeCases.map((caseItem) => (
             <CaseCard
               key={caseItem.id}

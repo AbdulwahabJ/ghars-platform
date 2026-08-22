@@ -180,11 +180,11 @@ export function CaseCard({
   return (
     <div
       className={cn(
-        "bg-card border border-border rounded-2xl shadow-sm",
+        "rounded-xl border border-border bg-background",
         isArchived && "opacity-80",
       )}
     >
-      <div className="p-5 md:p-6 space-y-5">
+       <div className="space-y-5 p-4 md:p-5">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div className="space-y-2 min-w-0">
@@ -388,7 +388,7 @@ export function CaseCard({
             <h4 className="font-bold text-foreground">
               الزرعات ({activeImplants.length})
             </h4>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">
               {activeImplants.map((implant) => (
                 <ImplantCard
                   key={implant.id}
@@ -406,7 +406,7 @@ export function CaseCard({
                 <summary className="text-sm text-muted-foreground cursor-pointer select-none">
                   الزرعات المؤرشفة ({archivedImplants.length})
                 </summary>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+                <div className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">
                   {archivedImplants.map((implant) => (
                     <ImplantCard
                       key={implant.id}

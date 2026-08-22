@@ -46,6 +46,7 @@ import { ChargeFormDialog } from "./ChargeFormDialog";
 import { DiscountFormDialog } from "./DiscountFormDialog";
 import { PaymentFormDialog } from "./PaymentFormDialog";
 import { VoidPaymentDialog } from "./VoidPaymentDialog";
+import { InstallmentPlanCard } from "./InstallmentPlanCard";
 
 const STATUS_STYLES: Record<PaymentStatus, string> = {
   "لم يدفع": "bg-muted text-muted-foreground",
@@ -110,6 +111,12 @@ export function CaseFinancePanel({
         </Alert>
       ) : null}
       <SummaryCard data={data} caseItem={caseItem} canManage={canManage && writable} />
+      <InstallmentPlanCard
+        data={data}
+        caseId={caseItem.id}
+        canManage={canManage && writable}
+        canRecord={canRecord && writable}
+      />
       <PaymentsSection
         data={data}
         caseItem={caseItem}

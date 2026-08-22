@@ -152,8 +152,8 @@ export default function PatientFile() {
           ))}
         </nav>
 
-        <div className="divide-y divide-border">
-          <div className="py-7">
+         <div className="space-y-5 pt-5">
+           <section className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
             <PatientDetailsSection
               patient={patient}
               canArchive={canArchive}
@@ -161,19 +161,19 @@ export default function PatientFile() {
               onRestore={handleRestore}
               isRestoring={restorePatient.isPending}
             />
-          </div>
-          <section id="implant-cases" className="scroll-mt-24 py-7">
+           </section>
+           <section id="implant-cases" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
             <ImplantsTab patient={patient} showArchived={showArchived} />
           </section>
-          <section id="patient-finance" className="scroll-mt-24 py-7">
-            <div className="mb-4">
+           <section id="patient-finance" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+             <div className="mb-5">
               <h2 className="text-lg font-bold text-foreground">المالية</h2>
               <p className="text-sm text-muted-foreground">ملخص العلاج والدفعات والرسوم والخصومات لكل حالة نشطة.</p>
             </div>
             <PaymentsTab patient={patient} />
           </section>
-          <section id="patient-followups" className="scroll-mt-24 py-7">
-            <div className="mb-4">
+           <section id="patient-followups" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+             <div className="mb-5">
               <h2 className="text-lg font-bold text-foreground">المتابعات وسجل التواصل</h2>
               <p className="text-sm text-muted-foreground">المواعيد والنتائج وسجل التواصل المرتبط بالملف.</p>
             </div>

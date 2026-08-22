@@ -399,6 +399,7 @@ export function InlineNewRecord({
       if (values.includePayment && canRecordPayments && values.paymentAmount && parseFloat(values.paymentAmount) > 0) {
         initialPayment = {
           amount: parseFloat(values.paymentAmount),
+          installmentId: null,
           paymentDate: values.paymentDate || today,
           paymentLabel: (values.paymentLabel || "دفعة أولى") as NonNullable<QuickEntryInput["initialPayment"]>["paymentLabel"],
           paymentMethod: (values.paymentMethod || "نقدي") as NonNullable<QuickEntryInput["initialPayment"]>["paymentMethod"],

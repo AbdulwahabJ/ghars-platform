@@ -377,6 +377,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
       ? {
           id: result.paymentRow.id,
           implantCaseId: result.paymentRow.implantCaseId,
+          installmentId: null,
           amount: Number(result.paymentRow.amount),
           paymentDate: result.paymentRow.paymentDate,
           paymentLabel: result.paymentRow.paymentLabel,

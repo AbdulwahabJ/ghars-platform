@@ -409,4 +409,64 @@ describe("finance page and export", () => {
     );
     expect(forbidden.status).toBe(403);
   });
+
+  it("creates a schedule, links partial payments, and prevents installment overpayment", async () => {
+    const patient = await admin.post("/api/patients").send({
+      fileNumber: "9019",
+      fullName: "مريض خطة التقسيط",
+    });
+    const planCase = await admin
+      .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
+      .send({});
+    const planCaseId = planCase.body.case.id as string;
+    await admin
+      .patch(`/api/implant-cases/${planCaseId}/base-amount`)
+      .send({ baseTreatmentAmount: 1000 });
+
+    const created = await admin
+      .put(`/api/implant-cases/${planCaseId}/installment-plan`)
+      .send({
+        totalAmount: 1000,
+        installmentCount: 3,
+        firstDueDate: "2026-08-31",
+      });
+    expect(created.status).toBe(200);
+    expect(created.body.installmentPlan.installments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sequence: 1, dueDate: "2026-08-31", amount: 333.34 }),
+        expect.objectContaining({ sequence: 2, dueDate: "2026-09-30", amount: 333.33 }),
+      ]),
+    );
+
+    const firstInstallment = created.body.installmentPlan.installments[0];
+    const partial = await admin.post(`/api/implant-cases/${planCaseId}/payments`).send({
+      amount: 100,
+      paymentDate: "2026-08-01",
+      paymentLabel: "دفعة إضافية",
+      paymentMethod: "نقدي",
+      installmentId: firstInstallment.id,
+    });
+    expect(partial.status).toBe(201);
+    expect(partial.body.payment.installmentId).toBe(firstInstallment.id);
+
+    const finance = await admin.get(`/api/implant-cases/${planCaseId}/finance`);
+    const first = finance.body.installmentPlan.installments[0];
+    expect(first.paidAmount).toBe(100);
+    expect(first.outstanding).toBe(233.34);
+    expect(first.status).toBe("مدفوع جزئيًا");
+
+    const excess = await admin.post(`/api/implant-cases/${planCaseId}/payments`).send({
+      amount: 250,
+      paymentDate: "2026-08-02",
+      paymentLabel: "دفعة إضافية",
+      paymentMethod: "نقدي",
+      installmentId: firstInstallment.id,
+    });
+    expect(excess.status).toBe(409);
+
+    const forbidden = await assistantPay
+      .put(`/api/implant-cases/${planCaseId}/installment-plan`)
+      .send({ totalAmount: 1000, installmentCount: 2, firstDueDate: "2026-08-31" });
+    expect(forbidden.status).toBe(403);
+  });
 });

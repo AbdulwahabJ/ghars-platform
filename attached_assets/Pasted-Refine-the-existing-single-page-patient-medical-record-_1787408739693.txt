@@ -1,0 +1,80 @@
+Refine the existing single-page patient medical record UI ONLY. Do not rebuild the workflow from scratch.
+
+Goal:
+The patient medical file is now on one page, which is good, but the page is visually inconsistent. Some sections have white card backgrounds, some do not, spacing/padding are inconsistent, and the implants section still looks like separate cards instead of being part of one unified medical-record layout.
+
+I want the entire patient file to follow ONE clean, professional, consistent design language across all sections.
+
+IMPORTANT DATA RULE:
+Do not create any separate or duplicate data flow.
+The patient medical file page and the Operational Table must remain fully synchronized.
+Any add / edit / delete / archive / status change made from the patient file must be reflected everywhere in the system.
+Any add / edit / delete / archive / status change made from the Operational Table must be reflected in the patient file as well.
+Use the same source of truth and existing APIs/business logic. Do not introduce parallel state, duplicate queries, or disconnected UI-only logic.
+
+What to change:
+1. Keep the patient file as ONE page (no tabs).
+2. Make all major sections visually consistent:
+   - Patient Information
+   - Implant Cases / Implants
+   - Financial
+   - Follow-ups / Communication
+3. Every section should have the same layout system:
+   - same outer container style
+   - same background treatment
+   - same border radius
+   - same padding
+   - same section header style
+   - same spacing between sections
+   - same typography rhythm
+4. The page should look like one unified medical record, not mixed blocks from different screens.
+
+Implants section:
+5. I do NOT want implants displayed as standalone cards.
+6. Redesign the implants area so it feels closer to the “summary” style:
+   - cleaner
+   - flatter
+   - more structured
+   - easier to scan
+7. Preferred direction:
+   - show implants in organized rows / inline structured blocks / summary-row style
+   - if there are multiple implants, they should appear in a clean stacked list or row-based layout, not as isolated heavy cards
+8. Keep all implant actions and information, but present them in a more unified and lighter layout.
+9. Preserve the ability to:
+   - view implant details
+   - edit implant data
+   - see implant status
+   - see linked prosthetic events / related case data if already present
+10. Do not remove existing functionality. Refine presentation only where possible.
+
+Visual/UX requirements:
+11. Make the full page easier to read and easier to enter data into.
+12. Use a professional medical admin dashboard style.
+13. Ensure section alignment is consistent across the full page.
+14. Avoid mixed visual patterns.
+15. Keep buttons/actions accessible but visually tidy.
+16. Make the full page feel like one polished record form instead of several unrelated panels.
+
+Technical constraints:
+17. Reuse existing components where possible, but refactor layout cleanly if needed.
+18. Do not break existing APIs, permissions, audit logic, or workflows.
+19. Do not change the meaning of financial, implant, follow-up, or patient data.
+20. No fake data, no duplicated state, no disconnected frontend-only rendering.
+21. If the implants section currently uses card components, refactor that presentation into the unified page layout instead of leaving it as-is.
+
+Acceptance criteria:
+- The patient file remains a single page.
+- All sections share the same visual language.
+- White backgrounds / borders / spacing / headers are consistent across sections.
+- The implants area no longer looks like separate cards.
+- The implants area looks more like a structured summary/list/row layout.
+- Data editing still works.
+- All add/edit/delete/archive/status changes remain synchronized between the patient file and the Operational Table.
+- No regressions in existing functionality.
+
+Before finishing:
+- Run typecheck.
+- Run lint on affected files.
+- Verify the patient file page still works end-to-end.
+- Verify edits from the patient file are reflected correctly in the Operational Table and vice versa.
+- Do not publish.

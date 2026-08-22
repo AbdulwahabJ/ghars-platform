@@ -5,6 +5,7 @@ import type {
   ChargeInput,
   DiscountInput,
   FinanceFilters,
+  InstallmentPlanInput,
   PaymentInput,
   PaymentUpdateInput,
   VoidPaymentInput,
@@ -85,6 +86,20 @@ export function useCreatePayment() {
   return useMutation({
     mutationFn: ({ caseId, data }: { caseId: string; data: PaymentInput }) =>
       api.createPayment(caseId, data),
+    onSuccess: (_res, vars) => invalidate(vars.caseId),
+  });
+}
+
+export function useSaveInstallmentPlan() {
+  const invalidate = useInvalidateFinance();
+  return useMutation({
+    mutationFn: ({
+      caseId,
+      data,
+    }: {
+      caseId: string;
+      data: InstallmentPlanInput;
+    }) => api.saveInstallmentPlan(caseId, data),
     onSuccess: (_res, vars) => invalidate(vars.caseId),
   });
 }

@@ -39,6 +39,15 @@ export const PAYMENT_STATUSES = [
 ] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
+export const INSTALLMENT_STATUSES = [
+  "مدفوع",
+  "مدفوع جزئيًا",
+  "مستحق اليوم",
+  "متأخر",
+  "مجدول",
+] as const;
+export type InstallmentStatus = (typeof INSTALLMENT_STATUSES)[number];
+
 /** Case status that marks a case as financially deferred. */
 export const DEFERRED_CASE_STATUS = "مؤجل";
 
@@ -98,6 +107,32 @@ export function toCents(amount: number): number {
   return Math.round(amount * 100);
 }
 
+/** Split an amount in cents without floating-point drift. */
+export function splitInstallmentAmount(
+  totalAmount: number,
+  installmentCount: number,
+): number[] {
+  const totalCents = toCents(totalAmount);
+  const base = Math.floor(totalCents / installmentCount);
+  const remainder = totalCents - base * installmentCount;
+  return Array.from({ length: installmentCount }, (_, index) =>
+    (base + (index < remainder ? 1 : 0)) / 100,
+  );
+}
+
+export function addCalendarMonths(isoDate: string, months: number): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const targetMonth = month - 1 + months;
+  const targetYear = year + Math.floor(targetMonth / 12);
+  const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(targetYear, normalizedMonth + 1, 0)).getUTCDate();
+  return [
+    String(targetYear).padStart(4, "0"),
+    String(normalizedMonth + 1).padStart(2, "0"),
+    String(Math.min(day, lastDay)).padStart(2, "0"),
+  ].join("-");
+}
+
 /* ------------------------------------------------------------------ */
 /* Inputs                                                              */
 /* ------------------------------------------------------------------ */
@@ -144,6 +179,7 @@ export const paymentInputSchema = z.object({
   }),
   referenceNumber: trimmedOrNull,
   note: trimmedOrNull,
+  installmentId: z.string().uuid().nullable().optional().transform((v) => v ?? null),
 });
 export type PaymentInput = z.infer<typeof paymentInputSchema>;
 
@@ -193,6 +229,7 @@ export type Discount = z.infer<typeof discountSchema>;
 export const paymentSchema = z.object({
   id: z.string().uuid(),
   implantCaseId: z.string().uuid(),
+  installmentId: z.string().uuid().nullable(),
   amount: z.number(),
   paymentDate: z.string(),
   paymentLabel: z.string().nullable(),
@@ -207,6 +244,39 @@ export const paymentSchema = z.object({
   voidReason: z.string().nullable(),
 });
 export type Payment = z.infer<typeof paymentSchema>;
+
+export const installmentSchema = z.object({
+  id: z.string().uuid(),
+  planId: z.string().uuid(),
+  sequence: z.number().int(),
+  dueDate: z.string(),
+  amount: z.number(),
+  paidAmount: z.number(),
+  outstanding: z.number(),
+  status: z.enum(INSTALLMENT_STATUSES),
+});
+export type Installment = z.infer<typeof installmentSchema>;
+
+export const installmentPlanSchema = z.object({
+  id: z.string().uuid(),
+  implantCaseId: z.string().uuid(),
+  totalAmount: z.number(),
+  installmentCount: z.number().int(),
+  firstDueDate: z.string(),
+  installments: z.array(installmentSchema),
+});
+export type InstallmentPlan = z.infer<typeof installmentPlanSchema>;
+
+export const installmentPlanInputSchema = z.object({
+  totalAmount: moneySchema,
+  installmentCount: z
+    .number()
+    .int()
+    .min(1, "عدد الأقساط يجب أن يكون واحدًا على الأقل.")
+    .max(60, "عدد الأقساط كبير جدًا."),
+  firstDueDate: isoDateSchema,
+});
+export type InstallmentPlanInput = z.infer<typeof installmentPlanInputSchema>;
 
 /** Case financial summary — all values computed, never stored. */
 export const caseFinanceSummarySchema = z.object({
@@ -226,6 +296,7 @@ export type CaseFinanceSummary = z.infer<typeof caseFinanceSummarySchema>;
 
 export const caseFinanceResponseSchema = z.object({
   summary: caseFinanceSummarySchema,
+  installmentPlan: installmentPlanSchema.nullable(),
   charges: z.array(chargeSchema),
   discounts: z.array(discountSchema),
   payments: z.array(paymentSchema),

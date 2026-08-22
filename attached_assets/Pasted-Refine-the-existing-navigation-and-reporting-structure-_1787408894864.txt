@@ -1,0 +1,60 @@
+Refine the existing navigation and reporting structure ONLY. Do not rebuild the system from scratch.
+
+Goal:
+The top-level "Financial" tab is now redundant because the financial reporting/statistics are already included inside the unified "Statistics" page. I want to remove the separate "Financial" tab from the main navigation and keep the financial analytics inside the Statistics page only.
+
+IMPORTANT:
+Do not remove or break any real financial data, business logic, APIs, permissions, exports, or calculations.
+This is mainly a navigation / IA / routing cleanup, not a data rewrite.
+
+What to do:
+1. Remove the top-level "Financial" tab from the main navbar.
+2. Keep the "Statistics" tab and keep the financial analytics section inside it.
+3. Do not duplicate financial reporting in two places anymore.
+4. If the current /finance page only serves reporting/analytics, retire it from navigation.
+5. If the /finance route still exists, handle it safely:
+   - either redirect it to /statistics
+   - or redirect it to the financial section within /statistics if anchors/section navigation exist
+6. Remove any leftover links, active states, breadcrumbs, quick actions, or references that still point users to the removed Financial tab.
+7. Keep the dashboard summary cards on the Home page exactly as they are. Do not remove or change them.
+
+Data / logic requirements:
+8. The financial information shown inside Statistics must continue using the existing source of truth and existing API/business logic.
+9. Do not create a second financial reporting flow.
+10. Do not break any existing calculations:
+   - total treatment value
+   - collected amount
+   - remaining amount
+   - payments count
+   - payment methods
+   - payment statuses
+   - fees
+   - discounts
+   - timeline charts
+11. Preserve all filtering behavior already available for statistics/financial reporting.
+
+Design / UX requirements:
+12. The navbar should become cleaner after removing the Financial tab.
+13. The Statistics page should clearly remain the single place for all analytics:
+   - patients
+   - implant cases
+   - implants
+   - prosthetic events
+   - follow-ups
+   - communication
+   - finance
+14. Keep the current visual design language unchanged.
+
+Safety requirements:
+15. Do not touch unrelated pages.
+16. Do not break permissions or audit behavior.
+17. Do not delete any database fields or APIs unless they are truly unused and only after confirming they are not required elsewhere.
+18. Do not publish.
+
+Verification before finishing:
+19. Run typecheck.
+20. Run lint on affected files.
+21. Verify the navbar no longer shows the Financial tab.
+22. Verify the Statistics page still shows the finance analytics correctly.
+23. Verify old finance navigation/routes no longer confuse the user and redirect safely if needed.
+24. Verify no regressions in exports, filters, charts, or totals.

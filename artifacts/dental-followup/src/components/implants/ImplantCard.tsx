@@ -92,13 +92,13 @@ export function ImplantCard({
   return (
     <div
       className={cn(
-        "bg-card border border-border rounded-2xl p-4 shadow-sm space-y-3",
-        isArchived && "opacity-70",
+        "space-y-3 bg-background p-3 md:p-4",
+        isArchived && "bg-muted/20 opacity-70",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 font-bold text-primary">
             {implant.site}
           </div>
           <div>
@@ -115,7 +115,7 @@ export function ImplantCard({
         </Badge>
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+      <dl className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm md:grid-cols-3 lg:grid-cols-5">
         {detailRows.map(([label, value]) =>
           value ? (
             <div key={label} className="flex justify-between gap-2 min-w-0">
@@ -129,7 +129,7 @@ export function ImplantCard({
       </dl>
 
       {graftIsPositive && (implant.graftProcedureType || implant.graftNote) && (
-        <div className="text-sm bg-muted/50 rounded-lg p-2.5 space-y-1">
+        <div className="space-y-1 border-s-2 border-primary/20 ps-3 text-sm">
           {implant.graftProcedureType && (
             <p>
               <span className="text-muted-foreground">نوع إجراء الترقيع: </span>
@@ -156,7 +156,7 @@ export function ImplantCard({
       )}
 
       {implant.implantNote && (
-        <p className="text-sm text-muted-foreground leading-relaxed border-t border-border pt-2">
+        <p className="border-t border-border pt-2 text-sm leading-relaxed text-muted-foreground">
           <span className="font-semibold text-foreground">NOTE: </span>
           {implant.implantNote}
         </p>

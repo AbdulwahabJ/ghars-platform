@@ -72,6 +72,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
     }
     const data: PaymentInput = {
       amount: Math.round(value * 100) / 100,
+      installmentId: null,
       paymentDate,
       paymentLabel,
       paymentMethod,

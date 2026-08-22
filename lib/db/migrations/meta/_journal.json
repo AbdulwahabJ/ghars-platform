@@ -57,6 +57,13 @@
       "when": 1787142656469,
       "tag": "0007_tough_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787408389887,
+      "tag": "0008_strong_sebastian_shaw",
+      "breakpoints": true
     }
   ]
 }

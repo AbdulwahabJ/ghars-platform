@@ -6,6 +6,8 @@ import {
   caseDiscountsTable,
   db,
   implantCasesTable,
+  installmentPlansTable,
+  installmentsTable,
   implantsTable,
   patientsTable,
   paymentsTable,
@@ -13,6 +15,8 @@ import {
   type CaseChargeRow,
   type CaseDiscountRow,
   type ImplantCaseRow,
+  type InstallmentPlanRow,
+  type InstallmentRow,
   type PaymentRow,
 } from "@workspace/db";
 import {
@@ -25,10 +29,13 @@ import {
   PAYMENT_ALREADY_VOIDED,
   PAYMENT_NOT_FOUND,
   baseAmountInputSchema,
+  addCalendarMonths,
   calcPaymentStatus,
   caseFinanceSummarySchema,
   chargeInputSchema,
   discountInputSchema,
+  installmentPlanInputSchema,
+  splitInstallmentAmount,
   financeFiltersSchema,
   paymentInputSchema,
   paymentUpdateSchema,
@@ -40,6 +47,8 @@ import {
   type Discount,
   type FinanceOverview,
   type FinancePaymentRow,
+  type InstallmentPlan,
+  type Installment,
   type Payment,
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
@@ -233,6 +242,7 @@ function toPaymentDto(row: PaymentRow, names: Map<string, string>): Payment {
   return {
     id: row.id,
     implantCaseId: row.implantCaseId,
+    installmentId: row.installmentId,
     amount: money(row.amount),
     paymentDate: row.paymentDate,
     paymentLabel: row.paymentLabel,
@@ -245,6 +255,66 @@ function toPaymentDto(row: PaymentRow, names: Map<string, string>): Payment {
     voidedAt: row.voidedAt?.toISOString() ?? null,
     voidedByName: row.voidedBy ? (names.get(row.voidedBy) ?? null) : null,
     voidReason: row.voidReason,
+  };
+}
+
+function installmentStatus(args: {
+  amountCents: number;
+  paidCents: number;
+  dueDate: string;
+  today: string;
+}): Installment["status"] {
+  if (args.paidCents >= args.amountCents) return "مدفوع";
+  if (args.paidCents > 0) return "مدفوع جزئيًا";
+  if (args.dueDate < args.today) return "متأخر";
+  if (args.dueDate === args.today) return "مستحق اليوم";
+  return "مجدول";
+}
+
+function buildInstallmentPlanDto(args: {
+  plan: InstallmentPlanRow;
+  installments: InstallmentRow[];
+  payments: PaymentRow[];
+}): InstallmentPlan {
+  const paidByInstallment = new Map<string, number>();
+  for (const payment of args.payments) {
+    if (!payment.installmentId || payment.voidedAt) continue;
+    paidByInstallment.set(
+      payment.installmentId,
+      (paidByInstallment.get(payment.installmentId) ?? 0) +
+        toCents(money(payment.amount)),
+    );
+  }
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Riyadh",
+  }).format(new Date());
+  return {
+    id: args.plan.id,
+    implantCaseId: args.plan.implantCaseId,
+    totalAmount: money(args.plan.totalAmount),
+    installmentCount: args.plan.installmentCount,
+    firstDueDate: args.plan.firstDueDate,
+    installments: args.installments
+      .sort((a, b) => a.sequence - b.sequence)
+      .map((row) => {
+        const amountCents = toCents(money(row.amount));
+        const paidCents = paidByInstallment.get(row.id) ?? 0;
+        return {
+          id: row.id,
+          planId: row.planId,
+          sequence: row.sequence,
+          dueDate: row.dueDate,
+          amount: amountCents / 100,
+          paidAmount: paidCents / 100,
+          outstanding: (amountCents - paidCents) / 100,
+          status: installmentStatus({
+            amountCents,
+            paidCents,
+            dueDate: row.dueDate,
+            today,
+          }),
+        };
+      }),
   };
 }
 
@@ -296,7 +366,7 @@ router.get(
       return;
     }
 
-    const [charges, discounts, payments, implants] = await Promise.all([
+    const [charges, discounts, payments, implants, plans] = await Promise.all([
       db
         .select()
         .from(caseChargesTable)
@@ -316,7 +386,20 @@ router.get(
         .select({ id: implantsTable.id, site: implantsTable.site })
         .from(implantsTable)
         .where(eq(implantsTable.implantCaseId, caseRow.id)),
+      db
+        .select()
+        .from(installmentPlansTable)
+        .where(eq(installmentPlansTable.implantCaseId, caseRow.id))
+        .limit(1),
     ]);
+    const plan = plans[0] ?? null;
+    const installments = plan
+      ? await db
+          .select()
+          .from(installmentsTable)
+          .where(eq(installmentsTable.planId, plan.id))
+          .orderBy(asc(installmentsTable.sequence))
+      : [];
 
     const names = await userNames([
       ...charges.map((c) => c.createdBy),
@@ -340,11 +423,215 @@ router.get(
         discountsTotal: discountsTotal / 100,
         paidAmount: paidAmount / 100,
       }),
+      installmentPlan: plan
+        ? buildInstallmentPlanDto({ plan, installments, payments })
+        : null,
       charges: charges.map((c) => toChargeDto(c, names, sites)),
       discounts: discounts.map((d) => toDiscountDto(d, names)),
       payments: payments.map((p) => toPaymentDto(p, names)),
     };
     res.json(body);
+  },
+);
+
+/* ------------------------------------------------------------------ */
+/* Installment plan — scheduling only; payments remain the ledger      */
+/* ------------------------------------------------------------------ */
+
+router.put(
+  "/implant-cases/:id/installment-plan",
+  requireFinanceManage,
+  async (req, res) => {
+    const caseRow = await guardWritableCase(String(req.params.id), res);
+    if (!caseRow) return;
+    const input = parseOrRespond(installmentPlanInputSchema, req.body, res);
+    if (!input) return;
+
+    const [charges, discounts, existingPlan] = await Promise.all([
+      db
+        .select({ amount: caseChargesTable.amount })
+        .from(caseChargesTable)
+        .where(eq(caseChargesTable.implantCaseId, caseRow.id)),
+      db
+        .select({ amount: caseDiscountsTable.amount })
+        .from(caseDiscountsTable)
+        .where(eq(caseDiscountsTable.implantCaseId, caseRow.id)),
+      db
+        .select()
+        .from(installmentPlansTable)
+        .where(eq(installmentPlansTable.implantCaseId, caseRow.id))
+        .limit(1),
+    ]);
+    const finalCents =
+      toCents(money(caseRow.baseTreatmentAmount)) +
+      charges.reduce((sum, row) => sum + toCents(money(row.amount)), 0) -
+      discounts.reduce((sum, row) => sum + toCents(money(row.amount)), 0);
+    if (toCents(input.totalAmount) > finalCents) {
+      res.status(400).json({
+        error: "المبلغ المجدول لا يمكن أن يتجاوز الإجمالي النهائي للحالة.",
+        code: "INSTALLMENT_TOTAL_EXCEEDS_FINAL",
+      });
+      return;
+    }
+
+    const amounts = splitInstallmentAmount(
+      input.totalAmount,
+      input.installmentCount,
+    );
+    const dates = amounts.map((_, index) =>
+      addCalendarMonths(input.firstDueDate, index),
+    );
+    const currentPlan = existingPlan[0] ?? null;
+    const existingInstallments = currentPlan
+      ? await db
+          .select()
+          .from(installmentsTable)
+          .where(eq(installmentsTable.planId, currentPlan.id))
+          .orderBy(asc(installmentsTable.sequence))
+      : [];
+    const linkedPayments =
+      existingInstallments.length > 0
+        ? await db
+            .select()
+            .from(paymentsTable)
+            .where(
+              inArray(
+                paymentsTable.installmentId,
+                existingInstallments.map((installment) => installment.id),
+              ),
+            )
+        : [];
+    const activePayments = linkedPayments.filter((payment) => !payment.voidedAt);
+
+    if (
+      linkedPayments.length > 0 &&
+      existingInstallments.length !== input.installmentCount
+    ) {
+      res.status(409).json({
+        error:
+          "لا يمكن تغيير عدد الأقساط بعد ربط دفعات بها. حدّث الجدول مع الحفاظ على العدد الحالي.",
+        code: "INSTALLMENT_COUNT_LOCKED",
+      });
+      return;
+    }
+
+    const paidByInstallment = new Map<string, number>();
+    for (const payment of activePayments) {
+      if (!payment.installmentId) continue;
+      paidByInstallment.set(
+        payment.installmentId,
+        (paidByInstallment.get(payment.installmentId) ?? 0) +
+          toCents(money(payment.amount)),
+      );
+    }
+    const isAmountBelowPaid = existingInstallments.some(
+      (installment, index) =>
+        (paidByInstallment.get(installment.id) ?? 0) >
+        toCents(amounts[index] ?? 0),
+    );
+    if (isAmountBelowPaid) {
+      res.status(409).json({
+        error: "لا يمكن جعل مبلغ القسط أقل من الدفعات المسجلة عليه.",
+        code: "INSTALLMENT_AMOUNT_BELOW_PAID",
+      });
+      return;
+    }
+
+    let plan: InstallmentPlanRow;
+    let installments: InstallmentRow[];
+    if (currentPlan) {
+      [plan] = await db
+        .update(installmentPlansTable)
+        .set({
+          totalAmount: input.totalAmount.toFixed(2),
+          installmentCount: input.installmentCount,
+          firstDueDate: input.firstDueDate,
+          updatedBy: req.currentUser!.id,
+          updatedAt: new Date(),
+        })
+        .where(eq(installmentPlansTable.id, currentPlan.id))
+        .returning();
+      if (existingInstallments.length === 0 || linkedPayments.length === 0) {
+        if (existingInstallments.length) {
+          await db
+            .delete(installmentsTable)
+            .where(eq(installmentsTable.planId, plan.id));
+        }
+        installments = await db
+          .insert(installmentsTable)
+          .values(
+            amounts.map((amount, index) => ({
+              planId: plan.id,
+              sequence: index + 1,
+              dueDate: dates[index],
+              amount: amount.toFixed(2),
+            })),
+          )
+          .returning();
+      } else {
+        installments = await Promise.all(
+          existingInstallments.map((installment, index) =>
+            db
+              .update(installmentsTable)
+              .set({
+                dueDate: dates[index],
+                amount: amounts[index].toFixed(2),
+                updatedAt: new Date(),
+              })
+              .where(eq(installmentsTable.id, installment.id))
+              .returning()
+              .then(([row]) => row),
+          ),
+        );
+      }
+    } else {
+      [plan] = await db
+        .insert(installmentPlansTable)
+        .values({
+          implantCaseId: caseRow.id,
+          totalAmount: input.totalAmount.toFixed(2),
+          installmentCount: input.installmentCount,
+          firstDueDate: input.firstDueDate,
+          createdBy: req.currentUser!.id,
+          updatedBy: req.currentUser!.id,
+        })
+        .returning();
+      installments = await db
+        .insert(installmentsTable)
+        .values(
+          amounts.map((amount, index) => ({
+            planId: plan.id,
+            sequence: index + 1,
+            dueDate: dates[index],
+            amount: amount.toFixed(2),
+          })),
+        )
+        .returning();
+    }
+
+    const allPayments = await db
+      .select()
+      .from(paymentsTable)
+      .where(eq(paymentsTable.implantCaseId, caseRow.id));
+    await writeAudit({
+      userId: req.currentUser!.id,
+      action: currentPlan ? "installment_plan_update" : "installment_plan_create",
+      entityType: "installment_plan",
+      entityId: plan.id,
+      summary: `${currentPlan ? "تعديل" : "إنشاء"} خطة تقسيط من ${input.installmentCount} أقساط بإجمالي ${input.totalAmount.toFixed(2)}`,
+      details: {
+        totalAmount: input.totalAmount,
+        installmentCount: input.installmentCount,
+        firstDueDate: input.firstDueDate,
+      },
+    });
+    res.json({
+      installmentPlan: buildInstallmentPlanDto({
+        plan,
+        installments,
+        payments: allPayments,
+      }),
+    });
   },
 );
 
@@ -553,11 +840,54 @@ router.post(
     if (!caseRow) return;
     const input = parseOrRespond(paymentInputSchema, req.body, res);
     if (!input) return;
+    if (input.installmentId) {
+      const [installment] = await db
+        .select({
+          id: installmentsTable.id,
+          amount: installmentsTable.amount,
+          implantCaseId: installmentPlansTable.implantCaseId,
+        })
+        .from(installmentsTable)
+        .innerJoin(
+          installmentPlansTable,
+          eq(installmentsTable.planId, installmentPlansTable.id),
+        )
+        .where(eq(installmentsTable.id, input.installmentId))
+        .limit(1);
+      if (!installment || installment.implantCaseId !== caseRow.id) {
+        res.status(400).json({
+          error: "القسط المختار لا ينتمي إلى حالة الزراعة هذه.",
+          code: "INSTALLMENT_INVALID",
+        });
+        return;
+      }
+      const linkedPayments = await db
+        .select({ amount: paymentsTable.amount })
+        .from(paymentsTable)
+        .where(
+          and(
+            eq(paymentsTable.installmentId, installment.id),
+            isNull(paymentsTable.voidedAt),
+          ),
+        );
+      const alreadyPaid = linkedPayments.reduce(
+        (sum, payment) => sum + toCents(money(payment.amount)),
+        0,
+      );
+      if (alreadyPaid + toCents(input.amount) > toCents(money(installment.amount))) {
+        res.status(409).json({
+          error: "مبلغ الدفعة يتجاوز المتبقي من هذا القسط.",
+          code: "INSTALLMENT_OVERPAYMENT",
+        });
+        return;
+      }
+    }
 
     const [row] = await db
       .insert(paymentsTable)
       .values({
         implantCaseId: caseRow.id,
+        installmentId: input.installmentId,
         amount: input.amount.toFixed(2),
         paymentDate: input.paymentDate,
         paymentLabel: input.paymentLabel,

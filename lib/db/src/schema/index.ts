@@ -8,6 +8,7 @@ export * from "./prosthetic-events";
 export * from "./payments";
 export * from "./case-charges";
 export * from "./case-discounts";
+export * from "./installment-plans";
 export * from "./followups";
 export * from "./communications";
 export * from "./whatsapp-templates";
