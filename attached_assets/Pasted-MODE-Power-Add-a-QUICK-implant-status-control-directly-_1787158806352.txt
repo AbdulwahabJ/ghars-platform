@@ -1,0 +1,344 @@
+MODE: Power
+
+Add a QUICK implant-status control directly inside each implant card in the expanded Operational Table row.
+
+The goal is to let the user change the implant's current status quickly WITHOUT entering the full implant edit form.
+
+Do NOT remove the existing implant edit action.
+The full edit form is still needed for:
+
+* system
+* diameter
+* length
+* Q
+* Former
+* Graft
+* notes
+* other implant fields
+
+This task adds a fast status-only interaction.
+
+==================================================
+
+1. QUICK STATUS CONTROL
+   ==================================================
+
+Inside each implant card, replace the passive status badge with an interactive compact status stepper.
+
+Preferred visual structure:
+
+[ previous ]   [ current implant status ]   [ next ]
+
+Example:
+
+[ ‹ ]   مرحلة الالتئام   [ › ]
+
+Use small professional icon buttons.
+
+Add Arabic tooltips:
+
+Previous:
+"المرحلة السابقة"
+
+Next:
+"المرحلة التالية"
+
+Do not make the control visually heavy.
+
+It should feel like a compact clinical workflow control.
+
+==================================================
+2. NORMAL STATUS PROGRESSION
+============================
+
+First inspect the REAL current implant-status enum/options in the codebase.
+
+For the normal treatment path, use the existing canonical progression equivalent to:
+
+مزروعة
+→ مرحلة الالتئام
+→ جاهزة للتركيب
+→ تم تركيب مؤقت
+→ تم التركيب
+
+Use the EXACT current status strings from the system.
+
+Do not create or rename statuses.
+
+The arrows should move only through this normal progression.
+
+==================================================
+3. EXCEPTION / BRANCH STATUSES
+==============================
+
+Do NOT put exceptional statuses into the normal arrow cycle.
+
+Statuses such as:
+
+* فاشلة
+* تحتاج إعادة
+* تمت إعادة الزراعة
+
+should be available through a small secondary status menu/dropdown next to the stepper.
+
+Example:
+
+[ ‹ ] [ مرحلة الالتئام ] [ › ] [ ▾ ]
+
+The dropdown contains the real exceptional statuses already supported by the system.
+
+This prevents users from accidentally cycling through clinically abnormal states using the arrows.
+
+==================================================
+4. CURRENT STATUS DISPLAY
+=========================
+
+The current implant status must remain clearly visible at all times.
+
+Use a compact semantic badge/color.
+
+Reuse the existing application's status colors where possible.
+
+Examples:
+
+* مزروعة → teal
+* مرحلة الالتئام → blue
+* جاهزة للتركيب → amber
+* تم تركيب مؤقت → soft teal
+* تم التركيب → green
+* فاشلة / تحتاج إعادة → red
+
+Do not introduce a completely new color system.
+
+==================================================
+5. DIRECT SAVE
+==============
+
+For ordinary status transitions such as:
+
+مزروعة → مرحلة الالتئام
+
+or:
+
+مرحلة الالتئام → جاهزة للتركيب
+
+save the status directly using the EXISTING implant-status update logic/API.
+
+Do not open the full implant editor.
+
+Show a very brief inline loading state.
+
+On success:
+
+* update the status badge immediately
+* refresh the affected Operational Table row/query
+* keep the patient row expanded
+
+Do not reload the page.
+
+==================================================
+6. PRESERVE TASK #18 PROSTHETIC WORKFLOW
+========================================
+
+This is critical.
+
+The recently implemented synchronized prosthetic workflow must remain the ONLY path when moving into:
+
+* تم تركيب مؤقت
+* تم التركيب
+
+When the user presses the Next arrow and the target status is one of those installation statuses:
+
+DO NOT save the implant status directly.
+
+Instead trigger the SAME existing workflow already used when selecting that status from the full implant editor:
+
+status transition
+→ open existing `ProstheticEventDialog`
+→ document actual installation
+→ atomic server-side save:
+prosthetic_event + implant status
+
+Cancel:
+
+* no prosthetic event
+* no status change
+
+Success:
+
+* both save together
+* dashboard KPIs refresh
+* implant status updates
+* patient row remains expanded
+
+Do NOT duplicate the prosthetic synchronization logic.
+
+Extract/reuse the existing handler if necessary.
+
+==================================================
+7. PREVIOUS ARROW
+=================
+
+The Previous arrow should move backward through the NORMAL progression only.
+
+Example:
+
+جاهزة للتركيب
+→ مرحلة الالتئام
+
+Do not automatically delete or archive historical prosthetic events when moving backward.
+
+IMPORTANT:
+
+If moving backward from an installation status could create an inconsistency with existing prosthetic history:
+
+do NOT silently perform it.
+
+Instead show a small confirmation or block the backward transition and direct the user to the existing prosthetic correction/archive workflow.
+
+Reuse existing safe business rules.
+
+Do not invent historical reconstruction.
+
+==================================================
+8. EXCEPTIONAL STATUS CHANGES
+=============================
+
+When selecting:
+
+فاشلة
+or
+تحتاج إعادة
+or another existing exceptional status
+
+use the existing implant-status update API/logic.
+
+If the current system requires any additional reason/note for such a transition, preserve that requirement.
+
+Do not bypass existing validation.
+
+==================================================
+9. FULL EDIT REMAINS AVAILABLE
+==============================
+
+Keep the existing pencil/edit icon.
+
+The user should still use full edit when changing implant clinical details.
+
+The new quick status control is ONLY for status changes.
+
+==================================================
+10. UX / DESIGN
+===============
+
+Place the quick status control in a visually obvious but compact location inside the implant card.
+
+Recommended:
+
+near the current "حالة الزرعة" area.
+
+Do not put it at the very bottom where it looks like a separate unrelated action.
+
+The card should remain clean.
+
+Desktop:
+
+* one-line compact control
+
+Mobile:
+
+* keep buttons touch-friendly
+* no horizontal overflow
+
+==================================================
+11. ERROR HANDLING
+==================
+
+If a status change fails:
+
+* keep the previous status visible
+* show the exact Arabic error
+* do not leave an optimistic incorrect state
+
+Examples:
+
+"تعذر تحديث حالة الزرعة."
+
+or use the exact backend validation message where available.
+
+Do not show raw server/Zod/SQL errors.
+
+==================================================
+12. DATA ARCHITECTURE
+=====================
+
+Do not create:
+
+* new status tables
+* new status fields
+* duplicated status history
+* dashboard-only status storage
+
+Use the existing canonical:
+
+`implants.status`
+
+The Operational Table remains the primary workspace.
+
+==================================================
+13. DO NOT CHANGE
+=================
+
+Do not change:
+
+* implant status enum
+* prosthetic event schema
+* Task #18 atomic synchronization
+* dashboard KPI definitions
+* patient workflow
+* finance
+* follow-ups
+* communications
+* case status
+* other implant fields
+* database schema
+
+This task is a QUICK STATUS UX layer over the existing workflow.
+
+==================================================
+14. FOCUSED VERIFICATION
+========================
+
+Run:
+
+* affected TypeScript checks
+* affected lint
+* focused browser verification
+
+Verify:
+
+1. implant card shows previous/current/next control
+2. normal next transition saves without opening full edit
+3. normal previous transition behaves safely
+4. abnormal statuses are NOT part of arrow cycling
+5. exceptional-status dropdown works
+6. moving to temporary installation opens existing prosthetic dialog
+7. cancel leaves status unchanged
+8. confirming temporary installation creates event + updates status atomically
+9. moving to final installation uses the same workflow
+10. Q/Former/Graft remain unchanged
+11. full edit button still works
+12. patient row remains expanded
+13. no duplicate prosthetic event is created
+
+Do not run the full historical test suite.
+Do not publish.
+
+At completion report:
+
+* exact normal status progression used
+* exceptional statuses kept outside the arrow cycle
+* confirmation that Task #18 logic was reused rather than duplicated
+* focused verification result
+
+Stop.

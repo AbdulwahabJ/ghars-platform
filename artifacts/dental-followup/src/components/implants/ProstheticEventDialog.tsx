@@ -36,6 +36,8 @@ interface ProstheticEventDialogProps {
   caseItem: ImplantCaseWithImplants;
   initialEventType?: ProstheticEventType;
   initialImplantId?: string | null;
+  /** Keep the event type aligned with a requested implant-status transition. */
+  lockInitialEventType?: boolean;
   onSuccess?: () => void;
 }
 
@@ -46,6 +48,7 @@ export function ProstheticEventDialog({
   caseItem,
   initialEventType,
   initialImplantId,
+  lockInitialEventType,
   onSuccess,
 }: ProstheticEventDialogProps) {
   return (
@@ -57,6 +60,7 @@ export function ProstheticEventDialog({
           onClose={() => onOpenChange(false)}
           initialEventType={initialEventType}
           initialImplantId={initialImplantId}
+          lockInitialEventType={lockInitialEventType}
           onSuccess={onSuccess}
         />
       </DialogContent>
@@ -70,6 +74,7 @@ function ProstheticEventForm({
   onClose,
   initialEventType,
   initialImplantId,
+  lockInitialEventType,
   onSuccess,
 }: Omit<ProstheticEventDialogProps, "open" | "onOpenChange"> & {
   onClose: () => void;
@@ -128,7 +133,11 @@ function ProstheticEventForm({
       <div className="space-y-4 py-2">
         <div className="space-y-2">
           <FieldLabel label="نوع التركيب" />
-          <Select value={eventType} onValueChange={(value) => setEventType(value as typeof eventType)}>
+          <Select
+            value={eventType}
+            onValueChange={(value) => setEventType(value as typeof eventType)}
+            disabled={lockInitialEventType}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent dir="rtl">
               {PROSTHETIC_EVENT_TYPES.map((type) => (

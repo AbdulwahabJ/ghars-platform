@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Plus, Printer, ChevronDown, ChevronUp, ExternalLink, Calendar, CalendarCheck2, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard, Archive } from "lucide-react";
+import { Download, Loader2, Plus, Printer, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Calendar, CalendarCheck2, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
@@ -51,6 +56,7 @@ interface ProstheticEventContext {
   caseItem: ImplantCaseWithImplants;
   initialImplantId?: string;
   initialEventType?: ProstheticEventType;
+  lockInitialEventType?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -59,6 +65,17 @@ interface ProstheticEventContext {
 
 const PAGE_SIZE = 10;
 const SHOW_PROSTHETIC_EVENT_LOG = false;
+const NORMAL_IMPLANT_STATUS_PROGRESSION: readonly ImplantStatus[] = [
+  "مزروعة",
+  "مرحلة الالتئام",
+  "جاهزة للتركيب",
+  "تم تركيب مؤقت",
+  "تم التركيب",
+];
+const EXCEPTIONAL_IMPLANT_STATUSES = IMPLANT_STATUSES.filter(
+  (status) =>
+    !NORMAL_IMPLANT_STATUS_PROGRESSION.includes(status) && status !== "مؤرشفة",
+) as ImplantStatus[];
 
 /* ------------------------------------------------------------------ */
 /* Group rows by patient (preserves SQL order: newest case first)     */
@@ -139,9 +156,193 @@ function paymentStatusClass(status: string): string {
   return "bg-muted text-muted-foreground";
 }
 
+function implantStatusClass(status: ImplantStatus): string {
+  switch (status) {
+    case "فاشلة":
+    case "تحتاج إعادة":
+      return "bg-destructive/10 text-destructive border-destructive/30";
+    case "جاهزة للتركيب":
+      return "bg-amber-100 text-amber-900 border-amber-200";
+    case "مرحلة الالتئام":
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    case "مزروعة":
+      return "bg-teal-100 text-teal-800 border-teal-200";
+    case "تم تركيب مؤقت":
+      return "bg-cyan-100 text-cyan-800 border-cyan-200";
+    case "تم التركيب":
+    case "تمت إعادة الزراعة":
+      return "bg-emerald-100 text-emerald-800 border-emerald-200";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Inline edit sub-components                                          */
 /* ------------------------------------------------------------------ */
+
+function ImplantStatusStepper({
+  implant,
+  patientId,
+  onRequestProstheticDocumentation,
+}: {
+  implant: Implant;
+  patientId: string;
+  onRequestProstheticDocumentation: (eventType: ProstheticEventType) => void;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const update = useUpdateImplant();
+  const currentIndex = NORMAL_IMPLANT_STATUS_PROGRESSION.indexOf(
+    implant.implantStatus,
+  );
+  const isInstallationStatus = Boolean(
+    PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS[
+      implant.implantStatus as keyof typeof PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS
+    ],
+  );
+  const previousStatus =
+    currentIndex > 0 && !isInstallationStatus
+      ? NORMAL_IMPLANT_STATUS_PROGRESSION[currentIndex - 1]
+      : undefined;
+  const nextStatus =
+    currentIndex >= 0 && currentIndex < NORMAL_IMPLANT_STATUS_PROGRESSION.length - 1
+      ? NORMAL_IMPLANT_STATUS_PROGRESSION[currentIndex + 1]
+      : undefined;
+
+  const requestStatusChange = (next: ImplantStatus) => {
+    if (next === implant.implantStatus || update.isPending) return;
+
+    const eventType = PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS[
+      next as keyof typeof PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS
+    ];
+    if (eventType) {
+      onRequestProstheticDocumentation(eventType);
+      return;
+    }
+
+    update.mutate(
+      {
+        id: implant.id,
+        patientId,
+        data: { implantStatus: next },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "تم تحديث حالة الزرعة" });
+          void queryClient.invalidateQueries({
+            queryKey: ["operational-report"],
+          });
+          void queryClient.invalidateQueries({ queryKey: ["statistics"] });
+        },
+        onError: (error) => {
+          toast({
+            title: "تعذر تحديث حالة الزرعة.",
+            description:
+              error instanceof Error
+                ? error.message
+                : "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  const explainProtectedPreviousStep = () => {
+    toast({
+      title: "لا يمكن الرجوع من حالة تركيب موثقة.",
+      description:
+        "صحّح أو أرشف سجل التركيب أولًا من مسار التوثيق، ثم عدّل الحالة من محرر الزرعة.",
+      variant: "destructive",
+    });
+  };
+
+  const busy = update.isPending;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5" data-testid={`implant-status-stepper-${implant.id}`}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              aria-label="المرحلة السابقة"
+              disabled={busy || (!previousStatus && !isInstallationStatus)}
+              onClick={() => {
+                if (isInstallationStatus) {
+                  explainProtectedPreviousStep();
+                  return;
+                }
+                if (previousStatus) requestStatusChange(previousStatus);
+              }}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent dir="rtl">المرحلة السابقة</TooltipContent>
+      </Tooltip>
+
+      <Badge
+        variant="outline"
+        className={`h-7 max-w-[150px] truncate px-2 text-[10px] notranslate ${implantStatusClass(implant.implantStatus)}`}
+      >
+        {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : implant.implantStatus}
+      </Badge>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              aria-label="المرحلة التالية"
+              disabled={busy || !nextStatus}
+              onClick={() => nextStatus && requestStatusChange(nextStatus)}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent dir="rtl">المرحلة التالية</TooltipContent>
+      </Tooltip>
+
+      <Select
+        onValueChange={(value) => requestStatusChange(value as ImplantStatus)}
+        disabled={busy}
+      >
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SelectTrigger
+              className="h-7 w-7 shrink-0 px-0"
+              aria-label="الحالات الاستثنائية"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </SelectTrigger>
+          </TooltipTrigger>
+          <TooltipContent dir="rtl">الحالات الاستثنائية</TooltipContent>
+        </Tooltip>
+        <SelectContent dir="rtl">
+          {EXCEPTIONAL_IMPLANT_STATUSES.map((status) => (
+            <SelectItem
+              key={status}
+              value={status}
+              disabled={status === implant.implantStatus}
+            >
+              {status}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 function InlinePatientEdit({
   p,
@@ -1739,6 +1940,7 @@ function PatientExpandedRow({
                                     caseItem: c,
                                     initialImplantId: imp.id,
                                     initialEventType: eventType,
+                                    lockInitialEventType: true,
                                   });
                                 }}
                               />
@@ -1800,7 +2002,27 @@ function PatientExpandedRow({
                                   </div>
                                   <div>
                                     <p className="text-[10px] text-muted-foreground">حالة الزرعة</p>
-                                    <Badge variant="outline" className="text-[10px] notranslate">{imp.implantStatus}</Badge>
+                                     {user?.role === "ADMIN" ? (
+                                       <ImplantStatusStepper
+                                         implant={imp}
+                                         patientId={group.patientId}
+                                         onRequestProstheticDocumentation={(eventType) => {
+                                           setProstheticEventContext({
+                                             caseItem: c,
+                                             initialImplantId: imp.id,
+                                             initialEventType: eventType,
+                                             lockInitialEventType: true,
+                                           });
+                                         }}
+                                       />
+                                     ) : (
+                                       <Badge
+                                         variant="outline"
+                                         className={`text-[10px] notranslate ${implantStatusClass(imp.implantStatus)}`}
+                                       >
+                                         {imp.implantStatus}
+                                       </Badge>
+                                     )}
                                   </div>
                                 </div>
                                 {imp.graftProcedureType && (
@@ -1970,7 +2192,12 @@ function PatientExpandedRow({
                      caseItem={c}
                      initialImplantId={prostheticEventContext.initialImplantId}
                      initialEventType={prostheticEventContext.initialEventType}
+                     lockInitialEventType={prostheticEventContext.lockInitialEventType}
                      onSuccess={() => {
+                        void qc.invalidateQueries({
+                          queryKey: ["operational-report"],
+                        });
+                        void qc.invalidateQueries({ queryKey: ["statistics"] });
                        if (prostheticEventContext.initialImplantId) {
                          setEditingImplantId(null);
                        }

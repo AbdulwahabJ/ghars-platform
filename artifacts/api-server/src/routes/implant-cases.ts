@@ -75,6 +75,14 @@ const DUPLICATE_SITE_BODY = {
     "يوجد بالفعل زرعة نشطة على هذا السن في نفس الحالة. لتسجيل إعادة زراعة، حدّث حالة الزرعة الحالية إلى فاشلة أو تحتاج إعادة أو قم بأرشفتها.",
   code: DUPLICATE_SITE,
 };
+const INSTALLATION_STATUS_VALUES: ReadonlySet<string> = new Set(
+  Object.values(IMPLANT_STATUS_BY_PROSTHETIC_EVENT),
+);
+const PROSTHETIC_DOCUMENTATION_REQUIRED_BODY = {
+  error:
+    "توثيق التركيب مطلوب لتغيير حالة الزرعة إلى تركيب مؤقت أو تركيب نهائي.",
+  code: "PROSTHETIC_DOCUMENTATION_REQUIRED",
+};
 
 /** PostgreSQL unique-constraint violation (walks Drizzle's cause chain). */
 function isUniqueViolation(err: unknown): boolean {
@@ -835,6 +843,15 @@ router.patch("/implants/:id", async (req, res) => {
 
   const updates = parseOrRespond(implantUpdateSchema, req.body, res);
   if (!updates) return;
+
+  if (
+    updates.implantStatus &&
+    updates.implantStatus !== existing.implantStatus &&
+    INSTALLATION_STATUS_VALUES.has(updates.implantStatus)
+  ) {
+    res.status(409).json(PROSTHETIC_DOCUMENTATION_REQUIRED_BODY);
+    return;
+  }
 
   const targetSite = updates.site ?? existing.site;
   const targetStatus = updates.implantStatus ?? existing.implantStatus;
