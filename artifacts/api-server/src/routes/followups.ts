@@ -254,7 +254,9 @@ router.post("/implant-cases/:id/followups", async (req, res) => {
         ? new Date(input.nextAppointmentAt)
         : null,
       note: input.note,
-      assignedUserId: input.assignedUserId,
+      // Follow-ups created from the app always belong to the authenticated user.
+      // Do not trust a client-supplied assignee id.
+      assignedUserId: userId,
       createdBy: userId,
     })
     .returning();

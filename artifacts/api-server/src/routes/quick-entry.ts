@@ -293,7 +293,8 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
             contactDueAt: input.followup.contactDueAt ? new Date(input.followup.contactDueAt) : null,
             nextAppointmentAt: input.followup.nextAppointmentAt ? new Date(input.followup.nextAppointmentAt) : null,
             note: input.followup.note ?? null,
-            assignedUserId: input.followup.assignedUserId ?? null,
+            // Quick-entry follow-ups are owned by the authenticated user.
+            assignedUserId: user.id,
             createdBy: user.id,
           })
           .returning();

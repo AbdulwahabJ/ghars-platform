@@ -25,12 +25,8 @@ import {
   OperationalDatePicker,
   OperationalDateTimeFields,
 } from "@/components/dashboard/OperationalDatePicker";
-import {
-  useAssignableUsers,
-  useCreateFollowup,
-  useUpdateFollowup,
-} from "@/hooks/use-followups";
-import { useAppSettings } from "@/hooks/use-settings";
+import { useCreateFollowup, useUpdateFollowup } from "@/hooks/use-followups";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { toRiyadhDateValue, toRiyadhInputValue } from "./followup-utils";
@@ -57,8 +53,6 @@ export function FollowupFormDialog(props: FollowupFormDialogProps) {
   );
 }
 
-const NONE = "__none__";
-
 function FollowupForm({
   onOpenChange,
   patientId,
@@ -67,10 +61,9 @@ function FollowupForm({
   prefillFrom,
 }: FollowupFormDialogProps) {
   const { toast } = useToast();
-  const { settings } = useAppSettings();
+  const { user } = useAuth();
   const createFollowup = useCreateFollowup(patientId);
   const updateFollowup = useUpdateFollowup(patientId);
-  const { data: users } = useAssignableUsers();
   const isEdit = Boolean(followup);
   const source = followup ?? prefillFrom ?? null;
 
@@ -91,10 +84,8 @@ function FollowupForm({
     followup?.contactDueAt ? toRiyadhDateValue(followup.contactDueAt) : "",
   );
   const [note, setNote] = useState(followup?.note ?? "");
-  // New followups prefill from the admin-configured default assignee.
-  const [assignedUserId, setAssignedUserId] = useState(
-    source?.assignedUserId ?? settings.defaultFollowupAssigneeUserId ?? NONE,
-  );
+  // New follow-ups belong to the logged-in user; edits preserve the existing owner.
+  const assignedUserId = isEdit ? source?.assignedUserId ?? null : user?.id ?? null;
   const [error, setError] = useState<string | null>(null);
 
   const pending = createFollowup.isPending || updateFollowup.isPending;
@@ -129,7 +120,7 @@ function FollowupForm({
           ? toRiyadhInputValue(followup.nextAppointmentAt)
           : null,
       note: note.trim() || null,
-      assignedUserId: assignedUserId === NONE ? null : assignedUserId,
+        assignedUserId,
     };
     const callbacks = {
       onSuccess: () => {
@@ -214,24 +205,15 @@ function FollowupForm({
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel label="الموظف المسؤول (اختياري)" />
-          <Select
-            value={assignedUserId}
-            onValueChange={setAssignedUserId}
-            dir="rtl"
+          <FieldLabel label="المسؤول" />
+          <div
+            className="flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-foreground"
+            data-testid="followup-current-assignee"
           >
-            <SelectTrigger data-testid="select-followup-assignee">
-              <SelectValue placeholder="بدون تحديد" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>بدون تحديد</SelectItem>
-              {(users ?? []).map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.fullName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {isEdit
+              ? followup?.assignedUserName ?? "غير محدد"
+              : user?.fullName ?? "المستخدم الحالي"}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Checkbox

@@ -959,7 +959,7 @@ function InlineAddFollowup({
 }) {
   const { toast } = useToast();
   const create = useCreateFollowup(patientId);
-  const { data: assignableUsers } = useAssignableUsers();
+  const { user } = useAuth();
   const qc = useQueryClient();
 
   const defaultCaseId = cases[0]?.id ?? "";
@@ -973,7 +973,6 @@ function InlineAddFollowup({
   const [requiresContact, setRequiresContact] = useState(false);
   const [contactDueAt, setContactDueAt] = useState("");
   const [nextAppointmentAt, setNextAppointmentAt] = useState("");
-  const [assignedUserId, setAssignedUserId] = useState("");
   const [note, setNote] = useState("");
 
   const save = () => {
@@ -988,7 +987,7 @@ function InlineAddFollowup({
           contactDueAt: requiresContact && contactDueAt ? contactDueAt : null,
           nextAppointmentAt: nextAppointmentAt || null,
           note: note || null,
-          assignedUserId: assignedUserId || null,
+          assignedUserId: user?.id ?? null,
         },
       },
       {
@@ -1022,18 +1021,15 @@ function InlineAddFollowup({
           required
           label="موعد المتابعة"
         />
-        {assignableUsers && assignableUsers.length > 0 && (
-          <div className="space-y-1">
-            <Label className="text-xs">المسؤول</Label>
-            <Select dir="rtl" value={assignedUserId || "__none__"} onValueChange={(v) => setAssignedUserId(v === "__none__" ? "" : v)}>
-              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">—</SelectItem>
-                {assignableUsers.map((u) => <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        <div className="space-y-1">
+          <Label className="text-xs">المسؤول</Label>
+          <div
+            className="flex h-8 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+            data-testid="inline-followup-current-assignee"
+          >
+            {user?.fullName ?? "المستخدم الحالي"}
           </div>
-        )}
+        </div>
         <OperationalDateTimeFields
           value={nextAppointmentAt}
           onChange={setNextAppointmentAt}
