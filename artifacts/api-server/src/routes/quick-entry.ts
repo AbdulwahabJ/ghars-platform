@@ -5,6 +5,7 @@ import {
   patientsTable,
   implantCasesTable,
   implantsTable,
+  boneGraftProceduresTable,
   paymentsTable,
   followupsTable,
   installmentPlansTable,
@@ -12,6 +13,7 @@ import {
   type ImplantRow,
   type PaymentRow,
   type FollowupRow,
+  type BoneGraftProcedureRow,
 } from "@workspace/db";
 import {
   DUPLICATE_ACTIVE,
@@ -29,6 +31,7 @@ import {
   type Patient,
   type Payment,
   type Followup,
+  type BoneGraftProcedure,
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
 import { effectivePermissions } from "../lib/permissions";
@@ -124,7 +127,14 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
 
       if (!input.case) {
         // Patient only — done
-        return { patientRow, caseRow: null, implantRows: [], paymentRow: null, followupRow: null };
+        return {
+          patientRow,
+          caseRow: null,
+          implantRows: [],
+          boneGraftProcedureRows: [],
+          paymentRow: null,
+          followupRow: null,
+        };
       }
 
       // --- 3. Create implant case ---
@@ -143,6 +153,8 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
           isReimplantation: input.case.isReimplantation,
           reimplantationReason: input.case.reimplantationReason ?? null,
           sourceCaseId: null,
+          createdBy: user.id,
+          updatedBy: user.id,
         })
         .returning();
 
@@ -299,7 +311,43 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
       }
 
-      // --- 7. Initial payment ---
+      // --- 7. Canonical bone-graft procedures (valid even with zero implants) ---
+      const boneGraftProcedureRows: BoneGraftProcedureRow[] = [];
+      for (const procedureInput of input.boneGraftProcedures) {
+        const { implantIndex, ...procedure } = procedureInput;
+        const linkedImplant =
+          implantIndex === undefined ? null : implantRows[implantIndex];
+        if (implantIndex !== undefined && !linkedImplant) {
+          throw {
+            __quick_entry_conflict: true,
+            code: "BONE_GRAFT_PROCEDURE_IMPLANT_INVALID",
+            error: "الزرعة المرتبطة بإجراء زراعة العظم غير موجودة في هذا الإدخال.",
+          };
+        }
+        const [procedureRow] = await tx
+          .insert(boneGraftProceduresTable)
+          .values({
+            ...procedure,
+            implantCaseId: caseRow.id,
+            implantId: linkedImplant?.id ?? null,
+            createdBy: user.id,
+            updatedBy: user.id,
+          })
+          .returning();
+        boneGraftProcedureRows.push(procedureRow);
+        await writeAudit(
+          {
+            userId: user.id,
+            action: "bone_graft_procedure_create",
+            entityType: "bone_graft_procedure",
+            entityId: procedureRow.id,
+            summary: `توثيق إجراء زراعة عظم: ${procedureRow.procedureType} عبر الإدخال السريع`,
+          },
+          tx,
+        );
+      }
+
+      // --- 8. Initial payment ---
       let paymentRow: PaymentRow | null = null;
       if (input.initialPayment) {
         const [pr] = await tx
@@ -330,7 +378,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
       }
 
-      // --- 8. Initial follow-up ---
+      // --- 9. Initial follow-up ---
       let followupRow: FollowupRow | null = null;
       if (input.followup) {
         const [fr] = await tx
@@ -365,7 +413,14 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
       }
 
-      return { patientRow, caseRow, implantRows, paymentRow, followupRow };
+      return {
+        patientRow,
+        caseRow,
+        implantRows,
+        boneGraftProcedureRows,
+        paymentRow,
+        followupRow,
+      };
     });
 
     // Build response DTOs
@@ -404,6 +459,27 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
           archivedAt: result.caseRow.archivedAt?.toISOString() ?? null,
         }
       : undefined;
+
+    const boneGraftProcedures: BoneGraftProcedure[] =
+      result.boneGraftProcedureRows.map((row) => ({
+        id: row.id,
+        implantCaseId: row.implantCaseId,
+        implantId: row.implantId,
+        procedureDate: row.procedureDate,
+        procedureType: row.procedureType,
+        site: row.site,
+        material: row.material,
+        membrane: row.membrane,
+        quantity: row.quantity,
+        size: row.size,
+        treatingDoctor: row.treatingDoctor,
+        procedureStatus: row.procedureStatus,
+        note: row.note,
+        status: row.archivedAt ? "archived" : "active",
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        archivedAt: row.archivedAt?.toISOString() ?? null,
+      }));
 
     const implants: Implant[] = result.implantRows.map((row) => ({
       id: row.id,
@@ -472,6 +548,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
       patient,
       case: caseDto,
       implants,
+      boneGraftProcedures,
       payment: paymentDto,
       followup: followupDto,
     });

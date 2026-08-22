@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Download, Loader2, Printer, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, Download, Loader2, Printer, TrendingDown, TrendingUp } from "lucide-react";
 import type { ReportFilters, StatCount, StatisticsHub } from "@workspace/shared";
 import { Shell } from "@/components/layout/Shell";
 import {
@@ -268,6 +268,7 @@ export default function Statistics() {
             <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
               <Kpi title="حالات الزراعة" value={hub.overview.cases} hint="ضمن الفترة والفلاتر" />
               <Kpi title="الزرعات" value={hub.overview.implants} hint={`${hub.overview.systems} أنظمة مستخدمة`} />
+              <Kpi title="إجراءات زراعة العظم" value={hub.overview.boneGraftProcedures} hint="سجلات سريرية نشطة" />
               <Kpi title="التركيبات" value={hub.overview.prostheticEvents} hint={`${hub.overview.prostheticPatients} مرضى`} />
               <Kpi title="متابعات متأخرة" value={hub.overview.overdueFollowups} hint="تحتاج مراجعة" tone="warning" />
               <Kpi
@@ -320,6 +321,19 @@ export default function Statistics() {
                 </ChartFrame>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">حالات الحالات</CardTitle></CardHeader><CardContent><DistributionList data={data.caseStatuses} emptyLabel="لا توجد حالات خلال الفترة." /></CardContent></Card>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">حالات الزرعات</CardTitle></CardHeader><CardContent><DistributionList data={data.implantStatuses} emptyLabel="لا توجد زرعات خلال الفترة." /></CardContent></Card>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <div className="flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /><h2 className="font-semibold">إجراءات زراعة العظم</h2></div>
+              <div className="grid gap-4 lg:grid-cols-3">
+                <ChartFrame title="إجراءات زراعة العظم عبر الزمن">
+                  {hub.boneGraftProcedures.overTime.length === 0 ? <EmptyChart /> : (
+                    <ResponsiveContainer width="100%" height="100%"><LineChart data={hub.boneGraftProcedures.overTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} /><Tooltip /><Line type="monotone" dataKey="count" name="إجراءات" stroke="#7c5b2b" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer>
+                  )}
+                </ChartFrame>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">الأنواع والمواد</CardTitle></CardHeader><CardContent className="space-y-3"><DistributionList data={hub.boneGraftProcedures.types} emptyLabel="لا توجد إجراءات موثقة." /><div className="border-t pt-2"><DistributionList data={hub.boneGraftProcedures.materials} emptyLabel="لا توجد مواد مسجلة." /></div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">ملخص الإجراءات</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>إجمالي الإجراءات</span><b>{hub.boneGraftProcedures.total}</b></div><div className="flex justify-between"><span>الحالات</span><b>{hub.boneGraftProcedures.cases}</b></div><div className="flex justify-between"><span>المرضى</span><b>{hub.boneGraftProcedures.patients}</b></div><div className="mt-3 border-t pt-2"><DistributionList data={hub.boneGraftProcedures.statuses} emptyLabel="لا توجد حالات مسجلة." /></div></CardContent></Card>
               </div>
             </section>
 

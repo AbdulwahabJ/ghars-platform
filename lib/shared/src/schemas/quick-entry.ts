@@ -7,6 +7,10 @@ import {
   paymentSchema,
 } from "./finance";
 import { followupInputSchema, followupSchema } from "./followups";
+import {
+  boneGraftProcedureInputSchema,
+  boneGraftProcedureSchema,
+} from "./bone-graft-procedures";
 
 /* ------------------------------------------------------------------ */
 /* Quick-entry — atomic one-shot workflow                               */
@@ -16,7 +20,7 @@ import { followupInputSchema, followupSchema } from "./followups";
  * A single API call that atomically creates:
  *   patient (always)
  *   + optional implant case
- *   + optional implants (requires case)
+ *   + optional implants and/or bone-graft procedures (require case)
  *   + optional base treatment amount (requires case)
  *   + optional initial payment (requires case + canRecordPayments)
  *   + optional initial follow-up (requires case)
@@ -33,6 +37,21 @@ export const quickEntryInputSchema = z.object({
    * Ignored when case is omitted.
    */
   implants: z.array(implantInputSchema).max(20).default([]),
+  /**
+   * Canonical graft procedures; a case may have these with zero implants.
+   * implantIndex is only a quick-entry convenience that resolves to the newly
+   * created implant in the same atomic transaction.
+   */
+  boneGraftProcedures: z
+    .array(
+      boneGraftProcedureInputSchema
+        .extend({
+          implantIndex: z.number().int().min(0).max(19).optional(),
+        })
+        .transform(({ implantId: _ignored, ...procedure }) => procedure),
+    )
+    .max(20)
+    .default([]),
   /**
    * Base treatment amount for the new case (SAR).
    * Ignored when case is omitted.
@@ -66,6 +85,7 @@ export const quickEntryResponseSchema = z.object({
   patient: patientSchema,
   case: implantCaseSchema.optional(),
   implants: z.array(implantSchema),
+  boneGraftProcedures: z.array(boneGraftProcedureSchema),
   payment: paymentSchema.optional(),
   followup: followupSchema.optional(),
 });

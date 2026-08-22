@@ -30,6 +30,9 @@ import type {
   ImplantInput,
   ImplantOptionsResponse,
   ImplantUpdate,
+  BoneGraftProcedure,
+  BoneGraftProcedureInput,
+  BoneGraftProcedureUpdate,
   ProstheticEvent,
   ProstheticEventInput,
   LoginInput,
@@ -228,6 +231,21 @@ export const api = {
     request<{ implant: Implant }>(`/implants/${id}/archive`, {
       method: "POST",
     }),
+  createBoneGraftProcedure: (caseId: string, input: BoneGraftProcedureInput) =>
+    request<{ procedure: BoneGraftProcedure }>(
+      `/implant-cases/${caseId}/bone-graft-procedures`,
+      { method: "POST", json: input },
+    ),
+  updateBoneGraftProcedure: (id: string, input: BoneGraftProcedureUpdate) =>
+    request<{ procedure: BoneGraftProcedure }>(`/bone-graft-procedures/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  archiveBoneGraftProcedure: (id: string) =>
+    request<{ procedure: BoneGraftProcedure }>(
+      `/bone-graft-procedures/${id}/archive`,
+      { method: "POST" },
+    ),
   createProstheticEvent: (caseId: string, input: ProstheticEventInput) =>
     request<{ event: ProstheticEvent }>(
       `/implant-cases/${caseId}/prosthetic-events`,

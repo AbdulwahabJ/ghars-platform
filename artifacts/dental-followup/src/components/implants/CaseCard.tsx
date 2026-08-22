@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { Archive, CalendarCheck2, Loader2, Pencil, RefreshCw } from "lucide-react";
+import { Archive, CalendarCheck2, Loader2, Pencil, Plus, RefreshCw } from "lucide-react";
 import {
   REIMPLANTABLE_STATUSES,
   type Implant,
   type ImplantCase,
   type ImplantCaseWithImplants,
+  type BoneGraftProcedure,
   type ProstheticEvent,
 } from "@workspace/shared";
 import { Badge } from "@/components/ui/badge";
@@ -21,10 +22,12 @@ import { FdiToothChart } from "./FdiToothChart";
 import { ImplantCard } from "./ImplantCard";
 import { CaseFormDialog } from "./CaseFormDialog";
 import { ProstheticEventDialog } from "./ProstheticEventDialog";
+import { BoneGraftProcedureDialog } from "./BoneGraftProcedureDialog";
 import { ImplantFormDialog, type ImplantDialogMode } from "./ImplantFormDialog";
 import {
   useArchiveImplantCase,
   useArchiveProstheticEvent,
+  useArchiveBoneGraftProcedure,
   useRestoreImplantCase,
 } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +72,7 @@ export function CaseCard({
   const { toast } = useToast();
   const archiveCase = useArchiveImplantCase();
   const archiveProstheticEvent = useArchiveProstheticEvent();
+  const archiveBoneGraftProcedure = useArchiveBoneGraftProcedure();
   const restoreCase = useRestoreImplantCase();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -77,9 +81,18 @@ export function CaseCard({
   const [prostheticEventOpen, setProstheticEventOpen] = useState(false);
   const [prostheticEventToArchive, setProstheticEventToArchive] =
     useState<ProstheticEvent | null>(null);
+  const [boneGraftProcedureDialog, setBoneGraftProcedureDialog] =
+    useState<BoneGraftProcedure | null | "new">(null);
+  const [boneGraftProcedureToArchive, setBoneGraftProcedureToArchive] =
+    useState<BoneGraftProcedure | null>(null);
 
   const isArchived = caseItem.status === "archived";
   const isReadOnly = readOnly || isArchived;
+  // Newly created cases may be rendered from an optimistic response before
+  // the expanded patient-file query attaches this collection.
+  const activeBoneGraftProcedures = (caseItem.boneGraftProcedures ?? []).filter(
+    (item) => item.status === "active",
+  );
 
   const sourceCase = useMemo(
     () =>
@@ -151,6 +164,25 @@ export function CaseCard({
             variant: "destructive",
             title: "تعذر أرشفة سجل التركيب",
             description: err.message,
+          }),
+      },
+    );
+  };
+
+  const handleArchiveBoneGraftProcedure = () => {
+    if (!boneGraftProcedureToArchive) return;
+    archiveBoneGraftProcedure.mutate(
+      { id: boneGraftProcedureToArchive.id, patientId },
+      {
+        onSuccess: () => {
+          toast({ title: "تمت أرشفة سجل زراعة العظم" });
+          setBoneGraftProcedureToArchive(null);
+        },
+        onError: (error: Error) =>
+          toast({
+            variant: "destructive",
+            title: "تعذر أرشفة السجل",
+            description: error.message,
           }),
       },
     );
@@ -366,6 +398,47 @@ export function CaseCard({
         </div>
 
         {/* FDI chart */}
+        <div className="border-t border-border pt-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="font-bold text-foreground">إجراءات زراعة العظم</h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                سجلات سريرية مستقلة لا تؤثر في الحسابات المالية.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">
+                {activeBoneGraftProcedures.length}
+              </Badge>
+              {!isReadOnly && (
+                <Button size="sm" variant="outline" onClick={() => setBoneGraftProcedureDialog("new")}>
+                  <Plus className="h-3.5 w-3.5 ml-1.5" />
+                  إضافة إجراء
+                </Button>
+              )}
+            </div>
+          </div>
+          {activeBoneGraftProcedures.length ? (
+            <div className="space-y-2">
+              {activeBoneGraftProcedures.map((item) => {
+                const implant = item.implantId ? caseItem.implants.find((candidate) => candidate.id === item.implantId) : null;
+                return <div key={item.id} className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{item.procedureType}</Badge>
+                    <span className="font-semibold">{formatSaudiDate(item.procedureDate)}</span>
+                    <Badge variant="secondary">{item.procedureStatus}</Badge>
+                    {implant && <span className="text-muted-foreground">السن {implant.site}</span>}
+                    {!isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 mr-auto" onClick={() => setBoneGraftProcedureDialog(item)}><Pencil className="h-3.5 w-3.5 ml-1" />تعديل</Button>}
+                    {canArchive && !isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setBoneGraftProcedureToArchive(item)}><Archive className="h-3.5 w-3.5 ml-1" />أرشفة</Button>}
+                  </div>
+                  {(item.material || item.membrane || item.site || item.note) && <p className="mt-1.5 text-muted-foreground">{[item.site && `الموضع: ${item.site}`, item.material && `المادة: ${item.material}`, item.membrane && `الغشاء: ${item.membrane}`, item.note].filter(Boolean).join(" — ")}</p>}
+                </div>;
+              })}
+            </div>
+          ) : <p className="text-sm text-muted-foreground rounded-lg bg-muted/30 px-3 py-3">لا توجد إجراءات زراعة عظم موثقة لهذه الحالة.</p>}
+        </div>
+
+        {/* FDI chart */}
         <div className="border-t border-border pt-4 space-y-2">
           <div className="flex items-center justify-between">
             <h4 className="font-bold text-foreground">مخطط الأسنان (FDI)</h4>
@@ -450,6 +523,22 @@ export function CaseCard({
         patientId={patientId}
         caseItem={caseItem}
       />
+      {boneGraftProcedureDialog !== null && (
+        <BoneGraftProcedureDialog
+          key={boneGraftProcedureDialog === "new" ? "new" : boneGraftProcedureDialog.id}
+          open
+          onOpenChange={(open) => !open && setBoneGraftProcedureDialog(null)}
+          patientId={patientId}
+          caseItem={caseItem}
+          procedure={boneGraftProcedureDialog === "new" ? null : boneGraftProcedureDialog}
+        />
+      )}
+      <Dialog open={Boolean(boneGraftProcedureToArchive)} onOpenChange={(open) => !open && setBoneGraftProcedureToArchive(null)}>
+        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+          <DialogHeader><DialogTitle className="text-destructive">تأكيد أرشفة إجراء زراعة العظم</DialogTitle><DialogDescription className="text-right">سيبقى السجل محفوظًا للمراجعة، لكنه سيُستبعد من القوائم والمؤشرات النشطة.</DialogDescription></DialogHeader>
+          <DialogFooter className="flex-row gap-3 sm:justify-start"><Button variant="destructive" onClick={handleArchiveBoneGraftProcedure} disabled={archiveBoneGraftProcedure.isPending}>{archiveBoneGraftProcedure.isPending ? "جارٍ الأرشفة..." : "أرشفة السجل"}</Button><Button variant="outline" onClick={() => setBoneGraftProcedureToArchive(null)}>إلغاء</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={Boolean(prostheticEventToArchive)}
         onOpenChange={(open) => !open && setProstheticEventToArchive(null)}

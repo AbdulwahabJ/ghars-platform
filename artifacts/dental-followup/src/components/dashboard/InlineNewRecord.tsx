@@ -74,6 +74,16 @@ const formSchema = z.object({
     implantStatus: z.string(),
     implantNote: z.string().optional(),
   })),
+  boneGraftProcedures: z.array(z.object({
+    procedureDate: z.string().optional(),
+    procedureType: z.string().optional(),
+    implantIndex: z.string().optional(),
+    site: z.string().optional(),
+    material: z.string().optional(),
+    membrane: z.string().optional(),
+    procedureStatus: z.string().optional(),
+    note: z.string().optional(),
+  })),
 
   // Finance
   includePayment: z.boolean(),
@@ -268,6 +278,7 @@ export function InlineNewRecord({
       expectedProstheticDate: "",
       generalNote: "",
       implants: [],
+      boneGraftProcedures: [],
       includePayment: false,
       baseTreatmentAmount: "",
       includeInstallmentPlan: false,
@@ -289,6 +300,14 @@ export function InlineNewRecord({
   const { fields: implantFields, append: appendImplant, remove: removeImplant } = useFieldArray({
     control: form.control,
     name: "implants",
+  });
+  const {
+    fields: boneGraftProcedureFields,
+    append: appendBoneGraftProcedure,
+    remove: removeBoneGraftProcedure,
+  } = useFieldArray({
+    control: form.control,
+    name: "boneGraftProcedures",
   });
 
   const includeCase = form.watch("includeCase");
@@ -426,6 +445,25 @@ export function InlineNewRecord({
           }))
       : [];
 
+    const boneGraftProcedures: QuickEntryInput["boneGraftProcedures"] =
+      values.includeCase
+        ? values.boneGraftProcedures
+            .filter((procedure) => procedure.procedureType?.trim())
+            .map((procedure) => ({
+              procedureDate: procedure.procedureDate || today,
+              procedureType: procedure.procedureType!.trim(),
+              implantIndex: procedure.implantIndex ? Number(procedure.implantIndex) : undefined,
+              site: procedure.site || null,
+              material: procedure.material || null,
+              membrane: procedure.membrane || null,
+              quantity: null,
+              size: null,
+              treatingDoctor: values.treatingDoctor || defaultDoctor,
+              procedureStatus: procedure.procedureStatus || "مخطط",
+              note: procedure.note || null,
+            }))
+        : [];
+
     // Build payment
     let initialPayment: QuickEntryInput["initialPayment"] = undefined;
     let installmentPlan: QuickEntryInput["installmentPlan"] = undefined;
@@ -509,6 +547,7 @@ export function InlineNewRecord({
       patient: patientInput,
       case: caseInput,
       implants,
+      boneGraftProcedures,
       baseTreatmentAmount,
       initialPayment,
       installmentPlan,
@@ -905,6 +944,30 @@ export function InlineNewRecord({
                   <Plus className="h-3.5 w-3.5" />
                   إضافة زرعة
                 </Button>
+              </div>
+              <div className="border-t border-border/60 pt-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-muted-foreground">
+                    إجراءات زراعة العظم ({boneGraftProcedureFields.length})
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">لا تؤثر في المبالغ أو الدفعات</p>
+                </div>
+                {boneGraftProcedureFields.map((field, index) => (
+                  <div key={field.id} className="rounded-xl border border-border p-3 space-y-2">
+                    <div className="flex items-center justify-between"><p className="text-sm font-medium">إجراء {index + 1}</p><Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeBoneGraftProcedure(index)}><Trash2 className="h-3.5 w-3.5" /></Button></div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="space-y-1"><Label className="text-xs">تاريخ الإجراء</Label><OperationalDatePicker value={form.watch(`boneGraftProcedures.${index}.procedureDate`) || today} onChange={(value) => form.setValue(`boneGraftProcedures.${index}.procedureDate`, value)} /></div>
+                      <div className="space-y-1"><Label className="text-xs">نوع الإجراء</Label><Input {...form.register(`boneGraftProcedures.${index}.procedureType`)} placeholder="مثال: ترقيع عظمي" /></div>
+                      <div className="space-y-1"><Label className="text-xs">الزرعة المرتبطة</Label><Select value={form.watch(`boneGraftProcedures.${index}.implantIndex`) || "__case__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.implantIndex`, value === "__case__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__case__">إجراء للحالة كاملة</SelectItem>{implantFields.map((implant, implantIndex) => <SelectItem key={implant.id} value={String(implantIndex)}>زرعة {implantIndex + 1}{form.watch(`implants.${implantIndex}.site`) ? ` — السن ${form.watch(`implants.${implantIndex}.site`)}` : ""}</SelectItem>)}</SelectContent></Select></div>
+                      <div className="space-y-1"><Label className="text-xs">الموضع</Label><Input {...form.register(`boneGraftProcedures.${index}.site`)} placeholder="مثال: المنطقة الخلفية" /></div>
+                      <div className="space-y-1"><Label className="text-xs">المادة</Label><Select value={form.watch(`boneGraftProcedures.${index}.material`) || "__none__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.material`, value === "__none__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue placeholder="غير محدد" /></SelectTrigger><SelectContent><SelectItem value="__none__">غير محدد</SelectItem>{(implantOptions?.boneGraftMaterials ?? []).map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+                      <div className="space-y-1"><Label className="text-xs">الغشاء</Label><Select value={form.watch(`boneGraftProcedures.${index}.membrane`) || "__none__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.membrane`, value === "__none__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue placeholder="غير محدد" /></SelectTrigger><SelectContent><SelectItem value="__none__">غير محدد</SelectItem>{(implantOptions?.boneGraftMembranes ?? []).map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+                      <div className="space-y-1"><Label className="text-xs">حالة الإجراء</Label><Select value={form.watch(`boneGraftProcedures.${index}.procedureStatus`) || "مخطط"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.procedureStatus`, value)}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{(implantOptions?.boneGraftStatuses ?? ["مخطط", "تم", "ملغى"]).map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+                      <div className="space-y-1 sm:col-span-2"><Label className="text-xs">ملاحظة</Label><Input {...form.register(`boneGraftProcedures.${index}.note`)} /></div>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => appendBoneGraftProcedure({ procedureDate: today, procedureType: "", implantIndex: "", site: "", material: "", membrane: "", procedureStatus: "مخطط", note: "" })} data-testid="qe-add-bone-graft-procedure"><Plus className="h-3.5 w-3.5" />إضافة إجراء زراعة عظم</Button>
               </div>
             </div>
           )}

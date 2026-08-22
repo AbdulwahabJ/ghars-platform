@@ -5,6 +5,7 @@ export * from "./schemas/auth";
 export * from "./schemas/patients";
 export * from "./schemas/implants";
 export * from "./schemas/prosthetic-events";
+export * from "./schemas/bone-graft-procedures";
 export * from "./schemas/finance";
 export * from "./schemas/followups";
 export * from "./schemas/reports";

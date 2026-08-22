@@ -178,6 +178,10 @@ export const ADMIN_LOOKUP_CATEGORIES = [
   "former_value",
   "graft_value",
   "procedure_tag",
+  "bone_graft_procedure_type",
+  "bone_graft_material",
+  "bone_graft_membrane",
+  "bone_graft_status",
 ] as const;
 export type AdminLookupCategory = (typeof ADMIN_LOOKUP_CATEGORIES)[number];
 
@@ -188,6 +192,10 @@ export const ADMIN_LOOKUP_CATEGORY_LABELS: Record<AdminLookupCategory, string> =
     former_value: "خيارات Former",
     graft_value: "خيارات Graft",
     procedure_tag: "وسوم الإجراء",
+    bone_graft_procedure_type: "أنواع إجراءات زراعة العظم",
+    bone_graft_material: "مواد زراعة العظم",
+    bone_graft_membrane: "أغشية زراعة العظم",
+    bone_graft_status: "حالات إجراءات زراعة العظم",
   };
 
 export const adminLookupOptionSchema = z.object({

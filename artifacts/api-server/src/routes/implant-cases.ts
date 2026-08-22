@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, asc, desc, eq, inArray, isNull, ne, notInArray } from "drizzle-orm";
 import {
   db,
+  boneGraftProceduresTable,
   implantCasesTable,
   implantsTable,
   implantSystemOptionsTable,
@@ -11,6 +12,7 @@ import {
   type ImplantCaseRow,
   type ImplantRow,
   type ProstheticEventRow,
+  type BoneGraftProcedureRow,
 } from "@workspace/db";
 import {
   CASE_ARCHIVED,
@@ -34,6 +36,7 @@ import {
   type ImplantCase,
   type ImplantOptionsResponse,
   type ProstheticEvent,
+  type BoneGraftProcedure,
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
 import { parseOrRespond } from "../lib/validation";
@@ -155,6 +158,30 @@ function toProstheticEventDto(row: ProstheticEventRow): ProstheticEvent {
   };
 }
 
+function toBoneGraftProcedureDto(
+  row: BoneGraftProcedureRow,
+): BoneGraftProcedure {
+  return {
+    id: row.id,
+    implantCaseId: row.implantCaseId,
+    implantId: row.implantId,
+    procedureDate: row.procedureDate,
+    procedureType: row.procedureType,
+    site: row.site,
+    material: row.material,
+    membrane: row.membrane,
+    quantity: row.quantity,
+    size: row.size,
+    treatingDoctor: row.treatingDoctor,
+    procedureStatus: row.procedureStatus,
+    note: row.note,
+    status: row.archivedAt ? "archived" : "active",
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    archivedAt: row.archivedAt?.toISOString() ?? null,
+  };
+}
+
 async function findCase(id: string): Promise<ImplantCaseRow | undefined> {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
@@ -267,6 +294,10 @@ router.get("/implant-options", async (_req, res) => {
             LOOKUP_CATEGORIES.formerValue,
             LOOKUP_CATEGORIES.graftValue,
             LOOKUP_CATEGORIES.procedureTag,
+            LOOKUP_CATEGORIES.boneGraftProcedureType,
+            LOOKUP_CATEGORIES.boneGraftMaterial,
+            LOOKUP_CATEGORIES.boneGraftMembrane,
+            LOOKUP_CATEGORIES.boneGraftStatus,
           ]),
         ),
       )
@@ -282,6 +313,10 @@ router.get("/implant-options", async (_req, res) => {
     formerValues: byCategory(LOOKUP_CATEGORIES.formerValue),
     graftValues: byCategory(LOOKUP_CATEGORIES.graftValue),
     procedureTags: byCategory(LOOKUP_CATEGORIES.procedureTag),
+    boneGraftProcedureTypes: byCategory(LOOKUP_CATEGORIES.boneGraftProcedureType),
+    boneGraftMaterials: byCategory(LOOKUP_CATEGORIES.boneGraftMaterial),
+    boneGraftMembranes: byCategory(LOOKUP_CATEGORIES.boneGraftMembrane),
+    boneGraftStatuses: byCategory(LOOKUP_CATEGORIES.boneGraftStatus),
   };
   res.json(body);
 });
@@ -330,6 +365,21 @@ router.get("/patients/:patientId/implant-cases", async (req, res) => {
           desc(prostheticEventsTable.createdAt),
         )
     : [];
+  const boneGraftProcedures = caseIds.length
+    ? await db
+        .select()
+        .from(boneGraftProceduresTable)
+        .where(
+          and(
+            inArray(boneGraftProceduresTable.implantCaseId, caseIds),
+            isNull(boneGraftProceduresTable.archivedAt),
+          ),
+        )
+        .orderBy(
+          desc(boneGraftProceduresTable.procedureDate),
+          desc(boneGraftProceduresTable.createdAt),
+        )
+    : [];
 
   const items = cases.map((c) => ({
     ...toCaseDto(c),
@@ -339,6 +389,9 @@ router.get("/patients/:patientId/implant-cases", async (req, res) => {
     prostheticEvents: prostheticEvents
       .filter((event) => event.implantCaseId === c.id)
       .map(toProstheticEventDto),
+    boneGraftProcedures: boneGraftProcedures
+      .filter((procedure) => procedure.implantCaseId === c.id)
+      .map(toBoneGraftProcedureDto),
   }));
   res.json({ items });
 });

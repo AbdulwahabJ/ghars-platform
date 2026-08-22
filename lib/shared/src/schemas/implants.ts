@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { boneGraftProcedureSchema } from "./bone-graft-procedures";
 import { prostheticEventSchema } from "./prosthetic-events";
 
 /**
@@ -84,6 +85,10 @@ export const LOOKUP_CATEGORIES = {
   formerValue: "former_value",
   graftValue: "graft_value",
   procedureTag: "procedure_tag",
+  boneGraftProcedureType: "bone_graft_procedure_type",
+  boneGraftMaterial: "bone_graft_material",
+  boneGraftMembrane: "bone_graft_membrane",
+  boneGraftStatus: "bone_graft_status",
 } as const;
 
 const isoDateSchema = z
@@ -215,6 +220,7 @@ export type ImplantUpdate = z.infer<typeof implantUpdateSchema>;
 export const implantCaseWithImplantsSchema = implantCaseSchema.extend({
   implants: z.array(implantSchema),
   prostheticEvents: z.array(prostheticEventSchema),
+  boneGraftProcedures: z.array(boneGraftProcedureSchema),
 });
 export type ImplantCaseWithImplants = z.infer<
   typeof implantCaseWithImplantsSchema
@@ -232,6 +238,10 @@ export const implantOptionsResponseSchema = z.object({
   formerValues: z.array(z.string()),
   graftValues: z.array(z.string()),
   procedureTags: z.array(z.string()),
+  boneGraftProcedureTypes: z.array(z.string()),
+  boneGraftMaterials: z.array(z.string()),
+  boneGraftMembranes: z.array(z.string()),
+  boneGraftStatuses: z.array(z.string()),
 });
 export type ImplantOptionsResponse = z.infer<
   typeof implantOptionsResponseSchema

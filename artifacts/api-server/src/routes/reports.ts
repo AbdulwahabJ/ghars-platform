@@ -483,9 +483,6 @@ async function buildStatisticsHub(
   grouping: "day" | "month",
   includeFinancials: boolean,
 ): Promise<StatisticsHub> {
-  const bucketExpr = grouping === "day"
-    ? sql`(ic.procedure_date::text)`
-    : sql`LEFT(ic.procedure_date::text, 7)`;
   const followupBucketExpr = grouping === "day"
     ? sql`(f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date::text`
     : sql`LEFT((f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date::text, 7)`;
@@ -495,6 +492,9 @@ async function buildStatisticsHub(
   const prostheticBucketExpr = grouping === "day"
     ? sql`pe.event_date::text`
     : sql`LEFT(pe.event_date::text, 7)`;
+  const boneGraftBucketExpr = grouping === "day"
+    ? sql`bgp.procedure_date::text`
+    : sql`LEFT(bgp.procedure_date::text, 7)`;
   const today = riyadhToday();
 
   const [
@@ -504,6 +504,11 @@ async function buildStatisticsHub(
     prostheticSummaryRows,
     prostheticTrendRows,
     prostheticDoctorRows,
+    boneGraftSummaryRows,
+    boneGraftTrendRows,
+    boneGraftTypeRows,
+    boneGraftMaterialRows,
+    boneGraftStatusRows,
     followupSummaryRows,
     followupTrendRows,
     followupTypesRows,
@@ -581,6 +586,13 @@ async function buildStatisticsHub(
          JOIN patients p ON p.id = ic.patient_id
          WHERE i.archived_at IS NULL AND i.implant_status = ${REDO_IMPLANT_STATUS}
            AND ${where}) AS "needsRedoImplants"
+        ,
+        (SELECT count(*)
+         FROM bone_graft_procedures bgp
+         JOIN implant_cases ic ON ic.id = bgp.implant_case_id
+         JOIN patients p ON p.id = ic.patient_id
+         WHERE bgp.archived_at IS NULL AND ${where}
+           AND bgp.procedure_date BETWEEN ${filters.from} AND ${filters.to}) AS "boneGraftProcedures"
     `),
     db.execute(sql`
       SELECT count(*) AS count
@@ -626,6 +638,53 @@ async function buildStatisticsHub(
       JOIN patients p ON p.id = ic.patient_id
       WHERE pe.archived_at IS NULL AND ${where}
         AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT
+        count(*) AS total,
+        count(DISTINCT ic.patient_id) AS patients,
+        count(DISTINCT ic.id) AS cases
+      FROM bone_graft_procedures bgp
+      JOIN implant_cases ic ON ic.id = bgp.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE bgp.archived_at IS NULL AND ${where}
+        AND bgp.procedure_date BETWEEN ${filters.from} AND ${filters.to}
+    `),
+    db.execute(sql`
+      SELECT ${boneGraftBucketExpr} AS bucket, count(*) AS count
+      FROM bone_graft_procedures bgp
+      JOIN implant_cases ic ON ic.id = bgp.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE bgp.archived_at IS NULL AND ${where}
+        AND bgp.procedure_date BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 1
+    `),
+    db.execute(sql`
+      SELECT bgp.procedure_type AS name, count(*) AS count
+      FROM bone_graft_procedures bgp
+      JOIN implant_cases ic ON ic.id = bgp.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE bgp.archived_at IS NULL AND ${where}
+        AND bgp.procedure_date BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT COALESCE(NULLIF(btrim(bgp.material), ''), 'غير محدد') AS name, count(*) AS count
+      FROM bone_graft_procedures bgp
+      JOIN implant_cases ic ON ic.id = bgp.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE bgp.archived_at IS NULL AND ${where}
+        AND bgp.procedure_date BETWEEN ${filters.from} AND ${filters.to}
+      GROUP BY 1 ORDER BY 2 DESC, 1
+    `),
+    db.execute(sql`
+      SELECT bgp.procedure_status AS name, count(*) AS count
+      FROM bone_graft_procedures bgp
+      JOIN implant_cases ic ON ic.id = bgp.implant_case_id
+      JOIN patients p ON p.id = ic.patient_id
+      WHERE bgp.archived_at IS NULL AND ${where}
+        AND bgp.procedure_date BETWEEN ${filters.from} AND ${filters.to}
       GROUP BY 1 ORDER BY 2 DESC, 1
     `),
     db.execute(sql`
@@ -829,6 +888,7 @@ async function buildStatisticsHub(
 
   const overview = firstRow(overviewRows);
   const prosthetic = firstRow(prostheticSummaryRows);
+  const boneGraft = firstRow(boneGraftSummaryRows);
   const followup = firstRow(followupSummaryRows);
   const communication = firstRow(communicationSummaryRows);
   const financialRows = financeSummaryRows.rows as Array<Record<string, unknown>>;
@@ -873,6 +933,7 @@ async function buildStatisticsHub(
       implantedPatients: num(overview.implantedPatients),
       cases: num(overview.cases),
       implants: num(overview.implants),
+      boneGraftProcedures: num(overview.boneGraftProcedures),
       systems: num(overview.systems),
       prostheticPatients: num(overview.prostheticPatients),
       prostheticEvents: num(overview.prostheticEvents),
@@ -896,6 +957,15 @@ async function buildStatisticsHub(
       readyCases: num(firstRow(readyCaseRows).count),
       overTime: toMetricBuckets(prostheticTrendRows),
       byDoctor: toCounts(prostheticDoctorRows),
+    },
+    boneGraftProcedures: {
+      total: num(boneGraft.total),
+      patients: num(boneGraft.patients),
+      cases: num(boneGraft.cases),
+      overTime: toMetricBuckets(boneGraftTrendRows),
+      types: toCounts(boneGraftTypeRows),
+      materials: toCounts(boneGraftMaterialRows),
+      statuses: toCounts(boneGraftStatusRows),
     },
     followups: {
       total: num(followup.total),
@@ -952,7 +1022,7 @@ router.get("/statistics", async (req, res) => {
       : sql`LEFT(COALESCE(ic.procedure_date::text, (ic.created_at AT TIME ZONE 'Asia/Riyadh')::date::text), 7)`;
   const outcomes = FOLLOWUP_OUTCOME_STATUSES as readonly string[];
 
-  const [caseBuckets, implantBuckets, systems, caseStatuses, implantStatuses, outcomeRows, reimplantRows, doctorRows, hub] =
+  const [caseBuckets, implantBuckets, systems, caseStatuses, implantStatuses, boneGraftProcedureTypes, boneGraftProcedureStatuses, outcomeRows, reimplantRows, doctorRows, hub] =
     await Promise.all([
       db.execute(sql`
         SELECT ${bucketExpr} AS bucket, count(*) AS count
@@ -989,6 +1059,24 @@ router.get("/statistics", async (req, res) => {
         JOIN patients p ON p.id = ic.patient_id
         WHERE i.archived_at IS NULL AND ${where}
         GROUP BY 1 ORDER BY 2 DESC
+      `),
+      db.execute(sql`
+        SELECT bgp.procedure_type AS name, count(*) AS count
+        FROM bone_graft_procedures bgp
+        JOIN implant_cases ic ON ic.id = bgp.implant_case_id
+        JOIN patients p ON p.id = ic.patient_id
+        WHERE bgp.archived_at IS NULL AND ${where}
+          AND bgp.procedure_date BETWEEN ${filters.from} AND ${filters.to}
+        GROUP BY 1 ORDER BY 2 DESC, 1
+      `),
+      db.execute(sql`
+        SELECT bgp.procedure_status AS name, count(*) AS count
+        FROM bone_graft_procedures bgp
+        JOIN implant_cases ic ON ic.id = bgp.implant_case_id
+        JOIN patients p ON p.id = ic.patient_id
+        WHERE bgp.archived_at IS NULL AND ${where}
+          AND bgp.procedure_date BETWEEN ${filters.from} AND ${filters.to}
+        GROUP BY 1 ORDER BY 2 DESC, 1
       `),
       db.execute(sql`
         SELECT f.followup_status AS name, count(*) AS count
@@ -1040,6 +1128,8 @@ router.get("/statistics", async (req, res) => {
     implantSystems: toCounts(systems),
     caseStatuses: toCounts(caseStatuses),
     implantStatuses: implantStatusCounts,
+    boneGraftProcedureTypes: toCounts(boneGraftProcedureTypes),
+    boneGraftProcedureStatuses: toCounts(boneGraftProcedureStatuses),
     followupOutcomes: toCounts(outcomeRows),
     failedImplants: findCount(FAILED_IMPLANT_STATUS),
     needsRedoImplants: findCount(REDO_IMPLANT_STATUS),
@@ -1086,6 +1176,13 @@ async function buildOperationalRows(
           AND i.archived_at IS NULL
           AND active_ic.archived_at IS NULL
           AND active_p.archived_at IS NULL) AS "implantStatuses",
+      (SELECT count(*) FROM bone_graft_procedures bgp
+        WHERE bgp.implant_case_id = ic.id
+          AND bgp.archived_at IS NULL) AS "boneGraftProcedureCount",
+      (SELECT COALESCE(array_agg(DISTINCT bgp.procedure_type), '{}')
+        FROM bone_graft_procedures bgp
+        WHERE bgp.implant_case_id = ic.id
+          AND bgp.archived_at IS NULL) AS "boneGraftProcedureTypes",
       (SELECT MIN(f.scheduled_at) FROM followups f
         WHERE f.implant_case_id = ic.id
           AND f.followup_status = ${OPEN_FOLLOWUP_STATUS}
@@ -1127,6 +1224,8 @@ async function buildOperationalRows(
       implantCount: num(r.implantCount),
       implantSystems: (r.implantSystems as string[] | null) ?? [],
       implantStatuses: (r.implantStatuses as string[] | null) ?? [],
+      boneGraftProcedureCount: num(r.boneGraftProcedureCount),
+      boneGraftProcedureTypes: (r.boneGraftProcedureTypes as string[] | null) ?? [],
       nextFollowupAt: r.nextFollowupAt
         ? new Date(r.nextFollowupAt as string).toISOString()
         : null,
@@ -1177,6 +1276,8 @@ router.get("/reports/operational/export.csv", async (req, res) => {
     "تاريخ العملية",
     "عدد الزرعات",
     "أنظمة الزرعات",
+    "إجراءات زراعة العظم",
+    "أنواع إجراءات زراعة العظم",
     "المتابعة القادمة",
     "متأخرة",
     "جاهزة للتركيب",
@@ -1193,6 +1294,8 @@ router.get("/reports/operational/export.csv", async (req, res) => {
       r.procedureDate ?? "",
       String(r.implantCount),
       r.implantSystems.join("، "),
+      String(r.boneGraftProcedureCount),
+      r.boneGraftProcedureTypes.join("، "),
       r.nextFollowupAt ? riyadhDateOf(r.nextFollowupAt) : "",
       r.isOverdue ? "نعم" : "لا",
       r.isReady ? "نعم" : "لا",

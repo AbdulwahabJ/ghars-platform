@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import {
   db,
+  boneGraftProceduresTable,
   implantSystemOptionsTable,
   implantsTable,
   lookupOptionsTable,
@@ -39,6 +40,10 @@ const REFERENCE_COLUMNS = {
   q_value: implantsTable.qValue,
   former_value: implantsTable.formerValue,
   graft_value: implantsTable.graftValue,
+  bone_graft_procedure_type: boneGraftProceduresTable.procedureType,
+  bone_graft_material: boneGraftProceduresTable.material,
+  bone_graft_membrane: boneGraftProceduresTable.membrane,
+  bone_graft_status: boneGraftProceduresTable.procedureStatus,
 } as const;
 
 async function referencedValues(

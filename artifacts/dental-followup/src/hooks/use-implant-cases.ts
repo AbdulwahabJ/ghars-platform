@@ -6,6 +6,8 @@ import type {
   ImplantInput,
   ImplantUpdate,
   ProstheticEventInput,
+  BoneGraftProcedureInput,
+  BoneGraftProcedureUpdate,
 } from "@workspace/shared";
 import { invalidateOperationalViews } from "@/lib/query-invalidation";
 
@@ -146,6 +148,45 @@ export function useArchiveProstheticEvent() {
   return useMutation({
     mutationFn: ({ id }: { id: string; patientId: string }) =>
       api.archiveProstheticEvent(id),
+    onSuccess: (_res, vars) => invalidate(vars.patientId),
+  });
+}
+
+export function useCreateBoneGraftProcedure() {
+  const invalidate = useInvalidateCases();
+  return useMutation({
+    mutationFn: ({
+      caseId,
+      data,
+    }: {
+      caseId: string;
+      patientId: string;
+      data: BoneGraftProcedureInput;
+    }) => api.createBoneGraftProcedure(caseId, data),
+    onSuccess: (_res, vars) => invalidate(vars.patientId),
+  });
+}
+
+export function useUpdateBoneGraftProcedure() {
+  const invalidate = useInvalidateCases();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      patientId: string;
+      data: BoneGraftProcedureUpdate;
+    }) => api.updateBoneGraftProcedure(id, data),
+    onSuccess: (_res, vars) => invalidate(vars.patientId),
+  });
+}
+
+export function useArchiveBoneGraftProcedure() {
+  const invalidate = useInvalidateCases();
+  return useMutation({
+    mutationFn: ({ id }: { id: string; patientId: string }) =>
+      api.archiveBoneGraftProcedure(id),
     onSuccess: (_res, vars) => invalidate(vars.patientId),
   });
 }

@@ -19,11 +19,11 @@ import {
 import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney, todayIso } from "@/lib/money";
-import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment, ProstheticEventType } from "@workspace/shared";
+import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment, ProstheticEventType, BoneGraftProcedure } from "@workspace/shared";
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS, PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
 import { useArchivePatient, usePatient, useUpdatePatient } from "@/hooks/use-patients";
-import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useArchiveProstheticEvent, useImplantOptions } from "@/hooks/use-implant-cases";
+import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useArchiveProstheticEvent, useArchiveBoneGraftProcedure, useImplantOptions } from "@/hooks/use-implant-cases";
 import { useFollowups, useCreateFollowup, useUpdateFollowup, useFollowupOutcome, useAssignableUsers } from "@/hooks/use-followups";
 import { useCreatePayment, useUpdatePayment, useVoidPayment, useCaseFinance } from "@/hooks/use-finance";
 import { useAuth } from "@/hooks/use-auth";
@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { InlineNewRecord } from "./InlineNewRecord";
 import { ProstheticEventDialog } from "@/components/implants/ProstheticEventDialog";
+import { BoneGraftProcedureDialog } from "@/components/implants/BoneGraftProcedureDialog";
 import { FinalTotalDialog } from "@/components/finance/FinalTotalDialog";
 import {
   OperationalDatePicker,
@@ -1732,6 +1733,7 @@ function PatientExpandedRow({
   const qc = useQueryClient();
   const archiveImplant = useArchiveImplant();
   const archiveProstheticEvent = useArchiveProstheticEvent();
+  const archiveBoneGraftProcedure = useArchiveBoneGraftProcedure();
   const archivePatient = useArchivePatient();
   const followupOutcome = useFollowupOutcome(group.patientId);
 
@@ -1750,6 +1752,8 @@ function PatientExpandedRow({
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
   const [now] = useState(() => Date.now());
   const [prostheticEventContext, setProstheticEventContext] = useState<ProstheticEventContext | null>(null);
+  const [boneGraftContext, setBoneGraftContext] = useState<{ caseItem: ImplantCaseWithImplants; procedure?: BoneGraftProcedure | null } | null>(null);
+  const [confirmArchiveBoneGraftProcedureId, setConfirmArchiveBoneGraftProcedureId] = useState<string | null>(null);
 
   const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
   const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmArchiveProstheticEventId(null); setConfirmCancelFollowupId(null); setProstheticEventContext(null); };
@@ -1791,6 +1795,24 @@ function PatientExpandedRow({
             variant: "destructive",
           });
         },
+      },
+    );
+  };
+
+  const doArchiveBoneGraftProcedure = (procedureId: string) => {
+    archiveBoneGraftProcedure.mutate(
+      { id: procedureId, patientId: group.patientId },
+      {
+        onSuccess: () => {
+          toast({ title: "تمت أرشفة سجل زراعة العظم" });
+          setConfirmArchiveBoneGraftProcedureId(null);
+        },
+        onError: (error) =>
+          toast({
+            title: "تعذر أرشفة سجل زراعة العظم",
+            description: error instanceof Error ? error.message : undefined,
+            variant: "destructive",
+          }),
       },
     );
   };
@@ -2380,6 +2402,50 @@ function PatientExpandedRow({
                      }}
                    />
                  )}
+                  <div className="mt-3 border-t border-border/60 pt-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Activity className="h-3 w-3" />
+                        إجراءات زراعة العظم
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="secondary" className="text-[10px]">
+                          {(c.boneGraftProcedures ?? []).filter((procedure) => procedure.status === "active").length}
+                        </Badge>
+                        <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-primary hover:text-primary" onClick={() => setBoneGraftContext({ caseItem: c, procedure: null })}>
+                          <Plus className="h-3 w-3" />
+                          إضافة إجراء
+                        </Button>
+                      </div>
+                    </div>
+                    {(c.boneGraftProcedures ?? []).filter((procedure) => procedure.status === "active").length > 0 ? (
+                      <div className="space-y-2">
+                        {(c.boneGraftProcedures ?? []).filter((procedure) => procedure.status === "active").map((procedure) => (
+                          <div key={procedure.id} className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{procedure.procedureType}</Badge>
+                              <span className="font-medium">{formatSaudiDate(procedure.procedureDate)}</span>
+                              <Badge variant="secondary">{procedure.procedureStatus}</Badge>
+                              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] mr-auto" onClick={() => setBoneGraftContext({ caseItem: c, procedure })}><Pencil className="h-3 w-3" />تعديل</Button>
+                              {canArchiveProstheticEvents && <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-destructive hover:text-destructive" onClick={() => setConfirmArchiveBoneGraftProcedureId(procedure.id)}><Archive className="h-3 w-3" />أرشفة</Button>}
+                            </div>
+                            {(procedure.material || procedure.membrane || procedure.note) && <p className="text-muted-foreground">{[procedure.material && `المادة: ${procedure.material}`, procedure.membrane && `الغشاء: ${procedure.membrane}`, procedure.note].filter(Boolean).join(" — ")}</p>}
+                            {confirmArchiveBoneGraftProcedureId === procedure.id && <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2"><p className="mb-2 text-[11px]">سيُستبعد السجل من المؤشرات النشطة مع بقائه محفوظًا.</p><div className="flex gap-2"><Button type="button" size="sm" variant="destructive" className="h-6 text-[11px]" onClick={() => doArchiveBoneGraftProcedure(procedure.id)} disabled={archiveBoneGraftProcedure.isPending}>تأكيد الأرشفة</Button><Button type="button" size="sm" variant="outline" className="h-6 text-[11px]" onClick={() => setConfirmArchiveBoneGraftProcedureId(null)}>إلغاء</Button></div></div>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">لا توجد إجراءات زراعة عظم موثقة لهذه الحالة.</p>}
+                  </div>
+                  {boneGraftContext?.caseItem.id === c.id && (
+                    <BoneGraftProcedureDialog
+                      key={boneGraftContext.procedure?.id ?? "new"}
+                      open
+                      onOpenChange={(open) => !open && setBoneGraftContext(null)}
+                      patientId={group.patientId}
+                      caseItem={c}
+                      procedure={boneGraftContext.procedure ?? null}
+                    />
+                  )}
               </div>
             ))}
           </div>
