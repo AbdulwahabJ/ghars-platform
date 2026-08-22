@@ -201,7 +201,7 @@ export default function PatientFile() {
            <section id="patient-finance" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
              <div className="mb-5">
               <h2 className="text-lg font-bold text-foreground">المالية</h2>
-              <p className="text-sm text-muted-foreground">ملخص العلاج والدفعات والرسوم والخصومات لكل حالة نشطة.</p>
+               <p className="text-sm text-muted-foreground">ملخص العلاج والدفعات والرسوم لكل حالة نشطة.</p>
             </div>
             <PaymentsTab patient={patient} />
           </section>

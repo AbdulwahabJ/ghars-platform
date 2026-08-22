@@ -36,14 +36,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCaseFinance, useDeleteCharge, useDeleteDiscount } from "@/hooks/use-finance";
+import { useCaseFinance, useDeleteCharge } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { BaseAmountDialog } from "./BaseAmountDialog";
 import { ChargeFormDialog } from "./ChargeFormDialog";
-import { DiscountFormDialog } from "./DiscountFormDialog";
 import { PaymentFormDialog } from "./PaymentFormDialog";
 import { VoidPaymentDialog } from "./VoidPaymentDialog";
 import { InstallmentPlanCard } from "./InstallmentPlanCard";
@@ -67,7 +66,6 @@ export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
     </Badge>
   );
 }
-
 interface CaseFinancePanelProps {
   patient: Patient;
   caseItem: ImplantCaseWithImplants;
@@ -472,132 +470,6 @@ function ChargesSection({
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-delete-charge"
-            >
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-
-function DiscountsSection({
-  data,
-  caseItem,
-  canManage,
-}: {
-  data: CaseFinanceResponse;
-  caseItem: ImplantCaseWithImplants;
-  canManage: boolean;
-}) {
-  const { toast } = useToast();
-  const [addOpen, setAddOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const deleteDiscount = useDeleteDiscount();
-
-  const confirmDelete = () => {
-    if (!deleteTarget) return;
-    deleteDiscount.mutate(
-      { id: deleteTarget, caseId: caseItem.id },
-      {
-        onSuccess: () => {
-          toast({ title: "تم حذف الخصم." });
-          setDeleteTarget(null);
-        },
-        onError: (err) => {
-          toast({
-            title: "تعذر حذف الخصم",
-            description: err instanceof Error ? err.message : undefined,
-            variant: "destructive",
-          });
-          setDeleteTarget(null);
-        },
-      },
-    );
-  };
-
-  return (
-    <Card data-testid="card-discounts">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-base">الخصومات</CardTitle>
-        {canManage ? (
-          <Button size="sm" variant="outline" onClick={() => setAddOpen(true)} data-testid="button-add-discount">
-            <Plus className="h-4 w-4 ms-1" />
-            إضافة خصم
-          </Button>
-        ) : null}
-      </CardHeader>
-      <CardContent>
-        {data.discounts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            لا توجد خصومات لهذه الحالة.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">التاريخ</TableHead>
-                  <TableHead className="text-right">السبب</TableHead>
-                  <TableHead className="text-right">اعتمده</TableHead>
-                  <TableHead className="text-right">المبلغ</TableHead>
-                  {canManage ? <TableHead /> : null}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.discounts.map((d) => (
-                  <TableRow key={d.id} data-testid={`row-discount-${d.id}`}>
-                    <TableCell className="whitespace-nowrap">
-                      {formatSaudiDate(d.discountDate)}
-                    </TableCell>
-                    <TableCell>{d.reason ?? "—"}</TableCell>
-                    <TableCell>{d.approvedByName ?? "—"}</TableCell>
-                    <TableCell className="tabular-nums whitespace-nowrap">
-                      {formatMoney(d.amount)}
-                    </TableCell>
-                    {canManage ? (
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive h-8 w-8"
-                          onClick={() => setDeleteTarget(d.id)}
-                          data-testid={`button-delete-discount-${d.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    ) : null}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-      <DiscountFormDialog open={addOpen} onOpenChange={setAddOpen} caseId={caseItem.id} />
-      <AlertDialog
-        open={Boolean(deleteTarget)}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
-        }}
-      >
-        <AlertDialogContent dir="rtl" className="text-right">
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف الخصم</AlertDialogTitle>
-            <AlertDialogDescription>
-              سيتم حذف هذا الخصم وإعادة احتساب الإجمالي النهائي. هل أنت متأكد؟
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-delete-discount"
             >
               حذف
             </AlertDialogAction>
