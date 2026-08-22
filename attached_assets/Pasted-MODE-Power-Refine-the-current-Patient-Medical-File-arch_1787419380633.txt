@@ -1,0 +1,867 @@
+MODE: Power
+
+Refine the current Patient Medical File architecture into ONLY TWO patient-level tabs.
+
+The current single-page operational patient workspace is good and should NOT be rebuilt.
+
+I want a clearer separation between:
+
+1. simple patient information / medical summary
+2. operational actions and editing
+
+Create exactly these two tabs:
+
+1. بيانات المريض
+2. إجراءات المريض
+
+Do NOT create any additional patient tabs.
+
+==================================================
+CORE UX CONCEPT
+==================================================
+
+The two tabs have different purposes:
+
+### بيانات المريض
+
+READ / UNDERSTAND
+
+A clean, simple, summary-style view of the patient's current medical record.
+
+It should look very similar to the OLD "الملخص" page that existed before the recent patient-page redesign.
+
+It should be easy to read, print, and understand quickly.
+
+### إجراءات المريض
+
+ACT / EDIT / MANAGE
+
+This should contain the CURRENT full operational patient page that already exists today, including:
+
+- edit patient data
+- implant cases
+- implants
+- bone graft procedures
+- prosthetic documentation
+- financial actions
+- payment plans
+- payments
+- charges
+- discounts
+- follow-ups
+- communications
+- archive/correction actions
+- all existing operational controls
+
+Do NOT rebuild those workflows.
+
+Move/recompose the existing current operational page into this tab.
+
+==================================================
+1. EXACT TAB STRUCTURE
+==================================================
+
+At patient level show ONLY:
+
+بيانات المريض
+إجراءات المريض
+
+Recommended order in RTL:
+
+بيانات المريض | إجراءات المريض
+
+Default tab when opening:
+
+بيانات المريض
+
+The route remains:
+
+`/patients/:id`
+
+Do not create separate duplicated patient routes unless needed internally.
+
+==================================================
+2. CRITICAL DATA CONSISTENCY CONTRACT
+==================================================
+
+Both tabs MUST read from the SAME canonical backend records.
+
+Do NOT create:
+
+- summary-specific patient records
+- operational-specific patient records
+- duplicated frontend objects
+- duplicated medical history
+- localStorage synchronization
+- manually copied state between tabs
+
+Correct architecture:
+
+Canonical Database
+        ↓
+بيانات المريض
+        ↓
+same records
+        ↑
+إجراءات المريض
+
+Any change made anywhere in the system must be reflected in both tabs.
+
+This includes changes coming from:
+
+- Operational Table on Dashboard
+- Patient "إجراءات المريض"
+- Finance workflows
+- Follow-up workflows
+- prosthetic workflows
+- bone graft workflows
+- archive/correction actions
+
+==================================================
+3. TAB 1 — بيانات المريض
+==================================================
+
+Design this tab using the OLD "الملخص" page as the visual and information reference.
+
+IMPORTANT:
+
+This tab should feel like a clean medical summary/document.
+
+NOT a dashboard.
+NOT a large form.
+NOT a page full of cards.
+
+Use:
+
+- simple section headings
+- label/value rows
+- compact clinical tables
+- subtle separators
+- minimal borders
+- restrained badges
+- clean whitespace
+- RTL layout
+
+==================================================
+4. PATIENT BASIC INFORMATION
+==================================================
+
+First section:
+
+بيانات المريض
+
+Display compactly:
+
+- الاسم الكامل
+- رقم الملف
+- رقم الجوال
+- العمر
+- تاريخ الإضافة
+
+and any other existing important basic patient information.
+
+Use simple label/value presentation.
+
+Example:
+
+الاسم الكامل: عبدالوهاب
+رقم الملف: 10101
+رقم الجوال: 05XXXXXXXX
+العمر: 28 سنة
+تاريخ الإضافة: 22 أغسطس 2026
+
+Do not render each value as a separate card.
+
+==================================================
+5. IMPLANT CASE SUMMARY
+==================================================
+
+Next section:
+
+حالات الزراعة
+
+For each active case show a clean summary similar to the OLD summary page.
+
+Example:
+
+حالة زراعة — تمت الزراعة
+
+تاريخ العملية: 22 أغسطس 2026
+الطبيب المعالج: د. همام
+Pros: 3M
+تاريخ التركيب المتوقع: 24 نوفمبر 2026
+
+Then underneath show implants as a compact TABLE.
+
+Do NOT show implant cards.
+
+==================================================
+6. IMPLANT TABLE
+==================================================
+
+Preferred columns:
+
+الموقع
+النظام
+القياس
+Q
+Former
+Graft
+الحالة
+
+Example:
+
+36 | Neodent | 3.5 × 10 | 50 | MU30 | N | مرحلة الالتئام
+35 | Nobel   | 4.3 × 11 | 70 | MU17 | Y | تم التركيب
+
+No edit icons in this summary view.
+
+No status arrows.
+
+No delete actions.
+
+No large implant cards.
+
+This tab is primarily for reading.
+
+==================================================
+7. BONE GRAFT SUMMARY
+==================================================
+
+If bone graft procedures exist for the case, show:
+
+زراعة العظم
+
+as a compact summary table/list.
+
+Example columns:
+
+التاريخ
+الموقع
+النوع
+المادة
+الغشاء
+الحالة
+
+A case with:
+
+0 implants
++
+1 bone graft
+
+must still display correctly.
+
+Use the canonical bone graft records.
+
+==================================================
+8. PROSTHETIC SUMMARY
+==================================================
+
+If prosthetic events exist, show:
+
+سجل التركيبات
+
+Compact example:
+
+19 أغسطس 2026 | تركيب مؤقت | السن 36
+22 نوفمبر 2026 | تركيب دائم | السن 36
+
+No edit/archive buttons here.
+
+Those belong in "إجراءات المريض".
+
+==================================================
+9. FINANCIAL SUMMARY
+==================================================
+
+For users with financial permission, show:
+
+الملخص المالي
+
+Use the existing authoritative calculations.
+
+Display compactly:
+
+الإجمالي النهائي
+المدفوع
+المتبقي
+حالة السداد
+
+If an installment plan exists, show a compact summary such as:
+
+خطة السداد:
+4 أقساط
+2 مدفوعة
+1 مستحق
+1 مجدول
+
+Do NOT show payment-entry forms here.
+
+Do NOT allow recording payments from this summary tab.
+
+Users without financial permission must not receive financial values from the backend.
+
+==================================================
+10. FOLLOW-UP SUMMARY
+==================================================
+
+Show:
+
+ملخص المتابعات
+
+Similar to the old Summary page.
+
+Useful values:
+
+- عدد المتابعات المجدولة
+- المتابعة القادمة
+- المتابعات المتأخرة
+- المتابعات المنجزة
+- آخر نتيجة متابعة
+
+Keep it compact.
+
+Do not show full edit controls.
+
+==================================================
+11. COMMUNICATION SUMMARY
+==================================================
+
+Show:
+
+ملخص التواصل
+
+Useful values:
+
+- عدد مرات التواصل
+- آخر تواصل
+- آخر نتيجة تواصل
+
+Use canonical `communications`.
+
+Do not invent WhatsApp delivery/read information.
+
+==================================================
+12. SUMMARY READ-ONLY PRINCIPLE
+==================================================
+
+"بيانات المريض" should primarily be READ-ONLY.
+
+Do NOT duplicate all editing controls from "إجراءات المريض".
+
+At most provide a small clear action near the top:
+
+إدارة / تعديل الملف
+
+that simply switches to:
+
+إجراءات المريض
+
+Do not open separate edit implementations from the summary tab.
+
+This prevents duplicate workflows.
+
+==================================================
+13. PRINT
+==================================================
+
+Keep:
+
+طباعة الملف
+
+or:
+
+طباعة الملخص
+
+inside the "بيانات المريض" tab.
+
+The printed result should be based on this clean summary representation.
+
+Hide:
+
+- navigation tabs
+- buttons
+- archived toggle
+- operational controls
+
+Reuse existing RTL print logic.
+
+==================================================
+14. TAB 2 — إجراءات المريض
+==================================================
+
+This tab should contain the CURRENT FULL PATIENT OPERATIONAL PAGE.
+
+Do NOT redesign all its business workflows again.
+
+Reuse the current implementation as much as possible.
+
+It currently contains functionality such as:
+
+### بيانات المريض
+- تعديل
+- archive patient where permitted
+
+### حالات الزراعة والزرعات
+- create case
+- edit case
+- archive case
+- add implant
+- edit implant
+- quick status
+- archive implant
+- prosthetic documentation
+- prosthetic history
+
+### زراعة العظم
+- add
+- edit
+- archive/correct
+
+### المالية
+- treatment amount
+- payment plan
+- payments
+- charges
+- discounts
+- void/correction
+
+### المتابعة
+- add
+- edit
+- postpone
+- complete/result
+- cancel
+
+### التواصل
+- manual communication / WhatsApp workflows
+- communication records
+
+Keep all existing capabilities.
+
+==================================================
+15. CURRENT OPERATIONAL PAGE = PROCEDURES TAB
+==================================================
+
+Do NOT duplicate the current page.
+
+Recompose/move the current operational sections under:
+
+إجراءات المريض
+
+Prefer wrapping/reusing existing components.
+
+Do not copy/paste a second version.
+
+==================================================
+16. DATA CHANGES MUST REFLECT IN SUMMARY IMMEDIATELY
+==================================================
+
+This is mandatory.
+
+Example:
+
+إجراءات المريض:
+
+change implant 36:
+مرحلة الالتئام → جاهزة للتركيب
+
+Then switch to:
+
+بيانات المريض
+
+The summary must immediately show:
+
+جاهزة للتركيب
+
+No page reload required.
+
+==================================================
+17. OPERATIONAL TABLE → PATIENT TABS
+==================================================
+
+Changes made from Dashboard Operational Table must also appear correctly.
+
+Example:
+
+Operational Table:
+add implant.
+
+Patient:
+بيانات المريض → implant summary updates
+إجراءات المريض → implant appears
+
+Operational Table:
+archive implant.
+
+Both patient tabs update.
+
+Operational Table:
+record payment.
+
+Financial summary and operational financial section update.
+
+Operational Table:
+create follow-up.
+
+Both patient views update.
+
+==================================================
+18. PATIENT PROCEDURES → WHOLE SYSTEM
+==================================================
+
+Changes from "إجراءات المريض" must propagate to:
+
+- بيانات المريض
+- Operational Table
+- Dashboard KPIs
+- Statistics
+- Finance calculations
+- Notifications
+- Reports
+
+where applicable.
+
+Correct pattern:
+
+mutation
+→ canonical backend
+→ React Query invalidation
+→ affected views refetch
+
+Do NOT synchronize frontend components manually.
+
+==================================================
+19. SHARED MUTATION LOGIC
+==================================================
+
+Do NOT create separate mutation logic for Patient Procedures.
+
+Reuse existing canonical APIs/hooks used by Operational Table.
+
+Where appropriate, extract minimal reusable hooks/services.
+
+Examples conceptually:
+
+updatePatient
+updateCase
+createImplant
+updateImplant
+archiveImplant
+createBoneGraft
+createProstheticEvent
+recordPayment
+createFollowup
+
+Use actual project architecture/names.
+
+==================================================
+20. QUERY INVALIDATION
+==================================================
+
+Review query invalidation so changes reflect throughout the application.
+
+Example:
+
+implant mutation
+→ patient case/implant query
+→ summary patient query
+→ Operational Report
+→ Statistics
+→ Dashboard where relevant
+
+payment mutation
+→ patient finance
+→ Operational Table
+→ financial statistics
+→ dashboard collection figures
+
+follow-up mutation
+→ patient follow-ups
+→ Operational Table
+→ Home appointments
+→ notifications
+→ Statistics
+
+Do not invalidate the entire app blindly.
+
+==================================================
+21. ARCHIVE / DELETE
+==================================================
+
+Preserve current archive/void philosophy.
+
+Do not introduce hard deletes.
+
+If an implant is archived in:
+
+إجراءات المريض
+
+then:
+
+بيانات المريض
+must stop showing it among active implants.
+
+Operational Table:
+implant count/status summary updates.
+
+Statistics:
+active counts update according to canonical rules.
+
+The same applies to:
+
+- cases
+- prosthetic events
+- bone graft procedures
+- payments/voids
+- follow-ups
+
+==================================================
+22. ARCHIVED TOGGLE
+==================================================
+
+Keep:
+
+إظهار العناصر المؤرشفة
+
+Prefer placing it within:
+
+إجراءات المريض
+
+because that tab is the management/operations workspace.
+
+The simple "بيانات المريض" summary should show active data by default.
+
+If archived summary display is genuinely useful, it may respect the same page-level toggle without creating separate state.
+
+==================================================
+23. TOP PATIENT HEADER
+==================================================
+
+Keep the current patient header ABOVE the two tabs.
+
+It should remain visible regardless of selected tab.
+
+Show:
+
+- patient name
+- file number
+- phone
+- age
+- date added
+
+Keep:
+
+العودة للقائمة
+
+Keep patient identity visually compact.
+
+==================================================
+24. FINAL PAGE STRUCTURE
+==================================================
+
+Desired layout:
+
+PATIENT HEADER
+
+[ بيانات المريض ] [ إجراءات المريض ]
+
+---------------------------------
+
+IF بيانات المريض:
+
+بيانات المريض
+
+حالات الزراعة
+  implant table
+  bone graft summary
+  prosthetic history
+
+الملخص المالي
+
+ملخص المتابعات
+
+ملخص التواصل
+
+[ طباعة الملف ]
+
+---------------------------------
+
+IF إجراءات المريض:
+
+CURRENT FULL OPERATIONAL PATIENT PAGE
+
+with all existing create/edit/archive/status/payment/follow-up/etc. actions.
+
+==================================================
+25. MOBILE
+==================================================
+
+Both tabs must work on mobile.
+
+The two tabs can remain simple segmented navigation.
+
+Summary tables should convert to compact structured rows where needed.
+
+No horizontal overflow.
+
+Procedures tab should preserve current responsive operational behavior.
+
+==================================================
+26. DO NOT CHANGE BUSINESS LOGIC
+==================================================
+
+Do NOT change:
+
+- implant status enum
+- quick implant status workflow
+- Task #18 prosthetic synchronization
+- bone graft business rules
+- financial formulas
+- installment logic
+- follow-up rules
+- communication rules
+- archive behavior
+- Statistics calculations
+- Home Work Summary
+- permissions
+- audit logic
+
+This task is PATIENT INFORMATION ARCHITECTURE / UX.
+
+==================================================
+27. DATABASE
+==================================================
+
+Expected database schema changes:
+
+NONE.
+
+Do NOT create new tables for the two-tab layout.
+
+Both tabs read existing canonical records.
+
+==================================================
+28. IMPORTANT — DO NOT RESTORE THE OLD FIVE TABS
+==================================================
+
+Do NOT bring back:
+
+البيانات
+الزرعات
+الدفعات
+المتابعة
+الملخص
+
+There must be exactly TWO patient-level tabs:
+
+بيانات المريض
+إجراءات المريض
+
+==================================================
+29. ACCEPTANCE TEST — SAME DATA
+==================================================
+
+Use isolated test data and verify:
+
+A. Edit patient from Procedures
+→ Patient Information summary updates.
+
+B. Edit patient from Operational Table
+→ both tabs update.
+
+C. Add implant from Procedures
+→ summary table updates
+→ Operational Table updates
+→ Statistics updates.
+
+D. Change implant status
+→ summary status updates
+→ Operational Table status updates.
+
+E. Archive implant
+→ disappears from active summary and active table counts.
+
+F. Add bone graft with zero implants
+→ summary shows graft
+→ Procedures shows graft
+→ Statistics reflects it.
+
+G. Document prosthetic event
+→ summary shows event
+→ implant status updates
+→ Dashboard/Statistics update.
+
+H. Record payment
+→ financial summary updates.
+
+I. Create/edit follow-up
+→ follow-up summary
+→ Dashboard
+→ Operational Table
+→ Notifications
+update.
+
+==================================================
+30. VISUAL ACCEPTANCE
+==================================================
+
+بيانات المريض must visually resemble the OLD Summary page:
+
+- clean
+- compact
+- simple
+- easy to read
+- printable
+- minimal controls
+
+إجراءات المريض must preserve the current full operational page.
+
+Do not make both tabs visually identical.
+
+Their purposes are intentionally different:
+
+بيانات المريض = VIEW
+
+إجراءات المريض = WORK
+
+==================================================
+31. VERIFICATION
+==================================================
+
+Run:
+
+- affected TypeScript
+- affected lint
+- focused authenticated browser verification
+- focused cross-surface consistency tests
+
+Verify:
+
+1. exactly two tabs
+2. summary is simple/read-only
+3. Procedures contains current operational page
+4. no workflow was lost
+5. no duplicate data source
+6. mutations reflect between tabs
+7. Operational Table mutations reflect in both
+8. Patient mutations reflect elsewhere
+9. mobile works
+10. print works
+11. no database changes
+12. no console/API errors
+
+Do not publish.
+
+At completion report:
+
+1. components reused from old Summary
+2. components reused from current Patient page
+3. query/invalidation changes
+4. confirmation of same canonical source
+5. cross-surface verification results
+6. database schema confirmation
+7. known limitations
+8. checkpoint hash
+
+Create a stable checkpoint and stop.
