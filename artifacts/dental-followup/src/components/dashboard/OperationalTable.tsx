@@ -32,6 +32,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { InlineNewRecord } from "./InlineNewRecord";
 import { ProstheticEventDialog } from "@/components/implants/ProstheticEventDialog";
 import { BoneGraftProcedureDialog } from "@/components/implants/BoneGraftProcedureDialog";
+import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProstheticDateField";
 import { FinalTotalDialog } from "@/components/finance/FinalTotalDialog";
 import {
   OperationalDatePicker,
@@ -492,10 +493,14 @@ function InlineCaseEdit({
           <Label className="text-xs">مدة التركيب (Pros)</Label>
           <Input className="h-8 text-sm" value={prosValue} onChange={(e) => setProsValue(e.target.value)} placeholder="3M" />
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">تاريخ التركيب المتوقع</Label>
-          <OperationalDatePicker value={expectedDate} onChange={setExpectedDate} />
-        </div>
+        <ExpectedProstheticDateField
+          procedureDate={procedureDate}
+          expectedDate={expectedDate}
+          onExpectedDateChange={setExpectedDate}
+          compact
+          className="col-span-2"
+          idPrefix={`operational-${c.id}`}
+        />
         <div className="col-span-2 space-y-1">
           <Label className="text-xs">ملاحظة</Label>
           <Textarea className="text-sm resize-none" rows={2} value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} />

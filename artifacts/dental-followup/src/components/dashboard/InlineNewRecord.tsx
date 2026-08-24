@@ -41,6 +41,7 @@ import {
   OperationalDatePicker,
   OperationalDateTimeFields,
 } from "./OperationalDatePicker";
+import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProstheticDateField";
 
 /* ------------------------------------------------------------------ */
 /* Internal form schema (more permissive than API schema — API validates)
@@ -763,13 +764,18 @@ export function InlineNewRecord({
                   <Label>مدة التركيب (Pros)</Label>
                   <Input {...form.register("prosValue")} placeholder="مثال: 3M" />
                 </div>
-                <div className="space-y-1">
-                  <Label>تاريخ التركيب المتوقع</Label>
-                  <OperationalDatePicker
-                    value={form.watch("expectedProstheticDate") ?? ""}
-                    onChange={(value) => form.setValue("expectedProstheticDate", value, { shouldDirty: true, shouldValidate: true })}
-                  />
-                </div>
+                <ExpectedProstheticDateField
+                  procedureDate={form.watch("procedureDate") ?? ""}
+                  expectedDate={form.watch("expectedProstheticDate") ?? ""}
+                  onExpectedDateChange={(value) =>
+                    form.setValue("expectedProstheticDate", value, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  className="sm:col-span-2"
+                  idPrefix="quick-entry-expected-prosthetic"
+                />
                 <div className="space-y-1 sm:col-span-2">
                   <Label>ملاحظة</Label>
                   <Textarea {...form.register("generalNote")} rows={2} className="resize-none" placeholder="ملاحظات عامة..." />

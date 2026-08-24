@@ -31,7 +31,8 @@ import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePic
 import { useCreateImplantCase, useUpdateImplantCase } from "@/hooks/use-implant-cases";
 import { useAppSettings } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
-import { addMonthsToIsoDate, formatSaudiDate } from "@/lib/datetime";
+import { formatSaudiDate } from "@/lib/datetime";
+import { ExpectedProstheticDateField } from "./ExpectedProstheticDateField";
 
 const NONE = "__none__";
 const CUSTOM = "__custom__";
@@ -103,9 +104,6 @@ function CaseForm({
   const [expectedDate, setExpectedDate] = useState(
     () => caseData?.expectedProstheticDate ?? "",
   );
-  const [expectedTouched, setExpectedTouched] = useState(() =>
-    Boolean(caseData?.expectedProstheticDate),
-  );
   const [generalNote, setGeneralNote] = useState(
     () => caseData?.generalNote ?? "",
   );
@@ -118,24 +116,6 @@ function CaseForm({
   const [sourceCaseId, setSourceCaseId] = useState<string>(
     () => caseData?.sourceCaseId ?? NONE,
   );
-
-  /** Suggested (but editable) expected date: procedure date + 2/3 months. */
-  const suggestExpected = (date: string, pros: string) => {
-    if (expectedTouched) return;
-    if (date && (pros === "2M" || pros === "3M")) {
-      setExpectedDate(addMonthsToIsoDate(date, pros === "2M" ? 2 : 3));
-    }
-  };
-
-  const handleProcedureDateChange = (value: string) => {
-    setProcedureDate(value);
-    suggestExpected(value, prosChoice);
-  };
-
-  const handleProsChange = (value: string) => {
-    setProsChoice(value);
-    suggestExpected(procedureDate, value);
-  };
 
   const isPending = createCase.isPending || updateCase.isPending;
 
@@ -220,7 +200,7 @@ function CaseForm({
           <OperationalDatePicker
             id="case-procedure-date"
             value={procedureDate}
-            onChange={handleProcedureDateChange}
+            onChange={setProcedureDate}
           />
         </div>
         <div className="space-y-2">
@@ -258,7 +238,7 @@ function CaseForm({
         <div className="space-y-2">
           <FieldLabel htmlFor="case-pros" label="مدة التركيب — Pros" helpKey="Pros" />
           <div className="flex gap-2">
-            <Select value={prosChoice} onValueChange={handleProsChange}>
+            <Select value={prosChoice} onValueChange={setProsChoice}>
               <SelectTrigger id="case-pros" className="h-[46px] rounded-[10px]">
                 <SelectValue placeholder="اختر" />
               </SelectTrigger>
@@ -282,17 +262,13 @@ function CaseForm({
             )}
           </div>
         </div>
-        <div className="space-y-2">
-          <FieldLabel htmlFor="case-expected" label="التاريخ المتوقع للتركيب" />
-          <OperationalDatePicker
-            id="case-expected"
-            value={expectedDate}
-            onChange={(v) => { setExpectedTouched(true); setExpectedDate(v); }}
-          />
-          <p className="text-xs text-muted-foreground">
-            يُقترح تلقائيًا حسب مدة التركيب ويمكن تعديله.
-          </p>
-        </div>
+        <ExpectedProstheticDateField
+          procedureDate={procedureDate}
+          expectedDate={expectedDate}
+          onExpectedDateChange={setExpectedDate}
+          className="md:col-span-2"
+          idPrefix="case-expected-prosthetic"
+        />
         <div className="space-y-2 md:col-span-2">
           <FieldLabel htmlFor="case-note" label="ملاحظة عامة" />
           <Textarea

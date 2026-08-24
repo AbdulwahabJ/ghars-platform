@@ -1,0 +1,121 @@
+MODE: Free
+
+Refine ONLY the Bone Graft procedure form.
+
+Current issue:
+These fields are currently dropdown/select inputs:
+
+- الغشاء
+- المادة
+- حالة الإجراء
+
+I want all three to become MANUAL TEXT INPUTS instead of dropdown lists.
+
+Requirements:
+
+1. Change:
+
+الغشاء
+from select/dropdown
+to normal text input.
+
+Example values the user may type:
+- غشاء كولاجين
+- غشاء قابل للامتصاص
+- بدون غشاء
+- أي وصف آخر
+
+2. Change:
+
+المادة
+from select/dropdown
+to normal text input.
+
+Example values:
+- Xenograft
+- Allograft
+- عظم ذاتي
+- Bio-Oss
+- خليط
+- any custom clinical description
+
+3. Change:
+
+حالة الإجراء
+from select/dropdown
+to normal text input.
+
+Example values:
+- تم
+- تحت المتابعة
+- التئام جيد
+- يحتاج مراجعة
+- أي وصف يدوي مناسب
+
+IMPORTANT:
+Do NOT restrict these fields to predefined enum options in the frontend.
+
+The user must be able to type any valid clinical text.
+
+4. Preserve the existing values already stored in the database.
+
+Do not migrate or overwrite historical records.
+
+Existing saved values must continue displaying correctly.
+
+5. Inspect the backend/schema first.
+
+If these fields are already stored as free-text/string fields:
+implement this as frontend-only.
+
+If any of them are currently constrained by a database enum or strict backend validation:
+STOP and report exactly which field is constrained and the minimum safe backend change required.
+
+Do not silently change database schema.
+
+6. Keep the fields optional unless they are already required by existing business rules.
+
+Do not introduce new required-field validation.
+
+7. Use clear placeholders, for example:
+
+الغشاء:
+"مثال: غشاء كولاجين"
+
+المادة:
+"مثال: Bio-Oss / عظم ذاتي"
+
+حالة الإجراء:
+"مثال: تم / تحت المتابعة"
+
+8. Apply the same input behavior everywhere Bone Graft procedures are created or edited, including where currently available:
+
+- Operational Table quick-entry
+- Patient Procedures page
+- edit existing Bone Graft procedure
+
+Do not leave one screen as dropdown and another as text input.
+
+9. Preserve synchronization:
+Any create/edit from one surface must appear correctly everywhere else through the same canonical backend record.
+
+10. Do NOT change:
+- bone graft data model unless technically necessary
+- implant workflow
+- finance
+- statistics
+- permissions
+- audit behavior
+- unrelated fields
+
+11. Verification:
+- user can type arbitrary text in الغشاء
+- user can type arbitrary text in المادة
+- user can type arbitrary text in حالة الإجراء
+- existing saved records still display
+- edit/save works
+- Operational Table and Patient Procedures stay synchronized
+- TypeScript/lint clean
+
+Do not publish.
+Provide a short completion report and stop.

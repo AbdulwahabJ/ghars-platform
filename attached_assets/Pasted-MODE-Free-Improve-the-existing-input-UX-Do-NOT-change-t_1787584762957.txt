@@ -1,0 +1,152 @@
+MODE: Free
+
+Improve the existing "تاريخ التركيب المتوقع" input UX.
+
+Do NOT change the database schema, API contract, or existing canonical field.
+
+The existing expected prosthetic date remains the single source of truth.
+
+GOAL:
+Allow the user to quickly calculate the expected prosthetic date from the procedure date using common clinical duration presets.
+
+Add a small duration selector beside the existing:
+
+"تاريخ التركيب المتوقع"
+
+Use these Arabic options:
+
+- بعد شهرين
+- بعد 3 أشهر
+- بعد 4 أشهر
+- بعد 6 أشهر
+- مخصص
+
+Preferred layout on desktop:
+
+المدة
+[ 3 أشهر ▾ ]
+
+تاريخ التركيب المتوقع
+[ 24 نوفمبر 2026 ]
+
+Keep both controls visually aligned and consistent with the current form.
+
+BEHAVIOR:
+
+1. The calculation must use the existing "تاريخ العملية" as the base date.
+
+Example:
+
+تاريخ العملية:
+24 أغسطس 2026
+
+Select:
+بعد 3 أشهر
+
+Automatically set:
+
+تاريخ التركيب المتوقع:
+24 نوفمبر 2026
+
+2. Add CALENDAR MONTHS, not fixed day counts.
+
+Do NOT calculate:
+2 months = 60 days
+3 months = 90 days
+
+Use proper calendar-month arithmetic.
+
+3. If no procedure date exists and the user selects a duration preset:
+
+do not guess.
+
+Show a clear Arabic validation message:
+
+"حدد تاريخ العملية أولًا لحساب تاريخ التركيب المتوقع."
+
+4. The expected-date field must remain manually editable.
+
+If the user manually changes the generated date to a different date, the duration selector should display:
+
+"مخصص"
+
+5. If the user changes the procedure date after selecting a preset such as 3 months:
+
+automatically recalculate the expected prosthetic date using the same selected duration.
+
+Example:
+
+Procedure date changes:
+24 August → 30 August
+
+Preset remains:
+3 months
+
+Expected date becomes:
+30 November
+
+6. If "مخصص" is selected:
+
+do not automatically calculate anything.
+
+Allow the user to choose the expected date manually.
+
+7. Do NOT store the selected preset as a new business field unless the project already has such a field.
+
+The canonical stored value remains:
+
+expected prosthetic date
+
+The duration selector is primarily a UI convenience.
+
+8. Apply this behavior consistently anywhere the SAME case field is edited, where practical, including:
+
+- Operational Table quick entry
+- Patient Procedures / case editing
+
+Prefer creating/reusing one small shared component/helper rather than implementing different calculations in different screens.
+
+This is important so both interfaces behave identically.
+
+9. Any saved expected date must continue using the same existing canonical API/database field.
+
+Changes made from:
+- Operational Table
+- Patient Procedures
+
+must remain synchronized through the existing backend/query invalidation architecture.
+
+10. Do NOT change:
+- implant workflow
+- prosthetic event workflow
+- case status logic
+- statistics
+- database
+- backend business rules
+- other form fields
+
+11. Responsive behavior:
+
+Desktop:
+duration selector and expected-date input may sit next to each other.
+
+Mobile:
+stack them cleanly.
+
+12. Verify:
+
+- 2 months calculates correctly
+- 3 months calculates correctly
+- 4 months calculates correctly
+- 6 months calculates correctly
+- procedure-date change recalculates the date
+- manual date change switches selector to "مخصص"
+- missing procedure date gives a clear Arabic message
+- saved value is still the existing expected prosthetic date
+- Operational Table and Patient Procedures remain consistent
+
+Run affected TypeScript and lint only.
+
+Do not publish.
+
+Provide a short completion report and stop.
