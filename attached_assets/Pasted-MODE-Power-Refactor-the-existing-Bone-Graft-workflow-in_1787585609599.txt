@@ -1,0 +1,760 @@
+MODE: Power
+
+Refactor the existing Bone Graft workflow into one unified clinical section for:
+
+الإجراءات الجراحية المساندة
+
+inside:
+
+Operational Table → إضافة سجل → حالة الزراعة والزرعات
+
+The goal is to support multiple adjunct surgical procedures in one consistent workflow:
+
+1. زراعة عظم
+2. رفع الجيب الفكي
+3. إبعاد / نقل العصب السنخي السفلي
+
+IMPORTANT:
+Do NOT create three large separate sections.
+
+Use ONE unified section:
+
+الإجراءات الجراحية المساندة (N)
+
+with one action:
+
++ إضافة إجراء جراحي
+
+==================================================
+1. FIRST — INSPECT CURRENT BONE GRAFT IMPLEMENTATION
+==================================================
+
+Before changing anything, inspect the implementation that already exists for:
+
+- bone graft procedures
+- schema/table
+- API endpoints
+- quick-entry integration
+- Patient Procedures page
+- Patient Information summary
+- Statistics
+- audit
+- archive behavior
+- query invalidation
+
+Do NOT throw away the working Bone Graft feature.
+
+Prefer extending/refactoring the existing canonical model if that can be done safely.
+
+The goal is to generalize the existing workflow, not build a disconnected second system.
+
+==================================================
+2. DATA MODEL DECISION
+==================================================
+
+We need ONE canonical adjunct-surgical-procedure concept.
+
+Supported procedure types:
+
+- زراعة عظم
+- رفع الجيب الفكي
+- إبعاد / نقل العصب السنخي السفلي
+
+If the current `bone_graft_procedures` model can be safely generalized without corrupting historical data:
+
+perform the minimum safe migration/refactor.
+
+Otherwise:
+preserve the existing bone-graft records and add the minimum normalized architecture required.
+
+Do NOT duplicate the same bone graft in two canonical tables.
+
+Historical records must remain intact.
+
+Report the chosen migration strategy before considering the task complete.
+
+==================================================
+3. COMMON PROCEDURE FIELDS
+==================================================
+
+Every adjunct surgical procedure should support common fields such as:
+
+- id
+- implant_case_id
+- implant_id nullable
+- procedure_type
+- procedure_date
+- treating_doctor / clinician according to current project convention
+- site / region nullable
+- procedure_status
+- notes nullable
+- created_at
+- updated_at
+- archived_at according to current archive convention
+
+Important:
+
+A procedure must NOT require an implant.
+
+Valid examples:
+
+Patient
+→ Case
+→ 0 implants
+→ 1 bone graft
+
+Patient
+→ Case
+→ 0 implants
+→ 1 sinus lift
+
+Patient
+→ Case
+→ 0 implants
+→ 1 nerve repositioning procedure
+
+==================================================
+4. PROCEDURE TYPE SELECTOR
+==================================================
+
+When the user clicks:
+
++ إضافة إجراء جراحي
+
+show one compact inline form.
+
+First field:
+
+نوع الإجراء *
+
+Options:
+
+- زراعة عظم
+- رفع الجيب الفكي
+- إبعاد / نقل العصب السنخي السفلي
+
+After selecting the type, render only the fields relevant to that procedure.
+
+Do NOT show every possible field for all procedures at the same time.
+
+==================================================
+5. BONE GRAFT FIELDS
+==================================================
+
+For:
+
+زراعة عظم
+
+support:
+
+- تاريخ الإجراء *
+- الموقع / السن
+- الطبيب
+- نوع الإجراء / وصف زراعة العظم
+- المادة
+- الغشاء
+- حالة الإجراء
+- الكمية / المقاس optional if currently supported
+- ملاحظة
+
+IMPORTANT:
+As previously requested:
+
+These fields must be FREE TEXT inputs:
+
+- المادة
+- الغشاء
+- حالة الإجراء
+
+Do NOT convert them back into dropdowns.
+
+If the current bone graft implementation already uses free text, preserve it.
+
+==================================================
+6. SINUS LIFT FIELDS
+==================================================
+
+For:
+
+رفع الجيب الفكي
+
+support a compact clinically useful set of fields:
+
+- تاريخ الإجراء *
+- الجهة *
+  - يمين
+  - يسار
+
+- المنطقة / الأسنان optional
+- الطبيب
+- نوع الرفع
+- المادة optional
+- الغشاء optional
+- حالة الإجراء
+- ملاحظة
+
+For "نوع الرفع":
+
+Prefer a simple selector if these canonical values are sufficient:
+
+- مفتوح
+- مغلق
+
+Also allow "أخرى" / free-text detail if needed.
+
+Do NOT overcomplicate the first version.
+
+For:
+
+المادة
+الغشاء
+حالة الإجراء
+
+use free-text input unless the existing architecture already has a strong reason otherwise.
+
+==================================================
+7. NERVE REPOSITIONING FIELDS
+==================================================
+
+Use the Arabic UI name:
+
+إبعاد / نقل العصب السنخي السفلي
+
+For this procedure support:
+
+- تاريخ الإجراء *
+- الجهة *
+  - يمين
+  - يسار
+
+- المنطقة / الأسنان
+- الطبيب
+- نوع الإجراء / وصف الإجراء
+- حالة الإجراء
+- ملاحظة
+
+Do NOT add excessive neurological/medical fields that the current workflow does not require.
+
+Keep V1 simple and operational.
+
+The purpose is documentation and tracking, not a complete surgical operative note.
+
+==================================================
+8. OPTIONAL IMPLANT LINK
+==================================================
+
+Every procedure may optionally link to:
+
+`implant_id`
+
+when appropriate.
+
+Examples:
+
+Bone graft related to implant 36
+→ implant_id = implant 36
+
+Case-level sinus lift
+→ implant_id = null
+
+Nerve repositioning before implant placement
+→ implant_id = null
+
+Never force the user to select an implant.
+
+==================================================
+9. QUICK ENTRY UI
+==================================================
+
+Inside:
+
+2. حالة الزراعة والزرعات
+
+the layout should become:
+
+بيانات الحالة
+
+--------------------------------
+
+الزرعات (N)
+[ existing implant rows ]
+[ + إضافة زرعة ]
+
+--------------------------------
+
+الإجراءات الجراحية المساندة (N)
+
+[ existing procedure rows ]
+
+[ + إضافة إجراء جراحي ]
+
+Do NOT create:
+
+زراعة العظم
+رفع الجيب الفكي
+إبعاد العصب
+
+as three separate major accordions.
+
+==================================================
+10. PROCEDURE DISPLAY
+==================================================
+
+Existing procedures should display as compact rows.
+
+Example:
+
+زراعة عظم
+24 أغسطس 2026 · الموقع 27 · عظم ذاتي · غشاء كولاجين · تم
+
+رفع الجيب الفكي
+24 أغسطس 2026 · يمين · مفتوح · Bio-Oss · تم
+
+إبعاد / نقل العصب السنخي السفلي
+24 أغسطس 2026 · يمين · المنطقة 45–47 · تحت المتابعة
+
+Actions:
+
+تعديل
+أرشفة
+
+Keep the display compact.
+
+==================================================
+11. PATIENT PROCEDURES TAB
+==================================================
+
+The patient currently has two tabs:
+
+- بيانات المريض
+- إجراءات المريض
+
+Inside:
+
+إجراءات المريض
+
+show the unified:
+
+الإجراءات الجراحية المساندة
+
+under the relevant implant case.
+
+Use the same canonical records.
+
+Allow:
+
+- إضافة
+- تعديل
+- أرشفة/correction
+
+Do not create a separate bone-graft-only management screen.
+
+==================================================
+12. PATIENT INFORMATION SUMMARY
+==================================================
+
+Inside:
+
+بيانات المريض
+
+show these procedures read-only in the clean summary style.
+
+Example table:
+
+الإجراءات الجراحية المساندة
+
+التاريخ | الإجراء | الموقع/الجهة | التفاصيل | الحالة
+
+24 Aug | زراعة عظم | 27 | عظم ذاتي · غشاء كولاجين | تم
+24 Aug | رفع الجيب الفكي | يمين | مفتوح · Bio-Oss | تم
+
+No edit/delete controls in the summary tab.
+
+==================================================
+13. OPERATIONAL TABLE
+==================================================
+
+In the expanded Operational Table patient row, show the procedures under their relevant case.
+
+Use compact rows.
+
+Add:
+
++ إضافة إجراء جراحي
+
+Do not require opening the full Patient File.
+
+Operational Table and Patient Procedures must use the SAME create/edit/archive APIs.
+
+==================================================
+14. FINANCIAL COST
+==================================================
+
+Clinical procedure records describe:
+
+WHAT WAS DONE.
+
+Financial charges describe:
+
+WHAT WAS CHARGED.
+
+Do NOT store procedure price/cost in the surgical procedure table.
+
+If a procedure needs a charge:
+
+reuse:
+
+`case_charges`
+
+Provide an optional action if already appropriate:
+
++ إضافة تكلفة
+
+Do not duplicate financial truth.
+
+==================================================
+15. SYSTEM-WIDE SYNCHRONIZATION — MANDATORY
+==================================================
+
+Any procedure:
+
+CREATE
+EDIT
+ARCHIVE
+STATUS CHANGE
+
+from:
+
+Operational Table
+
+must update:
+
+- Patient Procedures
+- Patient Information summary
+- Statistics
+- reports where applicable
+
+And vice versa.
+
+Correct pattern:
+
+canonical mutation
+→ backend/database
+→ React Query invalidation
+→ all dependent views refetch
+
+Do NOT manually synchronize frontend components.
+
+==================================================
+16. STATISTICS
+==================================================
+
+Update the centralized Statistics page with:
+
+الإجراءات الجراحية المساندة
+
+KPIs:
+
+- إجمالي الإجراءات الجراحية المساندة
+- عدد مرضى زراعة العظم
+- عدد مرضى رفع الجيب الفكي
+- عدد مرضى إبعاد/نقل العصب
+- إجراءات بدون زرعات
+
+Charts / distributions where meaningful:
+
+A. الإجراءات حسب النوع
+
+B. الإجراءات عبر الزمن
+
+C. الإجراءات حسب الطبيب
+
+D. optional procedure status distribution
+
+For Bone Graft specifically, keep useful distributions where data exists:
+
+- المادة
+- نوع الإجراء
+
+Do not create unsupported clinical conclusions.
+
+==================================================
+17. COUNTING RULES
+==================================================
+
+Be explicit:
+
+Procedure count:
+COUNT procedure records
+
+Patient count:
+COUNT DISTINCT patient_id
+
+Do not confuse:
+
+patient had 2 procedures
+
+with:
+
+2 patients.
+
+Archived procedures should follow the existing reporting exclusion rules.
+
+==================================================
+18. MIGRATION / HISTORICAL BONE GRAFT DATA
+==================================================
+
+This is important.
+
+Existing Bone Graft records must NOT disappear.
+
+If the schema is generalized:
+
+migrate historical records safely so they become:
+
+procedure_type = زراعة عظم
+
+while preserving:
+
+- procedure date
+- site
+- material
+- membrane
+- status
+- notes
+- implant/case linkage
+- timestamps
+- archive state
+
+Do not fabricate missing values.
+
+Do not overwrite existing data.
+
+==================================================
+19. LEGACY `implants.graft`
+==================================================
+
+Continue preserving the historical implant-level `Graft` field.
+
+Do NOT automatically convert historical:
+
+Graft = Y
+
+into a detailed surgical procedure because the historical procedure date/details may be unknown.
+
+Do not invent history.
+
+For NEW detailed graft procedures:
+use the canonical surgical-procedure records.
+
+Report how this compatibility is maintained.
+
+==================================================
+20. PERMISSIONS
+==================================================
+
+Reuse existing clinical permissions.
+
+Do not weaken authorization.
+
+If a user can currently edit implant-case clinical data, follow the same approved permission architecture for adjunct procedures unless a stricter rule already exists.
+
+Enforce permissions server-side.
+
+==================================================
+21. AUDIT
+==================================================
+
+Audit:
+
+- adjunct procedure created
+- edited
+- archived
+
+Include:
+
+user
+timestamp
+procedure type
+entity ids
+
+Do not store excessive sensitive payloads.
+
+==================================================
+22. QUICK ENTRY TRANSACTION
+==================================================
+
+Preserve the existing atomic Quick Entry transaction.
+
+It must support:
+
+patient
++ case
++ 0 or more implants
++ 0 or more adjunct surgical procedures
++ finance
++ follow-up
+
+Example:
+
+Patient
+Case
+0 implants
+1 sinus lift
+
+must save successfully.
+
+If any required operation fails:
+do not leave partial data.
+
+==================================================
+23. VALIDATION
+==================================================
+
+Use clear Arabic field-level errors.
+
+Examples:
+
+"تاريخ الإجراء مطلوب."
+
+"حدد نوع الإجراء."
+
+"حدد جهة رفع الجيب الفكي."
+
+Do not show generic:
+
+"فشل الحفظ"
+
+when a specific validation error is known.
+
+Highlight the exact invalid field.
+
+==================================================
+24. UI DESIGN
+==================================================
+
+Keep this section visually consistent with the current Quick Entry form.
+
+Do not create huge cards.
+
+Use:
+
+- one section
+- clean inline procedure rows
+- subtle dividers
+- compact edit form
+
+Responsive:
+
+desktop:
+efficient multi-column form
+
+mobile:
+stack fields cleanly
+
+==================================================
+25. DO NOT CHANGE
+==================================================
+
+Do NOT change:
+
+- implant workflow
+- quick implant status workflow
+- Task #18 prosthetic synchronization
+- patient workflows
+- financial formulas
+- follow-ups
+- Dashboard Work Summary
+- unrelated Statistics calculations
+
+==================================================
+26. REQUIRED TEST CASES
+==================================================
+
+Use isolated test data.
+
+Verify:
+
+A.
+Patient + case + 0 implants + bone graft
+→ saves.
+
+B.
+Patient + case + 0 implants + sinus lift
+→ saves.
+
+C.
+Patient + case + 0 implants + nerve repositioning
+→ saves.
+
+D.
+Case with:
+1 implant
++ bone graft linked to implant
+→ saves.
+
+E.
+Case with:
+2 different adjunct procedures
+→ both display correctly.
+
+F.
+Edit from Operational Table
+→ Patient Procedures updates.
+
+G.
+Edit from Patient Procedures
+→ Operational Table updates.
+
+H.
+Archive procedure
+→ active patient views/statistics update.
+
+I.
+Patient Information summary reflects all active procedures.
+
+J.
+Statistics counts:
+procedures correctly
+distinct patients correctly.
+
+K.
+Historical Bone Graft data remains intact.
+
+==================================================
+27. VERIFICATION
+==================================================
+
+Run:
+
+- affected TypeScript
+- affected lint
+- focused migration verification if schema changes
+- focused API tests
+- authenticated browser test
+- cross-surface consistency test
+
+Do not run the full historical suite unless a foundational shared model change requires it.
+
+Do not publish.
+
+==================================================
+28. FINAL REPORT
+==================================================
+
+At completion report:
+
+1. final canonical data model used
+2. whether existing bone-graft table was generalized or preserved
+3. migration strategy
+4. exact fields for each procedure type
+5. handling of historical Bone Graft data
+6. handling of legacy `implants.graft`
+7. zero-implant procedure verification
+8. OperationalTable ↔ PatientFile synchronization
+9. Statistics integration
+10. focused test results
+11. database migration files if any
+12. exact checkpoint hash
+
+Create a stable checkpoint and stop.
