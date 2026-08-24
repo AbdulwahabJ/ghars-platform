@@ -318,6 +318,77 @@ describe("GET /api/reports/operational", () => {
     expect(row1.finance.remaining).toBe(600);
   });
 
+  it("aggregates active adjunct procedures across a patient's active cases", async () => {
+    const patient = await admin.post("/api/patients").send({
+      fileNumber: "7003",
+      fullName: "مريض ملخص الإجراءات",
+    });
+    const patientId = patient.body.patient.id as string;
+    const firstCase = await admin
+      .post(`/api/patients/${patientId}/implant-cases`)
+      .send({ procedureDate: TO });
+    const secondCase = await admin
+      .post(`/api/patients/${patientId}/implant-cases`)
+      .send({ procedureDate: TO });
+
+    const createProcedure = async (
+      caseId: string,
+      procedureCategory: string,
+    ) =>
+      admin.post(`/api/implant-cases/${caseId}/bone-graft-procedures`).send({
+        procedureDate: TO,
+        procedureCategory,
+        procedureType: `وصف ${procedureCategory}`,
+      });
+
+    await createProcedure(firstCase.body.case.id, "زراعة عظم");
+    await createProcedure(firstCase.body.case.id, "زراعة عظم");
+    const sinusLift = await createProcedure(
+      secondCase.body.case.id,
+      "رفع الجيب الفكي",
+    );
+    expect(sinusLift.status).toBe(400);
+
+    const sidedSinusLift = await admin
+      .post(`/api/implant-cases/${secondCase.body.case.id}/bone-graft-procedures`)
+      .send({
+        procedureDate: TO,
+        procedureCategory: "رفع الجيب الفكي",
+        procedureType: "وصف رفع الجيب",
+        procedureSide: "يمين",
+        liftType: "مغلق",
+      });
+    expect(sidedSinusLift.status).toBe(201);
+
+    const beforeArchive = await admin.get(`/api/reports/operational?${RANGE}`);
+    const patientRows = beforeArchive.body.rows.filter(
+      (row: { patientId: string }) => row.patientId === patientId,
+    );
+    expect(patientRows).toHaveLength(2);
+    for (const row of patientRows) {
+      expect(row.implantStatuses).toEqual([]);
+      expect(row.adjunctProcedureTypes).toEqual([
+        "زراعة عظم",
+        "زراعة عظم",
+        "رفع الجيب الفكي",
+      ]);
+    }
+
+    await admin
+      .post(`/api/bone-graft-procedures/${sidedSinusLift.body.procedure.id}/archive`)
+      .send();
+    const afterArchive = await admin.get(`/api/reports/operational?${RANGE}`);
+    const activeRow = afterArchive.body.rows.find(
+      (row: { patientId: string }) => row.patientId === patientId,
+    );
+    expect(activeRow.adjunctProcedureTypes).toEqual([
+      "زراعة عظم",
+      "زراعة عظم",
+    ]);
+
+    await admin.post(`/api/patients/${patientId}/archive`).send();
+  });
+
   it("hides financial columns from an assistant without permission", async () => {
     const res = await assistant.get(`/api/reports/operational?${RANGE}`);
     expect(res.status).toBe(200);

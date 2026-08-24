@@ -252,6 +252,8 @@ export const operationalRowSchema = z.object({
   implantStatuses: z.array(z.string()),
   boneGraftProcedureCount: z.number().int(),
   boneGraftProcedureTypes: z.array(z.string()),
+  /** Active adjunct procedure categories across the patient's active cases. */
+  adjunctProcedureTypes: z.array(z.string()),
   nextFollowupAt: z.string().nullable(),
   isOverdue: z.boolean(),
   isReady: z.boolean(),

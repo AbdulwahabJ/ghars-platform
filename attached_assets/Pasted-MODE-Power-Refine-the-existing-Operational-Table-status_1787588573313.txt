@@ -1,0 +1,560 @@
+MODE: Power
+
+Refine the existing Operational Table status column into a unified patient clinical summary.
+
+The current table already shows implant statuses, but now the system also supports adjunct surgical procedures such as:
+
+- زراعة عظم
+- رفع الجيب الفكي
+- إبعاد / نقل العصب السنخي السفلي
+
+A patient may have these procedures WITH or WITHOUT implants.
+
+Therefore the current implant-only status column is no longer sufficient.
+
+==================================================
+1. RENAME THE COLUMN
+==================================================
+
+Rename the existing column:
+
+"حالة الزرعات"
+
+to:
+
+"ملخص الحالة"
+
+This column should answer, at a glance:
+
+"What is the patient's current implant/procedure situation?"
+
+Do NOT add another table column.
+
+The Operational Table is already dense.
+
+Use ONE compact summary column.
+
+==================================================
+2. DATA SOURCES
+==================================================
+
+The column must be DERIVED only from canonical clinical records.
+
+Use:
+
+A. Implant statuses:
+`implants.status`
+
+B. Adjunct surgical procedures:
+the canonical adjunct-surgical-procedure records already implemented for:
+
+- زراعة عظم
+- رفع الجيب الفكي
+- إبعاد / نقل العصب السنخي السفلي
+
+Do NOT use:
+
+- manually stored patient summary text
+- a new patient-level status field
+- frontend-only stored status
+- duplicated dashboard state
+
+Do NOT create a new database field for "ملخص الحالة".
+
+This is a derived presentation only.
+
+==================================================
+3. FIRST INSPECT CURRENT OPERATIONAL REPORT RESPONSE
+==================================================
+
+Before implementation, inspect the current Operational Report API response.
+
+Confirm whether it already exposes:
+
+- active implant statuses
+- active adjunct surgical procedure types
+
+If implant statuses already exist, reuse them.
+
+If adjunct procedure types are NOT currently included, add ONLY the minimum response field required.
+
+Recommended shape:
+
+implantStatuses: string[]
+
+adjunctProcedureTypes: string[]
+
+or an equivalent structured response that fits the existing report schema better.
+
+Do NOT return unnecessary full procedure payloads to the table.
+
+Only return what is needed for the summary.
+
+==================================================
+4. IMPLANT STATUS SUMMARY
+==================================================
+
+Summarize all ACTIVE implants across all ACTIVE implant cases for the patient.
+
+Use exact existing canonical implant status values.
+
+Examples may include:
+
+- مزروعة
+- مرحلة الالتئام
+- جاهزة للتركيب
+- تم تركيب مؤقت
+- تم التركيب
+- فاشلة
+- تحتاج إعادة
+- تمت إعادة الزراعة
+
+Do NOT invent statuses.
+
+Group identical statuses.
+
+Example:
+
+3 implants:
+- تم التركيب
+- تم التركيب
+- مرحلة الالتئام
+
+Display:
+
+تم التركيب ×2
+مرحلة الالتئام
+
+If only one implant has a status:
+
+display the status without ×1.
+
+==================================================
+5. ADJUNCT PROCEDURE SUMMARY
+==================================================
+
+Also summarize ACTIVE adjunct surgical procedures.
+
+Supported procedure labels must use the existing canonical procedure type values.
+
+Examples:
+
+- زراعة عظم
+- رفع الجيب الفكي
+- إبعاد / نقل العصب السنخي السفلي
+
+Group identical procedure types.
+
+Example:
+
+2 bone graft procedures
+1 sinus lift
+
+Display:
+
+زراعة عظم ×2
+رفع جيب فكي
+
+Do not show archived procedures.
+
+==================================================
+6. PATIENT WITH NO IMPLANTS
+==================================================
+
+This is important.
+
+A patient may have:
+
+0 implants
++
+1 bone graft
+
+The column must still show:
+
+زراعة عظم
+
+NOT:
+
+—
+
+Another example:
+
+0 implants
++
+1 sinus lift
++
+1 nerve repositioning
+
+Display:
+
+رفع جيب فكي
+إبعاد العصب
+
+Do not require implants to produce a clinical summary.
+
+==================================================
+7. COMBINED EXAMPLES
+==================================================
+
+Example A:
+
+1 implant:
+مرحلة الالتئام
+
+No adjunct procedures.
+
+Display:
+
+مرحلة الالتئام
+
+----------------------------
+
+Example B:
+
+1 implant:
+جاهزة للتركيب
+
+1 bone graft
+
+Display:
+
+جاهزة للتركيب
+زراعة عظم
+
+----------------------------
+
+Example C:
+
+2 implants:
+تم التركيب
+تم التركيب
+
+1 bone graft
+
+Display:
+
+تم التركيب ×2
+زراعة عظم
+
+----------------------------
+
+Example D:
+
+1 failed implant
+1 sinus lift
+
+Display:
+
+فاشلة
+رفع جيب فكي
+
+----------------------------
+
+Example E:
+
+0 implants
+1 bone graft
+1 sinus lift
+
+Display:
+
+زراعة عظم
+رفع جيب فكي
+
+==================================================
+8. PRIORITY ORDER
+==================================================
+
+When multiple statuses/procedures exist, order them so clinically important implant states appear first.
+
+Preferred implant priority:
+
+1. فاشلة
+2. تحتاج إعادة
+3. جاهزة للتركيب
+4. مرحلة الالتئام
+5. مزروعة
+6. تم تركيب مؤقت
+7. تم التركيب
+8. تمت إعادة الزراعة
+9. other existing implant statuses
+
+Then show adjunct procedures:
+
+10. زراعة عظم
+11. رفع الجيب الفكي
+12. إبعاد / نقل العصب السنخي السفلي
+
+Use exact existing labels from the codebase.
+
+Do not rename canonical values unnecessarily.
+
+==================================================
+9. VISUAL DESIGN
+==================================================
+
+Render the summary as compact professional badges/chips inside the same cell.
+
+Keep the row height clean.
+
+Use wrapping only when required.
+
+Reuse the existing application semantic colors where possible.
+
+Suggested styling:
+
+Implant statuses:
+
+- فاشلة / تحتاج إعادة → red
+- جاهزة للتركيب → amber
+- مرحلة الالتئام → blue
+- مزروعة → teal
+- تم تركيب مؤقت → soft teal
+- تم التركيب → green
+
+Adjunct procedures:
+
+- زراعة عظم → subtle purple/clinical neutral
+- رفع الجيب الفكي → soft cyan/blue
+- إبعاد / نقل العصب → muted neutral/indigo
+
+Do NOT use bright rainbow colors.
+
+The design should remain consistent with the current teal/navy medical system identity.
+
+==================================================
+10. TOOLTIP / DETAIL
+==================================================
+
+Keep the table cell compact.
+
+If useful, add a subtle tooltip on a badge showing exact count/detail.
+
+Example:
+
+زراعة عظم ×2
+
+Tooltip:
+"إجراءان مسجلان"
+
+Do NOT create a large popover or additional workflow.
+
+==================================================
+11. NO ACTIVE CLINICAL DATA
+==================================================
+
+If the patient has:
+
+- no active implants
+- no active adjunct surgical procedures
+
+display:
+
+—
+
+Do NOT fall back to `implant_cases.case_status`.
+
+This column is specifically a summary of actual implant/procedure state.
+
+==================================================
+12. ARCHIVE RULES
+==================================================
+
+Exclude:
+
+- archived implants
+- implants belonging only to archived cases
+- archived adjunct procedures
+- archived patients according to existing Operational Report behavior
+
+Archive changes must automatically affect the summary.
+
+Example:
+
+Patient:
+زراعة عظم ×1
+
+Archive that procedure.
+
+Operational Table must update to:
+
+—
+
+if there are no other active implants/procedures.
+
+==================================================
+13. SYSTEM-WIDE SYNCHRONIZATION
+==================================================
+
+This is mandatory.
+
+If an implant status changes from:
+
+- Operational Table
+- Patient Procedures page
+
+then:
+
+"ملخص الحالة"
+
+must update from canonical data.
+
+If adjunct procedure is:
+
+- added
+- edited
+- archived
+
+from either surface:
+
+Operational Table summary must update.
+
+Correct flow:
+
+mutation
+→ canonical backend
+→ React Query invalidation
+→ Operational Report refetch
+→ updated summary
+
+Do NOT manually push values into this cell.
+
+==================================================
+14. TASK #18 PROSTHETIC WORKFLOW
+==================================================
+
+Preserve existing synchronization:
+
+تركيب مؤقت ↔ تم تركيب مؤقت
+
+تركيب دائم ↔ تم التركيب
+
+When Task #18 updates `implants.status`, this summary should naturally reflect the updated implant state.
+
+Do NOT derive implant status directly from `prosthetic_events`.
+
+==================================================
+15. REPORT / STATISTICS CONSISTENCY
+==================================================
+
+Do not create separate calculation logic just for this cell.
+
+The underlying canonical statuses/procedure records should remain the same ones used by:
+
+- Patient File
+- Operational Table
+- Statistics
+- Reports
+
+Do not introduce conflicting counts.
+
+==================================================
+16. PERFORMANCE
+==================================================
+
+Do not fetch full implant/procedure histories to React just to build this cell.
+
+Prefer minimal server-side aggregation/data exposure.
+
+Avoid N+1 queries per patient row.
+
+Reuse the existing Operational Report aggregation strategy.
+
+==================================================
+17. DO NOT CHANGE
+==================================================
+
+Do NOT change:
+
+- implant status enum
+- adjunct procedure model
+- Task #18 prosthetic workflow
+- patient workflows
+- finance
+- follow-ups
+- dashboard Work Summary
+- Statistics definitions
+- other table columns
+
+This task is only:
+
+Operational Report exposes required canonical summary data
++
+Operational Table renders one unified "ملخص الحالة" column.
+
+==================================================
+18. VERIFICATION
+==================================================
+
+Use focused isolated test data.
+
+Verify:
+
+A.
+1 implant = مزروعة
+→ ملخص الحالة = مزروعة
+
+B.
+2 implants:
+مرحلة الالتئام
+جاهزة للتركيب
+→ both badges visible.
+
+C.
+3 identical implant statuses
+→ grouped with ×3.
+
+D.
+0 implants + 1 bone graft
+→ زراعة عظم visible.
+
+E.
+0 implants + sinus lift
+→ رفع جيب فكي visible.
+
+F.
+failed implant + bone graft
+→ فاشلة + زراعة عظم visible.
+
+G.
+implant status changed
+→ summary updates.
+
+H.
+adjunct procedure added
+→ summary updates.
+
+I.
+adjunct procedure archived
+→ summary updates.
+
+J.
+archived implant does not contribute.
+
+K.
+patient with no active implants/procedures
+→ "—".
+
+Run:
+
+- affected API TypeScript
+- affected frontend TypeScript
+- affected lint
+- focused Operational Report tests
+- focused authenticated browser verification
+
+Do not run the full historical suite.
+Do not publish.
+
+At completion report:
+
+1. final column name
+2. API fields added/reused
+3. implant aggregation behavior
+4. adjunct-procedure aggregation behavior
+5. archive behavior
+6. synchronization verification
+7. focused test results
+8. checkpoint hash
+
+Create a stable checkpoint and stop.

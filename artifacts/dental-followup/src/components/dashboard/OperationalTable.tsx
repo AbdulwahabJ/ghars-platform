@@ -119,6 +119,14 @@ function summaryImplantStatuses(rows: OperationalRow[]): Array<[string, number]>
   );
 }
 
+function summaryAdjunctProcedureTypes(rows: OperationalRow[]): Array<[string, number]> {
+  const counts = new Map<string, number>();
+  for (const procedureType of rows[0]?.adjunctProcedureTypes ?? []) {
+    counts.set(procedureType, (counts.get(procedureType) ?? 0) + 1);
+  }
+  return [...counts.entries()];
+}
+
 function summaryDoctor(rows: OperationalRow[]): string {
   const doctors = [...new Set(rows.map((r) => r.treatingDoctor).filter(Boolean))];
   if (doctors.length === 1) return doctors[0]!;
@@ -200,22 +208,47 @@ function implantStatusClass(status: ImplantStatus): string {
   }
 }
 
-function ImplantStatusBadges({ rows }: { rows: OperationalRow[] }) {
-  const statuses = summaryImplantStatuses(rows);
-  if (statuses.length === 0) return <>—</>;
+function adjunctProcedureClass(procedureType: string): string {
+  switch (procedureType) {
+    case "زراعة عظم":
+      return "bg-violet-100 text-violet-800 border-violet-200";
+    case "رفع الجيب الفكي":
+      return "bg-sky-100 text-sky-800 border-sky-200";
+    case "إبعاد / نقل العصب السنخي السفلي":
+      return "bg-indigo-100 text-indigo-800 border-indigo-200";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
 
-  const showCounts =
-    statuses.length > 1 || statuses.some(([, count]) => count > 1);
+function ClinicalSummaryBadges({ rows }: { rows: OperationalRow[] }) {
+  const statuses = summaryImplantStatuses(rows);
+  const adjunctProcedures = summaryAdjunctProcedureTypes(rows);
+  if (statuses.length === 0 && adjunctProcedures.length === 0) return <>—</>;
+
   return (
     <div className="flex flex-wrap gap-1">
       {statuses.map(([status, count]) => (
         <Badge
           key={status}
           className={`text-[10px] ${implantStatusClass(status as ImplantStatus)}`}
+          title={count > 1 ? `${status} — ${count} زرعات` : status}
         >
           <span className="notranslate">
             {status}
-            {showCounts ? ` ×${count}` : ""}
+            {count > 1 ? ` ×${count}` : ""}
+          </span>
+        </Badge>
+      ))}
+      {adjunctProcedures.map(([procedureType, count]) => (
+        <Badge
+          key={procedureType}
+          className={`text-[10px] ${adjunctProcedureClass(procedureType)}`}
+          title={count > 1 ? `${procedureType} — ${count} إجراءات` : procedureType}
+        >
+          <span className="notranslate">
+            {procedureType}
+            {count > 1 ? ` ×${count}` : ""}
           </span>
         </Badge>
       ))}
@@ -2636,7 +2669,7 @@ function PatientSummaryRow({
         </div>
       </td>
       <td className="px-4 py-3 text-sm" dir="ltr">{group.fileNumber}</td>
-      <td className="px-4 py-3 text-sm"><ImplantStatusBadges rows={group.rows} /></td>
+      <td className="px-4 py-3 text-sm"><ClinicalSummaryBadges rows={group.rows} /></td>
       <td className="px-4 py-3 text-sm notranslate">{summaryDoctor(group.rows)}</td>
       <td className="px-4 py-3 text-sm tabular-nums">{summaryImplantCount(group.rows)}</td>
       <td className="px-4 py-3 text-sm notranslate">
@@ -2697,7 +2730,7 @@ function PatientCard({
           <div className="flex gap-1 mt-1 flex-wrap">
             {overdue && <Badge variant="destructive" className="text-[10px]">متأخرة</Badge>}
             {ready && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px]">جاهزة للتركيب</Badge>}
-            <ImplantStatusBadges rows={group.rows} />
+            <ClinicalSummaryBadges rows={group.rows} />
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2 text-xs text-muted-foreground">
             <span>{summaryImplantCount(group.rows)} زرعة</span>
@@ -2953,7 +2986,7 @@ export function OperationalTable({
                       <tr className="border-b border-border bg-muted/30">
                         <th className="px-4 py-3 font-medium text-muted-foreground">المريض</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">رقم الملف</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">حالة الزرعات</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">ملخص الحالة</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">الطبيب المعالج</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">الزرعات</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">الأنظمة</th>

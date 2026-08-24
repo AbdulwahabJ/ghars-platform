@@ -1183,6 +1183,14 @@ async function buildOperationalRows(
         FROM bone_graft_procedures bgp
         WHERE bgp.implant_case_id = ic.id
           AND bgp.archived_at IS NULL) AS "boneGraftProcedureTypes",
+       (SELECT COALESCE(array_agg(bgp.procedure_category ORDER BY bgp.created_at, bgp.id), '{}')
+        FROM bone_graft_procedures bgp
+        JOIN implant_cases active_adjunct_ic ON active_adjunct_ic.id = bgp.implant_case_id
+        JOIN patients active_adjunct_p ON active_adjunct_p.id = active_adjunct_ic.patient_id
+        WHERE active_adjunct_ic.patient_id = ic.patient_id
+          AND active_adjunct_ic.archived_at IS NULL
+          AND active_adjunct_p.archived_at IS NULL
+          AND bgp.archived_at IS NULL) AS "adjunctProcedureTypes",
       (SELECT MIN(f.scheduled_at) FROM followups f
         WHERE f.implant_case_id = ic.id
           AND f.followup_status = ${OPEN_FOLLOWUP_STATUS}
@@ -1226,6 +1234,7 @@ async function buildOperationalRows(
       implantStatuses: (r.implantStatuses as string[] | null) ?? [],
       boneGraftProcedureCount: num(r.boneGraftProcedureCount),
       boneGraftProcedureTypes: (r.boneGraftProcedureTypes as string[] | null) ?? [],
+      adjunctProcedureTypes: (r.adjunctProcedureTypes as string[] | null) ?? [],
       nextFollowupAt: r.nextFollowupAt
         ? new Date(r.nextFollowupAt as string).toISOString()
         : null,
