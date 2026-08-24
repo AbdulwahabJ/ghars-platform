@@ -1809,12 +1809,12 @@ function PatientExpandedRow({
       { id: procedureId, patientId: group.patientId },
       {
         onSuccess: () => {
-          toast({ title: "تمت أرشفة سجل زراعة العظم" });
+          toast({ title: "تمت أرشفة سجل الإجراءات الجراحية المساندة" });
           setConfirmArchiveBoneGraftProcedureId(null);
         },
         onError: (error) =>
           toast({
-            title: "تعذر أرشفة سجل زراعة العظم",
+            title: "تعذر أرشفة سجل الإجراءات الجراحية المساندة",
             description: error instanceof Error ? error.message : undefined,
             variant: "destructive",
           }),
@@ -2411,7 +2411,7 @@ function PatientExpandedRow({
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                         <Activity className="h-3 w-3" />
-                        إجراءات زراعة العظم
+                         الإجراءات الجراحية المساندة
                       </p>
                       <div className="flex items-center gap-1">
                         <Badge variant="secondary" className="text-[10px]">
@@ -2428,18 +2428,19 @@ function PatientExpandedRow({
                         {(c.boneGraftProcedures ?? []).filter((procedure) => procedure.status === "active").map((procedure) => (
                           <div key={procedure.id} className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs space-y-1.5">
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{procedure.procedureType}</Badge>
+                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{procedure.procedureCategory}</Badge>
+                              <span>{procedure.procedureType}</span>
                               <span className="font-medium">{formatSaudiDate(procedure.procedureDate)}</span>
                               <Badge variant="secondary">{procedure.procedureStatus}</Badge>
                               <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] mr-auto" onClick={() => setBoneGraftContext({ caseItem: c, procedure })}><Pencil className="h-3 w-3" />تعديل</Button>
                               {canArchiveProstheticEvents && <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-destructive hover:text-destructive" onClick={() => setConfirmArchiveBoneGraftProcedureId(procedure.id)}><Archive className="h-3 w-3" />أرشفة</Button>}
                             </div>
-                            {(procedure.material || procedure.membrane || procedure.note) && <p className="text-muted-foreground">{[procedure.material && `المادة: ${procedure.material}`, procedure.membrane && `الغشاء: ${procedure.membrane}`, procedure.note].filter(Boolean).join(" — ")}</p>}
+                            {(procedure.procedureSide || procedure.liftType || procedure.material || procedure.membrane || procedure.note) && <p className="text-muted-foreground">{[procedure.procedureSide && `الجهة: ${procedure.procedureSide}`, procedure.liftType && `نوع الرفع: ${procedure.liftType}`, procedure.material && `المادة: ${procedure.material}`, procedure.membrane && `الغشاء: ${procedure.membrane}`, procedure.note].filter(Boolean).join(" — ")}</p>}
                             {confirmArchiveBoneGraftProcedureId === procedure.id && <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2"><p className="mb-2 text-[11px]">سيُستبعد السجل من المؤشرات النشطة مع بقائه محفوظًا.</p><div className="flex gap-2"><Button type="button" size="sm" variant="destructive" className="h-6 text-[11px]" onClick={() => doArchiveBoneGraftProcedure(procedure.id)} disabled={archiveBoneGraftProcedure.isPending}>تأكيد الأرشفة</Button><Button type="button" size="sm" variant="outline" className="h-6 text-[11px]" onClick={() => setConfirmArchiveBoneGraftProcedureId(null)}>إلغاء</Button></div></div>}
                           </div>
                         ))}
                       </div>
-                    ) : <p className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">لا توجد إجراءات زراعة عظم موثقة لهذه الحالة.</p>}
+                    ) : <p className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">لا توجد إجراءات جراحية مساندة موثقة لهذه الحالة.</p>}
                   </div>
                   {boneGraftContext?.caseItem.id === c.id && (
                     <BoneGraftProcedureDialog

@@ -12,6 +12,7 @@ let foreignImplantId: string;
 
 const procedurePayload = {
   procedureDate: "2026-08-22",
+  procedureCategory: "زراعة عظم",
   procedureType: "ترقيع عظمي",
   site: "36",
   material: "عظم صناعي",
@@ -107,11 +108,75 @@ describe("bone graft procedures", () => {
       patient: { fileNumber: "8802", fullName: "مريض إدخال سريع" },
       case: { treatingDoctor: "د. همام", caseStatus: "حالة جديدة", isReimplantation: false },
       implants: [],
-      boneGraftProcedures: [{ ...procedurePayload, implantIndex: undefined }],
+      boneGraftProcedures: [
+        { ...procedurePayload, implantIndex: undefined },
+        {
+          ...procedurePayload,
+          procedureCategory: "رفع الجيب الفكي",
+          procedureType: "رفع مغلق",
+          procedureSide: "يمين",
+          liftType: "مغلق",
+          implantIndex: undefined,
+        },
+        {
+          ...procedurePayload,
+          procedureCategory: "إبعاد / نقل العصب السنخي السفلي",
+          procedureType: "نقل العصب",
+          procedureSide: "يسار",
+          implantIndex: undefined,
+        },
+      ],
     });
     expect(response.status).toBe(201);
     expect(response.body.implants).toHaveLength(0);
-    expect(response.body.boneGraftProcedures).toHaveLength(1);
-    expect(response.body.boneGraftProcedures[0].implantId).toBeNull();
+    expect(response.body.boneGraftProcedures).toHaveLength(3);
+    expect(response.body.boneGraftProcedures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          procedureCategory: "زراعة عظم",
+          implantId: null,
+        }),
+        expect.objectContaining({
+          procedureCategory: "رفع الجيب الفكي",
+          procedureSide: "يمين",
+          liftType: "مغلق",
+          implantId: null,
+        }),
+        expect.objectContaining({
+          procedureCategory: "إبعاد / نقل العصب السنخي السفلي",
+          procedureSide: "يسار",
+          implantId: null,
+        }),
+      ]),
+    );
+  });
+
+  it("requires a side for sinus lift and nerve procedures", async () => {
+    const patient = await admin.post("/api/patients").send({
+      fileNumber: "8803",
+      fullName: "مريض تحقق الإجراءات المساندة",
+    });
+    const freshCase = await admin
+      .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
+      .send({});
+
+    const sinus = await admin
+      .post(`/api/implant-cases/${freshCase.body.case.id}/bone-graft-procedures`)
+      .send({
+        ...procedurePayload,
+        procedureCategory: "رفع الجيب الفكي",
+        procedureType: "رفع مغلق",
+        liftType: "مغلق",
+      });
+    expect(sinus.status).toBe(400);
+
+    const nerve = await admin
+      .post(`/api/implant-cases/${freshCase.body.case.id}/bone-graft-procedures`)
+      .send({
+        ...procedurePayload,
+        procedureCategory: "إبعاد / نقل العصب السنخي السفلي",
+        procedureType: "نقل العصب",
+      });
+    expect(nerve.status).toBe(400);
   });
 });

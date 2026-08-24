@@ -32,7 +32,7 @@ const CASE_NOT_FOUND_BODY = {
   code: CASE_NOT_FOUND,
 };
 const PROCEDURE_NOT_FOUND_BODY = {
-  error: "سجل زراعة العظم غير موجود.",
+  error: "سجل الإجراء الجراحي غير موجود.",
   code: "BONE_GRAFT_PROCEDURE_NOT_FOUND",
 };
 const CASE_ARCHIVED_BODY = {
@@ -50,7 +50,10 @@ function toDto(row: BoneGraftProcedureRow): BoneGraftProcedure {
     implantCaseId: row.implantCaseId,
     implantId: row.implantId,
     procedureDate: row.procedureDate,
+    procedureCategory: row.procedureCategory as BoneGraftProcedure["procedureCategory"],
     procedureType: row.procedureType,
+    procedureSide: row.procedureSide as BoneGraftProcedure["procedureSide"],
+    liftType: row.liftType,
     site: row.site,
     material: row.material,
     membrane: row.membrane,
@@ -153,7 +156,7 @@ router.post("/implant-cases/:caseId/bone-graft-procedures", async (req, res) => 
     action: "bone_graft_procedure_create",
     entityType: "bone_graft_procedure",
     entityId: row.id,
-    summary: `توثيق إجراء زراعة عظم: ${row.procedureType}`,
+    summary: `توثيق إجراء جراحي مساند: ${row.procedureCategory}`,
   });
   res.status(201).json({ procedure: toDto(row) });
 });
@@ -166,7 +169,7 @@ router.patch("/bone-graft-procedures/:id", async (req, res) => {
   }
   if (existing.archivedAt) {
     res.status(409).json({
-      error: "سجل زراعة العظم مؤرشف ولا يمكن تعديله.",
+      error: "سجل الإجراء الجراحي مؤرشف ولا يمكن تعديله.",
       code: "BONE_GRAFT_PROCEDURE_ARCHIVED",
     });
     return;
@@ -180,6 +183,15 @@ router.patch("/bone-graft-procedures/:id", async (req, res) => {
   const updates = parseOrRespond(boneGraftProcedureUpdateSchema, req.body, res);
   if (!updates) return;
   const implantId = updates.implantId === undefined ? existing.implantId : updates.implantId;
+  const mergedInput = boneGraftProcedureInputSchema.safeParse({
+    ...existing,
+    ...updates,
+    implantId,
+  });
+  if (!mergedInput.success) {
+    res.status(400).json({ error: mergedInput.error.issues[0]?.message ?? "بيانات الإجراء غير صحيحة." });
+    return;
+  }
   if (!(await validLinkedImplant(implantId, existing.implantCaseId))) {
     invalidLinkedImplant(res);
     return;
@@ -195,7 +207,7 @@ router.patch("/bone-graft-procedures/:id", async (req, res) => {
     action: "bone_graft_procedure_update",
     entityType: "bone_graft_procedure",
     entityId: row.id,
-    summary: "تعديل سجل زراعة عظم",
+    summary: `تعديل إجراء جراحي مساند: ${row.procedureCategory}`,
     details: { changedFields: Object.keys(updates) },
   });
   res.json({ procedure: toDto(row) });
@@ -243,7 +255,7 @@ router.post(
       action: "bone_graft_procedure_archive",
       entityType: "bone_graft_procedure",
       entityId: row.id,
-      summary: "أرشفة سجل زراعة عظم",
+      summary: `أرشفة إجراء جراحي مساند: ${row.procedureCategory}`,
     });
     res.json({ procedure: toDto(row) });
   },

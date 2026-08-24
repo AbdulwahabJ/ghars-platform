@@ -175,7 +175,7 @@ export function CaseCard({
       { id: boneGraftProcedureToArchive.id, patientId },
       {
         onSuccess: () => {
-          toast({ title: "تمت أرشفة سجل زراعة العظم" });
+          toast({ title: "تمت أرشفة سجل الإجراءات الجراحية المساندة" });
           setBoneGraftProcedureToArchive(null);
         },
         onError: (error: Error) =>
@@ -401,7 +401,7 @@ export function CaseCard({
         <div className="border-t border-border pt-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h4 className="font-bold text-foreground">إجراءات زراعة العظم</h4>
+              <h4 className="font-bold text-foreground">الإجراءات الجراحية المساندة</h4>
               <p className="text-xs text-muted-foreground mt-1">
                 سجلات سريرية مستقلة لا تؤثر في الحسابات المالية.
               </p>
@@ -424,18 +424,19 @@ export function CaseCard({
                 const implant = item.implantId ? caseItem.implants.find((candidate) => candidate.id === item.implantId) : null;
                 return <div key={item.id} className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{item.procedureType}</Badge>
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{item.procedureCategory}</Badge>
+                    <span>{item.procedureType}</span>
                     <span className="font-semibold">{formatSaudiDate(item.procedureDate)}</span>
                     <Badge variant="secondary">{item.procedureStatus}</Badge>
                     {implant && <span className="text-muted-foreground">السن {implant.site}</span>}
                     {!isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 mr-auto" onClick={() => setBoneGraftProcedureDialog(item)}><Pencil className="h-3.5 w-3.5 ml-1" />تعديل</Button>}
                     {canArchive && !isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setBoneGraftProcedureToArchive(item)}><Archive className="h-3.5 w-3.5 ml-1" />أرشفة</Button>}
                   </div>
-                  {(item.material || item.membrane || item.site || item.note) && <p className="mt-1.5 text-muted-foreground">{[item.site && `الموضع: ${item.site}`, item.material && `المادة: ${item.material}`, item.membrane && `الغشاء: ${item.membrane}`, item.note].filter(Boolean).join(" — ")}</p>}
+                  {(item.procedureSide || item.liftType || item.material || item.membrane || item.site || item.note) && <p className="mt-1.5 text-muted-foreground">{[item.procedureSide && `الجهة: ${item.procedureSide}`, item.liftType && `نوع الرفع: ${item.liftType}`, item.site && `الموضع: ${item.site}`, item.material && `المادة: ${item.material}`, item.membrane && `الغشاء: ${item.membrane}`, item.note].filter(Boolean).join(" — ")}</p>}
                 </div>;
               })}
             </div>
-          ) : <p className="text-sm text-muted-foreground rounded-lg bg-muted/30 px-3 py-3">لا توجد إجراءات زراعة عظم موثقة لهذه الحالة.</p>}
+          ) : <p className="text-sm text-muted-foreground rounded-lg bg-muted/30 px-3 py-3">لا توجد إجراءات جراحية مساندة موثقة لهذه الحالة.</p>}
         </div>
 
         {/* FDI chart */}
@@ -535,7 +536,7 @@ export function CaseCard({
       )}
       <Dialog open={Boolean(boneGraftProcedureToArchive)} onOpenChange={(open) => !open && setBoneGraftProcedureToArchive(null)}>
         <DialogContent className="sm:max-w-md text-right" dir="rtl">
-          <DialogHeader><DialogTitle className="text-destructive">تأكيد أرشفة إجراء زراعة العظم</DialogTitle><DialogDescription className="text-right">سيبقى السجل محفوظًا للمراجعة، لكنه سيُستبعد من القوائم والمؤشرات النشطة.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle className="text-destructive">تأكيد أرشفة إجراء جراحي مساند</DialogTitle><DialogDescription className="text-right">سيبقى السجل محفوظًا للمراجعة، لكنه سيُستبعد من القوائم والمؤشرات النشطة.</DialogDescription></DialogHeader>
           <DialogFooter className="flex-row gap-3 sm:justify-start"><Button variant="destructive" onClick={handleArchiveBoneGraftProcedure} disabled={archiveBoneGraftProcedure.isPending}>{archiveBoneGraftProcedure.isPending ? "جارٍ الأرشفة..." : "أرشفة السجل"}</Button><Button variant="outline" onClick={() => setBoneGraftProcedureToArchive(null)}>إلغاء</Button></DialogFooter>
         </DialogContent>
       </Dialog>

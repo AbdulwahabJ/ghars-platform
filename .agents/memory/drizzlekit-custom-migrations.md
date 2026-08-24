@@ -7,9 +7,17 @@ description: How to generate migrations safely despite the path bug and detect m
 
 **Rule:** `drizzle-kit generate` — both plain and `--custom` — errors with `ENOENT .//home/...` when the drizzle config uses absolute paths (as this repo's `lib/db/drizzle.config.ts` does). Work around it by copying a temp config with *relative* paths (e.g. to `/tmp/drizzle.rel.config.ts`), running the command from `lib/db` with `--config` pointing at the temp file, then deleting it.
 
-**Why:** drizzle-kit concatenates the CWD with the configured absolute out/schema paths, producing a broken `.//home/...` path. Hit while creating the Phase-2 seed and partial-unique-index migrations.
+**Why:** drizzle-kit concatenates the CWD with the configured absolute out/schema paths, producing a broken `.//home/...` path.
 
-**How to apply:** For ANY migration generation in this repo (plain `generate` included — confirmed during Phase 4), use the temp relative config; never edit the journal by hand. Verify afterwards that `meta/_journal.json` gained the new entry.
+**How to apply:** For ANY migration generation in this repo (plain `generate` included), use the temp relative config; never edit the journal by hand. Verify afterwards that `meta/_journal.json` gained the new entry.
+
+## Generated SQL when a historical migration lacks a snapshot
+
+**Rule:** If a table was added by an older hand-written migration that has no matching Drizzle snapshot, review newly generated SQL before applying it. Replace a duplicate `CREATE TABLE` with the equivalent safe `ALTER TABLE` for the live schema, while keeping the newly generated snapshot and journal entry for future diffs.
+
+**Why:** Drizzle can see the old snapshots as lacking the table and emit a full table creation even though the database and migration history already contain it. Applying that output would fail immediately and prevents otherwise safe additive changes.
+
+**How to apply:** Generate with the temporary relative config, compare the SQL to the last migration and live table, preserve the generated metadata that establishes the correct new schema baseline, and apply only the additive SQL that the existing table needs.
 
 ## Migration-history drift
 

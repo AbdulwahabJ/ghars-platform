@@ -145,14 +145,15 @@ function BoneGraftSummary({
 
   return (
     <div className="space-y-2">
-      <h5 className="text-sm font-bold text-foreground">زراعة العظم</h5>
+      <h5 className="text-sm font-bold text-foreground">الإجراءات الجراحية المساندة</h5>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[620px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-right text-xs text-muted-foreground">
               <th className="px-2 py-1.5 font-medium">التاريخ</th>
               <th className="px-2 py-1.5 font-medium">الموقع</th>
-              <th className="px-2 py-1.5 font-medium">النوع</th>
+              <th className="px-2 py-1.5 font-medium">الفئة والوصف</th>
+              <th className="px-2 py-1.5 font-medium">الجهة / نوع الرفع</th>
               <th className="px-2 py-1.5 font-medium">المادة</th>
               <th className="px-2 py-1.5 font-medium">الغشاء</th>
               <th className="px-2 py-1.5 font-medium">الحالة</th>
@@ -163,7 +164,8 @@ function BoneGraftSummary({
               <tr key={procedure.id} className="border-b border-border/50 last:border-0">
                 <td className="px-2 py-1.5">{formatSaudiDate(procedure.procedureDate)}</td>
                 <td className="px-2 py-1.5">{procedure.site ?? "—"}</td>
-                <td className="px-2 py-1.5">{procedure.procedureType}</td>
+                <td className="px-2 py-1.5">{procedure.procedureCategory} — {procedure.procedureType}</td>
+                <td className="px-2 py-1.5">{[procedure.procedureSide, procedure.liftType].filter(Boolean).join(" — ") || "—"}</td>
                 <td className="px-2 py-1.5">{procedure.material ?? "—"}</td>
                 <td className="px-2 py-1.5">{procedure.membrane ?? "—"}</td>
                 <td className="px-2 py-1.5">

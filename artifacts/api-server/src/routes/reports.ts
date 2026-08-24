@@ -661,7 +661,7 @@ async function buildStatisticsHub(
       GROUP BY 1 ORDER BY 1
     `),
     db.execute(sql`
-      SELECT bgp.procedure_type AS name, count(*) AS count
+      SELECT bgp.procedure_category AS name, count(*) AS count
       FROM bone_graft_procedures bgp
       JOIN implant_cases ic ON ic.id = bgp.implant_case_id
       JOIN patients p ON p.id = ic.patient_id
@@ -1061,7 +1061,7 @@ router.get("/statistics", async (req, res) => {
         GROUP BY 1 ORDER BY 2 DESC
       `),
       db.execute(sql`
-        SELECT bgp.procedure_type AS name, count(*) AS count
+        SELECT bgp.procedure_category AS name, count(*) AS count
         FROM bone_graft_procedures bgp
         JOIN implant_cases ic ON ic.id = bgp.implant_case_id
         JOIN patients p ON p.id = ic.patient_id
@@ -1179,7 +1179,7 @@ async function buildOperationalRows(
       (SELECT count(*) FROM bone_graft_procedures bgp
         WHERE bgp.implant_case_id = ic.id
           AND bgp.archived_at IS NULL) AS "boneGraftProcedureCount",
-      (SELECT COALESCE(array_agg(DISTINCT bgp.procedure_type), '{}')
+      (SELECT COALESCE(array_agg(DISTINCT bgp.procedure_category), '{}')
         FROM bone_graft_procedures bgp
         WHERE bgp.implant_case_id = ic.id
           AND bgp.archived_at IS NULL) AS "boneGraftProcedureTypes",

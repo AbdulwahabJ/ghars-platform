@@ -14,6 +14,9 @@ import {
   addCalendarMonths,
   normalizeMobile,
   splitInstallmentAmount,
+  ADJUNCT_PROCEDURE_CATEGORIES,
+  PROCEDURE_SIDES,
+  SINUS_LIFT_TYPES,
   type QuickEntryInput,
 } from "@workspace/shared";
 import { useQuickEntry } from "@/hooks/use-quick-entry";
@@ -77,11 +80,16 @@ const formSchema = z.object({
   })),
   boneGraftProcedures: z.array(z.object({
     procedureDate: z.string().optional(),
+    procedureCategory: z.enum(ADJUNCT_PROCEDURE_CATEGORIES).optional(),
     procedureType: z.string().optional(),
     implantIndex: z.string().optional(),
+    procedureSide: z.string().optional(),
+    liftType: z.string().optional(),
     site: z.string().optional(),
     material: z.string().optional(),
     membrane: z.string().optional(),
+    quantity: z.string().optional(),
+    size: z.string().optional(),
     procedureStatus: z.string().optional(),
     note: z.string().optional(),
   })),
@@ -400,6 +408,21 @@ export function InlineNewRecord({
       return;
     }
 
+    const missingSideIndex = values.boneGraftProcedures.findIndex(
+      (procedure) =>
+        procedure.procedureCategory &&
+        procedure.procedureCategory !== "زراعة عظم" &&
+        procedure.procedureType?.trim() &&
+        !procedure.procedureSide,
+    );
+    if (missingSideIndex >= 0) {
+      const path = `boneGraftProcedures.${missingSideIndex}.procedureSide` as `boneGraftProcedures.${number}.procedureSide`;
+      form.setError(path, { message: "جهة الإجراء مطلوبة لهذه الفئة." });
+      setServerError("تعذر حفظ السجل. حدد جهة الإجراء الجراحي المساند.");
+      setValidationErrors([{ path, label: `الإجراء المساند ${missingSideIndex + 1}: الجهة`, message: "الجهة مطلوبة." }]);
+      return;
+    }
+
     // Build patient input
     const patientInput: QuickEntryInput["patient"] = {
       fileNumber: values.fileNumber,
@@ -449,16 +472,22 @@ export function InlineNewRecord({
     const boneGraftProcedures: QuickEntryInput["boneGraftProcedures"] =
       values.includeCase
         ? values.boneGraftProcedures
-            .filter((procedure) => procedure.procedureType?.trim())
+            .filter((procedure) => procedure.procedureCategory && procedure.procedureType?.trim())
             .map((procedure) => ({
               procedureDate: procedure.procedureDate || today,
+              procedureCategory: procedure.procedureCategory!,
               procedureType: procedure.procedureType!.trim(),
               implantIndex: procedure.implantIndex ? Number(procedure.implantIndex) : undefined,
+              procedureSide:
+                procedure.procedureCategory === "زراعة عظم"
+                  ? null
+                  : (procedure.procedureSide || null) as "يمين" | "يسار" | null,
+              liftType: procedure.procedureCategory === "رفع الجيب الفكي" ? procedure.liftType || null : null,
               site: procedure.site || null,
               material: procedure.material || null,
               membrane: procedure.membrane || null,
-              quantity: null,
-              size: null,
+              quantity: procedure.procedureCategory === "زراعة عظم" ? procedure.quantity || null : null,
+              size: procedure.procedureCategory === "زراعة عظم" ? procedure.size || null : null,
               treatingDoctor: values.treatingDoctor || defaultDoctor,
               procedureStatus: procedure.procedureStatus || "مخطط",
               note: procedure.note || null,
@@ -954,7 +983,7 @@ export function InlineNewRecord({
               <div className="border-t border-border/60 pt-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-muted-foreground">
-                    إجراءات زراعة العظم ({boneGraftProcedureFields.length})
+                    الإجراءات الجراحية المساندة ({boneGraftProcedureFields.length})
                   </p>
                   <p className="text-[11px] text-muted-foreground">لا تؤثر في المبالغ أو الدفعات</p>
                 </div>
@@ -963,17 +992,19 @@ export function InlineNewRecord({
                     <div className="flex items-center justify-between"><p className="text-sm font-medium">إجراء {index + 1}</p><Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeBoneGraftProcedure(index)}><Trash2 className="h-3.5 w-3.5" /></Button></div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <div className="space-y-1"><Label className="text-xs">تاريخ الإجراء</Label><OperationalDatePicker value={form.watch(`boneGraftProcedures.${index}.procedureDate`) || today} onChange={(value) => form.setValue(`boneGraftProcedures.${index}.procedureDate`, value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">نوع الإجراء</Label><Input {...form.register(`boneGraftProcedures.${index}.procedureType`)} placeholder="مثال: ترقيع عظمي" /></div>
+                      <div className="space-y-1"><Label className="text-xs">فئة الإجراء *</Label><Select value={form.watch(`boneGraftProcedures.${index}.procedureCategory`) || ""} onValueChange={(value) => { form.setValue(`boneGraftProcedures.${index}.procedureCategory`, value as typeof ADJUNCT_PROCEDURE_CATEGORIES[number]); form.setValue(`boneGraftProcedures.${index}.procedureSide`, ""); form.setValue(`boneGraftProcedures.${index}.liftType`, ""); }}><SelectTrigger className="h-9"><SelectValue placeholder="اختر الفئة" /></SelectTrigger><SelectContent>{ADJUNCT_PROCEDURE_CATEGORIES.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent></Select></div>
+                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) !== "زراعة عظم" && <div className="space-y-1"><Label className="text-xs">الجهة *</Label><Select value={form.watch(`boneGraftProcedures.${index}.procedureSide`) || ""} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.procedureSide`, value)}><SelectTrigger className="h-9"><SelectValue placeholder="اختر الجهة" /></SelectTrigger><SelectContent>{PROCEDURE_SIDES.map((side) => <SelectItem key={side} value={side}>{side}</SelectItem>)}</SelectContent></Select></div>}
+                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) === "رفع الجيب الفكي" && <div className="space-y-1"><Label className="text-xs">نوع الرفع</Label><Select value={form.watch(`boneGraftProcedures.${index}.liftType`) || "__none__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.liftType`, value === "__none__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__none__">غير محدد</SelectItem>{SINUS_LIFT_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
+                      <div className="space-y-1"><Label className="text-xs">وصف الإجراء *</Label><Input {...form.register(`boneGraftProcedures.${index}.procedureType`)} placeholder="الوصف السريري للإجراء" /></div>
                       <div className="space-y-1"><Label className="text-xs">الزرعة المرتبطة</Label><Select value={form.watch(`boneGraftProcedures.${index}.implantIndex`) || "__case__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.implantIndex`, value === "__case__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__case__">إجراء للحالة كاملة</SelectItem>{implantFields.map((implant, implantIndex) => <SelectItem key={implant.id} value={String(implantIndex)}>زرعة {implantIndex + 1}{form.watch(`implants.${implantIndex}.site`) ? ` — السن ${form.watch(`implants.${implantIndex}.site`)}` : ""}</SelectItem>)}</SelectContent></Select></div>
                       <div className="space-y-1"><Label className="text-xs">الموضع</Label><Input {...form.register(`boneGraftProcedures.${index}.site`)} placeholder="مثال: المنطقة الخلفية" /></div>
-                      <div className="space-y-1"><Label className="text-xs">المادة</Label><Input {...form.register(`boneGraftProcedures.${index}.material`)} placeholder="مثال: Bio-Oss / عظم ذاتي" /></div>
-                      <div className="space-y-1"><Label className="text-xs">الغشاء</Label><Input {...form.register(`boneGraftProcedures.${index}.membrane`)} placeholder="مثال: غشاء كولاجين" /></div>
+                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) === "زراعة عظم" && <><div className="space-y-1"><Label className="text-xs">المادة</Label><Input {...form.register(`boneGraftProcedures.${index}.material`)} placeholder="مثال: Bio-Oss / عظم ذاتي" /></div><div className="space-y-1"><Label className="text-xs">الغشاء</Label><Input {...form.register(`boneGraftProcedures.${index}.membrane`)} placeholder="مثال: غشاء كولاجين" /></div><div className="space-y-1"><Label className="text-xs">الكمية</Label><Input {...form.register(`boneGraftProcedures.${index}.quantity`)} /></div><div className="space-y-1"><Label className="text-xs">المقاس</Label><Input {...form.register(`boneGraftProcedures.${index}.size`)} /></div></>}
                       <div className="space-y-1"><Label className="text-xs">حالة الإجراء</Label><Input {...form.register(`boneGraftProcedures.${index}.procedureStatus`)} placeholder="مثال: تم / تحت المتابعة" /></div>
                       <div className="space-y-1 sm:col-span-2"><Label className="text-xs">ملاحظة</Label><Input {...form.register(`boneGraftProcedures.${index}.note`)} /></div>
                     </div>
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="sm" onClick={() => appendBoneGraftProcedure({ procedureDate: today, procedureType: "", implantIndex: "", site: "", material: "", membrane: "", procedureStatus: "مخطط", note: "" })} data-testid="qe-add-bone-graft-procedure"><Plus className="h-3.5 w-3.5" />إضافة إجراء زراعة عظم</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => appendBoneGraftProcedure({ procedureDate: today, procedureCategory: "زراعة عظم", procedureType: "", implantIndex: "", procedureSide: "", liftType: "", site: "", material: "", membrane: "", quantity: "", size: "", procedureStatus: "مخطط", note: "" })} data-testid="qe-add-bone-graft-procedure"><Plus className="h-3.5 w-3.5" />إضافة إجراء مساند</Button>
               </div>
             </div>
           )}

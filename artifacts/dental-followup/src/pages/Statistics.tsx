@@ -268,7 +268,7 @@ export default function Statistics() {
             <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
               <Kpi title="حالات الزراعة" value={hub.overview.cases} hint="ضمن الفترة والفلاتر" />
               <Kpi title="الزرعات" value={hub.overview.implants} hint={`${hub.overview.systems} أنظمة مستخدمة`} />
-              <Kpi title="إجراءات زراعة العظم" value={hub.overview.boneGraftProcedures} hint="سجلات سريرية نشطة" />
+               <Kpi title="الإجراءات الجراحية المساندة" value={hub.overview.boneGraftProcedures} hint="سجلات سريرية نشطة" />
               <Kpi title="التركيبات" value={hub.overview.prostheticEvents} hint={`${hub.overview.prostheticPatients} مرضى`} />
               <Kpi title="متابعات متأخرة" value={hub.overview.overdueFollowups} hint="تحتاج مراجعة" tone="warning" />
               <Kpi
@@ -325,9 +325,9 @@ export default function Statistics() {
             </section>
 
             <section className="space-y-3">
-              <div className="flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /><h2 className="font-semibold">إجراءات زراعة العظم</h2></div>
+               <div className="flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /><h2 className="font-semibold">الإجراءات الجراحية المساندة</h2></div>
               <div className="grid gap-4 lg:grid-cols-3">
-                <ChartFrame title="إجراءات زراعة العظم عبر الزمن">
+                 <ChartFrame title="الإجراءات الجراحية المساندة عبر الزمن">
                   {hub.boneGraftProcedures.overTime.length === 0 ? <EmptyChart /> : (
                     <ResponsiveContainer width="100%" height="100%"><LineChart data={hub.boneGraftProcedures.overTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} /><Tooltip /><Line type="monotone" dataKey="count" name="إجراءات" stroke="#7c5b2b" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer>
                   )}

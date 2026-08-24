@@ -5,63 +5,40 @@ import type {
   Implant,
   ImplantCaseWithImplants,
 } from "@workspace/shared";
+import {
+  ADJUNCT_PROCEDURE_CATEGORIES,
+  PROCEDURE_SIDES,
+  SINUS_LIFT_TYPES,
+} from "@workspace/shared";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  OperationalDatePicker,
-  todayInRiyadh,
-} from "@/components/dashboard/OperationalDatePicker";
+import { OperationalDatePicker, todayInRiyadh } from "@/components/dashboard/OperationalDatePicker";
 import { FieldLabel } from "./FieldLabel";
-import {
-  useCreateBoneGraftProcedure,
-  useImplantOptions,
-  useUpdateBoneGraftProcedure,
-} from "@/hooks/use-implant-cases";
+import { useCreateBoneGraftProcedure, useImplantOptions, useUpdateBoneGraftProcedure } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
 
 const CASE_LEVEL = "__case_level__";
 
 export function BoneGraftProcedureDialog({
-  open,
-  onOpenChange,
-  patientId,
-  caseItem,
-  procedure,
-  onSuccess,
+  open, onOpenChange, patientId, caseItem, procedure, onSuccess,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  patientId: string;
-  caseItem: ImplantCaseWithImplants;
-  procedure?: BoneGraftProcedure | null;
-  onSuccess?: () => void;
+  open: boolean; onOpenChange: (open: boolean) => void; patientId: string;
+  caseItem: ImplantCaseWithImplants; procedure?: BoneGraftProcedure | null; onSuccess?: () => void;
 }) {
   const { toast } = useToast();
   const { data: options } = useImplantOptions();
   const createProcedure = useCreateBoneGraftProcedure();
   const updateProcedure = useUpdateBoneGraftProcedure();
-  const activeImplants = caseItem.implants.filter(
-    (implant) => implant.status === "active",
-  );
+  const activeImplants = caseItem.implants.filter((implant) => implant.status === "active");
   const isEditing = Boolean(procedure);
   const [procedureDate, setProcedureDate] = useState(procedure?.procedureDate ?? todayInRiyadh);
+  const [procedureCategory, setProcedureCategory] = useState<BoneGraftProcedureInput["procedureCategory"]>(procedure?.procedureCategory ?? "زراعة عظم");
   const [procedureType, setProcedureType] = useState(procedure?.procedureType ?? "");
+  const [procedureSide, setProcedureSide] = useState(procedure?.procedureSide ?? "");
+  const [liftType, setLiftType] = useState(procedure?.liftType ?? "");
   const [implantId, setImplantId] = useState(procedure?.implantId ?? CASE_LEVEL);
   const [site, setSite] = useState(procedure?.site ?? "");
   const [material, setMaterial] = useState(procedure?.material ?? "");
@@ -71,91 +48,65 @@ export function BoneGraftProcedureDialog({
   const [treatingDoctor, setTreatingDoctor] = useState(procedure?.treatingDoctor ?? caseItem.treatingDoctor);
   const [procedureStatus, setProcedureStatus] = useState(procedure?.procedureStatus ?? "مخطط");
   const [note, setNote] = useState(procedure?.note ?? "");
+  const needsSide = procedureCategory !== "زراعة عظم";
+  const isBoneGraft = procedureCategory === "زراعة عظم";
 
+  const changeCategory = (value: BoneGraftProcedureInput["procedureCategory"]) => {
+    setProcedureCategory(value);
+    setProcedureSide("");
+    setLiftType("");
+    if (value !== "زراعة عظم") {
+      setMaterial("");
+      setMembrane("");
+      setQuantity("");
+      setSize("");
+    }
+  };
   const submit = () => {
-    if (!procedureDate || !procedureType.trim() || !treatingDoctor.trim()) {
-      toast({
-        variant: "destructive",
-        title: "أدخل التاريخ والنوع والطبيب المعالج.",
-      });
+    if (!procedureDate || !procedureType.trim() || !treatingDoctor.trim() || (needsSide && !procedureSide)) {
+      toast({ variant: "destructive", title: "أدخل التاريخ والفئة والوصف والطبيب وجهة الإجراء عند الحاجة." });
       return;
     }
     const data: BoneGraftProcedureInput = {
-      implantId: implantId === CASE_LEVEL ? null : implantId,
-      procedureDate,
-      procedureType,
-      site: site || null,
-      material: material || null,
-      membrane: membrane || null,
-      quantity: quantity || null,
-      size: size || null,
-      treatingDoctor,
-      procedureStatus,
-      note: note || null,
+      implantId: implantId === CASE_LEVEL ? null : implantId, procedureDate, procedureCategory,
+      procedureType: procedureType.trim(), procedureSide: needsSide ? procedureSide as "يمين" | "يسار" : null,
+      liftType: procedureCategory === "رفع الجيب الفكي" ? liftType || null : null,
+      site: site || null, material: isBoneGraft ? material || null : null,
+      membrane: isBoneGraft ? membrane || null : null, quantity: isBoneGraft ? quantity || null : null,
+      size: isBoneGraft ? size || null : null, treatingDoctor, procedureStatus, note: note || null,
     };
-    const mutation = isEditing
-      ? updateProcedure.mutate(
-          { id: procedure!.id, patientId, data },
-          {
-            onSuccess: () => {
-              toast({ title: "تم تعديل سجل زراعة العظم" });
-              onSuccess?.();
-              onOpenChange(false);
-            },
-            onError: (error: Error) =>
-              toast({
-                variant: "destructive",
-                title: "تعذر تعديل السجل",
-                description: error.message,
-              }),
-          },
-        )
-      : createProcedure.mutate(
-          { caseId: caseItem.id, patientId, data },
-          {
-            onSuccess: () => {
-              toast({ title: "تم توثيق إجراء زراعة العظم" });
-              onSuccess?.();
-              onOpenChange(false);
-            },
-            onError: (error: Error) =>
-              toast({
-                variant: "destructive",
-                title: "تعذر توثيق الإجراء",
-                description: error.message,
-              }),
-          },
-        );
-    void mutation;
+    const callbacks = {
+      onSuccess: () => {
+        toast({ title: isEditing ? "تم تعديل سجل الإجراءات الجراحية المساندة" : "تم توثيق إجراء جراحي مساند" });
+        onSuccess?.(); onOpenChange(false);
+      },
+      onError: (error: Error) => toast({ variant: "destructive", title: isEditing ? "تعذر تعديل السجل" : "تعذر توثيق الإجراء", description: error.message }),
+    };
+    if (isEditing) updateProcedure.mutate({ id: procedure!.id, patientId, data }, callbacks);
+    else createProcedure.mutate({ caseId: caseItem.id, patientId, data }, callbacks);
   };
   const isPending = createProcedure.isPending || updateProcedure.isPending;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg text-right" dir="rtl">
         <DialogHeader className="text-right">
-          <DialogTitle>{isEditing ? "تعديل إجراء زراعة العظم" : "إضافة إجراء زراعة عظم"}</DialogTitle>
-          <DialogDescription className="text-right">
-            سجل سريري مستقل؛ لا يغير إجمالي العلاج أو التحصيل.
-          </DialogDescription>
+          <DialogTitle>{isEditing ? "تعديل إجراء جراحي مساند" : "إضافة إجراء جراحي مساند"}</DialogTitle>
+          <DialogDescription className="text-right">سجل سريري مستقل؛ لا يغير إجمالي العلاج أو التحصيل.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 py-2 sm:grid-cols-2">
           <div className="space-y-1.5"><FieldLabel label="تاريخ الإجراء" /><OperationalDatePicker value={procedureDate} onChange={setProcedureDate} /></div>
-          <div className="space-y-1.5"><FieldLabel label="نوع الإجراء" /><Select value={procedureType} onValueChange={setProcedureType}><SelectTrigger><SelectValue placeholder="اختر أو أدخل من القائمة" /></SelectTrigger><SelectContent dir="rtl">{options?.boneGraftProcedureTypes.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select><Input className="mt-1" value={procedureType} onChange={(event) => setProcedureType(event.target.value)} placeholder="نوع مخصص" /></div>
+          <div className="space-y-1.5"><FieldLabel label="فئة الإجراء *" /><Select value={procedureCategory} onValueChange={(value) => changeCategory(value as BoneGraftProcedureInput["procedureCategory"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent dir="rtl">{ADJUNCT_PROCEDURE_CATEGORIES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+          {needsSide && <div className="space-y-1.5"><FieldLabel label="الجهة *" /><Select value={procedureSide} onValueChange={setProcedureSide}><SelectTrigger><SelectValue placeholder="اختر الجهة" /></SelectTrigger><SelectContent dir="rtl">{PROCEDURE_SIDES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>}
+          {procedureCategory === "رفع الجيب الفكي" && <div className="space-y-1.5"><FieldLabel label="نوع الرفع (اختياري)" /><Select value={liftType || "__none__"} onValueChange={(value) => setLiftType(value === "__none__" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent dir="rtl"><SelectItem value="__none__">غير محدد</SelectItem>{SINUS_LIFT_TYPES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>}
           <div className="space-y-1.5"><FieldLabel label="الزرعة المرتبطة (اختياري)" /><Select value={implantId} onValueChange={setImplantId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent dir="rtl"><SelectItem value={CASE_LEVEL}>إجراء للحالة كاملة</SelectItem>{activeImplants.map((implant: Implant) => <SelectItem key={implant.id} value={implant.id}>السن {implant.site}{implant.system ? ` — ${implant.system}` : ""}</SelectItem>)}</SelectContent></Select></div>
+          <div className="space-y-1.5"><FieldLabel label="وصف الإجراء *" /><Input value={procedureType} onChange={(event) => setProcedureType(event.target.value)} placeholder="الوصف السريري للإجراء" /></div>
           <div className="space-y-1.5"><FieldLabel label="الموضع (اختياري)" /><Input value={site} onChange={(event) => setSite(event.target.value)} /></div>
-           <div className="space-y-1.5"><FieldLabel label="المادة (اختياري)" /><Input value={material} onChange={(event) => setMaterial(event.target.value)} placeholder="مثال: Bio-Oss / عظم ذاتي" /></div>
-           <div className="space-y-1.5"><FieldLabel label="الغشاء (اختياري)" /><Input value={membrane} onChange={(event) => setMembrane(event.target.value)} placeholder="مثال: غشاء كولاجين" /></div>
-          <div className="space-y-1.5"><FieldLabel label="الكمية (اختياري)" /><Input value={quantity} onChange={(event) => setQuantity(event.target.value)} /></div>
-          <div className="space-y-1.5"><FieldLabel label="المقاس (اختياري)" /><Input value={size} onChange={(event) => setSize(event.target.value)} /></div>
-          <div className="space-y-1.5"><FieldLabel label="الطبيب المعالج" /><Input value={treatingDoctor} onChange={(event) => setTreatingDoctor(event.target.value)} /></div>
-           <div className="space-y-1.5"><FieldLabel label="حالة الإجراء" /><Input value={procedureStatus} onChange={(event) => setProcedureStatus(event.target.value)} placeholder="مثال: تم / تحت المتابعة" /></div>
+          {isBoneGraft && <><div className="space-y-1.5"><FieldLabel label="المادة (اختياري)" /><Input value={material} onChange={(event) => setMaterial(event.target.value)} /></div><div className="space-y-1.5"><FieldLabel label="الغشاء (اختياري)" /><Input value={membrane} onChange={(event) => setMembrane(event.target.value)} /></div><div className="space-y-1.5"><FieldLabel label="الكمية (اختياري)" /><Input value={quantity} onChange={(event) => setQuantity(event.target.value)} /></div><div className="space-y-1.5"><FieldLabel label="المقاس (اختياري)" /><Input value={size} onChange={(event) => setSize(event.target.value)} /></div></>}
+          <div className="space-y-1.5"><FieldLabel label="الطبيب المعالج *" /><Input value={treatingDoctor} onChange={(event) => setTreatingDoctor(event.target.value)} /></div>
+          <div className="space-y-1.5"><FieldLabel label="حالة الإجراء" /><Input value={procedureStatus} onChange={(event) => setProcedureStatus(event.target.value)} /></div>
           <div className="space-y-1.5 sm:col-span-2"><FieldLabel label="ملاحظة (اختيارية)" /><Textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={2000} /></div>
         </div>
-        <DialogFooter className="flex-row gap-3 sm:justify-start">
-          <Button className="btn-primary" onClick={submit} disabled={isPending}>{isPending ? "جارٍ الحفظ..." : "حفظ"}</Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
-        </DialogFooter>
+        <DialogFooter className="flex-row gap-3 sm:justify-start"><Button className="btn-primary" onClick={submit} disabled={isPending}>{isPending ? "جارٍ الحفظ..." : "حفظ"}</Button><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

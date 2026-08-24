@@ -25,7 +25,14 @@ export const boneGraftProceduresTable = pgTable(
       .references(() => implantCasesTable.id),
     implantId: uuid("implant_id").references(() => implantsTable.id),
     procedureDate: date("procedure_date", { mode: "string" }).notNull(),
+    /**
+     * Canonical clinical classification. procedureType remains the
+     * backward-compatible free-text description used by historical graft rows.
+     */
+    procedureCategory: text("procedure_category").notNull().default("زراعة عظم"),
     procedureType: text("procedure_type").notNull(),
+    procedureSide: text("procedure_side"),
+    liftType: text("lift_type"),
     site: text("site"),
     material: text("material"),
     membrane: text("membrane"),
@@ -50,6 +57,7 @@ export const boneGraftProceduresTable = pgTable(
       table.procedureDate,
     ),
     index("IDX_bone_graft_procedures_date").on(table.procedureDate),
+    index("IDX_bone_graft_procedures_category").on(table.procedureCategory),
   ],
 );
 

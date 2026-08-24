@@ -311,7 +311,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
       }
 
-      // --- 7. Canonical bone-graft procedures (valid even with zero implants) ---
+      // --- 7. Canonical adjunct procedures (valid even with zero implants) ---
       const boneGraftProcedureRows: BoneGraftProcedureRow[] = [];
       for (const procedureInput of input.boneGraftProcedures) {
         const { implantIndex, ...procedure } = procedureInput;
@@ -321,7 +321,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
           throw {
             __quick_entry_conflict: true,
             code: "BONE_GRAFT_PROCEDURE_IMPLANT_INVALID",
-            error: "الزرعة المرتبطة بإجراء زراعة العظم غير موجودة في هذا الإدخال.",
+            error: "الزرعة المرتبطة بالإجراء الجراحي غير موجودة في هذا الإدخال.",
           };
         }
         const [procedureRow] = await tx
@@ -341,7 +341,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
             action: "bone_graft_procedure_create",
             entityType: "bone_graft_procedure",
             entityId: procedureRow.id,
-            summary: `توثيق إجراء زراعة عظم: ${procedureRow.procedureType} عبر الإدخال السريع`,
+            summary: `توثيق إجراء جراحي مساند: ${procedureRow.procedureCategory} عبر الإدخال السريع`,
           },
           tx,
         );
@@ -466,7 +466,10 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         implantCaseId: row.implantCaseId,
         implantId: row.implantId,
         procedureDate: row.procedureDate,
+        procedureCategory: row.procedureCategory as BoneGraftProcedure["procedureCategory"],
         procedureType: row.procedureType,
+        procedureSide: row.procedureSide as BoneGraftProcedure["procedureSide"],
+        liftType: row.liftType,
         site: row.site,
         material: row.material,
         membrane: row.membrane,

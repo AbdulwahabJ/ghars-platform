@@ -9,6 +9,7 @@ import {
 import { followupInputSchema, followupSchema } from "./followups";
 import {
   boneGraftProcedureInputSchema,
+  boneGraftProcedureInputFields,
   boneGraftProcedureSchema,
 } from "./bone-graft-procedures";
 
@@ -44,11 +45,27 @@ export const quickEntryInputSchema = z.object({
    */
   boneGraftProcedures: z
     .array(
-      boneGraftProcedureInputSchema
+      boneGraftProcedureInputFields
         .extend({
           implantIndex: z.number().int().min(0).max(19).optional(),
         })
-        .transform(({ implantId: _ignored, ...procedure }) => procedure),
+        .transform(({ implantId: _ignored, ...procedure }) => procedure)
+        .superRefine((procedure, context) => {
+          if (
+            (procedure.procedureCategory === "رفع الجيب الفكي" ||
+              procedure.procedureCategory === "إبعاد / نقل العصب السنخي السفلي") &&
+            !procedure.procedureSide
+          ) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["procedureSide"],
+              message:
+                procedure.procedureCategory === "رفع الجيب الفكي"
+                  ? "حدد جهة رفع الجيب الفكي."
+                  : "حدد جهة إجراء العصب.",
+            });
+          }
+        }),
     )
     .max(20)
     .default([]),
