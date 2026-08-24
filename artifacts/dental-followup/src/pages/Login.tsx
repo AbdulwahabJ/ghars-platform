@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import clinicLogo from "@/assets/clinic-logo.jpeg";
+import clinicLogo from "@/assets/clinic-login-logo.png";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
