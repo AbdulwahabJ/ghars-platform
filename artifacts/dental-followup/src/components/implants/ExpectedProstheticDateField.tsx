@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
-import { addMonthsToIsoDate } from "@/lib/datetime";
+import { formatSaudiDate, addMonthsToIsoDate } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
+import { CalendarDays } from "lucide-react";
 
 export const EXPECTED_DATE_CUSTOM = "CUSTOM";
 
@@ -65,6 +66,9 @@ export function ExpectedProstheticDateField({
   }, [duration, expectedDate, procedureDate]);
 
   const missingProcedureDate = duration !== EXPECTED_DATE_CUSTOM && !procedureDate;
+  const automaticDate = procedureDate
+    ? addMonthsToIsoDate(procedureDate, monthsForDuration(duration) ?? 0)
+    : "";
 
   return (
     <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3 sm:col-span-2", className)}>
@@ -113,15 +117,35 @@ export function ExpectedProstheticDateField({
 
       <div className="space-y-1.5">
         <Label htmlFor={`${idPrefix}-date`}>تاريخ التركيب المتوقع</Label>
-        <OperationalDatePicker
-          id={`${idPrefix}-date`}
-          value={expectedDate}
-          onChange={(value) => {
-            setDuration(EXPECTED_DATE_CUSTOM);
-            onExpectedDateChange(value);
-          }}
-          className={compact ? "h-8" : undefined}
-        />
+        {duration === EXPECTED_DATE_CUSTOM ? (
+          <OperationalDatePicker
+            id={`${idPrefix}-date`}
+            value={expectedDate}
+            onChange={(value) => {
+              setDuration(EXPECTED_DATE_CUSTOM);
+              onExpectedDateChange(value);
+            }}
+            className={compact ? "h-8" : "h-[46px] rounded-[10px]"}
+          />
+        ) : (
+          <div
+            id={`${idPrefix}-date`}
+            role="textbox"
+            aria-readonly="true"
+            aria-label="تاريخ التركيب المتوقع المحسوب"
+            className={cn(
+              "flex w-full items-center justify-between gap-2 border border-input bg-muted/40 px-2.5 text-sm",
+              compact ? "h-8 rounded-md" : "h-[46px] rounded-[10px]",
+              !automaticDate && "text-muted-foreground",
+            )}
+            data-testid={`${idPrefix}-calculated-date`}
+          >
+            <span className="truncate">
+              {automaticDate ? formatSaudiDate(automaticDate) : "سيظهر بعد تحديد تاريخ العملية"}
+            </span>
+            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          </div>
+        )}
       </div>
 
       {missingProcedureDate && (

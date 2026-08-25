@@ -1,0 +1,398 @@
+MODE: Power
+
+Simplify the Ghars Settings area and update the product's commercial model.
+
+Ghars will now be sold as a ONE-TIME PURCHASE / LICENSE.
+
+There will be:
+
+- NO monthly subscriptions
+- NO annual subscriptions
+- NO pricing tiers
+- NO Basic / Pro / Enterprise plans
+- NO recurring subscription billing
+- NO plan-based feature restrictions
+
+Do not build or maintain unnecessary subscription architecture.
+
+==================================================
+1. SETTINGS TABS — REMOVE
+==================================================
+
+From the current Settings page, REMOVE these tabs from the UI:
+
+- إعدادات النظام
+- قوالب واتساب
+- استيراد البيانات
+
+Keep the useful existing sections such as:
+
+- المستخدمون
+- القوائم
+- سجل النشاط
+- تصدير البيانات
+
+Preserve the current Settings layout and visual design.
+
+Do NOT redesign the Settings page.
+
+==================================================
+2. SYSTEM SETTINGS
+==================================================
+
+Remove the visible:
+
+إعدادات النظام
+
+section/tab from Settings.
+
+Before deleting code, inspect whether anything important elsewhere depends on this page.
+
+If this page contains configuration required internally by the application:
+
+do NOT break that functionality.
+
+Remove the unnecessary Admin UI while preserving required internal configuration.
+
+Only delete routes/components if they are truly unused and safe to remove.
+
+==================================================
+3. WHATSAPP TEMPLATES
+==================================================
+
+Remove:
+
+قوالب واتساب
+
+from Settings.
+
+IMPORTANT:
+
+This does NOT mean removing normal WhatsApp communication functionality if the system currently uses it.
+
+Preserve any existing useful functionality such as:
+
+- opening WhatsApp
+- patient communication records
+- communication logs
+- wa.me links
+
+Only remove the dedicated WhatsApp Templates management section.
+
+Do not break existing patient communication workflows.
+
+==================================================
+4. DATA IMPORT
+==================================================
+
+Remove:
+
+استيراد البيانات
+
+from Settings.
+
+Do NOT remove:
+
+تصدير البيانات
+
+Export functionality must remain working.
+
+If the import page has a dedicated route/component/API used nowhere else, it may be removed after verifying that no other workflow depends on it.
+
+Do not remove shared parsing/utilities if they are used elsewhere.
+
+==================================================
+5. SETTINGS FINAL STRUCTURE
+==================================================
+
+The Settings navigation should now be cleaner.
+
+Preferred visible structure:
+
+المستخدمون
+
+القوائم
+
+سجل النشاط
+
+تصدير البيانات
+
+Keep the current RTL order/design consistent with the existing application.
+
+Do not create empty placeholders for removed sections.
+
+==================================================
+6. COMMERCIAL MODEL CHANGE
+==================================================
+
+Ghars is now a ONE-TIME PURCHASE product.
+
+Remove/avoid commercial concepts such as:
+
+- Subscription
+- Monthly plan
+- Annual plan
+- Billing cycle
+- Trial plan
+- Pricing tiers
+- Basic
+- Pro
+- Enterprise
+- Upgrade plan
+- Downgrade plan
+- Renew subscription
+- subscription expiration
+
+Do not introduce these concepts anywhere in the product.
+
+==================================================
+7. PRICING PLANS
+==================================================
+
+If the previously discussed dynamic Pricing Plans system has NOT been implemented yet:
+
+DO NOT IMPLEMENT IT.
+
+We no longer need:
+
+- pricing_plans
+- plan_features
+- monthly_price
+- annual_price
+- featured plan
+- pricing tier Admin management
+
+Do not create these tables or features.
+
+==================================================
+8. IF PRICING PLAN CODE ALREADY EXISTS
+==================================================
+
+Inspect the project first.
+
+If pricing/subscription code was already partially implemented:
+
+remove it from the user-facing and Admin UI.
+
+Do NOT immediately drop database tables or perform destructive migrations unless you confirm they are unused.
+
+Prefer:
+
+1. remove unused UI/routes
+2. remove unused API usage
+3. verify no dependencies
+4. only remove schema in a safe migration if it is clearly unnecessary and contains no needed data
+
+Never risk the existing application data just to clean unused pricing code.
+
+==================================================
+9. LANDING PAGE COMMERCIAL POSITIONING
+==================================================
+
+For the future Ghars Landing Page:
+
+Do NOT show pricing cards such as:
+
+Basic
+Pro
+Enterprise
+
+Instead use a simple one-time purchase positioning.
+
+Preferred section:
+
+امتلك نظام غرس
+
+Example supporting text:
+
+حل متكامل لإدارة ومتابعة حالات زراعة الأسنان بدون اشتراكات شهرية أو سنوية.
+
+Primary CTA:
+
+اطلب عرض سعر
+
+or:
+
+تواصل معنا للشراء
+
+Do NOT build this Landing Page now unless it is already part of the current task.
+
+This instruction defines the commercial direction for later.
+
+==================================================
+10. ONE-TIME PRICE
+==================================================
+
+Do NOT hard-code a public one-time price unless one has already been approved.
+
+For now, prefer:
+
+اطلب عرض سعر
+
+This allows the commercial price to be decided per sale without changing the application.
+
+If a public one-time price is added later, it should be configurable rather than scattered through frontend code.
+
+==================================================
+11. LICENSE VS SUBSCRIPTION
+==================================================
+
+Do NOT implement recurring subscription enforcement.
+
+If licensing is needed later, it should be treated as a separate ONE-TIME LICENSE mechanism.
+
+Do not build license-key complexity in this task.
+
+For now:
+
+the application's existing authentication/users/permissions should continue normally.
+
+==================================================
+12. DO NOT TOUCH
+==================================================
+
+Do NOT modify:
+
+- Dashboard
+- Operational Table
+- Patients
+- Patient File
+- Patient Procedures
+- Follow-ups
+- Implants
+- Adjunct surgical procedures
+- Prosthetic workflow
+- Finance calculations
+- Statistics
+- Authentication
+- Password recovery
+- user permissions
+- canonical clinical data
+
+This task is only:
+
+A. Settings cleanup
+B. Removal/avoidance of subscription/pricing-plan concepts
+
+==================================================
+13. ROUTE CLEANUP
+==================================================
+
+After removing the three Settings sections:
+
+check for obsolete routes.
+
+If a user manually visits an old removed route:
+
+redirect safely back to:
+
+الإعدادات
+
+or the first valid Settings tab.
+
+Do not leave broken blank pages or 404s inside the authenticated application.
+
+==================================================
+14. PERMISSIONS CLEANUP
+==================================================
+
+If dedicated permissions exist ONLY for:
+
+- System Settings
+- WhatsApp Templates
+- Data Import
+
+inspect whether they are now unused.
+
+Do not leave confusing permission toggles visible to Admin if the corresponding feature no longer exists.
+
+Remove obsolete permission UI safely.
+
+Do NOT modify unrelated permissions.
+
+==================================================
+15. UI CLEANUP
+==================================================
+
+After removing the tabs:
+
+rebalance the Settings tab spacing.
+
+Do not leave large gaps.
+
+Do not add replacement sections just to fill space.
+
+The Settings page should feel intentionally simple and clean.
+
+==================================================
+16. TESTS
+==================================================
+
+Verify:
+
+A. Settings page loads normally.
+
+B. المستخدمون works.
+
+C. القوائم works.
+
+D. سجل النشاط works.
+
+E. تصدير البيانات works.
+
+F. إعدادات النظام is no longer visible.
+
+G. قوالب واتساب is no longer visible.
+
+H. استيراد البيانات is no longer visible.
+
+I. Old removed routes do not produce broken pages.
+
+J. WhatsApp patient communication still works if currently implemented.
+
+K. Export still works.
+
+L. No clinical workflow is affected.
+
+M. No subscription/plan UI remains if it was previously added.
+
+==================================================
+17. TECHNICAL VERIFICATION
+==================================================
+
+Run:
+
+- affected frontend TypeScript
+- affected backend TypeScript if applicable
+- lint
+- focused Settings tests
+- production build
+
+Check:
+
+- no broken imports
+- no dead navigation links
+- no console errors
+- no permission errors
+- no broken Settings routes
+
+==================================================
+18. FINAL REPORT
+==================================================
+
+Report briefly:
+
+1. Settings tabs removed
+2. remaining Settings tabs
+3. routes removed/redirected
+4. whether unused APIs/components were removed
+5. whether any subscription/pricing implementation already existed
+6. what was done with it
+7. confirmation that WhatsApp communication itself was preserved
+8. confirmation that Export remains working
+9. tests/build results
+10. exact checkpoint commit hash
+
+Do not publish.
+
+Create a stable checkpoint and stop.
