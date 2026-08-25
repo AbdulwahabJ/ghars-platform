@@ -48,6 +48,7 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
 
   --font-sans: var(--app-font-sans);
+  --font-brand-arabic: var(--app-font-arabic);
   --font-brand-latin: var(--app-font-latin);
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -118,6 +119,7 @@
   --ring: 175 77% 26%;
 
   --app-font-sans: 'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', sans-serif;
+  --app-font-arabic: 'Cairo', sans-serif;
   --app-font-latin: 'Montserrat', ui-sans-serif, sans-serif;
   --radius: 10px;
 }
@@ -139,6 +141,10 @@
 @layer components {
   .font-brand-latin {
     font-family: var(--app-font-latin);
+  }
+
+  .font-brand-arabic {
+    font-family: var(--app-font-arabic);
   }
 
   .hero-portrait-composition {

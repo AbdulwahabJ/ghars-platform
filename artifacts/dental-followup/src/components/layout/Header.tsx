@@ -88,7 +88,9 @@ export function Header({ user }: HeaderProps) {
           <span className="font-semibold text-lg text-brand-navy tracking-tight hidden sm:block">
             {displaySystemName?.includes(" | ") ? (
               <span dir="ltr" className="inline-flex items-baseline text-left">
-                <span dir="rtl">{displaySystemName.split(" | ")[0]}</span>
+                <span dir="rtl" className="font-brand-arabic">
+                  {displaySystemName.split(" | ")[0]}
+                </span>
                 <span className="mx-1 text-brand-blue-gray"> | </span>
                 <span className="font-brand-latin text-[0.9em]">
                   {displaySystemName.split(" | ")[1]}
