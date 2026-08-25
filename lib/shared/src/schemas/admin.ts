@@ -112,7 +112,7 @@ export type AppSettingKey = (typeof APP_SETTING_KEYS)[number];
 
 export const APP_SETTINGS_DEFAULTS = {
   clinicName: "مجمع السن الرقمي الطبي",
-  systemName: "نظام متابعة زراعة الأسنان – د. همام",
+  systemName: "غرس | Ghars",
   defaultTreatingDoctor: "د. همام",
   clinicPhone: null as string | null,
   clinicAddress: null as string | null,

@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useNotifications } from "@/hooks/use-followups";
 import { useAppSettings } from "@/hooks/use-settings";
 import { formatSaudiDateTime } from "@/lib/datetime";
-import clinicLogo from "@/assets/clinic-logo.jpeg";
+import gharsSymbol from "@/assets/ghars-symbol.png";
 
 interface HeaderProps {
   user: PublicUser;
@@ -38,6 +38,10 @@ export function Header({ user }: HeaderProps) {
   const { data: notifications } = useNotifications();
   const notificationItems = notifications?.items ?? [];
   const notificationCount = notifications?.totalCount ?? 0;
+  const displaySystemName =
+    settings.systemName === "نظام متابعة زراعة الأسنان – د. همام"
+      ? "غرس | Ghars"
+      : settings.systemName;
 
   const roleName =
     user.role === "ADMIN"
@@ -74,15 +78,25 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40 print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Right: Logo & Name (admin-configurable via app settings) */}
+        {/* Right: Existing logo slot & Ghars brand name */}
         <div className="flex items-center gap-3">
           <img
-            src={settings.clinicLogo ?? clinicLogo}
-            alt="Clinic Logo"
+            src={settings.clinicLogo ?? gharsSymbol}
+            alt="شعار غرس"
             className="h-11 w-10 rounded-md object-contain"
           />
-          <span className="font-bold text-lg text-foreground hidden sm:block">
-            {settings.systemName}
+          <span className="font-semibold text-lg text-brand-navy tracking-tight hidden sm:block">
+            {displaySystemName?.includes(" | ") ? (
+              <span dir="ltr" className="inline-flex items-baseline text-left">
+                <span dir="rtl">{displaySystemName.split(" | ")[0]}</span>
+                <span className="mx-1 text-brand-blue-gray"> | </span>
+                <span className="font-brand-latin text-[0.9em]">
+                  {displaySystemName.split(" | ")[1]}
+                </span>
+              </span>
+            ) : (
+              displaySystemName
+            )}
           </span>
         </div>
 

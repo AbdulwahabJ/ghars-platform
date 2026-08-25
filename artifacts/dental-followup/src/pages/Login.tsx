@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import clinicLogo from "@/assets/clinic-login-logo.png";
+import gharsLogo from "@/assets/ghars-logo.png";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -60,12 +60,17 @@ export default function Login() {
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/5 rounded-tr-full pointer-events-none" />
         
         <div className="flex flex-col items-center mb-8 relative z-10">
-          <img src={clinicLogo} alt="Clinic Logo" className="h-20 w-18 rounded-lg object-contain mb-4" />
+          <img src={gharsLogo} alt="شعار غرس" className="h-24 w-20 object-contain mb-4" />
           <h1 className="text-2xl font-bold text-foreground text-center">
             تسجيل الدخول
           </h1>
           <p className="text-muted-foreground text-center mt-2 text-sm">
-            نظام متابعة زراعة الأسنان – د. همام
+            <span dir="ltr" className="inline-flex items-baseline text-left">
+              <span dir="rtl" className="font-semibold text-brand-navy">غرس</span>
+              <span className="mx-1 text-brand-blue-gray"> | </span>
+              <span className="font-brand-latin">Ghars</span>
+            </span>
+            <span className="block mt-1">نظام إدارة ومتابعة زراعة الأسنان</span>
           </p>
         </div>
 

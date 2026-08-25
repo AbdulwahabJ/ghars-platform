@@ -306,7 +306,7 @@ export function SummaryTab({
   return (
     <div className="space-y-7" data-testid="summary-tab">
       <div className="hidden print:block">
-        <h1 className="text-xl font-bold">مجمع السن الرقمي الطبي</h1>
+        <h1 className="text-xl font-bold text-brand-navy">غرس | Ghars</h1>
         <p className="mt-1 text-sm">ملخص ملف مريض</p>
         <p className="mt-1 text-sm text-muted-foreground">
           رقم الملف: <span dir="ltr">{patient.fileNumber}</span> — تاريخ الطباعة: {formatSaudiDateTime(new Date())}

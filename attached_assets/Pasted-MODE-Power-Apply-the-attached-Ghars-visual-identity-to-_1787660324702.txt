@@ -1,0 +1,607 @@
+MODE: Power
+
+Apply the attached **Ghars / غرس visual identity** to the existing application as a controlled BRAND REFRESH.
+
+IMPORTANT:
+
+This is NOT a redesign.
+
+The current application UI, layout, component structure, dashboard composition, cards, decorative background graphics, spacing, responsive behavior, workflows, and information architecture are already approved.
+
+Do NOT redesign the application.
+
+The goal is only to make the existing product visually belong to the new **غرس | Ghars** brand.
+
+Use the ATTACHED BRAND IDENTITY as the visual source of truth.
+
+==================================================
+
+1. BRAND IDENTITY
+   ==================================================
+
+Product name:
+
+غرس
+
+English:
+
+Ghars
+
+The attached identity defines the primary visual direction.
+
+Approved brand colors shown in the identity:
+
+Deep Navy:
+#0D1B3D
+
+Blue Gray:
+#64748B
+
+Approved typography direction:
+
+Arabic:
+Cairo
+
+English / Latin:
+Montserrat
+
+IMPORTANT:
+Do not invent a different brand identity.
+
+Do not regenerate or redesign the logo.
+
+==================================================
+2. LOGO
+=======
+
+Replace the current clinic/system logo branding with the new:
+
+غرس | Ghars
+
+brand identity.
+
+Use the attached logo artwork as the reference.
+
+Apply the new logo appropriately in:
+
+* main application header
+* login/authentication screen where the system logo currently appears
+* browser favicon if applicable
+* print/report header where the system branding is currently shown
+* other existing SYSTEM-brand locations
+
+Do NOT replace patient/user profile images.
+
+Do NOT confuse the Ghars brand logo with user avatars.
+
+==================================================
+3. LOGO QUALITY — IMPORTANT
+===========================
+
+Do not recreate the logo using CSS, icons, Lucide icons, emoji, or a generic implant icon.
+
+Use the real attached artwork.
+
+Do not:
+
+* stretch it
+* alter proportions
+* change the implant symbol
+* alter Arabic lettering
+* change colors
+* add glow
+* add 3D effects
+* add shadows not present in the identity
+
+If the attached file is only a brand-board image and extracting a production-quality standalone logo would noticeably reduce quality:
+
+DO NOT approximate or redraw the logo.
+
+Report that a standalone SVG/PNG logo asset is required.
+
+Do not silently create an imitation.
+
+==================================================
+4. APPLICATION NAME
+===================
+
+Replace old visible product branding such as:
+
+"نظام متابعة زراعة الأسنان - د. همام"
+
+with the new product identity where appropriate.
+
+Preferred main product branding:
+
+غرس
+
+or:
+
+غرس | Ghars
+
+A smaller descriptive subtitle may remain where useful, such as:
+
+نظام إدارة ومتابعة زراعة الأسنان
+
+Do NOT repeat the full description everywhere.
+
+The brand name should become the primary identity.
+
+==================================================
+5. TYPOGRAPHY
+=============
+
+Update the application typography carefully.
+
+Arabic UI:
+
+Use the **Cairo** font family.
+
+Do NOT use Cairo Bold for every UI element.
+
+Use appropriate weights:
+
+* regular body text: Cairo 400
+* labels: Cairo 400/500
+* navigation: Cairo 500/600
+* section headings: Cairo 600/700
+* major headings: Cairo 700
+* brand wordmark itself should use the supplied logo asset, not recreated text
+
+English / Latin content:
+
+Use **Montserrat** where appropriate.
+
+For technical values, file numbers, IDs, implant systems, and mixed Latin text, preserve excellent readability.
+
+Do NOT disturb the existing typography scale significantly.
+
+Keep current:
+
+* font sizes
+* line heights
+* general hierarchy
+
+unless a very small adjustment is necessary after switching fonts.
+
+==================================================
+6. COLOR REFRESH — VERY IMPORTANT
+=================================
+
+Do NOT recolor the whole application.
+
+Do NOT turn the application into a completely navy interface.
+
+The current visual design is approved.
+
+Introduce the new brand colors subtly.
+
+Use:
+
+Deep Navy #0D1B3D
+
+primarily for:
+
+* brand headings
+* important headings
+* header brand text
+* selected navigation emphasis where appropriate
+* strong text
+* selected branded elements
+
+Use:
+
+Blue Gray #64748B
+
+for:
+
+* secondary text
+* helper text
+* metadata
+* subtle UI elements
+
+==================================================
+7. PRESERVE CURRENT TEAL ACCENT
+===============================
+
+The current application already uses teal/turquoise successfully for:
+
+* active navigation
+* primary actions
+* clinical states
+* accents
+
+Do NOT remove it aggressively.
+
+Keep the existing teal accent where it supports usability.
+
+The brand refresh should feel like:
+
+CURRENT MEDICAL-TECH UI
++
+GHARS DEEP NAVY BRANDING
+
+not:
+
+AN ENTIRELY DIFFERENT COLOR THEME.
+
+If any teal tone strongly clashes with the new navy identity, adjust it only slightly toward a compatible medical teal.
+
+Do not perform a global recolor.
+
+==================================================
+8. SEMANTIC COLORS
+==================
+
+Do NOT change semantic colors simply for branding.
+
+Preserve existing meaning for:
+
+* success
+* warning
+* error
+* overdue
+* failed implant
+* ready for prosthetic
+* status badges
+
+For example:
+
+red must remain meaningful for errors/failure.
+
+amber must remain meaningful for warnings/due states.
+
+green/teal must remain meaningful for completed/success states.
+
+Brand colors must NOT destroy semantic UX.
+
+==================================================
+9. HEADER
+=========
+
+Refine the existing header branding only.
+
+Replace the existing logo/system branding with Ghars.
+
+Keep:
+
+* current header height
+* navigation location
+* user avatar
+* notifications
+* help
+* spacing
+* overall structure
+
+Do NOT redesign the navbar.
+
+The new logo should feel naturally integrated into the existing header.
+
+==================================================
+10. NAVIGATION
+==============
+
+Keep the existing navigation structure exactly as currently implemented.
+
+Do not add/remove/reorder tabs as part of this branding task.
+
+Preserve:
+
+الرئيسية
+المرضى
+الإحصائيات
+الإعدادات
+
+or whatever the CURRENT implementation contains.
+
+Only adjust typography/colors subtly to fit Ghars branding.
+
+==================================================
+11. DASHBOARD
+=============
+
+DO NOT redesign the Dashboard.
+
+Specifically preserve:
+
+* Hero structure
+* user portrait
+* patient search
+* animated decorative background
+* "ملخص العمل"
+* all current cards
+* operational lists
+* table structure
+
+Only apply typography/brand-color refinements where necessary.
+
+The visual background graphics already work well with the medical-tech identity.
+
+Do not replace them.
+
+==================================================
+12. CARDS / PANELS
+==================
+
+Do not redesign existing cards.
+
+Preserve:
+
+* border radius
+* spacing
+* shadows
+* backgrounds
+* dimensions
+* hierarchy
+
+Only update shared typography/color tokens where appropriate.
+
+==================================================
+13. FORMS
+=========
+
+Do not redesign:
+
+* input fields
+* selects
+* date pickers
+* buttons
+* inline editors
+* dialogs
+* validation
+
+Only inherit the new typography and subtle brand token updates.
+
+==================================================
+14. TABLES
+==========
+
+Do not redesign Operational Table or clinical tables.
+
+Preserve:
+
+* row height
+* columns
+* interactions
+* expand/collapse behavior
+* badges
+* filters
+* pagination
+
+Only update typography and subtle neutral/brand styling.
+
+==================================================
+15. PATIENT FILE
+================
+
+Do not redesign the Patient File.
+
+Preserve the current approved:
+
+* بيانات المريض
+* إجراءات المريض
+
+structure and workflows.
+
+Apply Ghars typography and subtle brand styling only.
+
+==================================================
+16. STATISTICS
+==============
+
+Do not redesign the Statistics page or change chart data.
+
+Charts should continue using their existing semantic/data-visualization colors.
+
+Do NOT force every chart into navy.
+
+Only update:
+
+* headings
+* labels where appropriate
+* page branding
+* neutral styling
+
+Keep chart readability more important than branding.
+
+==================================================
+17. BACKGROUND DECORATIONS
+==========================
+
+The current digital decorative lines / circles / medical-tech background elements are approved.
+
+DO NOT remove them.
+
+DO NOT rebuild them.
+
+If needed, subtly tune their opacity/color so they harmonize with Deep Navy #0D1B3D.
+
+The change should be very subtle.
+
+==================================================
+18. CSS / DESIGN TOKENS
+=======================
+
+Inspect the existing Tailwind/CSS theme architecture.
+
+Prefer updating centralized design tokens instead of manually changing hundreds of individual components.
+
+Where possible define/reuse consistent tokens for:
+
+* brand navy
+* secondary blue-gray
+* existing teal accent
+* foreground
+* muted foreground
+* border
+
+Do not introduce random hex values throughout components.
+
+==================================================
+19. LIGHT THEME
+===============
+
+Keep the current light, clean medical interface.
+
+Do NOT introduce a dark theme in this task.
+
+Do NOT make large page backgrounds dark navy.
+
+Deep Navy is a branding color, not the primary page background.
+
+==================================================
+20. BRAND APPLICATION PRIORITY
+==============================
+
+Apply the new identity most strongly to:
+
+1. Logo
+2. Product name
+3. Typography
+4. Header
+5. Major headings
+6. Navigation active state
+7. subtle shared brand accents
+
+Apply it minimally to:
+
+* data-heavy screens
+* tables
+* clinical forms
+* charts
+
+This prevents branding from harming usability.
+
+==================================================
+21. FAVICON
+===========
+
+If a suitable standalone Ghars symbol asset exists from the attached identity:
+
+replace the existing favicon with the Ghars hexagon/implant symbol.
+
+Use appropriate local favicon sizes.
+
+Do not use the full Arabic/English wordmark as favicon.
+
+Use the SYMBOL only.
+
+==================================================
+22. DO NOT TOUCH FUNCTIONALITY
+==============================
+
+Absolutely do NOT change:
+
+* APIs
+* database
+* migrations
+* business logic
+* permissions
+* authentication
+* patient workflows
+* implant workflows
+* surgical procedure workflows
+* finance calculations
+* follow-ups
+* statistics calculations
+* query invalidation
+* routing behavior
+* responsive logic
+
+This task is VISUAL BRANDING ONLY.
+
+==================================================
+23. BEFORE IMPLEMENTATION
+=========================
+
+First audit the current global visual tokens and identify the minimum files that control:
+
+* fonts
+* colors
+* logo
+* page title
+* favicon
+* shared navigation/header styling
+
+Prefer the smallest maintainable implementation.
+
+Do not perform a large CSS rewrite.
+
+==================================================
+24. VISUAL ACCEPTANCE
+=====================
+
+After implementation the application should still immediately look like the SAME PRODUCT.
+
+Someone familiar with the current system should think:
+
+"The system now has the professional Ghars identity."
+
+NOT:
+
+"The entire application was redesigned."
+
+This distinction is critical.
+
+==================================================
+25. VERIFY THESE PAGES
+======================
+
+Perform focused visual verification on:
+
+* Login
+* Home Dashboard
+* Operational Table
+* Patient File
+* Statistics
+* Settings
+
+Check desktop and mobile.
+
+Confirm:
+
+* Arabic Cairo typography looks correct
+* English Montserrat looks correct
+* logo is sharp
+* header remains aligned
+* no text clipping
+* no broken RTL
+* no buttons changed meaning
+* no excessive navy usage
+* existing teal still works
+* charts remain readable
+* patient/clinical UI remains unchanged structurally
+
+==================================================
+26. TECHNICAL VERIFICATION
+==========================
+
+Run:
+
+* affected TypeScript
+* affected lint
+* production build if global stylesheet/font configuration changed
+* browser console check
+
+Do not run unrelated historical suites.
+
+==================================================
+27. FINAL REPORT
+================
+
+Report:
+
+1. logo assets used
+2. locations where branding was replaced
+3. font configuration
+4. final brand colors/tokens
+5. which existing colors were intentionally preserved
+6. confirmation that layout/design structure was NOT changed
+7. confirmation that business logic/database were untouched
+8. visual verification results
+9. build/typecheck/lint results
+10. checkpoint hash
+
+Do not publish.
+
+Create a stable checkpoint and stop.

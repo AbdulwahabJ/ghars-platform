@@ -338,7 +338,8 @@ export default function Dashboard() {
         <section className="space-y-4">
           {/* Print-only report header */}
           <div className="hidden print:block mb-4">
-            <h1 className="text-xl font-bold">مجمع السن الرقمي الطبي</h1>
+            <h1 className="text-xl font-bold text-brand-navy">غرس | Ghars</h1>
+            <p className="text-sm mt-1">نظام إدارة ومتابعة زراعة الأسنان</p>
             <p className="text-sm mt-1">التقرير التشغيلي</p>
             <p className="text-sm text-muted-foreground mt-1">
               الفترة: {reportFilters.from} إلى {reportFilters.to} — تاريخ

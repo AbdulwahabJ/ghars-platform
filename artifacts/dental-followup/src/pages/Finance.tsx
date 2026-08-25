@@ -189,7 +189,7 @@ export default function Finance() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Print-only header */}
         <div className="hidden print:block text-center border-b border-border pb-4 mb-4">
-          <h1 className="text-xl font-bold">مجمع السن الرقمي الطبي — التقرير المالي</h1>
+          <h1 className="text-xl font-bold text-brand-navy">غرس | Ghars — التقرير المالي</h1>
           <p className="text-sm mt-1">
             الفترة: {formatSaudiDate(filters.from)} — {formatSaudiDate(filters.to)}
           </p>

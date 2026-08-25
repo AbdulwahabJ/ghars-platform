@@ -209,7 +209,7 @@ export default function Statistics() {
   const hub = data?.hub;
 
   useEffect(() => {
-    document.title = "الإحصائيات | نظام متابعة زراعة الأسنان";
+    document.title = "الإحصائيات | غرس Ghars";
   }, []);
 
   return (
