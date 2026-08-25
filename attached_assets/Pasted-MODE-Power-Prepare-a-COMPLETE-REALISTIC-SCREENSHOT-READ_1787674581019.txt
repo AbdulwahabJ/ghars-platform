@@ -1,0 +1,1305 @@
+MODE: Power
+
+Prepare a COMPLETE, REALISTIC, SCREENSHOT-READY DEMO DATASET for the existing Ghars application.
+
+Product:
+
+غرس | Ghars
+
+The purpose of this task is to populate a safe DEMO environment with realistic fictional data so we can capture authentic screenshots of the REAL Ghars application for the public Landing Page.
+
+IMPORTANT:
+
+The screenshots must show the REAL Ghars UI.
+
+Do NOT build fake dashboard mockups.
+
+Do NOT create marketing-only replicas of application screens.
+
+Populate the existing canonical backend/database so the actual Ghars screens look complete, realistic, coherent, and commercially presentation-ready.
+
+==================================================
+1. ABSOLUTE DATA SAFETY
+==================================================
+
+DO NOT modify, overwrite, archive, or delete existing real/development records.
+
+DO NOT mix demo records into an environment containing important customer or development data.
+
+First inspect whether multi-tenancy already exists.
+
+IF multi-tenancy exists:
+
+Create a dedicated demo tenant:
+
+Name:
+مركز غرس التجريبي لزراعة الأسنان
+
+Suggested slug:
+ghars-demo
+
+All demo records MUST belong ONLY to this demo tenant.
+
+IF multi-tenancy does NOT yet exist:
+
+Do NOT inject demo data into an existing non-empty database.
+
+Instead create/use a separate demo database/environment, or report that a safe isolated demo database is required before seeding.
+
+Data isolation is mandatory.
+
+==================================================
+2. DEMO DATA MUST BE FICTIONAL
+==================================================
+
+All demo data must be fictional.
+
+Do NOT copy:
+
+- existing patient names
+- real phone numbers
+- real national IDs
+- real medical notes
+- real clinic names
+- existing customer data
+- real emails
+
+Use realistic but fictional Arabic data.
+
+Do not use famous people.
+
+Do not use identifiable real doctors.
+
+==================================================
+3. DEMO SEED ARCHITECTURE
+==================================================
+
+Create a maintainable deterministic demo seed mechanism.
+
+Preferred:
+
+npm run seed:demo
+
+or equivalent using the project's existing tooling.
+
+Also provide a safe reset option if practical:
+
+npm run reset:demo
+
+Reset must ONLY affect the dedicated demo tenant/environment.
+
+Never reset the entire development database.
+
+==================================================
+4. IDEMPOTENT / DETERMINISTIC
+==================================================
+
+The demo seed must be safe to run repeatedly.
+
+Do NOT generate completely different random data every run.
+
+Use deterministic data or a fixed random seed.
+
+If the demo tenant already exists:
+
+either:
+
+- update/reset ONLY that demo tenant safely
+
+or:
+
+- stop and clearly report the existing demo state
+
+Do not create duplicate demo patients every execution.
+
+==================================================
+5. USE THE EXISTING CANONICAL SCHEMA
+==================================================
+
+Inspect the real schema and current business logic FIRST.
+
+Reuse existing:
+
+- tables
+- enums
+- validation
+- date conventions
+- roles
+- permissions
+- financial calculations
+- follow-up statuses
+- implant statuses
+- prosthetic workflows
+- audit architecture
+
+Do NOT invent duplicate demo-only entities.
+
+Do NOT change business logic merely to make screenshots look good.
+
+==================================================
+6. DEMO DATE STRATEGY
+==================================================
+
+The screenshots need current useful Dashboard data.
+
+Use the seed execution date as a controlled DEMO anchor date.
+
+Generate coherent dates around the current date.
+
+Populate records across approximately:
+
+the previous 6 months
++
+current month
++
+today
++
+upcoming 30–60 days
+
+Ensure the current Dashboard has meaningful non-zero values for:
+
+TODAY
+and
+CURRENT MONTH.
+
+Do not use obviously outdated dates everywhere.
+
+==================================================
+7. DEMO USERS
+==================================================
+
+Create realistic demo users using ONLY roles that actually exist in the application.
+
+Suggested composition if supported:
+
+1. Tenant Admin
+2. Implant Dentist
+3. Implant Dentist
+4. Assistant / Coordinator
+5. Reception / Follow-up user
+6. Finance / Administrative user if supported
+
+Use fictional Arabic names.
+
+Examples are only stylistic references — generate your own fictional names.
+
+Give users realistic:
+
+- Arabic full names
+- roles
+- active states
+- permissions
+- optional profile information
+
+Do not give everyone Admin privileges.
+
+==================================================
+8. DEMO LOGIN
+==================================================
+
+Create one clear demo Admin account.
+
+Suggested username:
+
+demo.admin
+
+Suggested email:
+
+demo.admin@ghars.local
+
+Do NOT hardcode a password in source code.
+
+Use:
+
+DEMO_ADMIN_PASSWORD
+
+from environment / Replit Secrets.
+
+If it is not configured:
+
+generate a secure demo password during seeding and report it ONCE in the implementation report.
+
+Never commit the password.
+
+==================================================
+9. PATIENT VOLUME
+==================================================
+
+Create enough data so the system looks alive, but not artificially overcrowded.
+
+Target approximately:
+
+25–35 patients
+
+with varied realistic records.
+
+Not every patient should have identical data.
+
+Include:
+
+- male/female patients where supported
+- different ages if birthdate exists
+- different contact data
+- short realistic notes only where appropriate
+
+No real Saudi national IDs.
+
+If a required ID field exists:
+
+use clearly fictional valid-format demo values according to the application's validation rules.
+
+==================================================
+10. PHONE NUMBERS
+==================================================
+
+Use fictional Saudi-format demo phone numbers.
+
+Preserve:
+
+original phone
++
+normalized phone
+
+according to the existing canonical phone architecture.
+
+Do NOT use real known phone numbers.
+
+Use a reserved/demo-safe pattern where possible.
+
+==================================================
+11. IMPLANT CASES
+==================================================
+
+Create approximately:
+
+30–45 implant cases
+
+distributed among demo patients.
+
+Some patients may have:
+
+- one case
+- multiple cases
+
+Cases should have varied realistic clinical stages.
+
+Use the ACTUAL case-status values from the application.
+
+Do not invent new enums.
+
+==================================================
+12. IMPLANTS
+==================================================
+
+Create approximately:
+
+55–75 implant records
+
+across the implant cases.
+
+Use realistic variety.
+
+Examples of canonical statuses to use ONLY if they already exist:
+
+- implanted
+- healing
+- ready for prosthesis
+- temporary prosthesis
+- final prosthesis
+- failed
+- needs redo
+- reimplanted
+
+Inspect and use the EXACT existing status enum values.
+
+==================================================
+13. TOOTH POSITIONS
+==================================================
+
+Distribute implants realistically across tooth positions.
+
+Include:
+
+- single implant cases
+- two-implant cases
+- three/four implant cases
+- different quadrants
+
+Do not make every case identical.
+
+If tooth position follows FDI numbering, preserve the project's current convention.
+
+==================================================
+14. IMPLANT SYSTEMS
+==================================================
+
+Use ONLY implant systems already available in the application's canonical lists.
+
+Create meaningful distribution so the Statistics screen has useful charts.
+
+For example:
+
+one commonly used system
+one medium-frequency system
+one less-common system
+
+Do not introduce fake system brands if the application's list already defines supported values.
+
+==================================================
+15. PROCEDURE DATES
+==================================================
+
+Clinical timelines must make sense.
+
+Example:
+
+implant procedure date
+→ healing period
+→ ready for prosthesis
+→ temporary/final prosthetic event
+
+Do not create:
+
+final prosthesis before implant date
+
+or:
+
+follow-up dates before the related procedure without a logical reason.
+
+==================================================
+16. ADJUNCT SURGICAL PROCEDURES
+==================================================
+
+Populate the existing canonical adjunct surgical procedure workflow.
+
+Create realistic examples for:
+
+- زراعة عظم
+- رفع الجيب الفكي
+- نقل / إبعاد العصب السنخي السفلي
+
+ONLY using procedure types currently supported by the real system.
+
+Include approximately:
+
+8–15 adjunct procedures total.
+
+Important:
+
+Include at least 2–3 cases where a surgical adjunct procedure exists WITHOUT an implant yet.
+
+This demonstrates a real workflow supported by Ghars.
+
+==================================================
+17. BONE GRAFT DATA
+==================================================
+
+For bone graft demo records populate existing fields realistically such as:
+
+- procedure date
+- site / region
+- clinician
+- procedure description
+- material
+- membrane
+- procedure status
+- notes
+
+Respect the current UX requirement:
+
+material
+membrane
+procedure status
+
+may be free-text if that is how the current application is implemented.
+
+Do NOT convert them to enums.
+
+==================================================
+18. SINUS LIFT
+==================================================
+
+Create several realistic sinus-lift examples.
+
+Populate supported fields such as:
+
+- right / left
+- open / closed if supported
+- region
+- doctor
+- material
+- membrane
+- date
+- status
+
+Do not add unsupported fields.
+
+==================================================
+19. NERVE REPOSITIONING
+==================================================
+
+Create a small number of realistic inferior alveolar nerve repositioning / displacement cases if the feature exists.
+
+Keep them uncommon.
+
+Do not artificially make them as frequent as bone graft procedures.
+
+==================================================
+20. PROSTHETIC EVENTS
+==================================================
+
+Populate the REAL canonical prosthetic_events workflow.
+
+Create both:
+
+- temporary prosthetic events
+- final prosthetic events
+
+Ensure linked implant statuses are consistent with the existing atomic prosthetic synchronization workflow.
+
+Do NOT manually create contradictory implant/prosthetic states.
+
+Use the existing service/API/business logic when possible rather than bypassing it.
+
+==================================================
+21. PROSTHETIC DISTRIBUTION
+==================================================
+
+Include examples of:
+
+- cases not yet ready
+- ready for prosthesis
+- temporary prosthesis completed
+- final prosthesis completed
+
+This should make Dashboard and Statistics visually meaningful.
+
+==================================================
+22. FOLLOW-UPS
+==================================================
+
+Create a rich realistic Follow-up dataset.
+
+Target approximately:
+
+50–80 follow-ups
+
+distributed across patients.
+
+Use the ACTUAL existing follow-up types/statuses.
+
+Ensure the demo contains:
+
+- completed follow-ups
+- today's follow-ups
+- future scheduled follow-ups
+- overdue follow-ups
+- cancelled follow-ups
+- postponed / needs re-contact if supported
+
+Do not invent unsupported statuses.
+
+==================================================
+23. TODAY'S FOLLOW-UPS
+==================================================
+
+Ensure several follow-ups occur on the demo anchor TODAY.
+
+This is important for screenshots.
+
+Include for example:
+
+3–6 today's follow-ups
+
+with different patients/times/statuses.
+
+==================================================
+24. OVERDUE FOLLOW-UPS
+==================================================
+
+Create a small realistic number of overdue follow-ups.
+
+Approximately:
+
+3–7
+
+Do not flood the screen with dozens of overdue items.
+
+==================================================
+25. FOLLOW-UP NOTES
+==================================================
+
+Use short professional realistic fictional notes.
+
+Examples of style:
+
+- متابعة الالتئام
+- تقييم الأنسجة قبل التركيب
+- مراجعة بعد زراعة العظم
+- التواصل لتأكيد موعد التركيب
+- متابعة بعد التركيب المؤقت
+
+Do NOT include sensitive-looking detailed medical histories.
+
+==================================================
+26. COMMUNICATIONS
+==================================================
+
+Populate the existing communications log.
+
+Create approximately:
+
+25–40 communication records
+
+using supported communication methods such as:
+
+- WhatsApp
+- phone call
+- other currently supported channels
+
+Examples:
+
+- appointment confirmation
+- follow-up reminder
+- prosthetic appointment coordination
+- payment follow-up where appropriate
+
+Use existing canonical communication types.
+
+==================================================
+27. FINANCE — IMPORTANT
+==================================================
+
+Populate finance realistically and mathematically correctly.
+
+Use the existing canonical finance architecture:
+
+base treatment amount
++
+case charges
+-
+discounts
+=
+final treatment value
+
+payments
+=
+actual paid amount
+
+remaining
+=
+final treatment value - paid
+
+DO NOT store fake derived totals if the application normally derives them.
+
+Reuse:
+
+loadCaseFinancials
+calcPaymentStatus
+
+or current canonical equivalents.
+
+==================================================
+28. FINANCIAL VARIETY
+==================================================
+
+Create a realistic mix of:
+
+- fully paid cases
+- partially paid cases
+- unpaid cases
+- cases with discounts
+- cases with additional charges
+- different payment methods if supported
+
+Do not make every case fully paid.
+
+==================================================
+29. FINANCIAL SCALE
+==================================================
+
+Use believable dental-implant treatment values.
+
+Avoid obviously fake numbers such as:
+
+1 SAR
+999999 SAR
+
+Use varied values with natural amounts.
+
+Do not make every case exactly the same price.
+
+==================================================
+30. PAYMENTS
+==================================================
+
+Create approximately:
+
+40–70 payment records
+
+across relevant cases.
+
+Respect:
+
+- payment date
+- payment method
+- void/archive behavior
+- canonical calculations
+
+Do not create payments greater than the treatment total unless the application explicitly supports credits/overpayment.
+
+==================================================
+31. CHARGES
+==================================================
+
+Add realistic additional charges to some cases.
+
+Examples only where the application's current charge model allows:
+
+- bone graft procedure
+- additional surgical procedure
+- prosthetic-related addition
+
+Use existing charge labels/categories where available.
+
+Do not duplicate clinical procedure cost inside the clinical record if the current architecture separates clinical procedure from financial charge.
+
+==================================================
+32. DISCOUNTS
+==================================================
+
+Add discounts to a reasonable minority of cases.
+
+Use different amounts/percentages according to the actual schema.
+
+Ensure final financial totals remain valid.
+
+==================================================
+33. INSTALLMENT PLANS
+==================================================
+
+IF the installment-plan feature is already implemented:
+
+populate several realistic installment plans.
+
+Include:
+
+- completed plan
+- active plan
+- upcoming installment
+- partially paid plan
+
+Do NOT implement installment architecture just for demo data if it does not already exist.
+
+==================================================
+34. PATIENT MEDICAL FILE
+==================================================
+
+Ensure several patients have rich enough data that the:
+
+بيانات المريض
+
+screen looks complete.
+
+At least 5 showcase patients should include:
+
+- patient basics
+- one or more implant cases
+- multiple implants
+- adjunct procedure where appropriate
+- prosthetic history
+- financial history
+- follow-ups
+- communications
+
+These should be ideal screenshot candidates.
+
+==================================================
+35. PATIENT PROCEDURES PAGE
+==================================================
+
+Prepare at least 5 patients where:
+
+إجراءات المريض
+
+looks visually complete but not cluttered.
+
+Include varied combinations such as:
+
+SHOWCASE PATIENT A
+- 2 implants
+- bone graft
+- follow-ups
+- partial payments
+
+SHOWCASE PATIENT B
+- 3 implants
+- sinus lift
+- ready for prosthesis
+- installment plan if implemented
+
+SHOWCASE PATIENT C
+- implant
+- temporary prosthesis
+- final prosthesis history
+
+SHOWCASE PATIENT D
+- adjunct procedure only
+- implant planned later
+
+SHOWCASE PATIENT E
+- failed implant / redo / reimplant workflow if currently supported
+
+All must remain clinically coherent.
+
+==================================================
+36. OPERATIONAL TABLE
+==================================================
+
+Populate records specifically so the Operational Table looks useful.
+
+Ensure rows demonstrate different:
+
+- case statuses
+- implant status summaries
+- follow-up states
+- financial states
+- implant counts
+- adjunct procedure types
+
+The table should not contain 20 identical rows.
+
+==================================================
+37. CASE SUMMARY BADGES
+==================================================
+
+Ensure the canonical data naturally produces examples such as:
+
+- مزروعة
+- مرحلة الالتئام
+- جاهزة للتركيب
+- تم تركيب مؤقت
+- تم التركيب
+- تحتاج إعادة
+- تمت إعادة الزراعة
+- زراعة عظم
+- رفع جيب فكي
+
+ONLY if those real statuses/types exist.
+
+Do NOT fake frontend badges.
+
+They must come from actual canonical demo records.
+
+==================================================
+38. DASHBOARD — SCREENSHOT READY
+==================================================
+
+Populate data so the existing Dashboard:
+
+ملخص العمل
+
+contains useful numbers for TODAY and CURRENT MONTH.
+
+The existing 5 cards must remain unchanged:
+
+1. المرضى الذين تم زرعهم
+2. عدد الزرعات
+3. الأنظمة المستخدمة
+4. مرضى التركيب
+5. التركيبات التي تمت
+
+Ensure the underlying demo data naturally gives meaningful non-zero values.
+
+Do NOT hardcode KPI values.
+
+==================================================
+39. DASHBOARD BALANCE
+==================================================
+
+The Dashboard should look active but believable.
+
+Avoid huge fake numbers.
+
+Example scale:
+
+today:
+low single-digit activity
+
+current month:
+reasonable double-digit activity
+
+Let the actual canonical calculations determine final values.
+
+==================================================
+40. STATISTICS — SCREENSHOT READY
+==================================================
+
+Populate enough historical data across approximately 6 months so the Statistics page has meaningful:
+
+- KPI cards
+- monthly trends
+- implant system distribution
+- case status distribution
+- implant status distribution
+- prosthetic activity
+- follow-up trends
+- communication activity
+- finance trends
+- doctor activity
+
+Do not hardcode chart results.
+
+All Statistics must derive naturally from canonical seeded records.
+
+==================================================
+41. STATISTICS DISTRIBUTION
+==================================================
+
+Avoid perfectly even fake-looking distributions.
+
+Example principle:
+
+Do NOT make every doctor have exactly 10 cases.
+
+Do NOT make every implant system exactly 33%.
+
+Use believable uneven distributions.
+
+==================================================
+42. DOCTOR ACTIVITY
+==================================================
+
+Distribute cases among demo doctors realistically.
+
+One doctor may have more implant cases.
+
+Another may have fewer.
+
+Do not make all activity identical.
+
+==================================================
+43. USERS / SETTINGS
+==================================================
+
+Populate the demo tenant's User Management page so it looks complete.
+
+Show several fictional active users with realistic roles.
+
+Use the application's existing permissions.
+
+Do not invent random permissions merely for visual variety.
+
+==================================================
+44. AUDIT LOG
+==================================================
+
+If audit events are normally generated through application services:
+
+create enough safe demo audit history for the:
+
+سجل النشاط
+
+screen to look useful.
+
+Examples:
+
+- patient created
+- case updated
+- payment recorded
+- follow-up updated
+- implant status changed
+
+Do NOT insert fake security incidents.
+
+Do NOT log passwords or sensitive data.
+
+Prefer generating audit events through normal service operations.
+
+==================================================
+45. DEMO PROFILE / ORGANIZATION
+==================================================
+
+If organization information is displayed:
+
+Use:
+
+مركز غرس التجريبي لزراعة الأسنان
+
+or another clearly fictional Ghars demo organization.
+
+Use a fictional address if required.
+
+Do not use an actual clinic's address.
+
+==================================================
+46. SCREENSHOT-FRIENDLY NAMES
+==================================================
+
+Use natural Arabic names.
+
+Avoid:
+
+Patient 1
+Test User
+Demo User 123
+
+inside visible application screens.
+
+The application should look real.
+
+However all values remain fictional.
+
+==================================================
+47. NO LOREM IPSUM
+==================================================
+
+Do NOT use Lorem Ipsum.
+
+Use concise natural Arabic content.
+
+==================================================
+48. NO EXCESSIVE DATA
+==================================================
+
+The goal is not maximum record count.
+
+The goal is:
+
+realistic
+balanced
+visually useful
+fast
+
+Do not seed thousands of patients.
+
+Approximately 25–35 patients is sufficient.
+
+==================================================
+49. NO FAKE UI
+==================================================
+
+Do not add frontend-only demo counters.
+
+Do not intercept APIs to return demo values.
+
+Do not create screenshot mode that bypasses the real data model.
+
+The real application should display the seeded canonical data.
+
+==================================================
+50. LANDING PAGE SAFETY
+==================================================
+
+The demo environment is intended for screenshots that may become PUBLIC.
+
+Therefore no screenshot candidate should contain:
+
+- real patient information
+- real phone numbers
+- personal emails
+- actual customer data
+- sensitive clinical notes
+
+Everything must be safe for public marketing.
+
+==================================================
+51. DATA CONSISTENCY VALIDATION
+==================================================
+
+After seeding, run consistency checks.
+
+Validate:
+
+- every implant belongs to correct case/tenant
+- every case belongs to correct patient
+- prosthetic event/implant statuses are coherent
+- adjunct procedures point to valid cases
+- payments belong to correct case
+- no financial negative totals
+- no orphan follow-ups
+- no orphan communications
+- tenant isolation remains correct
+- no date contradictions
+- no duplicated unique records
+
+==================================================
+52. FINANCE VALIDATION
+==================================================
+
+For every demo case verify:
+
+finalTreatmentValue =
+baseAmount + activeCharges - activeDiscounts
+
+paid =
+sum(non-voided payments)
+
+remaining =
+finalTreatmentValue - paid
+
+Payment status must come from existing canonical logic.
+
+Report any invalid records.
+
+==================================================
+53. SCREENSHOT SHOWCASE DATA
+==================================================
+
+At the end identify the BEST demo records for screenshots.
+
+Report:
+
+A. Best Dashboard state
+
+B. Best Operational Table filters/state
+
+C. Best Patient Medical File
+
+D. Best Patient Procedures record
+
+E. Best Follow-up screen
+
+F. Best Statistics period/filter
+
+G. Best Finance-heavy case
+
+Provide the patient/case demo IDs or names so we can open them quickly.
+
+==================================================
+54. OPTIONAL SCREENSHOT PRESET
+==================================================
+
+If simple and safe, add a DEVELOPMENT/DEMO-ONLY helper configuration for preferred screenshot filters.
+
+For example:
+
+Statistics:
+last 6 months
+
+Operational Table:
+active records
+
+Do NOT change production defaults merely for screenshots.
+
+Do not add visible "Screenshot Mode" to production.
+
+==================================================
+55. DEMO DATA LABELING
+==================================================
+
+Internally ensure it is obvious which tenant/environment is DEMO.
+
+But avoid adding giant "DEMO" badges across every product screenshot unless already appropriate.
+
+The screenshots should look like a polished real product.
+
+==================================================
+56. PLATFORM ADMIN DEMO DATA
+==================================================
+
+IF the Platform Super Admin / multi-customer control center is ALREADY implemented:
+
+also create a SMALL separate platform demo dataset.
+
+Create approximately:
+
+6–10 fictional tenants
+
+with varied statuses:
+
+- trialing
+- active
+- expired
+- suspended
+
+Include:
+
+- recent trial registrations
+- activation requests
+- one or two safe demo errors
+- different user counts
+- last activity
+
+This is ONLY for Platform Admin screenshots.
+
+Do NOT create clinical cross-tenant data unless required for basic usage counts.
+
+Do NOT implement Platform Admin functionality in this task if it does not exist yet.
+
+==================================================
+57. DEMO ERRORS
+==================================================
+
+If Platform Admin error monitoring exists:
+
+seed no more than 2–4 harmless synthetic demo error records specifically marked as demo/synthetic.
+
+Examples:
+
+- temporary email delivery failure
+- controlled API test error
+
+Do not create fake serious security incidents.
+
+Do not interfere with health indicators.
+
+==================================================
+58. PERFORMANCE
+==================================================
+
+Use bulk inserts/transactions appropriately.
+
+Do not perform hundreds of inefficient sequential requests if database seeding can be safely done through canonical service/helper layers.
+
+However:
+
+where business logic is important for consistency, reuse the existing services rather than bypassing critical workflow rules.
+
+==================================================
+59. TRANSACTION SAFETY
+==================================================
+
+Use transactions for logically grouped demo seeding operations where appropriate.
+
+A failed seed must not leave half-created incoherent showcase data.
+
+==================================================
+60. DO NOT CHANGE PRODUCT DESIGN
+==================================================
+
+Do NOT redesign:
+
+- Dashboard
+- Patient File
+- Procedures
+- Follow-up
+- Statistics
+- Settings
+- Operational Table
+
+This task is DATA PREPARATION.
+
+Only fix a UI issue if demo seeding exposes an actual existing bug.
+
+Report such a bug before making broad visual changes.
+
+==================================================
+61. DO NOT CHANGE BUSINESS LOGIC
+==================================================
+
+Do NOT alter:
+
+- clinical workflows
+- status meaning
+- financial formulas
+- prosthetic synchronization
+- follow-up behavior
+- archive behavior
+- permissions
+
+to accommodate demo records.
+
+Demo data must fit the real system.
+
+==================================================
+62. TEST ISOLATION
+==================================================
+
+Do not run destructive tests against the demo screenshot tenant after it has been prepared.
+
+Automated tests should use an isolated test environment/fixtures.
+
+==================================================
+63. FINAL BROWSER REVIEW
+==================================================
+
+After seeding, log in to the demo tenant and manually inspect:
+
+Dashboard
+Operational Table
+Patient Medical File
+Patient Procedures
+Follow-up
+Statistics
+Finance surfaces
+Settings / Users
+Activity Log
+
+Confirm:
+
+- no empty/broken important sections
+- no obvious test placeholders
+- no NaN
+- no undefined
+- no unrealistic repeated values
+- no conflicting dates
+- no real PII
+- no UI crashes
+
+==================================================
+64. SCREENSHOT QUALITY
+==================================================
+
+The demo screens should look professionally populated.
+
+Do NOT make every field full just for the sake of filling space.
+
+Realistic empty optional fields are acceptable.
+
+The goal is credible product usage.
+
+==================================================
+65. PRODUCTION SAFETY
+==================================================
+
+The demo seed command must NOT run automatically during production startup.
+
+It must require an explicit manual command/environment condition.
+
+Example concept:
+
+ALLOW_DEMO_SEED=true
+
+or a dedicated demo environment.
+
+Never silently seed demo data into production.
+
+==================================================
+66. FINAL REPORT
+==================================================
+
+After completion report:
+
+1. Demo isolation method used.
+2. Demo tenant created.
+3. Demo Admin username/email.
+4. How DEMO_ADMIN_PASSWORD is configured.
+5. Number of patients.
+6. Number of implant cases.
+7. Number of implants.
+8. Number of adjunct surgical procedures.
+9. Number of prosthetic events.
+10. Number of follow-ups.
+11. Number of communications.
+12. Number of payments.
+13. Number of charges.
+14. Number of discounts.
+15. Number of demo users.
+16. Whether installment plans were populated.
+17. Whether Platform Admin demo data was populated.
+18. Data consistency validation result.
+19. Finance validation result.
+20. Best screenshot patient.
+21. Best screenshot case.
+22. Best Statistics filter/date range.
+23. Best Operational Table state.
+24. Seed command.
+25. Reset demo command if implemented.
+26. Confirmation that no existing non-demo records were modified.
+27. TypeScript/lint/build result if affected.
+28. Exact checkpoint commit hash.
+
+Do NOT publish.
+
+Create a stable checkpoint and stop.
