@@ -4,20 +4,14 @@ import { Shell } from "@/components/layout/Shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { UsersTab } from "@/components/admin/UsersTab";
-import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 import { LookupsTab } from "@/components/admin/LookupsTab";
-import { TemplatesTab } from "@/components/admin/TemplatesTab";
 import { AuditLogTab } from "@/components/admin/AuditLogTab";
-import { ImportTab } from "@/components/admin/ImportTab";
 import { ExportTab } from "@/components/admin/ExportTab";
 
 const TABS = [
   { value: "users", label: "المستخدمون" },
-  { value: "system", label: "إعدادات النظام" },
   { value: "lookups", label: "القوائم" },
-  { value: "templates", label: "قوالب واتساب" },
   { value: "audit", label: "سجل النشاط" },
-  { value: "import", label: "استيراد البيانات" },
   { value: "export", label: "تصدير البيانات" },
 ] as const;
 
@@ -54,20 +48,11 @@ export default function Settings() {
             <TabsContent value="users" className="mt-6">
               <UsersTab />
             </TabsContent>
-            <TabsContent value="system" className="mt-6">
-              <SystemSettingsTab />
-            </TabsContent>
             <TabsContent value="lookups" className="mt-6">
               <LookupsTab />
             </TabsContent>
-            <TabsContent value="templates" className="mt-6">
-              <TemplatesTab />
-            </TabsContent>
             <TabsContent value="audit" className="mt-6">
               <AuditLogTab />
-            </TabsContent>
-            <TabsContent value="import" className="mt-6">
-              <ImportTab />
             </TabsContent>
             <TabsContent value="export" className="mt-6">
               <ExportTab />

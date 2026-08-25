@@ -18,6 +18,10 @@ function FinanceRedirect() {
   return <Redirect to="/statistics" replace />;
 }
 
+function RemovedSettingsTabRedirect() {
+  return <Redirect to="/settings" replace />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -29,6 +33,9 @@ function Router() {
       <Route path="/patients/:id" component={PatientFile} />
       <Route path="/finance" component={FinanceRedirect} />
       <Route path="/statistics" component={Statistics} />
+      <Route path="/settings/system" component={RemovedSettingsTabRedirect} />
+      <Route path="/settings/templates" component={RemovedSettingsTabRedirect} />
+      <Route path="/settings/import" component={RemovedSettingsTabRedirect} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
