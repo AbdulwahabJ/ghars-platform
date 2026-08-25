@@ -53,6 +53,7 @@ function selectToOverride(v: string): boolean | null {
 
 interface UserFormState {
   username: string;
+  email: string;
   fullName: string;
   role: UserRole;
   password: string;
@@ -63,6 +64,7 @@ interface UserFormState {
 
 const EMPTY_FORM: UserFormState = {
   username: "",
+  email: "",
   fullName: "",
   role: "ASSISTANT",
   password: "",
@@ -102,6 +104,7 @@ export function UsersTab() {
     create.mutate(
       {
         username: form.username,
+        email: form.email,
         fullName: form.fullName,
         role: form.role,
         password: form.password,
@@ -131,6 +134,7 @@ export function UsersTab() {
         id: editUser.id,
         input: {
           fullName: editForm.fullName,
+          email: editForm.email.trim() || null,
           role: editForm.role,
           canViewFinancials: selectToOverride(editForm.canViewFinancials),
           canRecordPayments: selectToOverride(editForm.canRecordPayments),
@@ -200,6 +204,7 @@ export function UsersTab() {
               <TableRow>
                 <TableHead className="text-right">الاسم الكامل</TableHead>
                 <TableHead className="text-right">اسم المستخدم</TableHead>
+                <TableHead className="text-right">البريد الإلكتروني</TableHead>
                 <TableHead className="text-right">الدور</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
                 <TableHead className="text-right">عرض المالية</TableHead>
@@ -224,6 +229,9 @@ export function UsersTab() {
                   <TableCell dir="ltr" className="text-right">
                     {u.username}
                   </TableCell>
+                  <TableCell dir="ltr" className="text-right">
+                    {u.email ?? "—"}
+                  </TableCell>
                   <TableCell>{ROLE_LABELS[u.role]}</TableCell>
                   <TableCell>
                     {u.isActive ? (
@@ -245,6 +253,7 @@ export function UsersTab() {
                         onClick={() => {
                           setEditUser(u);
                           setEditForm({
+                            email: u.email ?? "",
                             fullName: u.fullName,
                             role: u.role,
                             canViewFinancials: overrideToSelect(
@@ -339,6 +348,17 @@ export function UsersTab() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="new-email">البريد الإلكتروني للاستعادة</Label>
+              <Input
+                id="new-email"
+                type="email"
+                dir="ltr"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                data-testid="input-new-email"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="new-fullname">الاسم الكامل</Label>
               <Input
                 id="new-fullname"
@@ -430,6 +450,24 @@ export function UsersTab() {
                     setEditForm({ ...editForm, fullName: e.target.value })
                   }
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">البريد الإلكتروني للاستعادة</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  dir="ltr"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
+                  data-testid="input-edit-email"
+                />
+                {!editUser?.email && (
+                  <p className="text-xs text-muted-foreground">
+                    هذا الحساب قديم ولا يملك بريدًا للاستعادة حتى يتم حفظ بريد صالح.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>الدور</Label>

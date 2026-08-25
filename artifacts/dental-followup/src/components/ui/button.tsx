@@ -10,8 +10,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          // @replit: no hover, and add primary border
-          'bg-primary text-primary-foreground border border-primary-border',
+          // Standard actions use Ghars Deep Navy. Semantic variants stay below.
+          'bg-[var(--brand-navy)] text-white border border-[var(--brand-navy)] hover:bg-[#132850]',
         destructive:
           'bg-destructive text-destructive-foreground shadow-sm border-destructive-border',
         outline:

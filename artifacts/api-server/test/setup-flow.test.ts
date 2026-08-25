@@ -30,6 +30,7 @@ describe("first-run setup flow", () => {
     const res = await agent.post("/api/auth/setup").send({
       setupKey: "wrong-key",
       username: "admin",
+      email: "admin@example.test",
       fullName: "مدير النظام",
       password: ADMIN_PASSWORD,
     });
@@ -41,6 +42,7 @@ describe("first-run setup flow", () => {
     const res = await agent.post("/api/auth/setup").send({
       setupKey: SETUP_KEY,
       username: "admin",
+      email: "admin@example.test",
       fullName: "مدير النظام",
       password: "short1",
     });
@@ -52,6 +54,7 @@ describe("first-run setup flow", () => {
     const res = await agent.post("/api/auth/setup").send({
       setupKey: SETUP_KEY,
       username: "Admin",
+      email: "admin@example.test",
       fullName: "مدير النظام",
       password: ADMIN_PASSWORD,
     });
@@ -68,6 +71,26 @@ describe("first-run setup flow", () => {
     expect(audit.rows[0].n).toBe(1);
   });
 
+  it("requires a recovery email for the first administrator", async () => {
+    await truncateAll(pool);
+    const res = await agent.post("/api/auth/setup").send({
+      setupKey: SETUP_KEY,
+      username: "admin",
+      fullName: "مدير النظام",
+      password: ADMIN_PASSWORD,
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("VALIDATION_ERROR");
+
+    await agent.post("/api/auth/setup").send({
+      setupKey: SETUP_KEY,
+      username: "admin",
+      email: "admin@example.test",
+      fullName: "مدير النظام",
+      password: ADMIN_PASSWORD,
+    });
+  });
+
   it("reports setupRequired=false afterwards and blocks a second setup", async () => {
     const status = await agent.get("/api/auth/setup-status");
     expect(status.body).toEqual({ setupRequired: false });
@@ -75,6 +98,7 @@ describe("first-run setup flow", () => {
     const res = await agent.post("/api/auth/setup").send({
       setupKey: SETUP_KEY,
       username: "admin2",
+      email: "admin2@example.test",
       fullName: "مدير آخر",
       password: ADMIN_PASSWORD,
     });

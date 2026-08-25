@@ -36,6 +36,7 @@ function toAdminUser(user: User): AdminUser {
   return {
     id: user.id,
     username: user.username,
+    email: user.email ?? null,
     fullName: user.fullName,
     role: user.role,
     isActive: user.isActive,
@@ -116,6 +117,7 @@ router.post("/admin/users", async (req, res) => {
         .insert(usersTable)
         .values({
           username: input.username,
+          email: input.email,
           passwordHash,
           fullName: input.fullName,
           role: input.role,
@@ -141,8 +143,8 @@ router.post("/admin/users", async (req, res) => {
   } catch (err) {
     if (isUniqueViolation(err)) {
       res.status(409).json({
-        error: "اسم المستخدم مستخدم بالفعل.",
-        code: "USERNAME_TAKEN",
+          error: "اسم المستخدم أو البريد الإلكتروني مستخدم بالفعل.",
+          code: "USER_IDENTIFIER_TAKEN",
       });
       return;
     }
@@ -190,10 +192,20 @@ router.patch("/admin/users/:id", async (req, res) => {
     });
     return;
   }
+  if (input.email === null && target.email !== null) {
+    res.status(422).json({
+      error: "لا يمكن إزالة البريد الإلكتروني من حساب تم إنشاؤه ببريد للاستعادة.",
+      code: "EMAIL_REQUIRED",
+    });
+    return;
+  }
 
   const changes: string[] = [];
   if (input.fullName && input.fullName !== target.fullName) {
     changes.push("الاسم الكامل");
+  }
+  if (input.email !== undefined && input.email !== target.email) {
+    changes.push("البريد الإلكتروني");
   }
   if (input.role && input.role !== target.role) changes.push("الدور");
   if (
@@ -222,6 +234,7 @@ router.patch("/admin/users/:id", async (req, res) => {
       .update(usersTable)
       .set({
         ...(input.fullName !== undefined ? { fullName: input.fullName } : {}),
+        ...(input.email !== undefined ? { email: input.email } : {}),
         ...(input.role !== undefined ? { role: input.role } : {}),
         ...(input.canViewFinancials !== undefined
           ? { canViewFinancials: input.canViewFinancials }
@@ -248,6 +261,7 @@ router.patch("/admin/users/:id", async (req, res) => {
         }`,
         details: {
           role: input.role,
+          emailChanged: input.email !== undefined,
           canViewFinancials: input.canViewFinancials,
           canRecordPayments: input.canRecordPayments,
           // Never log image contents.

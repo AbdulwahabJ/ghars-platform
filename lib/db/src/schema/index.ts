@@ -1,4 +1,5 @@
 export * from "./users";
+export * from "./password-reset-tokens";
 export * from "./sessions";
 export * from "./user-preferences";
 export * from "./patients";

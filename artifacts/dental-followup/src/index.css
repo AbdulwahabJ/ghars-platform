@@ -419,6 +419,10 @@
       transform: translateY(-4px) scale(1.15);
     }
   }
+  .bg-hex-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='103.923' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.923L0 86.6025V51.9615L30 34.641L60 51.9615V86.6025Z' fill='none' stroke='%230F766E' stroke-opacity='0.05' stroke-width='1'/%3E%3Cpath d='M30 51.9615L0 34.641V0L30 -17.3205L60 0V34.641Z' fill='none' stroke='%230F766E' stroke-opacity='0.05' stroke-width='1'/%3E%3C/svg%3E");
+    background-size: 60px 103.923px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -460,7 +464,7 @@
 /* Custom button sizing to meet 44-48px requirement */
 @layer utilities {
   .btn-primary {
-    @apply h-[46px] rounded-[10px] px-6 py-2 bg-primary text-primary-foreground font-medium flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply h-[46px] rounded-[10px] px-6 py-2 bg-[var(--brand-navy)] text-white font-medium flex items-center justify-center gap-2 hover:bg-[#132850] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
     @apply h-[46px] rounded-[10px] px-6 py-2 bg-secondary text-secondary-foreground font-medium flex items-center justify-center gap-2 hover:bg-secondary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;

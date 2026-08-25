@@ -30,6 +30,7 @@ export async function setupAdmin(
   const res = await agent.post("/api/auth/setup").send({
     setupKey: SETUP_KEY,
     username,
+    email: `${username}@example.test`,
     fullName: "مدير النظام",
     password: ADMIN_PASSWORD,
   });

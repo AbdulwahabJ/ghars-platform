@@ -23,6 +23,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/login" component={Login} />
+      <Route path="/reset-password" component={Login} />
       <Route path="/setup" component={Setup} />
       <Route path="/patients" component={PatientsList} />
       <Route path="/patients/:id" component={PatientFile} />

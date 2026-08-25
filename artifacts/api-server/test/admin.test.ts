@@ -96,15 +96,24 @@ describe("user management", () => {
   it("creates a user, rejects duplicates, and lists it", async () => {
     const created = await admin.post("/api/admin/users").send({
       username: "doctor.new",
+      email: "doctor.new@example.test",
       fullName: "طبيب جديد",
       role: "DOCTOR",
       password: "Doct0rPass1234",
     });
     expect(created.status).toBe(201);
+    expect(created.body.user.email).toBe("doctor.new@example.test");
     expect(created.body.user.canViewFinancials).toBe(false);
+
+    const clearEmail = await admin
+      .patch(`/api/admin/users/${created.body.user.id}`)
+      .send({ email: null });
+    expect(clearEmail.status).toBe(422);
+    expect(clearEmail.body.code).toBe("EMAIL_REQUIRED");
 
     const dup = await admin.post("/api/admin/users").send({
       username: "doctor.new",
+      email: "doctor.new@example.test",
       fullName: "طبيب مكرر",
       role: "DOCTOR",
       password: "Doct0rPass1234",
@@ -131,6 +140,7 @@ describe("user management", () => {
   it("updates permission overrides and they take effect immediately", async () => {
     const created = await admin.post("/api/admin/users").send({
       username: "perm.assist",
+      email: "perm.assist@example.test",
       fullName: "مساعد صلاحيات",
       role: "ASSISTANT",
       password: "Ass1stPass1234",
@@ -156,6 +166,7 @@ describe("user management", () => {
   it("deactivation invalidates sessions but keeps historical records visible", async () => {
     const created = await admin.post("/api/admin/users").send({
       username: "leaving.user",
+      email: "leaving.user@example.test",
       fullName: "مستخدم مغادر",
       role: "ASSISTANT",
       password: "Leav1ngPass1234",
@@ -207,6 +218,7 @@ describe("user management", () => {
   it("resets passwords and invalidates the target's sessions", async () => {
     const created = await admin.post("/api/admin/users").send({
       username: "reset.target",
+      email: "reset.target@example.test",
       fullName: "مستخدم إعادة تعيين",
       role: "ASSISTANT",
       password: "Or1ginalPass1234",

@@ -46,6 +46,14 @@ export const loginInputSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginInputSchema>;
 
+export const emailSchema = z
+  .string()
+  .trim()
+  .min(1, "البريد الإلكتروني مطلوب.")
+  .max(254, "البريد الإلكتروني طويل جدًا.")
+  .email("صيغة البريد الإلكتروني غير صحيحة.")
+  .transform((value) => value.toLowerCase());
+
 /** Password policy: at least 10 chars with letters and digits. */
 export const passwordSchema = z
   .string()
@@ -66,6 +74,7 @@ export const setupInputSchema = z.object({
       "اسم المستخدم يجب أن يحتوي على أحرف إنجليزية وأرقام فقط.",
     ),
   fullName: z.string().trim().min(1, "الاسم الكامل مطلوب.").max(200),
+  email: emailSchema,
   password: passwordSchema,
 });
 export type SetupInput = z.infer<typeof setupInputSchema>;
@@ -74,6 +83,29 @@ export const setupStatusSchema = z.object({
   setupRequired: z.boolean(),
 });
 export type SetupStatus = z.infer<typeof setupStatusSchema>;
+
+export const passwordResetRequestInputSchema = z.object({
+  identifier: z
+    .string()
+    .trim()
+    .min(1, "يرجى إدخال اسم المستخدم أو البريد الإلكتروني.")
+    .max(254, "القيمة المدخلة طويلة جدًا.")
+    .transform((value) => value.toLowerCase()),
+});
+export type PasswordResetRequestInput = z.infer<
+  typeof passwordResetRequestInputSchema
+>;
+
+export const completePasswordResetInputSchema = z.object({
+  token: z
+    .string()
+    .min(32, "رابط الاستعادة غير صالح.")
+    .max(256, "رابط الاستعادة غير صالح."),
+  password: passwordSchema,
+});
+export type CompletePasswordResetInput = z.infer<
+  typeof completePasswordResetInputSchema
+>;
 
 export const updatePreferencesInputSchema = z.object({
   onboardingStatus: onboardingStatusSchema,

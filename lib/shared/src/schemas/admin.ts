@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { passwordSchema, userRoleSchema } from "./auth";
+import { emailSchema, passwordSchema, userRoleSchema } from "./auth";
 
 /* ------------------------------------------------------------------ */
 /* User management (Admin)                                             */
@@ -17,6 +17,8 @@ export const avatarDataUrlSchema = z
 export const adminUserSchema = z.object({
   id: z.string().uuid(),
   username: z.string(),
+  /** Null for legacy users that have not added a recovery email yet. */
+  email: emailSchema.nullable(),
   fullName: z.string(),
   role: userRoleSchema,
   isActive: z.boolean(),
@@ -60,6 +62,7 @@ const overrideSchema = z.boolean().nullable();
 
 export const createUserInputSchema = z.object({
   username: usernameSchema,
+  email: emailSchema,
   fullName: fullNameSchema,
   role: userRoleSchema,
   password: passwordSchema,
@@ -73,6 +76,8 @@ export type CreateUserInput = z.infer<typeof createUserInputSchema>;
 export const updateUserInputSchema = z
   .object({
     fullName: fullNameSchema.optional(),
+    /** null clears the recovery email for a legacy/manual-access workflow. */
+    email: emailSchema.nullable().optional(),
     role: userRoleSchema.optional(),
     canViewFinancials: overrideSchema.optional(),
     canRecordPayments: overrideSchema.optional(),

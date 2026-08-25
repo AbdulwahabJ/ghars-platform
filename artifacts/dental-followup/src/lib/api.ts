@@ -33,10 +33,12 @@ import type {
   BoneGraftProcedure,
   BoneGraftProcedureInput,
   BoneGraftProcedureUpdate,
+  CompletePasswordResetInput,
   ProstheticEvent,
   ProstheticEventInput,
   LoginInput,
   MeResponse,
+  PasswordResetRequestInput,
   Patient,
   PatientInput,
   PatientListQuery,
@@ -153,6 +155,16 @@ export const api = {
     }),
   login: (input: LoginInput) =>
     request<MeResponse>("/auth/login", { method: "POST", json: input }),
+  requestPasswordReset: (input: PasswordResetRequestInput) =>
+    request<{ message: string }>("/auth/password-reset/request", {
+      method: "POST",
+      json: input,
+    }),
+  completePasswordReset: (input: CompletePasswordResetInput) =>
+    request<void>("/auth/password-reset/complete", {
+      method: "POST",
+      json: input,
+    }),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
   me: () => request<MeResponse>("/auth/me"),
 

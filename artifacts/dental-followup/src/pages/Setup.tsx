@@ -40,6 +40,7 @@ export default function Setup() {
       setupKey: "",
       username: "",
       fullName: "",
+      email: "",
       password: "",
       confirmPassword: "",
     },
@@ -125,6 +126,26 @@ export default function Setup() {
                   <FormLabel>اسم المستخدم (بالإنجليزية)</FormLabel>
                   <FormControl>
                     <Input placeholder="username" {...field} dir="ltr" className="text-right" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>البريد الإلكتروني للاستعادة</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="name@example.com"
+                      type="email"
+                      {...field}
+                      dir="ltr"
+                      className="text-right"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

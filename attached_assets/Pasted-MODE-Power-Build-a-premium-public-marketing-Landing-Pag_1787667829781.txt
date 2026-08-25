@@ -1,0 +1,1725 @@
+MODE: Power
+
+Build a premium public marketing Landing Page for the existing SaaS product:
+
+غرس | Ghars
+
+This is a dental implant management SaaS platform.
+
+I am attaching:
+1. The approved Ghars brand identity.
+2. The approved landing-page visual reference/concept.
+
+Use them as the visual direction.
+
+IMPORTANT:
+
+This must NOT look like:
+- a generic SaaS template
+- an AI-generated website
+- a dental clinic website
+- a WordPress theme
+- a collection of random cards
+- a marketing page overloaded with gradients and floating graphics
+
+It SHOULD look like:
+a professionally designed, premium medical SaaS product website.
+
+The PRODUCT itself should be the visual hero.
+
+Use real/sanitized Ghars UI screenshots or carefully built product previews.
+Never expose real patient data or protected clinical information on the public landing page.
+
+==================================================
+1. PRIMARY GOAL
+==================================================
+
+Create a public Landing Page that:
+
+1. Clearly explains what Ghars does.
+2. Shows the actual product visually.
+3. Explains the value to implant-focused doctors/clinics.
+4. Shows the complete patient/implant workflow.
+5. Builds trust.
+6. Shows pricing plans.
+7. Drives visitors toward requesting a demo / starting contact.
+8. Provides a clear path to Login.
+
+The visitor should understand Ghars within approximately 30–60 seconds.
+
+==================================================
+2. DO NOT REDESIGN THE APPLICATION
+==================================================
+
+This task adds a PUBLIC marketing website.
+
+Do NOT redesign:
+
+- Dashboard
+- Operational Table
+- Patients
+- Patient File
+- Patient Procedures
+- Statistics
+- Settings
+- Finance workflows
+- Implant workflows
+- Follow-ups
+- Authentication internals
+
+The existing authenticated application remains the product.
+
+The landing page is a new public presentation layer.
+
+==================================================
+3. ROUTING
+==================================================
+
+Review the current routing first.
+
+Create a clean public route architecture.
+
+Preferred behavior:
+
+/
+→ public Ghars Landing Page
+
+/login
+→ existing Ghars Login Page
+
+Authenticated product routes:
+→ remain protected exactly as they currently are
+
+If the application currently uses `/` for authenticated Dashboard routing, refactor routing carefully so existing authenticated links and redirects remain functional.
+
+Do not break sessions or authentication guards.
+
+==================================================
+4. GHARS BRAND
+==================================================
+
+Use the approved Ghars identity.
+
+Brand:
+
+غرس
+Ghars
+
+Arabic font:
+Cairo
+
+English/Latin:
+Montserrat
+
+Primary:
+
+Deep Navy
+#0D1B3D
+
+Secondary:
+
+Blue Gray
+#64748B
+
+Accent:
+use the application's existing medical teal selectively.
+
+The design should be predominantly:
+
+- white
+- very light cool gray/blue
+- Deep Navy
+- restrained teal accents
+
+Do NOT recolor everything teal or navy.
+
+==================================================
+5. BRAND LOGO
+==================================================
+
+Use the REAL approved Ghars logo assets already supplied to the project.
+
+Do NOT:
+
+- recreate the logo with CSS
+- use a generic tooth icon
+- modify the logo
+- create another dental implant logo
+- alter logo colors
+- generate an AI approximation
+
+Preserve exact brand artwork.
+
+==================================================
+6. LANDING PAGE DESIGN DIRECTION
+==================================================
+
+Combine these two directions:
+
+A. PREMIUM PRODUCT-FIRST SAAS
+B. INTERACTIVE PRODUCT STORY
+
+The first part of the page should immediately look premium and product-led.
+
+After that, the visitor should be guided through how a real implant case moves through Ghars.
+
+Use:
+
+- large typography
+- generous whitespace
+- actual product UI
+- restrained motion
+- strong hierarchy
+- careful spacing
+- subtle geometric brand details
+
+Avoid excessive decorative content.
+
+==================================================
+7. NAVBAR
+==================================================
+
+Create a premium sticky/fixed public navbar.
+
+RTL Arabic-first.
+
+Suggested items:
+
+الرئيسية
+المميزات
+كيف يعمل
+الإحصائيات
+الباقات
+الأسئلة الشائعة
+
+Actions:
+
+دخول
+
+Primary CTA:
+
+اطلب تجربة
+
+Use smooth scrolling for landing sections.
+
+Desktop:
+full navbar.
+
+Mobile:
+clean responsive menu.
+
+Do not put too many items in the navigation.
+
+==================================================
+8. NAVBAR STYLE
+==================================================
+
+Default:
+
+clean transparent / white background depending on scroll position.
+
+On scroll:
+
+use a subtle white background with slight blur and border/shadow.
+
+Do NOT use heavy glassmorphism.
+
+Primary CTA:
+
+Ghars Deep Navy #0D1B3D
+
+Secondary Login action:
+quiet / outline / text style.
+
+==================================================
+9. HERO — MOST IMPORTANT SECTION
+==================================================
+
+The Hero must immediately explain the product.
+
+Arabic headline:
+
+إدارة زراعة الأسنان،
+من أول إجراء إلى آخر متابعة.
+
+Supporting text:
+
+غرس يجمع الحالات السريرية، الزرعات، التركيبات، الإجراءات الجراحية، المتابعات، المالية والإحصائيات في منصة واحدة.
+
+Primary CTA:
+
+اطلب تجربة غرس
+
+Secondary CTA:
+
+استكشف النظام
+
+Optional small trust/value line beneath CTA:
+
+إدارة سريرية · متابعة · مالية · تحليلات
+
+Do NOT use fake customer counts or fake awards.
+
+==================================================
+10. HERO PRODUCT VISUAL
+==================================================
+
+The product should be the hero visual.
+
+Use a large high-quality Ghars Dashboard/Product preview.
+
+Recommended composition:
+
+- main browser/app window
+- one or two small UI detail overlays
+- subtle depth
+- realistic product layout
+
+Examples of small overlays:
+
+- حالة زرعة
+- متابعة قادمة
+- KPI
+- financial summary
+
+BUT:
+
+Do not create dozens of floating cards.
+
+No 3D teeth.
+
+No 3D implants.
+
+No AI medical images.
+
+No doctors generated by AI.
+
+No fake clinic photos.
+
+==================================================
+11. PUBLIC DATA SAFETY
+==================================================
+
+VERY IMPORTANT:
+
+Never expose real production patient information in:
+
+- screenshots
+- previews
+- demo components
+- public APIs
+- HTML source
+
+Use only:
+
+- sanitized screenshots
+- anonymized demo content
+- dedicated marketing mock data
+
+Do NOT query live patient data from the public landing page.
+
+==================================================
+12. HERO BACKGROUND
+==================================================
+
+Keep it premium and subtle.
+
+Use:
+
+- off-white
+- very light blue-gray
+- sparse Ghars-inspired hexagon geometry
+
+The pattern can be inspired by the logo.
+
+Extremely low opacity.
+
+Do not make it look like an AI neural-network background.
+
+==================================================
+13. TRUST / VALUE STRIP
+==================================================
+
+Directly after the Hero, create a simple compact value strip.
+
+Do NOT invent customer logos.
+
+Use product concepts instead.
+
+Suggested:
+
+إدارة متكاملة
+رؤية أوضح
+متابعة أدق
+وصول أسرع للمعلومة
+
+Each with one short supporting sentence.
+
+Keep this section compact.
+
+==================================================
+14. PROBLEM → SOLUTION SECTION
+==================================================
+
+Create a visually strong section showing the operational problem Ghars solves.
+
+Headline concept:
+
+لما تكون تفاصيل الحالة موزعة،
+المتابعة تصبح أصعب.
+
+Show several common operational pain points such as:
+
+- بيانات الحالة موزعة
+- متابعة الزرعات يدويًا
+- صعوبة معرفة المرحلة الحالية
+- التركيبات غير مرتبطة بوضوح بالحالة
+- المتابعات معرضة للنسيان
+- المالية في مكان منفصل
+- الإحصائيات تحتاج تجميع يدوي
+
+Then transition visually to:
+
+غرس يجمع كل هذه التفاصيل في ملف واحد مترابط.
+
+Do not exaggerate or use fear-based marketing.
+
+==================================================
+15. INTERACTIVE PRODUCT STORY
+==================================================
+
+This is one of the signature sections.
+
+Title:
+
+كيف يعمل غرس؟
+
+Subtitle:
+
+رحلة حالة الزراعة بالكامل، بطريقة مترابطة وواضحة.
+
+Create an interactive scrolling / step-based presentation.
+
+Suggested workflow:
+
+1. بيانات المريض
+2. حالة الزراعة
+3. الزرعات
+4. الإجراءات الجراحية المساندة
+5. التركيبات
+6. المتابعة
+7. المالية
+8. التقارير والإحصائيات
+
+On Desktop:
+
+Prefer a split composition.
+
+One side:
+vertical workflow steps.
+
+Other side:
+large product screenshot / product preview.
+
+As the user scrolls or selects a step:
+change the product preview to the relevant Ghars screen.
+
+Use subtle transitions.
+
+Do NOT implement heavy scroll-jacking.
+
+Normal browser scrolling must remain natural.
+
+==================================================
+16. PRODUCT STORY CONTENT
+==================================================
+
+Use the actual Ghars concepts already implemented in the application.
+
+Explain them succinctly.
+
+Example:
+
+بيانات المريض
+→ ملف واضح يجمع المعلومات الأساسية وتاريخ الحالات.
+
+الزرعات
+→ متابعة كل زرعة وحالتها ومرحلتها.
+
+الإجراءات الجراحية
+→ توثيق زراعة العظم، رفع الجيب الفكي، ونقل/إبعاد العصب عند الحاجة.
+
+التركيبات
+→ توثيق التركيبات المؤقتة والدائمة وربطها بالحالة.
+
+المتابعات
+→ تنظيم المواعيد والمتابعات المطلوبة.
+
+المالية
+→ رسوم، خصومات، دفعات وخطط سداد في مكان واحد.
+
+الإحصائيات
+→ رؤية إدارية واضحة مبنية على بيانات النظام.
+
+Do not make unsupported feature claims.
+
+==================================================
+17. PRODUCT SHOWCASE
+==================================================
+
+Create a visually impressive section:
+
+اكتشف غرس
+
+Use approximately 4 key product previews:
+
+1. ملف المريض
+
+2. الزرعات والإجراءات
+
+3. المتابعة
+
+4. التقارير والإحصائيات
+
+Each item should contain:
+
+- actual/sanitized product screenshot
+- clear title
+- maximum 1–2 lines of description
+
+Avoid tiny unreadable screenshots.
+
+Screens must be large enough to communicate the UI.
+
+==================================================
+18. FEATURE GRID
+==================================================
+
+Create a carefully designed feature section.
+
+Do NOT create 15 identical cards.
+
+Use approximately 6 primary capabilities:
+
+إدارة المرضى
+إدارة حالات الزراعة
+متابعة الزرعات
+الإجراءات الجراحية المساندة
+التركيبات والمتابعات
+المالية والإحصائيات
+
+Use simple line icons.
+
+No 3D icons.
+
+Each capability should have one concise benefit-oriented description.
+
+==================================================
+19. BENEFIT-FOCUSED COPY
+==================================================
+
+Do not describe only what buttons exist.
+
+Explain WHY features matter.
+
+Prefer:
+
+"تعرف المرحلة الحالية للحالة بدون الرجوع إلى ملفات متفرقة."
+
+instead of:
+
+"يوجد لدينا شاشة للحالات."
+
+Prefer:
+
+"تابع ما تم وما ينتظر إجراءً من مكان واحد."
+
+instead of:
+
+"يوجد نظام متابعة."
+
+Marketing copy must remain credible and professional.
+
+==================================================
+20. STATISTICS SHOWCASE
+==================================================
+
+Create a dedicated high-impact section for Ghars Statistics.
+
+Suggested headline:
+
+لا تبحث عن الرقم.
+غرس يضعه أمامك.
+
+Supporting concept:
+
+حوّل البيانات اليومية إلى رؤية أوضح للحالات، الزرعات، التركيبات، المتابعات والتحصيل.
+
+Show a large sanitized screenshot of the existing Statistics page.
+
+Use subtle visual emphasis around:
+
+- KPIs
+- charts
+- trends
+- implant systems
+- follow-up metrics
+- financial summary where appropriate
+
+Do NOT fabricate analytics functionality that does not exist.
+
+==================================================
+21. OPERATIONAL VISIBILITY SECTION
+==================================================
+
+Create another strong marketing statement:
+
+اعرف ما تم،
+وما ينتظر،
+وما يحتاج متابعة.
+
+Visually demonstrate:
+
+- implant status
+- follow-up
+- prosthetic stage
+- case summary
+
+Use actual product UI elements.
+
+Keep copy concise.
+
+==================================================
+22. FINANCIAL VALUE
+==================================================
+
+Explain financial functionality without turning the website into accounting software.
+
+Example:
+
+الجانب السريري والمالي في نفس السياق.
+
+Support:
+
+تابع قيمة العلاج، الرسوم، الخصومات، الدفعات وخطط السداد من داخل حالة المريض.
+
+If a user's permission controls financial access inside the application, do not imply that every employee sees finance.
+
+Mention permissions appropriately.
+
+==================================================
+23. TEAM / PERMISSIONS SECTION
+==================================================
+
+Create a concise section explaining controlled team access.
+
+Possible headline:
+
+كل مستخدم يرى ما يحتاجه.
+
+Explain:
+
+- roles
+- permissions
+- controlled access
+- centralized records
+
+Only claim features that actually exist.
+
+Do NOT claim certifications/compliance unless explicitly implemented and verified.
+
+==================================================
+24. SECURITY COPY
+==================================================
+
+Avoid unsupported claims such as:
+
+- HIPAA Certified
+- ISO Certified
+- military-grade encryption
+- Saudi NCA compliant
+
+unless they are actually certified.
+
+Safe language:
+
+"صلاحيات منظمة ووصول حسب دور المستخدم."
+
+Use actual system capabilities only.
+
+==================================================
+25. PRICING SECTION
+==================================================
+
+Create a premium pricing section.
+
+Heading:
+
+اختر الباقة المناسبة لك
+
+Optional monthly/yearly switch:
+
+شهري
+سنوي
+
+Only implement yearly pricing if the pricing model supports it.
+
+The Pricing Cards MUST NOT be hard-coded.
+
+All pricing plans must come from the backend/database.
+
+==================================================
+26. DYNAMIC PRICING — CORE REQUIREMENT
+==================================================
+
+Build a canonical dynamic Pricing Plans system.
+
+Admin must be able to manage pricing from the authenticated application.
+
+Create:
+
+الإعدادات
+→ إدارة الباقات
+
+or an equivalent clean Admin section.
+
+Do NOT require code changes every time a plan changes.
+
+==================================================
+27. PRICING PLAN MODEL
+==================================================
+
+Inspect the current schema before adding anything.
+
+If a canonical pricing/subscription-plan model already exists:
+reuse it.
+
+Otherwise introduce a clean pricing plan model.
+
+Conceptually support:
+
+id
+
+name_ar
+name_en optional
+
+short_description_ar
+short_description_en optional
+
+monthly_price nullable
+
+annual_price nullable
+
+currency
+
+pricing_type:
+- fixed
+- contact_us
+
+features
+
+cta_text_ar
+
+cta_text_en optional
+
+cta_url / CTA behavior
+
+badge_text optional
+
+is_featured
+
+is_active
+
+sort_order
+
+created_at
+updated_at
+
+Archive rather than destructive delete if consistent with the application's current architecture.
+
+==================================================
+28. PLAN FEATURES
+==================================================
+
+Plan features must also be editable from Admin.
+
+Do NOT store the entire pricing card as fixed frontend text.
+
+Admin should be able to:
+
+- add feature
+- edit feature
+- remove/archive feature
+- reorder features
+
+Each plan may have a different feature list.
+
+Use the simplest clean relational/JSON architecture appropriate for the existing project.
+
+Prefer maintainability over unnecessary complexity.
+
+==================================================
+29. OPTIONAL PLAN LIMITS
+==================================================
+
+Allow useful optional commercial limits if needed.
+
+Examples:
+
+- عدد المستخدمين
+- عدد الأطباء
+- عدد الفروع
+- عدد الحالات
+
+But do not artificially enforce these operational limits in the application unless subscription enforcement is explicitly being implemented.
+
+For now they may be marketing/display metadata.
+
+Clearly separate DISPLAYED PLAN INFORMATION from actual entitlement enforcement.
+
+==================================================
+30. ADMIN PLAN MANAGEMENT
+==================================================
+
+Inside Admin Settings provide a clean management screen.
+
+Admin can:
+
+- create plan
+- edit plan
+- activate/deactivate plan
+- reorder plans
+- mark one as featured
+- edit prices
+- edit descriptions
+- manage features
+- choose fixed-price or "Contact Us"
+- configure CTA
+- configure optional badge
+
+Example badge:
+
+الأكثر طلبًا
+
+==================================================
+31. PLAN PREVIEW
+==================================================
+
+In Admin plan editor, provide a useful preview of how the Pricing Card will appear publicly if simple to implement.
+
+Do not over-engineer this.
+
+==================================================
+32. PUBLIC PRICING ENDPOINT
+==================================================
+
+Provide a safe public read endpoint that returns ONLY active public pricing-plan information.
+
+It must NOT expose:
+
+- internal IDs unnecessarily
+- admin metadata
+- audit details
+- secrets
+- unpublished plans
+
+Order results by:
+
+sort_order
+
+Do not expose inactive plans.
+
+==================================================
+33. PRICING UI
+==================================================
+
+Suggested visual structure:
+
+Basic
+
+Pro
+[الأكثر طلبًا]
+
+Enterprise
+
+BUT:
+
+These are not fixed names.
+
+Admin controls actual plans.
+
+Featured plan:
+may have stronger navy/teal emphasis.
+
+Do NOT use giant pricing cards.
+
+Cards should feel premium and easy to compare.
+
+==================================================
+34. PRICE DISPLAY
+==================================================
+
+Support correctly:
+
+299 ر.س / شهر
+
+or:
+
+تواصل معنا
+
+according to Admin configuration.
+
+Do not show:
+
+0 ر.س
+
+for contact-only plans.
+
+If annual pricing exists:
+
+show the correct annual value based on DB data.
+
+Do NOT calculate fake discount percentages unless Admin explicitly configures such data.
+
+==================================================
+35. PRICING CONTENT EXAMPLE ONLY
+==================================================
+
+During testing, if seed/demo plans are required, use clearly non-production demo content.
+
+For example:
+
+Basic
+Pro
+Enterprise
+
+But do not treat these names or example prices as permanent product requirements.
+
+Existing production data must not be modified.
+
+==================================================
+36. CTA BEHAVIOR
+==================================================
+
+Main public CTA:
+
+اطلب تجربة غرس
+
+Do NOT automatically create public self-registration unless such onboarding already exists.
+
+Preferred initial behavior:
+
+open a professional demo/contact request form.
+
+==================================================
+37. DEMO REQUEST FORM
+==================================================
+
+Create a clean CTA form.
+
+Suggested fields:
+
+الاسم
+اسم المنشأة / العيادة
+رقم الجوال
+البريد الإلكتروني
+المدينة optional
+ملاحظات optional
+
+Button:
+
+إرسال طلب التجربة
+
+Keep the form short.
+
+Do not ask for unnecessary information.
+
+==================================================
+38. DEMO REQUEST STORAGE
+==================================================
+
+Prefer saving demo requests safely to the backend so Admin can review them.
+
+If no equivalent lead/contact architecture exists, add a simple model.
+
+Conceptually:
+
+demo_requests
+
+id
+name
+organization_name
+phone
+email
+city nullable
+notes nullable
+status
+created_at
+
+Possible statuses:
+
+new
+contacted
+qualified
+closed
+
+Do NOT build a full CRM.
+
+==================================================
+39. ADMIN DEMO REQUESTS
+==================================================
+
+Provide an Admin-only simple list:
+
+طلبات التجربة
+
+Admin can:
+
+- view requests
+- filter by status
+- change status
+- view contact details
+
+No unnecessary CRM complexity.
+
+==================================================
+40. DEMO REQUEST SECURITY
+==================================================
+
+Public form must have:
+
+- server validation
+- input normalization
+- spam/rate-limit protection
+- safe error handling
+
+Do NOT expose database details.
+
+Do not trust frontend validation alone.
+
+==================================================
+41. WHATSAPP / CONTACT
+==================================================
+
+If a real Ghars business contact/WhatsApp number is already configured in the system:
+
+reuse the configured value.
+
+Do NOT hardcode a fake phone number.
+
+If no contact value exists:
+
+make the CTA configuration admin-controlled or use the demo-request form.
+
+==================================================
+42. FAQ
+==================================================
+
+Create a polished FAQ section.
+
+Suggested questions:
+
+ما هو غرس؟
+
+لمن يناسب نظام غرس؟
+
+هل يمكن متابعة أكثر من زرعة لنفس المريض؟
+
+هل يدعم الإجراءات الجراحية المساندة؟
+
+هل يمكن متابعة الدفعات والمبالغ المتبقية؟
+
+هل توجد صلاحيات للمستخدمين؟
+
+كيف أطلب تجربة للنظام؟
+
+Answers must reflect REAL system functionality.
+
+Keep FAQ concise.
+
+Accordion interaction is appropriate.
+
+==================================================
+43. FINAL CTA
+==================================================
+
+Create a strong final CTA before Footer.
+
+Suggested:
+
+ابدأ بإدارة حالات الزراعة بطريقة أوضح.
+
+Supporting text:
+
+اجمع التفاصيل السريرية، المتابعة والبيانات التشغيلية في منصة واحدة.
+
+Button:
+
+اطلب تجربة غرس
+
+Secondary:
+
+دخول المستخدمين
+
+Use a premium navy section or light section depending on visual balance.
+
+No dramatic gradients.
+
+==================================================
+44. FOOTER
+==================================================
+
+Keep Footer compact.
+
+Include:
+
+Ghars logo
+
+Short description:
+
+منصة متخصصة لإدارة ومتابعة حالات زراعة الأسنان.
+
+Links:
+
+المميزات
+الباقات
+الأسئلة الشائعة
+دخول المستخدمين
+
+Legal placeholders only if actual pages exist.
+
+Do NOT create fake social media profiles.
+
+==================================================
+45. MOTION DESIGN
+==================================================
+
+Use restrained professional animation.
+
+Allowed:
+
+- fade/slide entrance
+- subtle screenshot transitions
+- hover elevation
+- pricing card hover
+- step transition in product story
+- number animation if displaying legitimate marketing/demo values
+
+Use IntersectionObserver / CSS or the project's existing motion library.
+
+Avoid adding a large animation dependency unless necessary.
+
+==================================================
+46. DO NOT USE THESE ANIMATIONS
+==================================================
+
+No:
+
+- floating teeth
+- rotating implants
+- particles
+- endless logo movement
+- glowing blobs everywhere
+- mouse-follow effects
+- excessive parallax
+- scroll hijacking
+- loading intro animation
+
+The site must feel stable.
+
+==================================================
+47. VISUAL DETAILS
+==================================================
+
+Use:
+
+large border radius only where consistent
+subtle 1px borders
+light shadows
+precise spacing
+high-quality typography
+comfortable vertical rhythm
+
+Avoid:
+
+huge pills everywhere
+oversized glass cards
+random gradient borders
+excessive shadows
+
+==================================================
+48. RESPONSIVE
+==================================================
+
+The landing page must be excellent on:
+
+1920 desktop
+1600 desktop
+1440 desktop
+1366 laptop
+tablet
+mobile
+
+Mobile must NOT simply shrink desktop.
+
+Recompose sections intentionally.
+
+For Product Story on mobile:
+
+step
+↓
+product image
+↓
+next step
+
+instead of sticky dual-column behavior.
+
+==================================================
+49. RTL
+==================================================
+
+Arabic is primary.
+
+Implement proper RTL:
+
+- section text
+- navbar
+- cards
+- pricing
+- forms
+- icons
+- arrows
+- product story
+- FAQ
+
+Do not simply apply text-align:right and leave layout direction broken.
+
+==================================================
+50. SEO
+==================================================
+
+Create appropriate public metadata.
+
+Suggested title:
+
+غرس | نظام إدارة ومتابعة زراعة الأسنان
+
+Description:
+
+منصة غرس لإدارة حالات زراعة الأسنان، متابعة الزرعات والتركيبات والإجراءات والمتابعات والبيانات التشغيلية في مكان واحد.
+
+Add:
+
+- semantic headings
+- title
+- meta description
+- Open Graph metadata if project supports it
+- favicon from Ghars assets
+
+Do not keyword-stuff.
+
+==================================================
+51. PERFORMANCE
+==================================================
+
+Landing page performance matters.
+
+Optimize product screenshots:
+
+- WebP/AVIF when appropriate
+- responsive sizing
+- lazy-load below-the-fold images
+- preserve visual clarity
+
+Do not load full-resolution multi-megabyte screenshots unnecessarily.
+
+Avoid huge JS bundles for decorative effects.
+
+==================================================
+52. ACCESSIBILITY
+==================================================
+
+Ensure:
+
+- semantic headings
+- alt text
+- visible focus
+- keyboard-accessible navigation
+- keyboard-accessible FAQ
+- proper form labels
+- proper contrast
+- buttons vs links used semantically
+- reduced-motion support
+
+==================================================
+53. PUBLIC VS AUTHENTICATED BOUNDARY
+==================================================
+
+This is critical.
+
+Public users may access:
+
+- Landing Page
+- active public pricing
+- demo request endpoint
+- Login
+- Forgot Password
+- Reset Password where appropriate
+
+Public users must NOT gain access to:
+
+- patient APIs
+- statistics APIs
+- finance APIs
+- user management
+- clinical data
+- admin pricing mutations
+- demo request admin data
+
+Review route middleware carefully.
+
+==================================================
+54. PRICING ADMIN SECURITY
+==================================================
+
+Pricing-plan mutations must be protected server-side.
+
+Only appropriate Admin users should be able to:
+
+create
+edit
+archive/deactivate
+reorder
+
+plans.
+
+Do not rely on hiding UI buttons.
+
+Reuse current role/effectivePermissions architecture where appropriate.
+
+==================================================
+55. DEMO REQUEST ADMIN SECURITY
+==================================================
+
+Only authorized Admin users may see:
+
+طلبات التجربة
+
+and applicant contact information.
+
+Protect server endpoints.
+
+==================================================
+56. AUDIT
+==================================================
+
+Use existing audit architecture for Admin mutations.
+
+Audit useful events such as:
+
+pricing plan created
+pricing plan updated
+pricing plan activated/deactivated
+pricing plan reordered
+
+Do not over-log public page views.
+
+==================================================
+57. MIGRATIONS
+==================================================
+
+If pricing-plan or demo-request tables are required:
+
+create versioned Drizzle migrations.
+
+Preserve the current database.
+
+Do NOT use destructive schema changes.
+
+Do NOT modify existing development patient records.
+
+Do not use production data for testing.
+
+==================================================
+58. TEST DATA
+==================================================
+
+Use isolated test data.
+
+Never create test patients or modify development patient cases merely to test the Landing Page.
+
+Pricing/demo-request tests should use isolated records/test database where available.
+
+Clean up test records where appropriate.
+
+==================================================
+59. PRODUCT SCREENSHOTS
+==================================================
+
+Where screenshots are required:
+
+Use only sanitized/demo Ghars screens.
+
+No real:
+
+- patient names
+- phone numbers
+- IDs
+- medical notes
+- financial records tied to real patients
+
+If existing screenshots contain real information:
+do NOT publish them.
+
+Create sanitized marketing assets instead.
+
+==================================================
+60. NO FAKE SOCIAL PROOF
+==================================================
+
+Do NOT invent:
+
+- 2,500 users
+- 150 clinics
+- 80,000 implants
+- testimonials
+- reviews
+- partner logos
+- hospital logos
+- customer names
+
+unless these are provided and verified.
+
+The visual reference may contain sample counters.
+
+Those numbers are DESIGN INSPIRATION ONLY.
+
+Do NOT put fake numbers into the real Landing Page.
+
+==================================================
+61. OPTIONAL FUTURE SOCIAL PROOF
+==================================================
+
+Structure the UI so a future customer-logo/testimonial section can be added later.
+
+But do not add fake content now.
+
+==================================================
+62. BUTTON BRANDING
+==================================================
+
+Continue using the approved Ghars action system.
+
+Primary normal actions:
+
+Deep Navy
+#0D1B3D
+
+Secondary:
+navy outline / neutral.
+
+Teal:
+selective accent.
+
+Destructive:
+red.
+
+The Landing Page CTA hierarchy must match the authenticated Ghars product identity.
+
+==================================================
+63. PRODUCT SCREENSHOT TREATMENT
+==================================================
+
+Screenshots should be presented professionally.
+
+Use:
+
+- clean browser/window framing
+- subtle shadow
+- slight perspective only when tasteful
+- readable UI
+
+Avoid:
+
+- extreme 3D tilt
+- reflection effects
+- floating laptops everywhere
+
+The product UI itself is valuable enough.
+
+==================================================
+64. DESIGN QUALITY BAR
+==================================================
+
+Before finishing, critically inspect the page.
+
+Reject any section that looks like:
+
+"a generic Tailwind landing page"
+
+Improve:
+
+- composition
+- vertical rhythm
+- hierarchy
+- typography
+- screenshot placement
+- copy length
+- CTA placement
+
+Do NOT compensate for weak design by adding more effects.
+
+==================================================
+65. MARKETING FLOW
+==================================================
+
+The final page should tell this story:
+
+1.
+What is Ghars?
+
+2.
+Why would I need it?
+
+3.
+How does a patient/case flow through Ghars?
+
+4.
+What can Ghars manage?
+
+5.
+What does the actual system look like?
+
+6.
+What visibility/statistics do I gain?
+
+7.
+Can my team use it safely?
+
+8.
+How much does it cost?
+
+9.
+How do I request a demo?
+
+Every section should have a purpose.
+
+==================================================
+66. COPY TONE
+==================================================
+
+Arabic copy should be:
+
+- professional
+- modern
+- short
+- confident
+- understandable
+- not exaggerated
+
+Avoid phrases such as:
+
+"ثورة في عالم طب الأسنان"
+"الأفضل على الإطلاق"
+"غيّر حياتك"
+"تقنية المستقبل الخارقة"
+
+Use credible B2B SaaS language.
+
+==================================================
+67. IMPORTANT BUSINESS POSITIONING
+==================================================
+
+Ghars is NOT marketed as a generic clinic-management system.
+
+Position it specifically around:
+
+إدارة ومتابعة زراعة الأسنان
+
+This specialization should be immediately obvious.
+
+==================================================
+68. DO NOT BREAK CURRENT GHARS
+==================================================
+
+Regression test the authenticated product.
+
+Confirm Landing Page implementation did NOT alter:
+
+- canonical patient data
+- implant logic
+- adjunct procedures
+- prosthetic synchronization
+- finance calculations
+- follow-ups
+- Operational Table
+- Statistics
+- existing Login
+- Password Recovery
+- roles
+- permissions
+
+==================================================
+69. TEST DYNAMIC PRICING
+==================================================
+
+Test:
+
+A.
+Admin creates a pricing plan.
+
+B.
+It appears publicly when Active.
+
+C.
+Inactive plan does NOT appear.
+
+D.
+Admin edits price.
+
+E.
+Landing page updates from canonical backend data.
+
+F.
+Admin changes plan feature.
+
+G.
+Landing page reflects it.
+
+H.
+Admin changes sort order.
+
+I.
+Landing page reflects the new ordering.
+
+J.
+Featured plan displays correctly.
+
+K.
+Contact-only plan shows:
+تواصل معنا
+
+instead of numeric price.
+
+L.
+Unauthorized users cannot mutate pricing plans.
+
+==================================================
+70. TEST DEMO REQUEST
+==================================================
+
+Test:
+
+- valid form submission
+- invalid email
+- invalid phone
+- required fields
+- rate limiting
+- success state
+- Admin can see request
+- unauthorized user cannot view requests
+- Admin can change request status
+
+Use isolated test data.
+
+==================================================
+71. BROWSER VISUAL VERIFICATION
+==================================================
+
+Verify in browser at:
+
+1920x1080
+1600x900
+1440x900
+1366x768
+tablet
+mobile
+
+Inspect:
+
+- Hero balance
+- nav
+- product screenshot readability
+- section spacing
+- Product Story interaction
+- Pricing cards
+- FAQ
+- CTA
+- Footer
+- RTL
+- no horizontal scroll
+- no clipping
+- no broken images
+- no layout shifts
+
+==================================================
+72. TECHNICAL VERIFICATION
+==================================================
+
+Run:
+
+- affected frontend TypeScript
+- affected backend TypeScript
+- lint
+- focused API tests
+- pricing-plan tests
+- demo-request tests if implemented
+- permission tests
+- production build
+
+Confirm:
+
+- build succeeds
+- no console errors
+- public endpoint exposes only intended data
+- protected data remains protected
+- no real clinical data reaches public HTML/API
+- dynamic pricing works
+
+==================================================
+73. DO NOT PUBLISH
+==================================================
+
+Do not publish.
+
+Do not modify production data.
+
+Create a stable checkpoint after successful verification.
+
+==================================================
+74. FINAL REPORT
+==================================================
+
+At completion report:
+
+1. Landing Page route.
+2. Login route changes if any.
+3. Main landing sections created.
+4. Ghars assets used.
+5. fonts used.
+6. design tokens.
+7. animation approach.
+8. Product Story implementation.
+9. how screenshots/product previews were sanitized.
+10. pricing schema.
+11. pricing Admin UI.
+12. pricing public endpoint.
+13. pricing permission enforcement.
+14. monthly/annual behavior.
+15. featured/contact-only plan behavior.
+16. demo request architecture if implemented.
+17. demo request Admin UI.
+18. public form protection.
+19. migrations created.
+20. audit events.
+21. SEO metadata.
+22. responsive verification.
+23. dynamic pricing test results.
+24. permission/security test results.
+25. production build result.
+26. confirmation that existing clinical/business logic was untouched.
+27. exact checkpoint commit hash.
+
+Create the checkpoint and STOP.
+
+Do NOT publish.

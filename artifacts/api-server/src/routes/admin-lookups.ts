@@ -66,6 +66,19 @@ async function referencedValues(
     `);
     return new Set((rows.rows as { v: string }[]).map((r) => r.v));
   }
+  if (
+    category === "bone_graft_procedure_type" ||
+    category === "bone_graft_material" ||
+    category === "bone_graft_membrane" ||
+    category === "bone_graft_status"
+  ) {
+    const column = REFERENCE_COLUMNS[category];
+    const rows = await db
+      .selectDistinct({ v: column })
+      .from(boneGraftProceduresTable)
+      .where(inArray(column, values));
+    return new Set(rows.map((r) => r.v).filter((v): v is string => !!v));
+  }
   const column = REFERENCE_COLUMNS[category];
   const rows = await db
     .selectDistinct({ v: column })

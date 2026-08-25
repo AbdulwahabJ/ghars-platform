@@ -25,6 +25,8 @@ export const userRoleEnum = pgEnum("user_role", [
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   username: text("username").notNull().unique(),
+  /** Normalized email address used for password recovery (optional for legacy users). */
+  email: text("email"),
   passwordHash: text("password_hash").notNull(),
   fullName: text("full_name").notNull(),
   role: userRoleEnum("role").notNull(),
