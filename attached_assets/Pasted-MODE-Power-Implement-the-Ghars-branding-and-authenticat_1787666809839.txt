@@ -1,0 +1,1422 @@
+MODE: Power
+
+Implement the Ghars branding and authentication refinements described below.
+
+I am attaching:
+1. The approved Ghars visual identity.
+2. The selected Login Page reference design.
+
+IMPORTANT:
+The selected Login design is the clean split-screen design:
+- Brand identity panel on the LEFT.
+- Login form on the RIGHT.
+- Light background.
+- Subtle hexagonal brand decoration.
+- No 3D teeth.
+- No AI-looking illustrations.
+- No excessive effects.
+
+This task includes:
+A. Redesigning ONLY the Login / Password Recovery authentication screens.
+B. Adding secure email-based password recovery.
+C. Adding email management to Admin user management.
+D. Applying Ghars primary navy styling to normal action buttons throughout the existing application.
+
+This is NOT a redesign of the entire application.
+
+Preserve the existing application layout, information architecture, cards, tables, forms, dashboard, patient pages, statistics, workflows, spacing, and responsive structure.
+
+==================================================
+1. GHARS BRAND IDENTITY
+==================================================
+
+Product:
+
+غرس
+Ghars
+
+Use the ATTACHED approved Ghars identity as the visual source of truth.
+
+Arabic typography:
+Cairo
+
+English / Latin typography:
+Montserrat
+
+Primary brand color:
+
+Deep Navy
+#0D1B3D
+
+Secondary:
+
+Blue Gray
+#64748B
+
+The application currently contains teal/turquoise accents.
+
+Preserve teal where it has useful semantic or decorative meaning.
+
+Do NOT radically recolor the entire application.
+
+The target is:
+
+EXISTING MEDICAL-TECH APPLICATION
++
+GHARS BRAND IDENTITY
+
+not a new UI design.
+
+==================================================
+2. TYPOGRAPHY
+==================================================
+
+Use Cairo as the Arabic UI font.
+
+Do NOT make the entire application Cairo Bold.
+
+Recommended weights:
+
+Body:
+Cairo 400
+
+Labels:
+Cairo 400 / 500
+
+Navigation:
+Cairo 500 / 600
+
+Section headings:
+Cairo 600 / 700
+
+Major headings:
+Cairo 700
+
+Buttons:
+Cairo 600
+
+English / Latin:
+Montserrat where appropriate.
+
+Preserve the current typography scale and spacing unless a tiny adjustment is required after changing fonts.
+
+Do not make all text bold.
+
+==================================================
+3. LOGO
+==================================================
+
+Use the REAL attached Ghars brand artwork.
+
+Do NOT recreate the Ghars logo with:
+
+- CSS
+- Lucide icons
+- generic tooth icons
+- AI-generated alternatives
+- emoji
+- approximate typography
+
+Do NOT:
+
+- stretch the logo
+- change proportions
+- recolor it
+- modify the implant symbol
+- alter Arabic lettering
+- add glow
+- add 3D effects
+
+Use Ghars branding in appropriate SYSTEM branding locations such as:
+
+- application header
+- Login
+- Password Recovery
+- favicon
+- print/report header where system branding currently exists
+
+Do NOT replace user profile photos.
+
+==================================================
+4. LOGIN PAGE — SELECTED DESIGN
+==================================================
+
+Replace the current small centered Login card with the SELECTED split-screen design.
+
+Desktop:
+
+LEFT:
+Ghars brand panel.
+
+RIGHT:
+Login form.
+
+Suggested proportions:
+
+45–50% brand panel
+50–55% login panel
+
+Use:
+
+min-height: 100vh
+
+The page should intentionally fill the viewport.
+
+It should feel:
+
+- professional
+- premium
+- medical
+- SaaS
+- minimal
+- stable
+- enterprise-ready
+- human-designed
+
+It must NOT feel like an AI-generated landing page.
+
+==================================================
+5. LEFT BRAND PANEL
+==================================================
+
+Use a very light:
+
+- blue-gray
+- cool off-white
+- subtle medical blue
+
+background.
+
+Do NOT use a solid dark navy panel.
+
+Place the Ghars identity prominently.
+
+Preferred composition:
+
+[ Ghars symbol ]
+
+غرس
+Ghars
+
+منصة ذكية لإدارة زراعة الأسنان
+
+تقنية · دقة · ثقة
+
+Keep the Ghars branding clearly visible.
+
+The logo must NOT be tiny like the current Login implementation.
+
+If tiny tagline text inside a supplied logo image becomes unreadable, use the approved standalone brand assets where available rather than shrinking the complete artwork.
+
+==================================================
+6. LEFT PANEL DECORATION
+==================================================
+
+Use very subtle geometric decoration based on the Ghars hexagonal identity.
+
+Allowed:
+
+- thin hexagon outlines
+- sparse connected lines
+- very subtle geometric pattern
+- small restrained teal nodes
+
+Use very low opacity.
+
+Colors may derive from:
+
+#0D1B3D
+#64748B
+existing medical teal
+
+The decoration must remain background texture.
+
+Do NOT use:
+
+- 3D dental implants
+- 3D teeth
+- floating objects
+- glowing medical objects
+- futuristic holograms
+- random AI neural networks
+- particles
+- excessive glassmorphism
+- dramatic gradients
+
+==================================================
+7. RIGHT LOGIN PANEL
+==================================================
+
+Keep the right side mostly white.
+
+Do NOT put the Login form inside a tiny floating card.
+
+The form should sit naturally in the right half with generous whitespace.
+
+Recommended form width:
+
+460–520px
+
+Vertically center the main form content.
+
+==================================================
+8. LOGIN HEADING
+==================================================
+
+Heading:
+
+تسجيل الدخول
+
+Subtitle:
+
+مرحباً بك في منصة غرس
+
+Use:
+
+Deep Navy for the main heading.
+
+Blue Gray for supporting text.
+
+==================================================
+9. USERNAME
+==================================================
+
+Field:
+
+اسم المستخدم
+
+Placeholder:
+
+أدخل اسم المستخدم
+
+Reuse the existing real authentication username field.
+
+Use a subtle user icon.
+
+Keep:
+
+- white input
+- subtle border
+- current border-radius language
+- comfortable input height
+- visible focus state
+
+==================================================
+10. PASSWORD
+==================================================
+
+Field:
+
+كلمة المرور
+
+Placeholder:
+
+أدخل كلمة المرور
+
+Include:
+
+- lock icon
+- show/hide password control
+
+Reuse the existing password authentication behavior.
+
+==================================================
+11. FORGOT PASSWORD
+==================================================
+
+Under the password field show:
+
+نسيت كلمة المرور؟
+
+This MUST be a real feature.
+
+Do NOT add a fake link.
+
+Clicking it must start the secure password recovery workflow described later in this prompt.
+
+==================================================
+12. LOGIN BUTTON
+==================================================
+
+Primary button:
+
+تسجيل الدخول
+
+Use:
+
+Background:
+#0D1B3D
+
+Text:
+white
+
+Border:
+#0D1B3D
+
+Use a subtle navy hover state.
+
+Do NOT use a dramatic gradient.
+
+Preserve:
+
+- loading state
+- disabled state
+- authentication errors
+- keyboard accessibility
+
+==================================================
+13. SUPPORT ACTION
+==================================================
+
+If a REAL support/admin contact action already exists, it may appear below the Login button:
+
+تواصل مع الإدارة
+
+Do NOT create:
+
+- public signup
+- fake registration
+- fake support functionality
+
+==================================================
+14. LANGUAGE SELECTOR
+==================================================
+
+The selected design reference contains a language selector.
+
+Only display it if the application ACTUALLY supports language switching.
+
+Do NOT create a non-functional Arabic/English selector just for visual similarity.
+
+==================================================
+15. LOGIN ERROR UX
+==================================================
+
+Authentication errors should appear as a professional inline error.
+
+Example:
+
+اسم المستخدم أو كلمة المرور غير صحيحة
+
+Do NOT use browser alerts.
+
+Do NOT expose backend details.
+
+==================================================
+16. RESPONSIVE LOGIN
+==================================================
+
+Desktop:
+split-screen.
+
+Tablet:
+retain split layout when enough room exists.
+
+Mobile:
+collapse to a single vertical flow:
+
+Ghars logo
+↓
+تسجيل الدخول
+↓
+username
+↓
+password
+↓
+login button
+
+On mobile, hide or greatly simplify the left brand panel.
+
+Do not force users to scroll through branding before reaching the Login form.
+
+==================================================
+17. AUTHENTICATION — PRESERVE EXISTING LOGIN
+==================================================
+
+Preserve the current login/session architecture.
+
+Do NOT replace:
+
+- existing login endpoint
+- session mechanism
+- cookie behavior
+- CSRF protections
+- logout logic
+- role system
+- permissions
+
+The ONLY approved authentication expansion is:
+
+EMAIL-BASED PASSWORD RECOVERY.
+
+==================================================
+18. USER EMAIL — INSPECT FIRST
+==================================================
+
+Inspect the existing canonical users schema.
+
+If a canonical email field already exists:
+
+REUSE IT.
+
+Do NOT create another email field.
+
+If email does NOT exist:
+
+add the minimum safe email field to the canonical user model.
+
+Existing users must remain valid.
+
+Do NOT break old accounts.
+
+==================================================
+19. EMAIL DATABASE RULES
+==================================================
+
+If adding email:
+
+Existing legacy users:
+email may initially be NULL.
+
+New users:
+email should be REQUIRED.
+
+Normalize email:
+
+- trim whitespace
+- lowercase/canonical comparison as appropriate
+- case-insensitive uniqueness
+
+Reject duplicate emails.
+
+Arabic validation example:
+
+البريد الإلكتروني مستخدم لحساب آخر.
+
+Do not expose raw PostgreSQL/database errors.
+
+==================================================
+20. ADMIN SETTINGS — USER EMAIL
+==================================================
+
+Inside:
+
+الإعدادات → إدارة المستخدمين
+
+add:
+
+البريد الإلكتروني
+
+to:
+
+- Create User
+- Edit User
+
+The user-management form should conceptually contain existing fields plus:
+
+اسم المستخدم
+الاسم
+البريد الإلكتروني
+الدور
+الصورة
+...existing settings
+
+Do NOT redesign the whole Settings page.
+
+Add the field cleanly using the existing UI pattern.
+
+==================================================
+21. LEGACY USERS WITHOUT EMAIL
+==================================================
+
+Existing users without email MUST still be able to log in normally.
+
+Do NOT force all existing users to add an email before Login.
+
+In Admin User Management show a subtle state:
+
+لا يوجد بريد إلكتروني
+
+Admin can edit the account and add one.
+
+Do NOT fabricate email addresses.
+
+Do NOT infer emails from username.
+
+==================================================
+22. PASSWORD RECOVERY REQUEST
+==================================================
+
+Clicking:
+
+نسيت كلمة المرور؟
+
+opens a Ghars-branded password-recovery view.
+
+Title:
+
+استعادة كلمة المرور
+
+Text:
+
+أدخل بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.
+
+Field:
+
+البريد الإلكتروني
+
+Button:
+
+إرسال رابط الاستعادة
+
+Secondary:
+
+العودة لتسجيل الدخول
+
+Use the SAME visual identity as the Login page.
+
+Do not create a visually unrelated page.
+
+==================================================
+23. ACCOUNT ENUMERATION PROTECTION
+==================================================
+
+Mandatory security requirement.
+
+After submitting an email, ALWAYS display the same generic message:
+
+إذا كان البريد الإلكتروني مرتبطًا بحساب، سيتم إرسال رابط إعادة تعيين كلمة المرور.
+
+Do this whether:
+
+- email exists
+- email does not exist
+- user has no email
+- account is unavailable according to current security policy
+
+Do NOT publicly reveal whether an account exists.
+
+==================================================
+24. RESET TOKEN SECURITY
+==================================================
+
+Implement secure password reset tokens.
+
+Requirements:
+
+- cryptographically secure random token
+- single-use
+- expiration
+- approximately 60-minute validity
+- store only token HASH in database
+- NEVER store raw token
+- associate it with the user
+- mark it used after successful reset
+- reject expired tokens
+- reject already-used tokens
+
+Never include:
+
+- password
+- secrets
+- sensitive user data
+
+inside the token.
+
+==================================================
+25. RESET TOKEN STORAGE
+==================================================
+
+If equivalent secure infrastructure already exists:
+
+reuse it.
+
+Otherwise use a minimal dedicated model conceptually similar to:
+
+password_reset_tokens
+
+- id
+- user_id
+- token_hash
+- expires_at
+- used_at nullable
+- created_at
+
+Follow the project's current:
+
+- ID conventions
+- timestamp conventions
+- foreign key conventions
+- migration conventions
+
+Add appropriate indexes.
+
+Do NOT store raw tokens.
+
+==================================================
+26. EMAIL DELIVERY
+==================================================
+
+Inspect whether the project already has an email provider.
+
+If yes:
+
+reuse it.
+
+If not:
+
+add the minimum clean email-provider integration needed for password recovery.
+
+DO NOT hardcode:
+
+- SMTP password
+- API keys
+- secrets
+
+All credentials must live in:
+
+Replit Secrets / environment variables.
+
+==================================================
+27. RESET EMAIL
+==================================================
+
+Suggested email subject:
+
+غرس — إعادة تعيين كلمة المرور
+
+Email should contain:
+
+- Ghars branding
+- short Arabic instructions
+- secure reset link
+- expiry notice
+
+Suggested text:
+
+تم طلب إعادة تعيين كلمة المرور لحسابك في غرس.
+
+اضغط على الرابط التالي لإنشاء كلمة مرور جديدة.
+
+تنتهي صلاحية الرابط بعد 60 دقيقة.
+
+إذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذه الرسالة.
+
+Do NOT send:
+
+- current password
+- temporary plain-text password
+
+==================================================
+28. RESET PASSWORD PAGE
+==================================================
+
+Reset link opens:
+
+إعادة تعيين كلمة المرور
+
+Fields:
+
+كلمة المرور الجديدة
+تأكيد كلمة المرور
+
+Include:
+
+- show/hide controls
+- proper autocomplete
+- clear validation
+
+Button:
+
+حفظ كلمة المرور الجديدة
+
+Use the same Ghars Login visual language.
+
+==================================================
+29. PASSWORD POLICY
+==================================================
+
+Reuse the application's EXISTING password policy.
+
+Do NOT invent a conflicting password policy.
+
+Examples of Arabic errors:
+
+كلمة المرور لا تستوفي المتطلبات.
+
+كلمتا المرور غير متطابقتين.
+
+Use field-specific validation.
+
+==================================================
+30. SUCCESSFUL PASSWORD RESET
+==================================================
+
+After successful reset:
+
+1. update password through the existing secure password-hashing mechanism
+2. mark reset token used
+3. prevent token reuse
+4. display:
+
+تم تغيير كلمة المرور بنجاح.
+
+Then provide:
+
+العودة لتسجيل الدخول
+
+Never display the password.
+
+==================================================
+31. ACTIVE SESSIONS AFTER RESET
+==================================================
+
+Inspect current session infrastructure.
+
+Preferred behavior:
+
+invalidate other sessions for that user after a successful password reset.
+
+But only do this if current architecture supports safe per-user revocation.
+
+If it does NOT:
+
+report the limitation.
+
+Do not perform a risky session-system rewrite.
+
+==================================================
+32. RESET RATE LIMITING
+==================================================
+
+Protect password reset requests against abuse.
+
+Reuse existing rate limiting where available.
+
+Prevent rapid repeated reset-email requests.
+
+Maintain generic outward responses.
+
+==================================================
+33. EMAIL CHANGE SECURITY
+==================================================
+
+When Admin changes a user's email:
+
+- normalize it
+- validate it
+- enforce uniqueness
+- audit the change
+
+Also invalidate outstanding unused password-reset tokens for that user.
+
+Old reset links must not remain valid after changing the registered email.
+
+==================================================
+34. AUDIT
+==================================================
+
+Use the existing audit architecture.
+
+Audit appropriate events such as:
+
+- Admin changed user email
+- password reset requested
+- password reset successfully completed
+
+Never log:
+
+- raw reset token
+- passwords
+- secret credentials
+
+==================================================
+35. DISABLED USERS
+==================================================
+
+Follow existing disabled/archive user rules.
+
+Password reset must NOT reactivate disabled users.
+
+Do not create another account lifecycle.
+
+==================================================
+36. GLOBAL BUTTON BRAND REFRESH
+==================================================
+
+Apply the Ghars Deep Navy action color across NORMAL ACTION BUTTONS throughout the existing application.
+
+Primary action color:
+
+#0D1B3D
+
+This is a controlled BUTTON BRAND REFRESH.
+
+Do NOT redesign pages.
+
+==================================================
+37. PRIMARY BUTTONS
+==================================================
+
+Normal primary action buttons should use:
+
+Background:
+#0D1B3D
+
+Text:
+white
+
+Border:
+#0D1B3D
+
+Examples:
+
+- تسجيل الدخول
+- حفظ
+- حفظ التعديلات
+- إضافة سجل
+- إضافة زرعة
+- إضافة إجراء جراحي
+- تسجيل دفعة
+- إضافة متابعة
+- إنشاء خطة
+- حفظ المريض
+- إضافة مستخدم
+- إرسال
+- تأكيد
+- تطبيق
+- normal Add/Create/Save actions
+
+Keep current:
+
+- dimensions
+- radius
+- icons
+- spacing
+- functionality
+
+Do NOT redesign the buttons themselves.
+
+==================================================
+38. SECONDARY BUTTONS
+==================================================
+
+Secondary actions should preferably use:
+
+white / transparent background
+
+Deep Navy:
+#0D1B3D
+
+for:
+
+- text
+- border
+
+Examples:
+
+- تعديل
+- العودة
+- فتح الملف
+- طباعة
+- تصدير CSV
+- secondary utility actions
+
+Hover may use an extremely light navy/blue-gray background.
+
+==================================================
+39. DESTRUCTIVE BUTTONS — DO NOT RECOLOR
+==================================================
+
+Do NOT convert destructive actions to navy.
+
+Keep destructive semantics RED.
+
+Examples:
+
+- حذف
+- أرشفة when destructive
+- إلغاء الدفعة
+- إلغاء السجل
+- destructive confirmation
+- dangerous actions
+
+Errors remain red.
+
+Warnings remain amber/yellow.
+
+Success/status indicators may remain green/teal.
+
+Branding must NOT destroy semantic meaning.
+
+==================================================
+40. CANCEL BUTTONS
+==================================================
+
+Normal form:
+
+إلغاء
+
+should generally remain:
+
+neutral / outline
+
+rather than looking like a primary action.
+
+If "إلغاء" represents a destructive business operation such as voiding a financial record:
+
+preserve destructive styling.
+
+==================================================
+41. CURRENT TEAL BUTTONS
+==================================================
+
+Audit existing teal buttons.
+
+If teal is being used merely as a GENERIC PRIMARY ACTION color:
+
+replace it with Ghars Deep Navy.
+
+Example:
+
+teal Save
+→ Ghars navy
+
+teal Add
+→ Ghars navy
+
+teal Submit
+→ Ghars navy
+
+But do NOT recolor:
+
+- clinical status badges
+- success labels
+- medical-state indicators
+- meaningful teal decorations
+
+==================================================
+42. CENTRALIZE BUTTON STYLING
+==================================================
+
+Inspect the existing shared:
+
+Button
+shadcn
+Tailwind variants
+CSS/theme tokens
+
+Prefer changing centralized design variants.
+
+Conceptually:
+
+primary
+→ Ghars navy
+
+secondary/outline
+→ Ghars navy outline
+
+destructive
+→ existing red
+
+ghost
+→ neutral with subtle brand hover
+
+Do NOT hardcode #0D1B3D into hundreds of individual files when a shared design token/component exists.
+
+==================================================
+43. SYSTEM-WIDE BUTTON COVERAGE
+==================================================
+
+Verify normal action-button branding in:
+
+- Login
+- Password Recovery
+- Dashboard
+- Operational Table
+- Patient File
+- Patient Procedures
+- Statistics
+- Settings
+- User Management
+- dialogs
+- finance workflows
+- payment plans
+- follow-ups
+- implants
+- adjunct surgical procedures
+- other forms
+
+The application should now visibly belong to ONE Ghars product identity.
+
+==================================================
+44. DO NOT RECOLOR THE WHOLE APP
+==================================================
+
+Do NOT radically change:
+
+- application backgrounds
+- cards
+- panels
+- tables
+- charts
+- clinical badges
+- status colors
+- decorative graphics
+
+Deep Navy becomes the dominant NORMAL ACTION color.
+
+It does NOT become the color of everything.
+
+==================================================
+45. NAVIGATION / HEADER
+==================================================
+
+Do not redesign the existing header or navbar.
+
+Use the Ghars identity already introduced.
+
+Preserve:
+
+- navigation structure
+- spacing
+- user image
+- notifications
+- help
+- responsive behavior
+
+Subtle brand-color tuning is allowed.
+
+==================================================
+46. DASHBOARD
+==================================================
+
+Do NOT redesign the Dashboard.
+
+Preserve:
+
+- hero
+- user portrait
+- search
+- background decoration
+- Work Summary
+- cards
+- lists
+- Operational Table
+
+Only inherit:
+
+- typography
+- logo
+- shared button colors
+- small brand token updates
+
+==================================================
+47. PATIENT WORKFLOW
+==================================================
+
+Do NOT change the current patient architecture.
+
+Preserve the approved two-tab model:
+
+- بيانات المريض
+- إجراءات المريض
+
+Do not modify clinical workflows in this branding/authentication task.
+
+==================================================
+48. STATISTICS
+==================================================
+
+Do NOT modify Statistics calculations or chart datasets.
+
+Do NOT force all charts to navy.
+
+Charts should preserve useful data-visualization differentiation.
+
+Only normal UI actions and typography should inherit Ghars styling.
+
+==================================================
+49. CLINICAL SEMANTIC COLORS
+==================================================
+
+Preserve colors indicating meaning.
+
+Examples:
+
+failed implant
+→ red
+
+needs action
+→ warning/amber
+
+completed/success
+→ green/teal
+
+ready state
+→ existing appropriate semantic color
+
+Do not replace these with navy.
+
+==================================================
+50. ACCESSIBILITY
+==================================================
+
+Ensure:
+
+- sufficient contrast
+- visible keyboard focus
+- correct labels
+- proper autocomplete
+- RTL
+- password input accessibility
+- disabled button clarity
+
+==================================================
+51. EMAIL FIELD ERRORS
+==================================================
+
+Use specific Arabic field-level errors.
+
+Examples:
+
+البريد الإلكتروني غير صالح.
+
+البريد الإلكتروني مستخدم لحساب آخر.
+
+البريد الإلكتروني مطلوب.
+
+Do not show:
+
+فشل الحفظ
+
+when the exact field problem is known.
+
+==================================================
+52. LOGIN / RESET ERROR SECURITY
+==================================================
+
+Do not expose:
+
+- stack traces
+- database errors
+- SMTP errors
+- whether an account exists
+- reset token details
+
+Log server failures safely while keeping user-facing errors controlled.
+
+==================================================
+53. DATABASE MIGRATION SAFETY
+==================================================
+
+If schema changes are required for:
+
+- users.email
+- password reset tokens
+
+generate proper versioned migration files.
+
+Do NOT use destructive schema push against existing development data.
+
+Validate migration safely.
+
+Preserve all current user records.
+
+==================================================
+54. DO NOT TOUCH BUSINESS LOGIC
+==================================================
+
+Do NOT change:
+
+- patient business rules
+- implant statuses
+- Task #18 prosthetic synchronization
+- surgical procedures
+- bone graft logic
+- finance formulas
+- installment behavior
+- follow-up behavior
+- statistics calculations
+- dashboard KPI rules
+- existing permissions unrelated to authentication recovery
+- existing patient data
+
+==================================================
+55. LOGIN VERIFICATION
+==================================================
+
+Verify Login at:
+
+Desktop:
+1600x900 or similar
+
+Laptop:
+1366x768
+
+Tablet
+
+Mobile
+
+Check:
+
+- selected split-screen composition
+- logo clear
+- tagline readable
+- form balanced
+- no clipping
+- no horizontal overflow
+- RTL correct
+- password show/hide works
+- errors work
+- loading state works
+
+==================================================
+56. PASSWORD RECOVERY TESTS
+==================================================
+
+Use ISOLATED test accounts.
+
+Test:
+
+A.
+Admin creates new user with valid email.
+
+B.
+Admin adds email to existing legacy user.
+
+C.
+Invalid email rejected.
+
+D.
+Duplicate email rejected.
+
+E.
+Legacy user without email still logs in normally.
+
+F.
+Reset request for existing email:
+generic success.
+
+G.
+Reset request for nonexistent email:
+same generic success.
+
+H.
+Raw token not stored in DB.
+
+I.
+Valid token can reset password.
+
+J.
+Expired token rejected.
+
+K.
+Used token rejected.
+
+L.
+New password logs in successfully.
+
+M.
+Old password no longer works.
+
+N.
+Changing user email invalidates previous reset token.
+
+O.
+No passwords/reset tokens appear in logs.
+
+==================================================
+57. GLOBAL BUTTON VISUAL VERIFICATION
+==================================================
+
+Check representative pages for:
+
+- primary buttons now Ghars navy
+- secondary buttons outlined appropriately
+- destructive buttons remain red
+- warnings retain warning colors
+- clinical statuses unchanged
+- disabled states clear
+- hover/focus/active states work
+- no unreadable navy-on-navy combinations
+
+==================================================
+58. TECHNICAL VERIFICATION
+==================================================
+
+Run:
+
+- migrations safely if required
+- affected backend TypeScript
+- affected frontend TypeScript
+- affected lint
+- focused authentication tests
+- focused password-reset API tests
+- focused Admin User Management tests
+- browser authentication flow
+- production build because global theme/font/auth pages are affected
+
+Confirm:
+
+- build succeeds
+- no browser console errors
+- no server exceptions during valid flows
+- no failed valid API requests
+- no sensitive data leakage
+
+==================================================
+59. IMPORTANT SCOPE CHECK
+==================================================
+
+The final application should still look like the SAME approved application.
+
+The user should perceive:
+
+"The existing system now has a consistent professional Ghars identity and secure password recovery."
+
+NOT:
+
+"The entire system was redesigned."
+
+==================================================
+60. DO NOT PUBLISH
+==================================================
+
+Do not publish.
+
+Do not alter production data.
+
+Use isolated test data where writes are required.
+
+==================================================
+61. FINAL REPORT
+==================================================
+
+At completion report:
+
+1. Login components changed.
+2. Ghars assets used.
+3. Cairo / Montserrat configuration.
+4. final design tokens.
+5. button variant changes.
+6. which semantic colors were intentionally preserved.
+7. whether users.email already existed.
+8. user-schema changes if any.
+9. password-reset-token architecture.
+10. migration files created.
+11. reset-token expiry.
+12. email provider/configuration.
+13. required Replit Secrets/environment variables.
+14. account-enumeration protection.
+15. reset rate limiting.
+16. session behavior after password reset.
+17. Admin User Management email changes.
+18. audit events added.
+19. authentication test results.
+20. visual button audit results.
+21. production build result.
+22. confirmation that clinical/financial/statistics business logic was untouched.
+23. exact checkpoint commit hash.
+
+Create a stable checkpoint and stop.
