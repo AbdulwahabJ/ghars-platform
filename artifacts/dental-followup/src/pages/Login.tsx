@@ -64,14 +64,6 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-foreground text-center">
             تسجيل الدخول
           </h1>
-          <p className="text-muted-foreground text-center mt-2 text-sm">
-            <span dir="ltr" className="inline-flex items-baseline text-left">
-              <span dir="rtl" className="font-semibold text-brand-navy">غرس</span>
-              <span className="mx-1 text-brand-blue-gray"> | </span>
-              <span className="font-brand-latin">Ghars</span>
-            </span>
-            <span className="block mt-1">نظام إدارة ومتابعة زراعة الأسنان</span>
-          </p>
         </div>
 
         {login.isError && (
