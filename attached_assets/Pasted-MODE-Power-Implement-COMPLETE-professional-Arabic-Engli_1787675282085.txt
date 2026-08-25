@@ -1,0 +1,1539 @@
+MODE: Power
+
+Implement COMPLETE professional Arabic/English localization across the entire existing Ghars application.
+
+Product:
+
+غرس | Ghars
+
+This is a foundational production-readiness task.
+
+Do NOT implement the Landing Page, demo data, subscriptions, trials, multi-tenancy, or Platform Admin in this task.
+
+FIRST make the CURRENT Ghars product fully bilingual and localization-ready.
+
+Languages:
+
+Arabic: ar
+English: en
+
+Arabic is the DEFAULT language.
+
+The result must be a real localization architecture — not a partial UI translation.
+
+==================================================
+1. FIRST AUDIT THE CURRENT PROJECT
+==================================================
+
+Before modifying anything, inspect:
+
+- frontend framework and structure
+- current typography
+- current RTL implementation
+- existing localization/i18n libraries if any
+- user_preferences
+- authentication
+- validation architecture
+- Zod schemas
+- API error architecture
+- toast/notification system
+- dialogs
+- tables
+- filters
+- forms
+- date formatting
+- currency formatting
+- print/report components
+- exports
+- email templates if already implemented
+- canonical enums/statuses
+- Admin-managed lists/catalogs
+
+Do NOT introduce a second localization system if a clean i18n implementation already exists.
+
+==================================================
+2. LOCALIZATION FRAMEWORK
+==================================================
+
+If no localization framework exists, implement a maintainable professional solution using:
+
+i18next
++
+react-i18next
+
+or the most appropriate equivalent already compatible with the project.
+
+Do NOT build a custom ad-hoc translation function.
+
+Centralize localization.
+
+==================================================
+3. SUPPORTED LANGUAGES
+==================================================
+
+Support exactly:
+
+Arabic:
+ar
+
+English:
+en
+
+Arabic is the default.
+
+The architecture should allow additional languages later without rewriting components.
+
+==================================================
+4. LANGUAGE SWITCHER
+==================================================
+
+Add a professional language switcher.
+
+It must be available:
+
+- Login
+- Password Recovery
+- authenticated application header/menu
+
+Suggested display:
+
+العربية
+English
+
+or:
+
+AR | EN
+
+depending on the existing UI.
+
+Changing language should update the UI immediately.
+
+Do NOT require logout.
+
+==================================================
+5. USER LANGUAGE PREFERENCE
+==================================================
+
+Inspect the existing user_preferences architecture.
+
+If a canonical locale/language field already exists:
+
+reuse it.
+
+Otherwise add the minimum field required, conceptually:
+
+locale
+
+values:
+
+ar
+en
+
+For authenticated users:
+
+persist the selected locale server-side in their canonical user preference.
+
+On login:
+
+load the user's language preference.
+
+If no preference exists:
+
+default to Arabic.
+
+==================================================
+6. PUBLIC LANGUAGE PREFERENCE
+==================================================
+
+Before login, store the visitor's selected language using the project's appropriate client preference mechanism.
+
+For example:
+
+localStorage
+or
+cookie
+
+Do not create authentication just to save language.
+
+When the user logs in, the authenticated user preference becomes canonical.
+
+==================================================
+7. RTL / LTR — CRITICAL
+==================================================
+
+Localization is NOT only text translation.
+
+Arabic:
+
+dir="rtl"
+lang="ar"
+
+English:
+
+dir="ltr"
+lang="en"
+
+Update the root document dynamically.
+
+Verify true layout direction for:
+
+- navigation
+- forms
+- input icons
+- tables
+- filters
+- dialogs
+- dropdowns
+- pagination
+- arrows
+- breadcrumbs
+- tabs
+- date pickers
+- charts where direction matters
+- toast positioning where appropriate
+- drawers
+- side panels
+
+Do NOT simply change text-align.
+
+==================================================
+8. TYPOGRAPHY
+==================================================
+
+Preserve the approved Ghars typography.
+
+Arabic:
+Cairo
+
+English / Latin:
+Montserrat
+
+Use existing weights appropriately.
+
+Do NOT make all Arabic text bold.
+
+Switch typography cleanly according to content/language.
+
+Do not cause layout shifts or clipped text.
+
+==================================================
+9. TRANSLATION FILE STRUCTURE
+==================================================
+
+Use modular translation namespaces.
+
+Recommended structure conceptually:
+
+locales/
+  ar/
+    common
+    auth
+    dashboard
+    patients
+    cases
+    implants
+    procedures
+    prosthetics
+    followups
+    communications
+    finance
+    statistics
+    settings
+    validation
+    errors
+
+  en/
+    same namespaces
+
+Exact file format may be JSON or the project's most appropriate typed structure.
+
+Do NOT place thousands of unrelated keys into one giant translation file.
+
+==================================================
+10. TRANSLATION KEYS
+==================================================
+
+Use stable semantic translation keys.
+
+Good:
+
+followups.status.scheduled
+
+finance.paymentStatus.partial
+
+errors.emailAlreadyUsed
+
+dialogs.archiveFollowup.title
+
+Bad:
+
+translation["تمت"]
+
+Bad:
+
+large Arabic sentences used as translation keys.
+
+==================================================
+11. NO HARDCODED UI LANGUAGE
+==================================================
+
+After implementation, normal UI components should not contain hardcoded visible Arabic or English strings.
+
+Move visible system text into localization resources.
+
+This includes:
+
+- headings
+- labels
+- buttons
+- placeholders
+- table headers
+- tabs
+- filters
+- badges
+- empty states
+- tooltips
+- menus
+- dropdown labels
+- helper text
+- dialog titles
+- dialog descriptions
+- confirmation messages
+- success messages
+- error messages
+- pagination
+- search placeholders
+- accessibility labels where appropriate
+
+==================================================
+12. COMPLETE APPLICATION COVERAGE
+==================================================
+
+Localize ALL existing Ghars surfaces.
+
+At minimum:
+
+Authentication
+Login
+Forgot Password
+Reset Password
+
+Dashboard
+
+Operational Table
+
+Patients
+
+Patient Medical File
+
+Patient Procedures
+
+Implant Cases
+
+Implants
+
+Tooth chart labels where textual labels exist
+
+Adjunct Surgical Procedures
+
+Bone Graft
+
+Sinus Lift
+
+Inferior Alveolar Nerve Repositioning
+
+Prosthetic Events
+
+Follow-ups
+
+Communications
+
+Finance
+
+Payments
+
+Charges
+
+Discounts
+
+Installment plans if already implemented
+
+Statistics
+
+Reports
+
+Settings
+
+User Management
+
+Lists
+
+Activity Log
+
+Export
+
+Dialogs
+
+Notifications
+
+Errors
+
+404 / Unauthorized / Forbidden states
+
+==================================================
+13. DO NOT TRANSLATE USER DATA
+==================================================
+
+Never machine-translate user-entered content.
+
+Examples:
+
+patient name
+doctor-entered notes
+clinical notes
+communication notes
+custom comments
+organization name
+user name
+
+Display these values exactly as stored.
+
+Localization applies to SYSTEM UI and canonical labels.
+
+==================================================
+14. CANONICAL ENUMS
+==================================================
+
+Inspect all existing enums/status codes.
+
+Database/backend values must remain stable canonical machine values.
+
+Example conceptually:
+
+scheduled
+completed
+cancelled
+
+NOT:
+
+مجدولة
+تمت
+ملغاة
+
+The UI translates the canonical values.
+
+Do NOT create separate Arabic and English status records.
+
+==================================================
+15. IMPLANT STATUS TRANSLATION
+==================================================
+
+Translate all ACTUAL existing implant statuses.
+
+Examples ONLY if they are canonical statuses in the current system:
+
+implanted
+healing
+ready_for_prosthesis
+temporary_prosthesis
+final_prosthesis
+failed
+needs_redo
+reimplanted
+
+Do not introduce or rename clinical statuses just for localization.
+
+==================================================
+16. FOLLOW-UP STATUS TRANSLATION
+==================================================
+
+Translate the actual canonical Follow-up statuses and types.
+
+All surfaces must use the same translation map.
+
+Do not define different wording in:
+
+Patient File
+Follow-up page
+Dashboard
+Statistics
+
+unless context intentionally requires it.
+
+==================================================
+17. PROCEDURE TRANSLATION
+==================================================
+
+Translate canonical procedure types.
+
+Examples:
+
+Bone Graft
+
+Sinus Lift
+
+Inferior Alveolar Nerve Repositioning
+
+Arabic wording should follow the wording already approved in Ghars.
+
+Keep terminology medically professional and consistent.
+
+==================================================
+18. PROSTHETIC TERMINOLOGY
+==================================================
+
+Use consistent translations across the system for:
+
+Temporary Prosthesis
+
+Final Prosthesis
+
+Expected Prosthetic Date
+
+Prosthetic History
+
+and current canonical prosthetic terminology.
+
+Do not change Task #18 business logic.
+
+==================================================
+19. FINANCE TERMINOLOGY
+==================================================
+
+Translate finance consistently.
+
+Examples:
+
+Treatment Value
+Paid
+Remaining
+Charges
+Discounts
+Payments
+Installment Plan
+Payment Status
+Payment Method
+
+Do NOT change any finance calculation.
+
+==================================================
+20. STATISTICS
+==================================================
+
+Localize:
+
+- section headings
+- KPI labels
+- filters
+- chart titles
+- legends
+- tooltips
+- empty states
+- table headers
+
+Do NOT translate underlying raw user-entered data.
+
+Do NOT change calculations.
+
+==================================================
+21. CHART LOCALIZATION
+==================================================
+
+For Recharts or existing chart system:
+
+translate:
+
+legends
+series labels
+tooltip labels
+axis category labels where they represent canonical statuses/types
+
+Ensure Arabic tooltips are RTL-readable.
+
+Ensure English renders correctly LTR.
+
+==================================================
+22. DATE LOCALIZATION
+==================================================
+
+Centralize date formatting.
+
+Preserve canonical stored dates/timestamps.
+
+Do NOT change database date types for localization.
+
+Use locale-aware formatting.
+
+Arabic:
+
+appropriate Arabic/Saudi display
+
+English:
+
+appropriate English display
+
+Preserve the application's existing Saudi/Riyadh timezone behavior.
+
+Date-only fields must remain date-only.
+
+Time-sensitive values must preserve their current timezone semantics.
+
+==================================================
+23. NUMBERS
+==================================================
+
+Centralize locale-aware number formatting.
+
+Use Intl.NumberFormat or existing equivalent.
+
+Ensure:
+
+- counts
+- percentages
+- decimals
+- chart values
+
+display correctly in each locale.
+
+Do not modify stored numeric values.
+
+==================================================
+24. CURRENCY
+==================================================
+
+Use centralized currency formatting.
+
+For SAR:
+
+Arabic presentation should be professional.
+
+English presentation should also be professional.
+
+Do not hardcode currency formatting separately in every component.
+
+Do not change financial values.
+
+==================================================
+25. VALIDATION — CRITICAL
+==================================================
+
+All form validation must be bilingual.
+
+This includes:
+
+- required fields
+- invalid email
+- duplicate email
+- invalid dates
+- invalid numbers
+- password validation
+- mismatched passwords
+- financial validation
+- follow-up validation
+- implant validation
+- procedure validation
+
+Do NOT expose raw Zod default English messages to Arabic users.
+
+==================================================
+26. ZOD VALIDATION
+==================================================
+
+Inspect current Zod architecture.
+
+Prefer stable validation/error keys rather than duplicating schemas for each language.
+
+Conceptually:
+
+validation.required
+validation.invalidEmail
+validation.invalidDate
+
+Then resolve these based on current locale.
+
+Do not rewrite all business validation unnecessarily.
+
+==================================================
+27. BACKEND ERROR ARCHITECTURE
+==================================================
+
+This is CRITICAL for production localization.
+
+Backend APIs should NOT depend on user-facing Arabic or English error strings as the machine contract.
+
+Prefer structured errors such as:
+
+{
+  code: "EMAIL_ALREADY_USED",
+  field: "email",
+  params: {}
+}
+
+Frontend translates:
+
+EMAIL_ALREADY_USED
+
+into:
+
+Arabic:
+البريد الإلكتروني مستخدم لحساب آخر.
+
+English:
+This email address is already used by another account.
+
+Preserve HTTP status codes.
+
+==================================================
+28. EXISTING BACKEND ERRORS
+==================================================
+
+Audit existing API error responses.
+
+Where frontend currently displays raw backend messages directly:
+
+replace this behavior with safe localized error mapping.
+
+Do NOT rewrite unrelated backend logic.
+
+Retain safe fallback handling for unexpected server errors.
+
+==================================================
+29. ERROR CATALOG
+==================================================
+
+Create a centralized error translation catalog for known errors.
+
+Examples conceptually:
+
+AUTH_INVALID_CREDENTIALS
+
+UNAUTHORIZED
+
+FORBIDDEN
+
+PATIENT_NOT_FOUND
+
+CASE_NOT_FOUND
+
+FOLLOWUP_NOT_FOUND
+
+EMAIL_ALREADY_USED
+
+VALIDATION_FAILED
+
+PAYMENT_INVALID
+
+TRIAL errors later can be added in the same architecture.
+
+Do NOT expose database/stack details.
+
+==================================================
+30. FIELD-SPECIFIC ERRORS
+==================================================
+
+When the backend identifies a field:
+
+highlight the correct field.
+
+Display the translated field-specific reason.
+
+Arabic example:
+
+البريد الإلكتروني مستخدم لحساب آخر.
+
+English:
+
+This email address is already used by another account.
+
+Do not fall back to generic:
+
+Something went wrong
+
+when a specific safe reason is available.
+
+==================================================
+31. DIALOGS
+==================================================
+
+Every dialog must be fully localized.
+
+Including:
+
+title
+description
+field labels
+buttons
+confirmation
+cancel
+warnings
+
+Examples:
+
+archive patient
+cancel follow-up
+archive implant
+void payment
+confirm status change
+logout
+delete user
+etc.
+
+No mixed Arabic/English dialog.
+
+==================================================
+32. CONFIRMATION DIALOGS
+==================================================
+
+Use consistent terminology.
+
+Arabic examples:
+
+تأكيد
+إلغاء
+حفظ
+أرشفة
+حذف
+
+English:
+
+Confirm
+Cancel
+Save
+Archive
+Delete
+
+Respect destructive semantics and existing button colors.
+
+==================================================
+33. TOASTS / NOTIFICATIONS
+==================================================
+
+Localize every toast.
+
+Success:
+
+تم حفظ التعديلات بنجاح.
+
+Changes saved successfully.
+
+Failure:
+
+تعذر حفظ التعديلات.
+
+Unable to save changes.
+
+Use context-specific wording where appropriate.
+
+Do not display raw API stack messages.
+
+==================================================
+34. EMPTY STATES
+==================================================
+
+Translate every empty state.
+
+Examples:
+
+لا توجد متابعات.
+
+No follow-ups found.
+
+لا توجد دفعات مسجلة.
+
+No payments recorded.
+
+Do not leave blank sections merely because translation is missing.
+
+==================================================
+35. LOADING STATES
+==================================================
+
+Translate user-visible loading states if text is shown.
+
+Examples:
+
+جارٍ التحميل...
+
+Loading...
+
+Do not unnecessarily show text where skeletons already exist.
+
+==================================================
+36. SEARCH
+==================================================
+
+Translate:
+
+search placeholders
+no-results messages
+filter labels
+clear filters
+result counts
+
+Do not modify search logic.
+
+==================================================
+37. ADMIN-MANAGED LISTS
+==================================================
+
+Inspect the current Settings → Lists architecture.
+
+This requires special handling.
+
+For SYSTEM-defined canonical values:
+
+use translation keys.
+
+For ADMIN-created values that must be bilingual:
+
+support separate labels where appropriate:
+
+label_ar
+label_en
+
+Do NOT automatically translate admin-entered text.
+
+Do not add bilingual fields to data where the value is purely user content and does not need localization.
+
+==================================================
+38. BILINGUAL ADMIN CATALOG UX
+==================================================
+
+Where an Admin-managed catalog is intended to appear as product UI in both languages, the Admin editor should clearly allow:
+
+الاسم بالعربية
+English Name
+
+Do not force English on existing legacy catalog records immediately if this would break them.
+
+Provide sensible fallback behavior.
+
+Example:
+
+if label_en missing:
+show Arabic stored label until Admin supplies English.
+
+Report such fallback clearly.
+
+==================================================
+39. USER ROLES
+==================================================
+
+Canonical role codes must remain unchanged.
+
+Translate role DISPLAY labels only.
+
+For example:
+
+admin
+doctor
+etc.
+
+Do not rename permission keys.
+
+==================================================
+40. PERMISSIONS
+==================================================
+
+Localize:
+
+permission names
+permission descriptions
+role-management UI
+
+Do NOT alter permission behavior.
+
+Server-side authorization remains unchanged.
+
+==================================================
+41. AUDIT LOG
+==================================================
+
+Do NOT store translated audit sentences as the only canonical audit representation going forward.
+
+Prefer structured action types and metadata.
+
+Example:
+
+action:
+FOLLOWUP_UPDATED
+
+Then render:
+
+Arabic:
+تم تعديل المتابعة
+
+English:
+Follow-up updated
+
+If historical audit rows contain text:
+
+preserve them.
+
+Do not destructively rewrite audit history.
+
+==================================================
+42. EMAIL LOCALIZATION
+==================================================
+
+If email delivery is already implemented, localize system-generated emails.
+
+At minimum:
+
+Password Reset
+
+Email Verification if it exists
+
+Account/security notifications if they exist
+
+Use the recipient/user locale where available.
+
+Fallback:
+Arabic.
+
+Do not translate user-entered content.
+
+==================================================
+43. PASSWORD RESET EMAIL
+==================================================
+
+Arabic and English versions must exist.
+
+Do not mix:
+
+English button + Arabic body
+
+or vice versa.
+
+Keep Ghars branding consistent.
+
+==================================================
+44. PRINT / REPORTS
+==================================================
+
+Audit printable views/reports.
+
+System labels must follow selected locale.
+
+Arabic report:
+RTL
+
+English report:
+LTR
+
+Do not translate patient names/notes automatically.
+
+Preserve correct dates/numbers/currency formatting.
+
+==================================================
+45. EXPORTS
+==================================================
+
+Audit CSV/Excel export behavior.
+
+If exports use visible system column headers:
+
+use the user's selected locale where appropriate.
+
+Do not change raw canonical values in ways that break machine processing unless current export is explicitly human-facing.
+
+Document the chosen export behavior.
+
+==================================================
+46. LOGIN PAGE
+==================================================
+
+The already-approved Ghars Login design must remain visually the same.
+
+Localization must make it work professionally in both languages.
+
+Arabic:
+
+RTL
+
+English:
+
+LTR
+
+Translate:
+
+Login
+username
+password
+forgot password
+support
+security message
+errors
+password recovery
+
+Do NOT redesign the Login page.
+
+==================================================
+47. ENGLISH LOGIN COPY
+==================================================
+
+Use professional English.
+
+Example:
+
+Sign in
+
+Welcome to Ghars
+
+Username
+
+Enter your username
+
+Password
+
+Enter your password
+
+Forgot password?
+
+Sign in
+
+Contact Support
+
+Do not use awkward literal translation.
+
+==================================================
+48. ENGLISH PRODUCT TERMINOLOGY
+==================================================
+
+Use consistent professional dental/medical SaaS English.
+
+Do not mechanically word-for-word translate Arabic if a standard product term is clearer.
+
+However:
+
+do NOT change clinical meaning.
+
+Build a small terminology glossary inside the localization architecture/documentation.
+
+==================================================
+49. GLOSSARY CONSISTENCY
+==================================================
+
+Maintain consistent bilingual terminology for core concepts such as:
+
+غرس
+Ghars
+
+حالة زراعة
+Implant Case
+
+زرعة
+Implant
+
+تركيبات
+Prosthetics / Prosthetic Treatment according to context
+
+متابعة
+Follow-up
+
+إجراءات جراحية مساندة
+Adjunct Surgical Procedures
+
+زراعة عظم
+Bone Graft
+
+رفع الجيب الفكي
+Sinus Lift
+
+إبعاد / نقل العصب السنخي السفلي
+Inferior Alveolar Nerve Repositioning
+
+Do not use three different English translations for the same canonical concept across pages.
+
+==================================================
+50. ACCESSIBILITY
+==================================================
+
+Localize accessibility labels where user-facing.
+
+Ensure icons whose meaning depends on direction adapt properly.
+
+Check keyboard navigation in both RTL and LTR.
+
+==================================================
+51. CSS / DIRECTION SAFETY
+==================================================
+
+Audit CSS/Tailwind classes that hardcode direction such as:
+
+ml-*
+mr-*
+left-*
+right-*
+text-left
+text-right
+
+Where appropriate, replace with logical direction-aware styling:
+
+start/end
+
+or locale-aware variants.
+
+Do NOT blindly replace every left/right rule if it represents a fixed visual requirement.
+
+Review context.
+
+==================================================
+52. ICON DIRECTION
+==================================================
+
+Directional icons should mirror where appropriate.
+
+Examples:
+
+back
+forward
+chevron navigation
+breadcrumbs
+
+Icons that are not directional should NOT be mirrored.
+
+==================================================
+53. TABLES
+==================================================
+
+Verify every major table in both directions.
+
+Check:
+
+headers
+sorting
+actions
+dropdown menus
+pagination
+expanded rows
+sticky columns if any
+
+No overlapping actions in English.
+
+==================================================
+54. RESPONSIVE
+==================================================
+
+Test localization on:
+
+Desktop
+Laptop
+Tablet
+Mobile
+
+English strings may be longer than Arabic.
+
+Ensure:
+
+no clipping
+no overflow
+no broken buttons
+no truncated important labels
+
+Do not solve every long English label by reducing font size excessively.
+
+==================================================
+55. LANGUAGE FALLBACK
+==================================================
+
+Fallback language:
+
+Arabic.
+
+Missing translation keys must not show raw keys to normal users in production.
+
+In development:
+
+missing translation keys should be detectable/logged clearly.
+
+==================================================
+56. DEVELOPMENT CHECK FOR MISSING KEYS
+==================================================
+
+Add a safe development-only mechanism/test to detect missing translation keys.
+
+Do not spam production console logs.
+
+==================================================
+57. TRANSLATION COMPLETENESS TEST
+==================================================
+
+Create a test/check that compares Arabic and English translation resources.
+
+Every required key should exist in both locales.
+
+Fail CI/test or report clearly when keys are missing.
+
+==================================================
+58. SCAN FOR HARDCODED STRINGS
+==================================================
+
+Perform a project-wide audit after implementation.
+
+Search React/frontend code for remaining user-visible hardcoded Arabic/English text.
+
+Exceptions may include:
+
+- user-provided data
+- developer comments
+- test fixtures
+- internal IDs/codes
+
+Review results manually.
+
+Do not claim 100% localization while major visible hardcoded strings remain.
+
+==================================================
+59. BACKEND MACHINE CODES
+==================================================
+
+Where practical, standardize known backend application errors into stable machine codes.
+
+Do NOT translate inside database queries.
+
+Do NOT make locale part of business logic.
+
+Localization belongs at the presentation boundary.
+
+==================================================
+60. BUSINESS LOGIC MUST NOT CHANGE
+==================================================
+
+Do NOT change:
+
+- Dashboard KPI definitions
+- implant statuses
+- prosthetic synchronization
+- adjunct surgical procedure workflow
+- follow-up logic
+- finance formulas
+- archive behavior
+- permissions
+- patient data model
+- Statistics calculations
+
+This is localization, not workflow redesign.
+
+==================================================
+61. DATABASE MIGRATIONS
+==================================================
+
+Only create migrations if truly required for:
+
+- user locale preference
+- bilingual Admin-managed catalog fields
+
+Do NOT create unnecessary migrations for static UI translations.
+
+Use versioned Drizzle migrations.
+
+Preserve existing data.
+
+==================================================
+62. EXISTING DATA
+==================================================
+
+Existing Arabic user-entered records must remain intact.
+
+Do not machine-translate them.
+
+Do not duplicate patient/case records by locale.
+
+One canonical record must serve both languages.
+
+==================================================
+63. PERFORMANCE
+==================================================
+
+Do not fetch translation resources separately for every component.
+
+Use normal centralized i18n loading.
+
+Avoid unnecessary re-renders when switching language.
+
+Do not introduce a heavy translation service/API.
+
+==================================================
+64. NO AI TRANSLATION RUNTIME
+==================================================
+
+Do NOT use an AI API to translate UI dynamically at runtime.
+
+Translations must be deterministic product resources.
+
+No internet dependency should be required to switch languages.
+
+==================================================
+65. SECURITY
+==================================================
+
+Never include sensitive backend details in translated error strings.
+
+Localization must not weaken:
+
+authentication
+CSRF
+permissions
+sessions
+validation
+
+==================================================
+66. VISUAL VERIFICATION — ARABIC
+==================================================
+
+Manually verify in browser using Arabic:
+
+Login
+Dashboard
+Operational Table
+Patient File
+Patient Procedures
+Follow-ups
+Statistics
+Finance
+Settings
+
+Confirm:
+
+RTL correct
+all major labels Arabic
+dialogs Arabic
+errors Arabic
+toasts Arabic
+no visible English leakage except intentional brand/product terms
+
+==================================================
+67. VISUAL VERIFICATION — ENGLISH
+==================================================
+
+Switch to English and verify the SAME screens.
+
+Confirm:
+
+LTR correct
+navigation correct
+tables correct
+dialogs English
+errors English
+validation English
+dates/numbers formatted correctly
+no Arabic system labels remain except intentional proper names/user data
+
+==================================================
+68. ERROR VERIFICATION
+==================================================
+
+Trigger controlled validation/error cases in both languages.
+
+Examples:
+
+invalid login
+required field
+invalid email
+duplicate email if available
+invalid date
+permission denied
+not found
+failed API request
+
+Verify the user receives professional localized messages.
+
+==================================================
+69. DIALOG VERIFICATION
+==================================================
+
+Open representative dialogs in BOTH languages:
+
+Edit Follow-up
+
+Cancel/Archive Follow-up
+
+Edit Patient
+
+Add Implant
+
+Add Surgical Procedure
+
+Record Payment
+
+Archive/Delete confirmation
+
+User management dialog
+
+Confirm:
+
+title
+body
+labels
+buttons
+errors
+
+are fully localized.
+
+==================================================
+70. FINAL QUALITY BAR
+==================================================
+
+At completion, Ghars must feel like it was intentionally designed as a bilingual product from the start.
+
+It must NOT feel like:
+
+an Arabic application with English text pasted on top.
+
+or:
+
+an English application with RTL added later.
+
+Arabic and English should both feel native and professional.
+
+==================================================
+71. TESTS
+==================================================
+
+Run:
+
+- frontend TypeScript
+- backend TypeScript if changed
+- lint
+- translation-key completeness check
+- relevant API tests
+- validation tests
+- production build
+
+Do not publish.
+
+==================================================
+72. FINAL REPORT
+==================================================
+
+At completion report:
+
+1. Localization framework used
+2. Languages supported
+3. Default language
+4. Language preference persistence
+5. RTL/LTR implementation
+6. Translation namespace structure
+7. Number of translation keys approximately
+8. Modules fully localized
+9. Remaining intentionally untranslated user-data areas
+10. Backend error-code changes
+11. Validation localization approach
+12. Date/time localization approach
+13. Number/currency localization approach
+14. Admin-managed list bilingual strategy
+15. Audit localization strategy
+16. Email localization status
+17. Print/export localization behavior
+18. hardcoded-string audit result
+19. Arabic browser verification
+20. English browser verification
+21. translation completeness test result
+22. TypeScript/lint/build results
+23. migrations created if any
+24. exact checkpoint commit hash
+
+Create a stable checkpoint and STOP.
+
+DO NOT PUBLISH.
