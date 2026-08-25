@@ -15,6 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 interface SearchableComboboxProps {
   id?: string;
@@ -41,6 +42,7 @@ export function SearchableCombobox({
   allowCustom = true,
   disabled,
 }: SearchableComboboxProps) {
+  const { t } = useClinicalTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -75,7 +77,7 @@ export function SearchableCombobox({
             {value && !disabled && (
               <X
                 className="h-4 w-4 text-muted-foreground hover:text-destructive"
-                aria-label="مسح القيمة"
+                aria-label={t("implant.clearValue")}
                 onClick={(e) => {
                   e.stopPropagation();
                   select(null);
@@ -93,13 +95,13 @@ export function SearchableCombobox({
       >
         <Command shouldFilter>
           <CommandInput
-            placeholder="ابحث أو أدخل قيمة..."
+            placeholder={t("implant.searchOrEnter")}
             value={search}
             onValueChange={setSearch}
           />
           <CommandList>
             <CommandEmpty>
-              {allowCustom ? "لا توجد نتائج — يمكنك إدخال قيمة مخصصة." : "لا توجد نتائج."}
+              {allowCustom ? t("implant.noResultsCustom") : t("implant.noResults")}
             </CommandEmpty>
             <CommandGroup>
               {showCustom && (
@@ -108,7 +110,7 @@ export function SearchableCombobox({
                   onSelect={() => select(trimmed)}
                 >
                   <Check className="ml-2 h-4 w-4 opacity-0" />
-                  استخدام "{trimmed}"
+                   {t("implant.useValue", { value: trimmed })}
                 </CommandItem>
               )}
               {options.map((option) => (

@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const SAUDI_TIMEZONE = "Asia/Riyadh";
 const ARABIC_DATE_LOCALE = "ar-SA-u-nu-latn-ca-gregory";
@@ -62,9 +63,9 @@ export function todayInRiyadh(): string {
   }).format(new Date());
 }
 
-function formatPlainDate(value: string): string {
+function formatPlainDate(value: string, language: string): string {
   const date = new Date(`${value}T12:00:00Z`);
-  return new Intl.DateTimeFormat(ARABIC_DATE_LOCALE, {
+  return new Intl.DateTimeFormat(language === "ar" ? ARABIC_DATE_LOCALE : "en-US", {
     timeZone: "UTC",
     year: "numeric",
     month: "long",
@@ -80,6 +81,8 @@ export function OperationalDatePicker({
   id,
   "aria-invalid": ariaInvalid,
 }: DatePickerProps) {
+  const { t, i18n } = useTranslation("guidance");
+  const direction = i18n.dir();
   const [open, setOpen] = useState(false);
 
   return (
@@ -89,7 +92,7 @@ export function OperationalDatePicker({
           type="button"
           variant="outline"
           id={id}
-          dir="rtl"
+          dir={direction}
           aria-invalid={ariaInvalid}
           className={cn(
             "h-8 w-full justify-between gap-2 px-2.5 text-sm font-normal",
@@ -98,7 +101,7 @@ export function OperationalDatePicker({
             className,
           )}
         >
-          <span className="truncate">{value ? formatPlainDate(value) : placeholder}</span>
+          <span className="truncate">{value ? formatPlainDate(value, i18n.language) : placeholder}</span>
           <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
@@ -106,7 +109,7 @@ export function OperationalDatePicker({
         align="start"
         side="bottom"
         className="w-auto p-0"
-        dir="rtl"
+        dir={direction}
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <Calendar
@@ -114,7 +117,7 @@ export function OperationalDatePicker({
           captionLayout="dropdown"
           selected={dateFromIso(value)}
           defaultMonth={dateFromIso(value) ?? new Date()}
-          formatters={ARABIC_FORMATTERS}
+          formatters={i18n.language === "ar" ? ARABIC_FORMATTERS : undefined}
           onSelect={(date) => {
             if (!date) return;
             onChange(isoFromDate(date));
@@ -133,7 +136,7 @@ export function OperationalDatePicker({
               setOpen(false);
             }}
           >
-            اليوم
+            {t("dashboard.today")}
           </Button>
           <Button
             type="button"
@@ -146,7 +149,7 @@ export function OperationalDatePicker({
             }}
           >
             <X className="h-3 w-3" />
-            مسح
+            {t("dashboard.clear")}
           </Button>
         </div>
       </PopoverContent>
@@ -197,6 +200,8 @@ export function OperationalTimePicker({
   id,
   "aria-invalid": ariaInvalid,
 }: TimePickerProps) {
+  const { t, i18n } = useTranslation("guidance");
+  const direction = i18n.dir();
   const [open, setOpen] = useState(false);
   const current = timeParts(value);
   const emit = (
@@ -215,7 +220,7 @@ export function OperationalTimePicker({
           type="button"
           variant="outline"
           id={id}
-          dir="rtl"
+          dir={direction}
           aria-invalid={ariaInvalid}
           className={cn(
             "h-8 w-full justify-between gap-2 px-2.5 text-sm font-normal",
@@ -224,7 +229,7 @@ export function OperationalTimePicker({
           )}
         >
           <span className="truncate">
-            {value ? `${pad(hour12(current.hour))}:${pad(current.minute)} ${current.period}` : placeholder}
+            {value ? `${pad(hour12(current.hour))}:${pad(current.minute)} ${current.period === "ص" ? t("dashboard.am") : t("dashboard.pm")}` : placeholder}
           </span>
           <Clock3 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         </Button>
@@ -233,15 +238,15 @@ export function OperationalTimePicker({
         align="start"
         side="bottom"
         className="w-[17rem] p-3"
-        dir="rtl"
+        dir={direction}
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
           <Clock3 className="h-3 w-3" />
-          اختر الوقت
+           {t("dashboard.chooseTime")}
         </p>
         <div className="grid grid-cols-3 gap-2">
-          <Select dir="rtl" value={String(hour12(current.hour))} onValueChange={(next) => emit(Number(next))}>
+          <Select dir={direction} value={String(hour12(current.hour))} onValueChange={(next) => emit(Number(next))}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {Array.from({ length: 12 }, (_, index) => index + 1).map((hour) => (
@@ -249,7 +254,7 @@ export function OperationalTimePicker({
               ))}
             </SelectContent>
           </Select>
-          <Select dir="rtl" value={pad(current.minute)} onValueChange={(next) => emit(hour12(current.hour), Number(next))}>
+          <Select dir={direction} value={pad(current.minute)} onValueChange={(next) => emit(hour12(current.hour), Number(next))}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {Array.from({ length: 60 }, (_, minute) => (
@@ -257,11 +262,11 @@ export function OperationalTimePicker({
               ))}
             </SelectContent>
           </Select>
-          <Select dir="rtl" value={current.period} onValueChange={(next) => emit(hour12(current.hour), current.minute, next as "ص" | "م")}>
+          <Select dir={direction} value={current.period} onValueChange={(next) => emit(hour12(current.hour), current.minute, next as "ص" | "م")}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ص">ص</SelectItem>
-              <SelectItem value="م">م</SelectItem>
+              <SelectItem value="ص">{t("dashboard.am")}</SelectItem>
+              <SelectItem value="م">{t("dashboard.pm")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -277,7 +282,7 @@ export function OperationalTimePicker({
             }}
           >
             <X className="h-3 w-3" />
-            مسح الوقت
+            {t("dashboard.clearTime")}
           </Button>
         )}
       </PopoverContent>
@@ -302,8 +307,10 @@ export function OperationalDateTimeFields({
   "aria-invalid": ariaInvalid,
   className,
   id,
-  label = "التاريخ والوقت",
+  label,
 }: DateTimeFieldsProps) {
+  const { t, i18n } = useTranslation("guidance");
+  const direction = i18n.dir();
   const date = value.slice(0, 10);
   const time = value.slice(11, 16);
   const [open, setOpen] = useState(false);
@@ -326,7 +333,7 @@ export function OperationalDateTimeFields({
   return (
     <div className={cn("space-y-1", className)}>
       <Label htmlFor={id} className="text-xs">
-        {label} {required && <span className="text-destructive">*</span>}
+        {label ?? t("dashboard.dateTime")} {required && <span className="text-destructive">*</span>}
       </Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -334,7 +341,7 @@ export function OperationalDateTimeFields({
             type="button"
             variant="outline"
             id={id}
-            dir="rtl"
+            dir={direction}
             aria-invalid={ariaInvalid}
             className={cn(
               "h-8 w-full justify-between gap-2 px-2.5 text-sm font-normal",
@@ -343,8 +350,8 @@ export function OperationalDateTimeFields({
             )}
           >
             <span className="truncate">
-              {date ? formatPlainDate(date) : "اختر التاريخ"}
-              {time && ` — ${pad(hour12(current.hour))}:${pad(current.minute)} ${current.period}`}
+              {date ? formatPlainDate(date, i18n.language) : t("dashboard.chooseDate")}
+              {time && ` — ${pad(hour12(current.hour))}:${pad(current.minute)} ${current.period === "ص" ? t("dashboard.am") : t("dashboard.pm")}`}
             </span>
             <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </Button>
@@ -353,7 +360,7 @@ export function OperationalDateTimeFields({
           align="start"
           side="bottom"
           className="w-[19rem] p-0"
-          dir="rtl"
+          dir={direction}
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <Calendar
@@ -361,7 +368,7 @@ export function OperationalDateTimeFields({
             captionLayout="dropdown"
             selected={dateFromIso(date)}
             defaultMonth={dateFromIso(date) ?? new Date()}
-            formatters={ARABIC_FORMATTERS}
+            formatters={i18n.language === "ar" ? ARABIC_FORMATTERS : undefined}
             onSelect={(nextDate) => {
               if (!nextDate) return;
               onChange(`${isoFromDate(nextDate)}T${time || fallbackTime}`);
@@ -382,7 +389,7 @@ export function OperationalDateTimeFields({
                 setOpen(false);
               }}
             >
-              اليوم
+              {t("dashboard.today")}
             </Button>
             <Button
               type="button"
@@ -395,18 +402,18 @@ export function OperationalDateTimeFields({
               }}
             >
               <X className="h-3 w-3" />
-              مسح
+              {t("dashboard.clear")}
             </Button>
           </div>
 
           <div className="border-t p-3">
             <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
               <Clock3 className="h-3 w-3" />
-              الوقت
+              {t("dashboard.time")}
             </p>
             <div className="grid grid-cols-3 gap-2">
               <Select
-                dir="rtl"
+                dir={direction}
                 value={String(hour12(current.hour))}
                 onValueChange={(next) => updateTime(Number(next))}
               >
@@ -418,7 +425,7 @@ export function OperationalDateTimeFields({
                 </SelectContent>
               </Select>
               <Select
-                dir="rtl"
+                dir={direction}
                 value={pad(current.minute)}
                 onValueChange={(next) => updateTime(hour12(current.hour), Number(next))}
               >
@@ -430,14 +437,14 @@ export function OperationalDateTimeFields({
                 </SelectContent>
               </Select>
               <Select
-                dir="rtl"
+                dir={direction}
                 value={current.period}
                 onValueChange={(next) => updateTime(hour12(current.hour), current.minute, next as "ص" | "م")}
               >
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ص">ص</SelectItem>
-                  <SelectItem value="م">م</SelectItem>
+                  <SelectItem value="ص">{t("dashboard.am")}</SelectItem>
+                  <SelectItem value="م">{t("dashboard.pm")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

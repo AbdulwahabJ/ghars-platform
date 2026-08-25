@@ -12,6 +12,10 @@ export const ONBOARDING_STATUSES = [
 export const onboardingStatusSchema = z.enum(ONBOARDING_STATUSES);
 export type OnboardingStatus = z.infer<typeof onboardingStatusSchema>;
 
+export const LOCALES = ["ar", "en"] as const;
+export const localeSchema = z.enum(LOCALES);
+export type Locale = z.infer<typeof localeSchema>;
+
 /** Public user shape — never includes the password hash. */
 export const publicUserSchema = z.object({
   id: z.string().uuid(),
@@ -28,6 +32,7 @@ export const publicUserSchema = z.object({
 export type PublicUser = z.infer<typeof publicUserSchema>;
 
 export const preferencesSchema = z.object({
+  locale: localeSchema,
   onboardingStatus: onboardingStatusSchema,
   onboardingCompletedAt: z.string().nullable(),
   onboardingSkippedAt: z.string().nullable(),
@@ -108,8 +113,12 @@ export type CompletePasswordResetInput = z.infer<
 >;
 
 export const updatePreferencesInputSchema = z.object({
-  onboardingStatus: onboardingStatusSchema,
-});
+  locale: localeSchema.optional(),
+  onboardingStatus: onboardingStatusSchema.optional(),
+}).refine(
+  (value) => value.locale !== undefined || value.onboardingStatus !== undefined,
+  { message: "At least one preference must be provided." },
+);
 export type UpdatePreferencesInput = z.infer<
   typeof updatePreferencesInputSchema
 >;

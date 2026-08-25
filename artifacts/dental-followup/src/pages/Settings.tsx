@@ -7,15 +7,12 @@ import { UsersTab } from "@/components/admin/UsersTab";
 import { LookupsTab } from "@/components/admin/LookupsTab";
 import { AuditLogTab } from "@/components/admin/AuditLogTab";
 import { ExportTab } from "@/components/admin/ExportTab";
+import { useTranslation } from "react-i18next";
 
-const TABS = [
-  { value: "users", label: "المستخدمون" },
-  { value: "lookups", label: "القوائم" },
-  { value: "audit", label: "سجل النشاط" },
-  { value: "export", label: "تصدير البيانات" },
-] as const;
+const TABS = ["users", "lookups", "audit", "export"] as const;
 
 export default function Settings() {
+  const { t } = useTranslation("admin");
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -31,17 +28,17 @@ export default function Settings() {
       {user?.role === "ADMIN" && (
         <div className="space-y-6">
           <h1 className="text-2xl font-bold" data-testid="text-settings-title">
-            الإعدادات
+             {t("settings.title")}
           </h1>
           <Tabs defaultValue="users" dir="rtl">
             <TabsList className="flex flex-wrap h-auto justify-start gap-1">
-              {TABS.map((t) => (
+              {TABS.map((tab) => (
                 <TabsTrigger
-                  key={t.value}
-                  value={t.value}
-                  data-testid={`tab-${t.value}`}
+                  key={tab}
+                  value={tab}
+                  data-testid={`tab-${tab}`}
                 >
-                  {t.label}
+                  {t(`settings.tabs.${tab}`)}
                 </TabsTrigger>
               ))}
             </TabsList>

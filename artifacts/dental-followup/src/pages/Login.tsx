@@ -29,10 +29,8 @@ import gharsSymbol from "@/assets/ghars-symbol-transparent.png";
 import {
   ArrowRight,
   CheckCircle2,
-  ChevronDown,
   Eye,
   EyeOff,
-  Globe2,
   Headset,
   Loader2,
   LockKeyhole,
@@ -40,6 +38,9 @@ import {
   UserRound,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { useLocale } from "@/i18n/LocaleProvider";
+import { useTranslation } from "react-i18next";
 
 // Extend the reset schema to ensure passwords match on the client side
 const resetFormSchema = completePasswordResetInputSchema
@@ -56,6 +57,8 @@ type ResetFormInput = z.infer<typeof resetFormSchema>;
 export default function Login() {
   const [location, setLocation] = useLocation();
   const { login, user, setupStatus, isLoading } = useAuth();
+  const { t } = useTranslation("auth");
+  const { direction } = useLocale();
   
   // Extract token from search params if we're on the reset route
   const searchParams = new URLSearchParams(window.location.search);
@@ -81,7 +84,7 @@ export default function Login() {
   const forgotMutation = useMutation({
     mutationFn: (data: PasswordResetRequestInput) => api.requestPasswordReset(data),
     onSuccess: (res) => {
-      setForgotSuccessMsg(res.message || "تم إرسال رابط استعادة كلمة المرور بنجاح.");
+      setForgotSuccessMsg(res.message || t("recovery.sent"));
     }
   });
 
@@ -112,39 +115,32 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row bg-white" dir="rtl">
+    <div className="min-h-[100dvh] flex flex-col md:flex-row bg-white" dir={direction}>
       
       {/* Right Side Visually (First element in RTL) -> Form */}
       <div className="flex-1 flex flex-col items-center justify-start p-6 pt-28 sm:p-12 sm:pt-28 md:justify-center md:pt-12 relative z-10 bg-white order-2 md:order-1">
-        <button
-          type="button"
-          dir="ltr"
-          className="absolute top-8 right-8 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-slate-500 transition-colors hover:text-brand-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30"
-          aria-label="اختيار اللغة"
-        >
-          <Globe2 className="h-[18px] w-[18px]" aria-hidden="true" />
-          <span>العربية</span>
-          <ChevronDown className="h-4 w-4" aria-hidden="true" />
-        </button>
+        <div className="absolute top-8 end-8">
+          <LanguageSwitcher />
+        </div>
         
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="flex md:hidden flex-col items-center mb-10">
-          <img src={gharsLogo} alt="غرس" className="h-20 w-auto object-contain mb-4" />
+          <img src={gharsLogo} alt={t("login.logoAlt")} className="h-20 w-auto object-contain mb-4" />
         </div>
 
         <div className="w-full max-w-[500px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
           {!isResetRoute && view === "login" && (
             <>
-              <div className="space-y-2 text-center md:text-right">
-                <h1 className="text-4xl font-brand-arabic font-bold tracking-tight text-foreground md:text-[40px]">تسجيل الدخول</h1>
-                <p className="text-muted-foreground font-brand-arabic text-base md:text-[17px]">مرحباً بك في منصة غرس</p>
+              <div className="space-y-2 text-center md:text-start">
+                <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-[40px]">{t("login.title")}</h1>
+                <p className="text-muted-foreground text-base md:text-[17px]">{t("login.welcome")}</p>
               </div>
 
               {login.isError && (
                 <Alert variant="destructive">
                   <AlertDescription className="font-medium text-sm">
-                    {login.error?.message || "بيانات الدخول غير صحيحة."}
+                    {login.error?.message || t("common:errors.generic")}
                   </AlertDescription>
                 </Alert>
               )}
@@ -156,19 +152,19 @@ export default function Login() {
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                         <FormLabel className="text-[15px]">اسم المستخدم</FormLabel>
+                         <FormLabel className="text-[15px]">{t("login.username")}</FormLabel>
                          <FormControl>
                            <div className="relative">
                              <UserRound
-                               className="pointer-events-none absolute right-4 top-1/2 z-10 h-[19px] w-[19px] -translate-y-1/2 text-slate-400"
+                                className="pointer-events-none absolute start-4 top-1/2 z-10 h-[19px] w-[19px] -translate-y-1/2 text-slate-400"
                                aria-hidden="true"
                              />
                              <Input
-                               placeholder="أدخل اسم المستخدم"
+                                placeholder={t("login.usernamePlaceholder")}
                                {...field}
                                dir="ltr"
                                autoComplete="username"
-                               className="h-[56px] rounded-[7px] border-slate-300 pr-12 text-right text-[16px] shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
+                                className="h-[56px] rounded-[7px] border-slate-300 ps-12 text-start text-[16px] shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
                              />
                            </div>
                          </FormControl>
@@ -183,7 +179,7 @@ export default function Login() {
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center justify-between">
-                           <FormLabel className="text-[15px]">كلمة المرور</FormLabel>
+                            <FormLabel className="text-[15px]">{t("login.password")}</FormLabel>
                           <button 
                             type="button" 
                             onClick={() => {
@@ -193,28 +189,28 @@ export default function Login() {
                             }}
                              className="text-xs font-medium text-[#278f8c] transition-colors hover:underline focus:outline-none"
                           >
-                            نسيت كلمة المرور؟
+                             {t("login.forgot")}
                           </button>
                         </div>
                          <FormControl>
                            <div className="relative">
                              <LockKeyhole
-                               className="pointer-events-none absolute right-4 top-1/2 z-10 h-[19px] w-[19px] -translate-y-1/2 text-slate-400"
+                                className="pointer-events-none absolute start-4 top-1/2 z-10 h-[19px] w-[19px] -translate-y-1/2 text-slate-400"
                                aria-hidden="true"
                              />
                              <Input
-                               placeholder="أدخل كلمة المرور"
+                                placeholder={t("login.passwordPlaceholder")}
                                type={showPassword ? "text" : "password"}
                                {...field}
                                dir="ltr"
                                autoComplete="current-password"
-                               className="h-[56px] rounded-[7px] border-slate-300 pl-12 pr-12 text-right text-[16px] shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
+                                className="h-[56px] rounded-[7px] border-slate-300 ps-12 pe-12 text-start text-[16px] shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
                              />
                              <button
                                type="button"
                                onClick={() => setShowPassword((visible) => !visible)}
-                               className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-sm text-slate-400 transition-colors hover:text-brand-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30"
-                               aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                                className="absolute end-4 top-1/2 z-10 -translate-y-1/2 rounded-sm text-slate-400 transition-colors hover:text-brand-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30"
+                                aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
                              >
                                {showPassword ? (
                                  <EyeOff className="h-[19px] w-[19px]" aria-hidden="true" />
@@ -231,7 +227,7 @@ export default function Login() {
 
                    <Button type="submit" className="mt-2 h-[56px] w-full rounded-[7px] bg-brand-navy text-white text-[16px] hover:bg-[#132850]" disabled={login.isPending}>
                     {login.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    تسجيل الدخول
+                     {login.isPending ? t("login.signingIn") : t("login.submit")}
                   </Button>
                 </form>
               </Form>
@@ -239,7 +235,7 @@ export default function Login() {
                <div className="space-y-4 pt-1">
                  <div className="flex items-center gap-4 text-xs text-slate-400">
                    <span className="h-px flex-1 bg-slate-200" />
-                   <span>أو</span>
+                    <span>{t("login.or")}</span>
                    <span className="h-px flex-1 bg-slate-200" />
                  </div>
                  <button
@@ -248,11 +244,11 @@ export default function Login() {
                    className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-[#67b8b4] bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-[#f2fbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67b8b4]/40"
                  >
                    <Headset className="h-[18px] w-[18px] text-[#5ca8a5]" aria-hidden="true" />
-                   تواصل مع الدعم الفني
+                    {t("login.support")}
                  </button>
                  {supportMessage && (
                    <p className="text-center text-xs text-slate-500" role="status">
-                     سيتم تفعيل قناة الدعم الفني قريبًا.
+                      {t("login.supportSoon")}
                    </p>
                  )}
                </div>
@@ -260,8 +256,8 @@ export default function Login() {
                <div className="flex items-start justify-center gap-2 pt-2 text-center text-slate-400">
                  <ShieldCheck className="mt-0.5 h-[19px] w-[19px] shrink-0 text-[#5aa9a4]" aria-hidden="true" />
                  <div className="space-y-0.5">
-                   <p className="text-xs font-medium text-slate-500">بياناتك محمية وآمنة</p>
-                   <p className="text-[10px]">نستخدم أحدث تقنيات التشفير لحماية بياناتك</p>
+                    <p className="text-xs font-medium text-slate-500">{t("login.protected")}</p>
+                    <p className="text-[10px]">{t("login.encryption")}</p>
                  </div>
                </div>
             </>
@@ -269,18 +265,16 @@ export default function Login() {
 
           {!isResetRoute && view === "forgot" && (
             <>
-              <div className="space-y-3 text-center md:text-right">
+              <div className="space-y-3 text-center md:text-start">
                 <button 
                   onClick={() => setView("login")} 
                   className="mb-6 flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                 >
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                  العودة لتسجيل الدخول
+                  <ArrowRight className="ms-1 h-4 w-4 rtl:rotate-180" />
+                  {t("recovery.back")}
                 </button>
-                <h1 className="text-3xl font-brand-arabic font-bold tracking-tight text-foreground">استعادة كلمة المرور</h1>
-                <p className="text-muted-foreground font-brand-arabic text-sm leading-relaxed">
-                  أدخل اسم المستخدم أو البريد الإلكتروني وسنرسل لك رابطاً لإعادة التعيين.
-                </p>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("recovery.title")}</h1>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t("recovery.description")}</p>
               </div>
 
               {forgotSuccessMsg ? (
@@ -295,7 +289,7 @@ export default function Login() {
                   {forgotMutation.isError && (
                     <Alert variant="destructive">
                       <AlertDescription className="font-medium text-sm">
-                        {forgotMutation.error?.message || "حدث خطأ أثناء الطلب."}
+                        {forgotMutation.error?.message || t("common:errors.generic")}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -307,10 +301,10 @@ export default function Login() {
                         name="identifier"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>اسم المستخدم أو البريد الإلكتروني</FormLabel>
+                            <FormLabel>{t("recovery.identifier")}</FormLabel>
                             <FormControl>
                              <Input
-                               placeholder="أدخل بياناتك هنا"
+                                placeholder={t("recovery.identifierPlaceholder")}
                                {...field}
                                dir="ltr"
                                autoComplete="username"
@@ -324,7 +318,7 @@ export default function Login() {
 
                        <Button type="submit" className="mt-2 h-[50px] w-full rounded-[7px] bg-brand-navy text-white hover:bg-[#132850]" disabled={forgotMutation.isPending}>
                         {forgotMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        إرسال رابط الاستعادة
+                         {t("recovery.submit")}
                       </Button>
                     </form>
                   </Form>
@@ -335,9 +329,9 @@ export default function Login() {
 
           {isResetRoute && (
             <>
-              <div className="space-y-3 text-center md:text-right">
-                <h1 className="text-3xl font-brand-arabic font-bold tracking-tight text-foreground">تعيين كلمة مرور جديدة</h1>
-                <p className="text-muted-foreground font-brand-arabic text-sm">الرجاء إدخال كلمة المرور الجديدة الخاصة بك.</p>
+              <div className="space-y-3 text-center md:text-start">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("reset.title")}</h1>
+                <p className="text-muted-foreground text-sm">{t("reset.description")}</p>
               </div>
 
               {resetSuccess ? (
@@ -345,11 +339,11 @@ export default function Login() {
                   <Alert className="border-primary/20 bg-primary/5">
                     <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                     <AlertDescription className="font-medium text-primary ml-2 text-sm leading-relaxed">
-                      تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول باستخدام كلمة المرور الجديدة.
+                      {t("reset.success")}
                     </AlertDescription>
                   </Alert>
                   <Button onClick={() => setLocation("/login")} className="w-full btn-primary">
-                    الذهاب لتسجيل الدخول
+                    {t("reset.goToLogin")}
                   </Button>
                 </div>
               ) : (
@@ -357,7 +351,7 @@ export default function Login() {
                   {resetMutation.isError && (
                     <Alert variant="destructive">
                       <AlertDescription className="font-medium text-sm">
-                        {resetMutation.error?.message || "حدث خطأ أثناء تغيير كلمة المرور."}
+                        {resetMutation.error?.message || t("common:errors.generic")}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -369,7 +363,7 @@ export default function Login() {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>كلمة المرور الجديدة</FormLabel>
+                            <FormLabel>{t("reset.password")}</FormLabel>
                             <FormControl>
                               <Input
                                 placeholder="••••••••"
@@ -377,7 +371,7 @@ export default function Login() {
                                 {...field}
                                 dir="ltr"
                                 autoComplete="new-password"
-                                className="h-[52px] rounded-[7px] border-slate-300 text-right shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
+                                className="h-[52px] rounded-[7px] border-slate-300 text-start shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
                               />
                             </FormControl>
                             <FormMessage />
@@ -390,7 +384,7 @@ export default function Login() {
                         name="confirmPassword"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>تأكيد كلمة المرور</FormLabel>
+                            <FormLabel>{t("reset.confirmPassword")}</FormLabel>
                             <FormControl>
                               <Input
                                 placeholder="••••••••"
@@ -398,7 +392,7 @@ export default function Login() {
                                 {...field}
                                 dir="ltr"
                                 autoComplete="new-password"
-                                className="h-[52px] rounded-[7px] border-slate-300 text-right shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
+                                className="h-[52px] rounded-[7px] border-slate-300 text-start shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
                               />
                             </FormControl>
                             <FormMessage />
@@ -408,7 +402,7 @@ export default function Login() {
 
                        <Button type="submit" className="mt-2 h-[50px] w-full rounded-[7px] bg-brand-navy text-white hover:bg-[#132850]" disabled={resetMutation.isPending}>
                         {resetMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        حفظ كلمة المرور
+                         {t("reset.submit")}
                       </Button>
                     </form>
                   </Form>
@@ -426,14 +420,14 @@ export default function Login() {
         <div className="absolute bottom-0 right-0 h-[44%] w-[62%] bg-hex-pattern opacity-80 pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center">
-          <img src={gharsSymbol} alt="رمز غرس" className="h-[140px] w-[140px] object-contain" />
+          <img src={gharsSymbol} alt={t("login.symbolAlt")} className="h-[140px] w-[140px] object-contain" />
           <div className="mt-2 space-y-0">
-            <p className="font-brand-arabic text-[62px] font-bold leading-[1.15] text-brand-navy">غرس</p>
+            <p className="font-brand-arabic text-[62px] font-bold leading-[1.15] text-brand-navy">{t("common:brand.arabic")}</p>
             <p className="font-brand-latin text-[56px] font-semibold leading-[1.05] text-brand-navy">Ghars</p>
           </div>
           <div className="mt-7 flex items-center gap-3 text-brand-navy">
             <span className="h-px w-6 bg-brand-navy/60" />
-            <p className="font-brand-arabic text-[17px] font-medium">منصة ذكية لإدارة زراعة الأسنان</p>
+            <p className="text-[17px] font-medium">{t("common:brand.tagline")}</p>
             <span className="h-px w-6 bg-brand-navy/60" />
           </div>
           <p className="mt-2 font-brand-arabic text-[16px] tracking-[0.18em] text-[#5a769b]">تقنية . دقة . ثقة</p>

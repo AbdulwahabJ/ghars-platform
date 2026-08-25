@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { FieldLabel } from "@/components/implants/FieldLabel";
 import { useUpdateBaseAmount } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface FinalTotalDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ export function FinalTotalDialog({
   discountsTotal,
 }: FinalTotalDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const update = useUpdateBaseAmount();
   const [value, setValue] = useState(() => String(currentFinalTotal));
   const [error, setError] = useState<string | null>(null);
@@ -39,14 +41,14 @@ export function FinalTotalDialog({
   const submit = () => {
     const finalTotal = Number(value);
     if (value.trim() === "" || Number.isNaN(finalTotal) || finalTotal < 0) {
-      setError("أدخل إجماليًا صحيحًا (0 أو أكثر).");
+      setError(t("financeForms.validTotal"));
       return;
     }
 
     const baseTreatmentAmount =
       Math.round((finalTotal - chargesTotal + discountsTotal) * 100) / 100;
     if (baseTreatmentAmount < 0) {
-      setError("الإجمالي لا يمكن أن يكون أقل من صافي الرسوم بعد الخصومات.");
+      setError(t("financeForms.totalBelowNetCharges"));
       return;
     }
 
@@ -54,12 +56,12 @@ export function FinalTotalDialog({
       { caseId, data: { baseTreatmentAmount } },
       {
         onSuccess: () => {
-          toast({ title: "تم تحديث إجمالي الحالة." });
+          toast({ title: t("financeForms.totalUpdated") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر تحديث إجمالي الحالة",
+            title: t("financeForms.totalUpdateFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -72,13 +74,13 @@ export function FinalTotalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md text-right" dir="rtl">
         <DialogHeader className="text-right sm:text-right">
-          <DialogTitle>تعديل إجمالي تكلفة الحالة</DialogTitle>
+          <DialogTitle>{t("financeForms.editFinalTotal")}</DialogTitle>
           <DialogDescription>
-            الرسوم والخصومات محفوظة؛ سيتم تعديل القيمة الأساسية للوصول إلى الإجمالي الجديد.
+            {t("financeForms.finalTotalDescription")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2 py-2">
-          <FieldLabel label="إجمالي تكلفة الحالة (ر.س)" />
+          <FieldLabel label={t("financeForms.finalTotalAmount")} />
           <Input
             type="number"
             inputMode="decimal"
@@ -100,14 +102,14 @@ export function FinalTotalDialog({
             data-testid="button-save-final-total"
           >
             {update.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-            حفظ
+            {t("financeForms.save")}
           </Button>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={update.isPending}
           >
-            إلغاء
+            {t("financeForms.cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>

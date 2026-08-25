@@ -89,6 +89,7 @@ import type {
   QuickEntryInput,
   QuickEntryResponse,
 } from "@workspace/shared";
+import i18n from "@/i18n";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
 
@@ -98,6 +99,7 @@ export class ApiError extends Error {
     message: string,
     public code?: string,
     public data?: unknown,
+    public field?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -122,18 +124,24 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    let message = "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
+    let message = i18n.t("errors.generic");
     let code: string | undefined;
+    let field: string | undefined;
     let data: unknown;
     try {
       data = await response.json();
-      const body = data as { error?: string; code?: string };
-      if (body.error) message = body.error;
+      const body = data as { error?: string; code?: string; field?: string };
       code = body.code;
+      field = body.field;
+      if (code && i18n.exists(`errors.${code}`)) {
+        message = i18n.t(`errors.${code}`);
+      } else if (body.error && !code && i18n.language === "ar") {
+        message = body.error;
+      }
     } catch {
-      // Non-JSON error body — keep the generic Arabic message.
+      // Non-JSON error body — keep the localized generic message.
     }
-    throw new ApiError(response.status, message, code, data);
+    throw new ApiError(response.status, message, code, data, field);
   }
 
   if (response.status === 204) {

@@ -26,6 +26,7 @@ import { OperationalDatePicker, todayInRiyadh } from "@/components/dashboard/Ope
 import { FieldLabel } from "./FieldLabel";
 import { useCreateProstheticEvent } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 const CASE_LEVEL = "__case_level__";
 
@@ -80,6 +81,7 @@ function ProstheticEventForm({
   onClose: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useClinicalTranslation();
   const createEvent = useCreateProstheticEvent();
   const [eventType, setEventType] = useState<ProstheticEventType>(
     initialEventType ?? "تركيب دائم",
@@ -91,7 +93,7 @@ function ProstheticEventForm({
 
   const submit = () => {
     if (!eventDate) {
-      toast({ variant: "destructive", title: "اختر تاريخ التركيب أولًا." });
+       toast({ variant: "destructive", title: t("implant.chooseProstheticDate") });
       return;
     }
     createEvent.mutate(
@@ -107,14 +109,14 @@ function ProstheticEventForm({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم توثيق التركيب في السجل" });
+           toast({ title: t("implant.prostheticDocumented") });
               onSuccess?.();
           onClose();
         },
         onError: (error: Error) =>
           toast({
             variant: "destructive",
-            title: "تعذر توثيق التركيب",
+             title: t("implant.prostheticFailed"),
             description: error.message,
           }),
       },
@@ -124,15 +126,15 @@ function ProstheticEventForm({
   return (
     <>
       <DialogHeader className="text-right">
-        <DialogTitle>توثيق تركيب</DialogTitle>
+         <DialogTitle>{t("implant.prostheticTitle")}</DialogTitle>
         <DialogDescription className="text-right leading-relaxed">
-          سجّل تاريخ التركيب الفعلي. يظهر هذا السجل في ملخص العمل ولا يعتمد على حالة الحالة أو تاريخ تعديلها.
+           {t("implant.prostheticDescription")}
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4 py-2">
         <div className="space-y-2">
-          <FieldLabel label="نوع التركيب" />
+           <FieldLabel label={t("implant.prostheticType")} />
           <Select
             value={eventType}
             onValueChange={(value) => setEventType(value as typeof eventType)}
@@ -148,12 +150,12 @@ function ProstheticEventForm({
         </div>
 
         <div className="space-y-2">
-          <FieldLabel label="تاريخ التركيب الفعلي" />
+           <FieldLabel label={t("implant.actualProstheticDate")} />
           <OperationalDatePicker value={eventDate} onChange={setEventDate} />
         </div>
 
         <div className="space-y-2">
-          <FieldLabel label="الزرعة المرتبطة (اختياري)" />
+           <FieldLabel label={t("implant.relatedImplant")} />
           <Select
             value={implantId}
             onValueChange={setImplantId}
@@ -161,10 +163,10 @@ function ProstheticEventForm({
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent dir="rtl">
-              <SelectItem value={CASE_LEVEL}>تركيب للحالة كاملة</SelectItem>
+               <SelectItem value={CASE_LEVEL}>{t("implant.caseLevelProsthetic")}</SelectItem>
               {activeImplants.map((implant: Implant) => (
                 <SelectItem key={implant.id} value={implant.id}>
-                  السن {implant.site}{implant.system ? ` — ${implant.system}` : ""}
+                   {t("implant.tooth", { site: implant.site })}{implant.system ? ` — ${implant.system}` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -172,7 +174,7 @@ function ProstheticEventForm({
         </div>
 
         <div className="space-y-2">
-          <FieldLabel htmlFor="prosthetic-event-note" label="ملاحظة (اختيارية)" />
+           <FieldLabel htmlFor="prosthetic-event-note" label={t("implant.prostheticNote")} />
           <Textarea
             id="prosthetic-event-note"
             value={note}
@@ -185,10 +187,10 @@ function ProstheticEventForm({
 
       <DialogFooter className="flex-row sm:justify-start gap-3">
         <Button className="btn-primary" onClick={submit} disabled={createEvent.isPending}>
-          {createEvent.isPending ? "جارٍ التوثيق..." : "حفظ في السجل"}
+           {createEvent.isPending ? t("implant.savingRecord") : t("implant.saveRecord")}
         </Button>
         <Button variant="outline" className="btn-outline" onClick={onClose}>
-          إلغاء
+           {t("implant.cancel")}
         </Button>
       </DialogFooter>
     </>

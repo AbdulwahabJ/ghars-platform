@@ -14,6 +14,7 @@ import {
 import { useArchiveImplant } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 function formatSize(implant: Implant): string | null {
   if (implant.diameter == null && implant.length == null) return null;
@@ -54,6 +55,7 @@ export function ImplantCard({
   onEdit,
   onCopy,
 }: ImplantCardProps) {
+  const { t } = useClinicalTranslation();
   const { toast } = useToast();
   const archiveImplant = useArchiveImplant();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -64,14 +66,14 @@ export function ImplantCard({
       { id: implant.id, patientId },
       {
         onSuccess: () => {
-          toast({ title: "تمت أرشفة الزرعة" });
+          toast({ title: t("implant.implantArchived") });
           setShowConfirm(false);
         },
         onError: (err: Error) =>
           toast({
             variant: "destructive",
-            title: "خطأ",
-            description: err.message || "تعذر أرشفة الزرعة.",
+             title: t("patient.error"),
+             description: err.message || t("implant.archiveFailed"),
           }),
       },
     );
@@ -103,15 +105,15 @@ export function ImplantCard({
           </div>
           <div>
             <p className="font-bold text-foreground leading-tight">
-              {implant.system || "زرعة"}
+               {implant.system || t("implant.implant")}
             </p>
             <p className="text-xs text-muted-foreground">
-              السن {implant.site}
+               {t("implant.tooth", { site: implant.site })}
             </p>
           </div>
         </div>
         <Badge className={cn("border", statusVariant(implant))} variant="outline">
-          {isArchived ? "مؤرشفة" : implant.implantStatus}
+           {isArchived ? t("implant.archived") : implant.implantStatus}
         </Badge>
       </div>
 
@@ -171,7 +173,7 @@ export function ImplantCard({
             onClick={() => onEdit(implant)}
           >
             <Pencil className="h-3.5 w-3.5 ml-1.5" />
-            تعديل
+               {t("implant.edit")}
           </Button>
           <Button
             size="sm"
@@ -180,7 +182,7 @@ export function ImplantCard({
             onClick={() => onCopy(implant)}
           >
             <Copy className="h-3.5 w-3.5 ml-1.5" />
-            نسخ البيانات لسن آخر
+               {t("implant.copyImplant")}
           </Button>
           {canArchive && (
             <Button
@@ -190,21 +192,20 @@ export function ImplantCard({
               onClick={() => setShowConfirm(true)}
             >
               <Archive className="h-3.5 w-3.5 ml-1.5" />
-              أرشفة
+               {t("implant.archive")}
             </Button>
           )}
         </div>
       )}
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+         <DialogContent className="sm:max-w-md text-start" dir={document.documentElement.dir}>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-destructive">
-              تأكيد أرشفة الزرعة
+               {t("implant.archiveImplantTitle")}
             </DialogTitle>
             <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
-              هل أنت متأكد من رغبتك في أرشفة زرعة السن {implant.site}؟ ستبقى
-              بياناتها محفوظة في السجل ولن يتم حذفها.
+               {t("implant.archiveImplantDescription", { site: implant.site })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
@@ -216,7 +217,7 @@ export function ImplantCard({
               {archiveImplant.isPending ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <span>نعم، أرشفة</span>
+                 <span>{t("implant.yesArchive")}</span>
               )}
             </Button>
             <Button
@@ -224,7 +225,7 @@ export function ImplantCard({
               onClick={() => setShowConfirm(false)}
               className="btn-outline w-full sm:w-auto"
             >
-              إلغاء
+               {t("implant.cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>

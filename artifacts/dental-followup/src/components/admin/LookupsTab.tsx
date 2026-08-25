@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   ADMIN_LOOKUP_CATEGORIES,
-  ADMIN_LOOKUP_CATEGORY_LABELS,
   type AdminLookupCategory,
   type AdminLookupOption,
 } from "@workspace/shared";
@@ -28,8 +27,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAdminLookups, useAdminLookupMutations } from "@/hooks/use-admin";
 import { ApiError } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 export function LookupsTab() {
+  const { t } = useTranslation("admin");
   const { data, isLoading } = useAdminLookups();
   const { create, update, setActive, remove, reorder } =
     useAdminLookupMutations();
@@ -53,8 +54,8 @@ export function LookupsTab() {
   const fail = (err: unknown) =>
     toast({
       variant: "destructive",
-      title: "تعذر تنفيذ العملية",
-      description: err instanceof ApiError ? err.message : "حدث خطأ غير متوقع.",
+      title: t("lookup.operationFailed"),
+      description: err instanceof ApiError ? err.message : t("lookup.unexpectedError"),
     });
 
   const addOption = () => {
@@ -63,7 +64,7 @@ export function LookupsTab() {
       { category, value: newValue.trim() },
       {
         onSuccess: () => {
-          toast({ title: "تمت إضافة الخيار." });
+          toast({ title: t("lookup.added") });
           setNewValue("");
         },
         onError: fail,
@@ -81,8 +82,8 @@ export function LookupsTab() {
       {
         onSuccess: () => {
           toast({
-            title: "تمت إعادة التسمية.",
-            description: "السجلات التاريخية تحتفظ بالقيمة القديمة كما هي.",
+            title: t("lookup.renamed"),
+            description: t("lookup.renameDescription"),
           });
           setEditingId(null);
         },
@@ -110,12 +111,12 @@ export function LookupsTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>إدارة القوائم المنسدلة</CardTitle>
+        <CardTitle>{t("lookup.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="space-y-2 w-full sm:w-64">
-            <span className="text-sm font-medium">الفئة</span>
+            <span className="text-sm font-medium">{t("lookup.category")}</span>
             <Select
               dir="rtl"
               value={category}
@@ -127,7 +128,7 @@ export function LookupsTab() {
               <SelectContent>
                 {ADMIN_LOOKUP_CATEGORIES.map((c) => (
                   <SelectItem key={c} value={c}>
-                    {ADMIN_LOOKUP_CATEGORY_LABELS[c]}
+                    {t(`lookup.categories.${c}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -135,7 +136,7 @@ export function LookupsTab() {
           </div>
           <div className="flex gap-2 flex-1">
             <Input
-              placeholder="قيمة جديدة…"
+              placeholder={t("lookup.newValue")}
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addOption()}
@@ -147,7 +148,7 @@ export function LookupsTab() {
               data-testid="button-add-lookup"
             >
               <Plus className="h-4 w-4 ml-1" />
-              <span>إضافة</span>
+              <span>{t("lookup.add")}</span>
             </Button>
           </div>
         </div>
@@ -155,17 +156,17 @@ export function LookupsTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-right w-24">الترتيب</TableHead>
-              <TableHead className="text-right">القيمة</TableHead>
-              <TableHead className="text-right">الحالة</TableHead>
-              <TableHead className="text-right">إجراءات</TableHead>
+              <TableHead className="text-right w-24">{t("lookup.order")}</TableHead>
+              <TableHead className="text-right">{t("lookup.value")}</TableHead>
+              <TableHead className="text-right">{t("lookup.status")}</TableHead>
+              <TableHead className="text-right">{t("lookup.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {options.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  لا توجد خيارات في هذه الفئة بعد.
+                  {t("lookup.empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -178,7 +179,7 @@ export function LookupsTab() {
                       size="sm"
                       disabled={i === 0 || reorder.isPending}
                       onClick={() => move(i, -1)}
-                      title="تحريك لأعلى"
+                      title={t("lookup.moveUp")}
                     >
                       <ArrowUp className="h-4 w-4" />
                     </Button>
@@ -187,7 +188,7 @@ export function LookupsTab() {
                       size="sm"
                       disabled={i === options.length - 1 || reorder.isPending}
                       onClick={() => move(i, 1)}
-                      title="تحريك لأسفل"
+                      title={t("lookup.moveDown")}
                     >
                       <ArrowDown className="h-4 w-4" />
                     </Button>
@@ -211,7 +212,7 @@ export function LookupsTab() {
                         setEditingId(o.id);
                         setEditingValue(o.value);
                       }}
-                      title="اضغط لإعادة التسمية"
+                      title={t("lookup.rename")}
                     >
                       {o.value}
                     </button>
@@ -220,13 +221,13 @@ export function LookupsTab() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     {o.isActive ? (
-                      <Badge variant="secondary">نشط</Badge>
+                      <Badge variant="secondary">{t("lookup.active")}</Badge>
                     ) : (
-                      <Badge variant="outline">موقوف</Badge>
+                      <Badge variant="outline">{t("lookup.suspended")}</Badge>
                     )}
                     {o.isReferenced && (
-                      <Badge variant="outline" title="توجد سجلات تاريخية تستخدم هذه القيمة">
-                        مستخدم في سجلات
+                      <Badge variant="outline" title={t("lookup.referencedTitle")}>
+                        {t("lookup.referenced")}
                       </Badge>
                     )}
                   </div>
@@ -245,7 +246,7 @@ export function LookupsTab() {
                       data-testid={`button-toggle-lookup-${o.id}`}
                     >
                       <span className="notranslate">
-                        {o.isActive ? "إيقاف" : "تفعيل"}
+                        {o.isActive ? t("lookup.deactivate") : t("lookup.activate")}
                       </span>
                     </Button>
                     <Button
@@ -254,14 +255,14 @@ export function LookupsTab() {
                       disabled={o.isReferenced}
                       title={
                         o.isReferenced
-                          ? "لا يمكن الحذف لوجود سجلات تستخدم هذه القيمة — يمكن إيقافها بدلًا من ذلك."
-                          : "حذف"
+                          ? t("lookup.deleteReferenced")
+                          : t("lookup.delete")
                       }
                       onClick={() =>
                         remove.mutate(
                           { category, id: o.id },
                           {
-                            onSuccess: () => toast({ title: "تم حذف الخيار." }),
+                            onSuccess: () => toast({ title: t("lookup.deleted") }),
                             onError: fail,
                           },
                         )
@@ -276,8 +277,7 @@ export function LookupsTab() {
           </TableBody>
         </Table>
         <p className="text-sm text-muted-foreground">
-          إيقاف الخيار يخفيه من القوائم الجديدة فقط — السجلات القديمة تبقى كما
-          هي. الحذف متاح فقط للخيارات غير المستخدمة في أي سجل.
+          {t("lookup.retentionNotice")}
         </p>
       </CardContent>
     </Card>

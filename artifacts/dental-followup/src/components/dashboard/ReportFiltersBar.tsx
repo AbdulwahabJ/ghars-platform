@@ -10,6 +10,7 @@ import {
 import { CASE_STATUSES, IMPLANT_STATUSES } from "@workspace/shared";
 import { REPORT_PERIODS, type ReportPeriodId } from "@/lib/report-periods";
 import { todayIso } from "@/lib/money";
+import { useTranslation } from "react-i18next";
 
 export const ALL = "__all__";
 
@@ -38,13 +39,14 @@ export function ReportFiltersBar({
   doctorOptions: string[];
   systemOptions: string[];
 }) {
+  const { t } = useTranslation("operations");
   const set = (patch: Partial<ReportFilterState>) =>
     onChange({ ...state, ...patch });
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3 items-end" data-testid="card-report-filters">
         <div className="space-y-1.5">
-          <Label className="text-xs">الفترة</Label>
+          <Label className="text-xs">{t("filters.period")}</Label>
           <Select
             value={state.period}
             onValueChange={(v) => {
@@ -71,7 +73,7 @@ export function ReportFiltersBar({
         </div>
         {state.period === "specific_day" && (
           <div className="space-y-1.5">
-            <Label className="text-xs">التاريخ المحدد</Label>
+            <Label className="text-xs">{t("filters.specificDate")}</Label>
             <OperationalDatePicker
               value={state.customFrom}
               onChange={(v) => set({ customFrom: v, customTo: v })}
@@ -82,7 +84,7 @@ export function ReportFiltersBar({
         {state.period === "custom" && (
           <>
             <div className="space-y-1.5">
-              <Label className="text-xs">من</Label>
+              <Label className="text-xs">{t("filters.from")}</Label>
               <OperationalDatePicker
                 value={state.customFrom}
                 onChange={(v) => set({ customFrom: v })}
@@ -90,7 +92,7 @@ export function ReportFiltersBar({
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">إلى</Label>
+              <Label className="text-xs">{t("filters.to")}</Label>
               <OperationalDatePicker
                 value={state.customTo}
                 onChange={(v) => set({ customTo: v })}
@@ -100,7 +102,7 @@ export function ReportFiltersBar({
           </>
         )}
         <div className="space-y-1.5">
-          <Label className="text-xs">الطبيب المعالج</Label>
+          <Label className="text-xs">{t("filters.treatingDoctor")}</Label>
           <Select
             value={state.treatingDoctor}
             onValueChange={(v) => set({ treatingDoctor: v })}
@@ -109,7 +111,7 @@ export function ReportFiltersBar({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>الكل</SelectItem>
+              <SelectItem value={ALL}>{t("filters.all")}</SelectItem>
               {doctorOptions.map((d) => (
                 <SelectItem key={d} value={d}>
                   <span className="notranslate">{d}</span>
@@ -119,7 +121,7 @@ export function ReportFiltersBar({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">نظام الزرعة</Label>
+          <Label className="text-xs">{t("filters.implantSystem")}</Label>
           <Select
             value={state.implantSystem}
             onValueChange={(v) => set({ implantSystem: v })}
@@ -128,7 +130,7 @@ export function ReportFiltersBar({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>الكل</SelectItem>
+              <SelectItem value={ALL}>{t("filters.all")}</SelectItem>
               {systemOptions.map((s) => (
                 <SelectItem key={s} value={s}>
                   <span className="notranslate">{s}</span>
@@ -138,7 +140,7 @@ export function ReportFiltersBar({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">حالة الحالة</Label>
+          <Label className="text-xs">{t("filters.caseStatus")}</Label>
           <Select
             value={state.caseStatus}
             onValueChange={(v) => set({ caseStatus: v })}
@@ -147,7 +149,7 @@ export function ReportFiltersBar({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>الكل</SelectItem>
+              <SelectItem value={ALL}>{t("filters.all")}</SelectItem>
               {CASE_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
                   <span className="notranslate">{s}</span>
@@ -157,7 +159,7 @@ export function ReportFiltersBar({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">حالة الزرعة</Label>
+          <Label className="text-xs">{t("filters.implantStatus")}</Label>
           <Select
             value={state.implantStatus}
             onValueChange={(v) => set({ implantStatus: v })}
@@ -166,7 +168,7 @@ export function ReportFiltersBar({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>الكل</SelectItem>
+              <SelectItem value={ALL}>{t("filters.all")}</SelectItem>
               {IMPLANT_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
                   <span className="notranslate">{s}</span>

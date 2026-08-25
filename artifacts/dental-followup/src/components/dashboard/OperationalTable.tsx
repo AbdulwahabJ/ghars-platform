@@ -44,6 +44,7 @@ import {
   ReportFiltersBar,
   type ReportFilterState,
 } from "./ReportFiltersBar";
+import { useTranslation } from "react-i18next";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -271,6 +272,7 @@ function ImplantStatusStepper({
   patientId: string;
   onRequestProstheticDocumentation: (eventType: ProstheticEventType) => void;
 }) {
+  const { t } = useTranslation("guidance");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const update = useUpdateImplant();
@@ -2858,7 +2860,7 @@ export function OperationalTable({
     <Card data-testid="card-operational-report">
       <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3 flex-wrap">
         <CardTitle className="text-base">
-          الحالات ({totalGroups} مريض)
+          {t("dashboard.casesPatients", { count: totalGroups })}
         </CardTitle>
         <div className="flex gap-2 print:hidden flex-wrap">
           <Button
@@ -2869,7 +2871,7 @@ export function OperationalTable({
             data-testid="button-add-new-record"
           >
             <Plus className="h-4 w-4" />
-            <span>إضافة سجل</span>
+            <span>{t("dashboard.addRecord")}</span>
           </Button>
           <Button
             variant="outline"
@@ -2879,7 +2881,7 @@ export function OperationalTable({
             data-testid="button-export-operational"
           >
             <Download className="h-4 w-4" />
-            <span>تصدير CSV</span>
+            <span>{t("dashboard.exportCsv")}</span>
           </Button>
           <Button
             variant="outline"
@@ -2889,7 +2891,7 @@ export function OperationalTable({
             data-testid="button-print-operational"
           >
             <Printer className="h-4 w-4" />
-            <span>طباعة</span>
+            <span>{t("dashboard.print")}</span>
           </Button>
         </div>
       </CardHeader>
@@ -2908,8 +2910,8 @@ export function OperationalTable({
             <Input
               value={searchValue}
               onChange={(event) => handleSearchChange(event.target.value)}
-              placeholder="ابحث باسم المريض، رقم الملف أو رقم الجوال..."
-              aria-label="البحث في التقرير التشغيلي"
+              placeholder={t("dashboard.searchOperational")}
+              aria-label={t("dashboard.searchOperationalLabel")}
               data-testid="input-operational-search"
               className="h-10 w-full pr-10 pl-10"
             />
@@ -2967,17 +2969,17 @@ export function OperationalTable({
                   <table className="w-full text-right text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
-                        <th className="px-4 py-3 font-medium text-muted-foreground">المريض</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">رقم الملف</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">ملخص الحالة</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">الطبيب المعالج</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">الزرعات</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">الأنظمة</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">المتابعة القادمة</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.patient")}</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.fileNumber")}</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.caseStatus")}</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.treatingDoctor")}</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.implants")}</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.systems")}</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.nextFollowup")}</th>
                         {showFinance && (
                           <>
-                            <th className="px-4 py-3 font-medium text-muted-foreground">المتبقي</th>
-                            <th className="px-4 py-3 font-medium text-muted-foreground">حالة السداد</th>
+                            <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.remaining")}</th>
+                            <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.paymentStatus")}</th>
                           </>
                         )}
                       </tr>

@@ -35,6 +35,7 @@ import {
 } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 export type ImplantDialogMode = "add" | "edit" | "copy";
 
@@ -49,12 +50,6 @@ interface ImplantFormDialogProps {
   /** Pre-selected site (from the tooth chart) in add mode. */
   initialSite?: string;
 }
-
-const TITLES: Record<ImplantDialogMode, string> = {
-  add: "إضافة زرعة",
-  edit: "تعديل زرعة",
-  copy: "نسخ البيانات لسن آخر",
-};
 
 export function ImplantFormDialog(props: ImplantFormDialogProps) {
   const { open, onOpenChange } = props;
@@ -77,6 +72,7 @@ function ImplantForm({
   initialSite,
 }: ImplantFormDialogProps) {
   const { toast } = useToast();
+  const { t } = useClinicalTranslation();
   const { data: options } = useImplantOptions();
   const createImplant = useCreateImplant();
   const updateImplant = useUpdateImplant();
@@ -160,7 +156,7 @@ function ImplantForm({
 
   const handleSubmit = () => {
     if (!site) {
-      toast({ variant: "destructive", title: "يرجى اختيار رقم السن (site)." });
+       toast({ variant: "destructive", title: t("implant.chooseSiteFirst") });
       return;
     }
     const parseSize = (v: string): number | null => {
@@ -174,8 +170,8 @@ function ImplantForm({
     if ((d !== null && Number.isNaN(d)) || (l !== null && Number.isNaN(l))) {
       toast({
         variant: "destructive",
-        title: "قيمة المقاس غير صحيحة",
-        description: "أدخل رقمًا أكبر من صفر (مثال: 3.5).",
+         title: t("implant.sizeError"),
+         description: t("implant.sizeErrorDescription"),
       });
       return;
     }
@@ -200,8 +196,8 @@ function ImplantForm({
     const onError = (err: Error) =>
       toast({
         variant: "destructive",
-        title: "خطأ",
-        description: err.message || "تعذر حفظ الزرعة.",
+         title: t("patient.error"),
+         description: err.message || t("implant.implantSaveFailed"),
       });
 
     if (mode === "edit" && implant) {
@@ -209,7 +205,7 @@ function ImplantForm({
         { id: implant.id, patientId, data: payload },
         {
           onSuccess: () => {
-            toast({ title: "تم حفظ تعديلات الزرعة بنجاح" });
+             toast({ title: t("implant.implantSaved") });
             onOpenChange(false);
           },
           onError,
@@ -220,7 +216,7 @@ function ImplantForm({
         { caseId: caseItem.id, patientId, data: payload },
         {
           onSuccess: () => {
-            toast({ title: "تمت إضافة الزرعة بنجاح" });
+             toast({ title: t("implant.implantCreated") });
             onOpenChange(false);
           },
           onError,
@@ -233,48 +229,48 @@ function ImplantForm({
     <>
       <DialogHeader>
         <DialogTitle className="text-xl font-bold text-primary">
-          {TITLES[mode]}
+           {mode === "add" ? t("implant.addImplant") : mode === "edit" ? t("implant.editImplant") : t("implant.copyImplant")}
         </DialogTitle>
         <DialogDescription className="text-muted-foreground">
           {mode === "copy"
-            ? "تم نسخ بيانات الزرعة. اختر رقم السن الجديد ثم احفظ — الزرعة الأصلية تبقى دون تغيير."
-            : "القيم تُحفظ كما تُدخل. جميع الحقول اختيارية ما عدا رقم السن."}
+             ? t("implant.copyDescription")
+             : t("implant.implantDescription")}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
         <div className="space-y-2">
-          <FieldLabel htmlFor="implant-site" label="رقم السن — site" helpKey="site" />
+           <FieldLabel htmlFor="implant-site" label={t("implant.site")} helpKey="site" />
           <Select value={site} onValueChange={setSite}>
             <SelectTrigger id="implant-site" className="h-[46px] rounded-[10px]">
-              <SelectValue placeholder="اختر السن" />
+               <SelectValue placeholder={t("implant.chooseTooth")} />
             </SelectTrigger>
             <SelectContent dir="rtl" className="max-h-64">
               {FDI_SITES.map((s) => (
                 <SelectItem key={s} value={s} disabled={occupiedSites.has(s)}>
                   {s}
-                  {occupiedSites.has(s) ? " — يوجد زرعة نشطة" : ""}
+                   {occupiedSites.has(s) ? ` — ${t("implant.activeImplantExists")}` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <FieldLabel htmlFor="implant-system" label="النظام — System" helpKey="System" />
+           <FieldLabel htmlFor="implant-system" label={t("implant.system")} helpKey="System" />
           <SearchableCombobox
             id="implant-system"
             value={system}
             onChange={setSystem}
             options={options?.systems ?? []}
-            placeholder="اختر أو أدخل النظام"
+             placeholder={t("implant.system")}
           />
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <FieldLabel label="المقاس — SIZE" helpKey="SIZE" />
+           <FieldLabel label={t("implant.size")} helpKey="SIZE" />
           <div className="flex items-center gap-3" dir="ltr">
             <Input
-              aria-label="القطر Diameter"
+               aria-label={t("implant.diameter")}
               type="number"
               inputMode="decimal"
               step="0.01"
@@ -286,7 +282,7 @@ function ImplantForm({
             />
             <span className="text-muted-foreground font-semibold">×</span>
             <Input
-              aria-label="الطول Length"
+               aria-label={t("implant.length")}
               type="number"
               inputMode="decimal"
               step="0.01"
@@ -299,7 +295,7 @@ function ImplantForm({
             <span className="text-muted-foreground text-sm">mm</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            القطر × الطول، مثال: 3.5 × 10 mm
+             {t("implant.sizeHint")}
           </p>
         </div>
 
@@ -310,7 +306,7 @@ function ImplantForm({
             value={qValue}
             onChange={setQValue}
             options={options?.qValues ?? []}
-            placeholder="اختر أو أدخل قيمة"
+             placeholder={t("implant.chooseOrEnter")}
           />
         </div>
         <div className="space-y-2">
@@ -320,21 +316,21 @@ function ImplantForm({
             value={formerValue}
             onChange={setFormerValue}
             options={options?.formerValues ?? []}
-            placeholder="اختر أو أدخل قيمة"
+             placeholder={t("implant.chooseOrEnter")}
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel htmlFor="implant-graft" label="الترقيع — Graft" helpKey="Graft" />
+           <FieldLabel htmlFor="implant-graft" label={t("implant.graft")} helpKey="Graft" />
           <SearchableCombobox
             id="implant-graft"
             value={graftValue}
             onChange={setGraftValue}
             options={options?.graftValues ?? []}
-            placeholder="اختر أو أدخل قيمة"
+             placeholder={t("implant.chooseOrEnter")}
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel htmlFor="implant-status" label="حالة الزرعة" />
+           <FieldLabel htmlFor="implant-status" label={t("implant.implantStatus")} />
           <Select value={implantStatus} onValueChange={setImplantStatus}>
             <SelectTrigger id="implant-status" className="h-[46px] rounded-[10px]">
               <SelectValue />
@@ -352,28 +348,28 @@ function ImplantForm({
         {graftIsPositive && (
           <>
             <div className="space-y-2">
-              <FieldLabel htmlFor="implant-graft-type" label="نوع إجراء الترقيع" />
+               <FieldLabel htmlFor="implant-graft-type" label={t("implant.graftProcedureType")} />
               <Input
                 id="implant-graft-type"
                 value={graftProcedureType}
                 onChange={(e) => setGraftProcedureType(e.target.value)}
-                placeholder="اختياري"
+                 placeholder={t("implant.optional")}
               />
             </div>
             <div className="space-y-2">
-              <FieldLabel htmlFor="implant-graft-note" label="ملاحظة الترقيع" />
+               <FieldLabel htmlFor="implant-graft-note" label={t("implant.graftNote")} />
               <Input
                 id="implant-graft-note"
                 value={graftNote}
                 onChange={(e) => setGraftNote(e.target.value)}
-                placeholder="اختياري"
+                 placeholder={t("implant.optional")}
               />
             </div>
           </>
         )}
 
         <div className="space-y-2 md:col-span-2">
-          <FieldLabel label="وسوم الإجراء" />
+           <FieldLabel label={t("implant.procedureTags")} />
           <div className="flex flex-wrap gap-2">
             {tagSuggestions.map((tag) => (
               <button
@@ -394,7 +390,7 @@ function ImplantForm({
           </div>
           <div className="flex gap-2 mt-1">
             <Input
-              aria-label="وسم مخصص"
+               aria-label={t("implant.customTag")}
               value={customTag}
               onChange={(e) => setCustomTag(e.target.value)}
               onKeyDown={(e) => {
@@ -403,18 +399,18 @@ function ImplantForm({
                   addCustomTag();
                 }
               }}
-              placeholder="أضف وسمًا مخصصًا"
+               placeholder={t("implant.addCustomTag")}
               className="max-w-[240px]"
             />
             <Button type="button" variant="outline" onClick={addCustomTag} className="btn-outline">
               <Plus className="h-4 w-4 ml-1" />
-              إضافة
+               {t("implant.add")}
             </Button>
           </div>
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <FieldLabel htmlFor="implant-note" label="ملاحظة — NOTE" />
+           <FieldLabel htmlFor="implant-note" label={t("implant.note")} />
           <Textarea
             id="implant-note"
             value={implantNote}
@@ -429,7 +425,7 @@ function ImplantForm({
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <span>{mode === "edit" ? "حفظ التعديلات" : "حفظ الزرعة"}</span>
+             <span>{mode === "edit" ? t("implant.saveChanges") : t("implant.saveImplant")}</span>
           )}
         </Button>
         <Button
@@ -438,7 +434,7 @@ function ImplantForm({
           disabled={isPending}
           className="btn-outline w-full sm:w-auto"
         >
-          إلغاء
+           {t("implant.cancel")}
         </Button>
       </DialogFooter>
     </>

@@ -45,6 +45,7 @@ import {
   OperationalDateTimeFields,
 } from "./OperationalDatePicker";
 import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProstheticDateField";
+import { useTranslation } from "react-i18next";
 
 /* ------------------------------------------------------------------ */
 /* Internal form schema (more permissive than API schema — API validates)
@@ -227,6 +228,7 @@ function SectionHeader({
   onToggle: () => void;
   optional?: boolean;
 }) {
+  const { t, i18n } = useTranslation("guidance");
   return (
     <button
       type="button"
@@ -636,9 +638,9 @@ export function InlineNewRecord({
   };
 
   return (
-    <div className="p-4 md:p-6 bg-card border-b border-border" dir="rtl">
+    <div className="p-4 md:p-6 bg-card border-b border-border" dir={i18n.dir()}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold">إضافة سجل جديد</h3>
+        <h3 className="text-base font-semibold">{t("dashboard.addRecord")}</h3>
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>

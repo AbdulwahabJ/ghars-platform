@@ -27,14 +27,18 @@ import { useImplantOptions } from "@/hooks/use-implant-cases";
 import { useStatistics } from "@/hooks/use-reports";
 import { formatMoney, todayIso } from "@/lib/money";
 import { reportPeriodRange } from "@/lib/report-periods";
+import { useTranslation } from "react-i18next";
+import "@/i18n/locales/ar/operations";
+import "@/i18n/locales/en/operations";
 
 const CHART_COLORS = ["#1d7a8c", "#295c9b", "#d78b30", "#7a5cc7", "#517176", "#b95353"];
 const countFormat = new Intl.NumberFormat("ar-SA-u-nu-latn");
 
 function EmptyChart() {
+  const { t } = useTranslation("operations");
   return (
     <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-      لا توجد بيانات خلال الفترة المحددة.
+      {t("statistics.noDataPeriod")}
     </div>
   );
 }
@@ -161,6 +165,7 @@ function downloadCsv(hub: StatisticsHub, from: string, to: string) {
 }
 
 export default function Statistics() {
+  const { t } = useTranslation("operations");
   const today = useMemo(() => todayIso(), []);
   const [filterState, setFilterState] = useState<ReportFilterState>({
     period: "last_3_months",
@@ -217,16 +222,16 @@ export default function Statistics() {
       <div className="space-y-6 pb-8" data-testid="statistics-hub">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between print:mb-5">
           <div>
-            <p className="text-sm font-medium text-primary">مركز التحليلات</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight">الإحصائيات</h1>
+            <p className="text-sm font-medium text-primary">{t("statistics.analyticsCenter")}</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">{t("statistics.title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              قراءة موحدة لأداء العيادة من بيانات النظام الأساسية.
+              {t("statistics.subtitle")}
             </p>
           </div>
           <div className="flex gap-2 print:hidden">
             <Button variant="outline" onClick={() => window.print()} data-testid="button-print-statistics">
               <Printer className="ml-2 h-4 w-4" />
-              طباعة
+              {t("statistics.print")}
             </Button>
             <Button
               onClick={() => hub && downloadCsv(hub, filters.from, filters.to)}
@@ -234,7 +239,7 @@ export default function Statistics() {
               data-testid="button-export-statistics"
             >
               <Download className="ml-2 h-4 w-4" />
-              تصدير CSV
+              {t("statistics.exportCsv")}
             </Button>
           </div>
         </header>
@@ -249,7 +254,7 @@ export default function Statistics() {
         </section>
 
         <div className="hidden print:block text-sm text-muted-foreground">
-          الفترة: <span className="notranslate">{filters.from}</span> إلى{" "}
+          {t("statistics.period")} <span className="notranslate">{filters.from}</span> {t("statistics.to")}{" "}
           <span className="notranslate">{filters.to}</span>
         </div>
 
@@ -260,17 +265,17 @@ export default function Statistics() {
         ) : statistics.isError || !hub ? (
           <Card>
             <CardContent className="py-14 text-center text-sm text-destructive">
-              تعذر تحميل الإحصائيات. تحقق من الاتصال ثم حاول مرة أخرى.
+              {t("statistics.loadError")}
             </CardContent>
           </Card>
         ) : (
           <>
             <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <Kpi title="حالات الزراعة" value={hub.overview.cases} hint="ضمن الفترة والفلاتر" />
-              <Kpi title="الزرعات" value={hub.overview.implants} hint={`${hub.overview.systems} أنظمة مستخدمة`} />
-               <Kpi title="الإجراءات الجراحية المساندة" value={hub.overview.boneGraftProcedures} hint="سجلات سريرية نشطة" />
-              <Kpi title="التركيبات" value={hub.overview.prostheticEvents} hint={`${hub.overview.prostheticPatients} مرضى`} />
-              <Kpi title="متابعات متأخرة" value={hub.overview.overdueFollowups} hint="تحتاج مراجعة" tone="warning" />
+              <Kpi title={t("statistics.implantCases")} value={hub.overview.cases} hint="ضمن الفترة والفلاتر" />
+              <Kpi title={t("statistics.implants")} value={hub.overview.implants} hint={`${hub.overview.systems} أنظمة مستخدمة`} />
+               <Kpi title={t("statistics.adjunctProcedures")} value={hub.overview.boneGraftProcedures} hint="سجلات سريرية نشطة" />
+               <Kpi title={t("statistics.prosthetics")} value={hub.overview.prostheticEvents} hint={`${hub.overview.prostheticPatients} مرضى`} />
+               <Kpi title={t("statistics.overdueFollowups")} value={hub.overview.overdueFollowups} hint="تحتاج مراجعة" tone="warning" />
               <Kpi
                 title="زرعات تحتاج معالجة"
                 value={hub.overview.failedImplants + hub.overview.needsRedoImplants}
@@ -282,7 +287,7 @@ export default function Statistics() {
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                <h2 className="font-semibold">المرضى والحالات والزرعات</h2>
+                 <h2 className="font-semibold">{t("statistics.patientsCasesImplants")}</h2>
               </div>
               <div className="grid gap-4 xl:grid-cols-3">
                 <ChartFrame title={`تدفق الحالات والزرعات (${data.overTimeGrouping === "day" ? "يومي" : "شهري"})`} className="xl:col-span-2">
@@ -300,7 +305,7 @@ export default function Statistics() {
                   )}
                 </ChartFrame>
                 <Card>
-                  <CardHeader className="pb-2"><CardTitle className="text-base">مؤشرات المرضى</CardTitle></CardHeader>
+                   <CardHeader className="pb-2"><CardTitle className="text-base">{t("statistics.patientIndicators")}</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex justify-between text-sm"><span>مرضى جدد</span><strong className="tabular-nums">{hub.patients.newPatients}</strong></div>
                     <div className="flex justify-between text-sm"><span>مرضى لديهم زرعات</span><strong className="tabular-nums">{hub.patients.implantedPatients}</strong></div>
@@ -310,7 +315,7 @@ export default function Statistics() {
                 </Card>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                <ChartFrame title="أنظمة الزرعات">
+                 <ChartFrame title={t("statistics.implantSystems")}>
                   {data.implantSystems.length === 0 ? <EmptyChart /> : (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart><Pie data={data.implantSystems} dataKey="count" nameKey="name" innerRadius={52} outerRadius={88}>
@@ -319,8 +324,8 @@ export default function Statistics() {
                     </ResponsiveContainer>
                   )}
                 </ChartFrame>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">حالات الحالات</CardTitle></CardHeader><CardContent><DistributionList data={data.caseStatuses} emptyLabel="لا توجد حالات خلال الفترة." /></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">حالات الزرعات</CardTitle></CardHeader><CardContent><DistributionList data={data.implantStatuses} emptyLabel="لا توجد زرعات خلال الفترة." /></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("statistics.caseStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.caseStatuses} emptyLabel="لا توجد حالات خلال الفترة." /></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("statistics.implantStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.implantStatuses} emptyLabel="لا توجد زرعات خلال الفترة." /></CardContent></Card>
               </div>
             </section>
 

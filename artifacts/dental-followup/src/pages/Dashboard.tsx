@@ -29,8 +29,12 @@ import { StatisticsSection } from "@/components/dashboard/StatisticsSection";
 import { OperationalTable } from "@/components/dashboard/OperationalTable";
 import { reportPeriodRange } from "@/lib/report-periods";
 import { todayIso } from "@/lib/money";
+import { useTranslation } from "react-i18next";
+import "@/i18n/locales/ar/operations";
+import "@/i18n/locales/en/operations";
 
 export default function Dashboard() {
+  const { t } = useTranslation("operations");
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const greeting = saudiGreeting();
@@ -183,11 +187,11 @@ export default function Dashboard() {
                         ? `global-search-option-${highlightIndex}`
                         : undefined
                     }
-                    placeholder="ابحث عن مريض بالاسم، رقم الملف، أو رقم الجوال..."
-                    className="h-14 pl-4 pr-12 text-lg rounded-2xl border-border bg-card shadow-sm focus-visible:ring-primary focus-visible:border-primary"
+                    placeholder={t("dashboard.searchPatients")}
+                    className="h-14 ps-4 pe-12 text-lg rounded-2xl border-border bg-card shadow-sm focus-visible:ring-primary focus-visible:border-primary"
                   />
                   {isSearching && (
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <div className="absolute start-4 top-1/2 -translate-y-1/2">
                       <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
                   )}
@@ -218,7 +222,7 @@ export default function Dashboard() {
                               <p className="text-sm text-muted-foreground mt-1" dir="ltr">{patient.fileNumber}</p>
                             </div>
                             {patient.status === 'archived' && (
-                              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-md shrink-0">مؤرشف</span>
+                              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-md shrink-0">{t("dashboard.archived")}</span>
                             )}
                           </button>
                         ))}
@@ -227,13 +231,13 @@ export default function Dashboard() {
                             onClick={() => setLocation(`/patients?q=${encodeURIComponent(debouncedSearch)}`)}
                             className="w-full text-center py-3 text-sm text-primary font-medium hover:bg-primary/5 transition-colors"
                           >
-                            عرض جميع النتائج ({searchResults.total})
+                            {t("dashboard.viewAllResults", { count: searchResults.total })}
                           </button>
                         )}
                       </div>
                     ) : debouncedSearch.length > 0 && !isSearching ? (
                       <div className="py-8 text-center text-muted-foreground">
-                        لا توجد نتائج مطابقة لـ "{debouncedSearch}"
+                        {t("dashboard.noSearchResults", { query: debouncedSearch })}
                       </div>
                     ) : null}
                   </div>
@@ -312,8 +316,8 @@ export default function Dashboard() {
         {/* Section B: Daily KPI summary + operational action cards */}
         <section id="tour-dashboard-overview" className="space-y-4 print:hidden">
           <div>
-            <h2 className="text-xl font-bold text-foreground">ملخص العمل</h2>
-            <p className="text-sm text-muted-foreground mt-1">اليوم وهذا الشهر</p>
+            <h2 className="text-xl font-bold text-foreground">{t("dashboard.workSummary")}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t("dashboard.todayAndMonth")}</p>
           </div>
           {dashboard.isLoading ? (
             <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -321,7 +325,7 @@ export default function Dashboard() {
             </div>
           ) : dashboard.isError || !dashboard.data ? (
             <p className="text-sm text-destructive py-6 text-center">
-              تعذر تحميل بيانات لوحة المتابعة. حاول تحديث الصفحة.
+              {t("dashboard.dashboardLoadError")}
             </p>
           ) : (
             <>

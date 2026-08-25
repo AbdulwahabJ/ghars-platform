@@ -136,6 +136,10 @@
   [dir="ltr"] {
     font-family: var(--app-font-latin), var(--app-font-sans);
   }
+
+  [dir="rtl"] {
+    font-family: var(--app-font-arabic), var(--app-font-sans);
+  }
 }
 
 @layer components {

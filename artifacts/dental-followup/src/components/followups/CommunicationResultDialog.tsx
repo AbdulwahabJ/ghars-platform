@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FieldLabel } from "@/components/implants/FieldLabel";
 import { useRecordCommunicationResult } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface CommunicationResultDialogProps {
   open: boolean;
@@ -41,6 +42,7 @@ export function CommunicationResultForm({
   communicationId,
 }: Omit<CommunicationResultDialogProps, "open">) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const recordResult = useRecordCommunicationResult(patientId);
   const [result, setResult] = useState<string>("");
   const [note, setNote] = useState("");
@@ -48,7 +50,7 @@ export function CommunicationResultForm({
 
   const submit = () => {
     if (!result) {
-      setError("اختر نتيجة التواصل.");
+      setError(t("followupForms.selectCommunicationResult"));
       return;
     }
     recordResult.mutate(
@@ -62,12 +64,12 @@ export function CommunicationResultForm({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم تسجيل نتيجة التواصل." });
+          toast({ title: t("followupForms.communicationResultSaved") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر تسجيل نتيجة التواصل",
+            title: t("followupForms.communicationResultFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -79,9 +81,9 @@ export function CommunicationResultForm({
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>ما نتيجة التواصل؟</DialogTitle>
+        <DialogTitle>{t("followupForms.communicationResultTitle")}</DialogTitle>
         <DialogDescription>
-          يسجل النظام فتح واتساب فقط ولا يؤكد إرسال الرسالة أو قراءتها.
+          {t("followupForms.communicationResultDescription")}
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
@@ -104,7 +106,7 @@ export function CommunicationResultForm({
           ))}
         </RadioGroup>
         <div className="space-y-2">
-          <FieldLabel label="ملاحظة (اختياري)" />
+          <FieldLabel label={t("followupForms.optionalNote")} />
           <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -117,10 +119,10 @@ export function CommunicationResultForm({
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={recordResult.isPending} data-testid="button-save-result">
           {recordResult.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>حفظ</span>
+          <span>{t("financeForms.save")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          لاحقًا
+          {t("followupForms.later")}
         </Button>
       </DialogFooter>
     </>

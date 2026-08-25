@@ -26,6 +26,9 @@ import { useNotifications } from "@/hooks/use-followups";
 import { useAppSettings } from "@/hooks/use-settings";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import gharsSymbol from "@/assets/ghars-symbol.png";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { useLocale } from "@/i18n/LocaleProvider";
+import { useTranslation } from "react-i18next";
 
 interface HeaderProps {
   user: PublicUser;
@@ -36,6 +39,8 @@ export function Header({ user }: HeaderProps) {
   const { logout } = useAuth();
   const { settings } = useAppSettings();
   const { data: notifications } = useNotifications();
+  const { t } = useTranslation("common");
+  const { direction } = useLocale();
   const notificationItems = notifications?.items ?? [];
   const notificationCount = notifications?.totalCount ?? 0;
   const displaySystemName =
@@ -45,16 +50,16 @@ export function Header({ user }: HeaderProps) {
 
   const roleName =
     user.role === "ADMIN"
-      ? "مدير النظام"
+      ? t("roles.admin")
       : user.role === "DOCTOR"
-      ? "طبيب"
-      : "مساعد";
+      ? t("roles.doctor")
+      : t("roles.assistant");
 
   const navItems = [
-    { label: "الرئيسية", path: "/" },
-    { label: "المرضى", path: "/patients" },
-    { label: "الإحصائيات", path: "/statistics" },
-    ...(user.role === "ADMIN" ? [{ label: "الإعدادات", path: "/settings" }] : []),
+    { label: t("nav.dashboard"), path: "/" },
+    { label: t("nav.patients"), path: "/patients" },
+    { label: t("nav.statistics"), path: "/statistics" },
+    ...(user.role === "ADMIN" ? [{ label: t("nav.settings"), path: "/settings" }] : []),
   ];
 
   const handleLogout = () => {
@@ -82,7 +87,7 @@ export function Header({ user }: HeaderProps) {
         <div className="flex items-center gap-3">
           <img
             src={settings.clinicLogo ?? gharsSymbol}
-            alt="شعار غرس"
+            alt={t("brand.latin")}
             className="h-11 w-10 rounded-md object-contain"
           />
           <span className="font-semibold text-lg text-brand-navy tracking-tight hidden sm:block">
@@ -127,41 +132,43 @@ export function Header({ user }: HeaderProps) {
 
         {/* Left: Actions */}
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+
           {/* Help Menu */}
-          <DropdownMenu dir="rtl">
+          <DropdownMenu dir={direction}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary" id="tour-help-icon">
                     <HelpCircle className="h-5 w-5" />
-                    <span className="sr-only">المساعدة والجولة التعريفية</span>
+                    <span className="sr-only">{t("help.menuLabel")}</span>
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
               <TooltipContent>
-                <p>المساعدة والجولة التعريفية</p>
+                <p>{t("help.menuLabel")}</p>
               </TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>المساعدة</DropdownMenuLabel>
+              <DropdownMenuLabel>{t("help.title")}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={startTour} className="cursor-pointer gap-2">
                 <Play className="h-4 w-4" />
-                <span>ابدأ الجولة التعريفية</span>
+                <span>{t("help.tour")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={showQuickHelp} className="cursor-pointer gap-2">
                 <Info className="h-4 w-4" />
-                <span>مساعدة سريعة</span>
+                <span>{t("help.quick")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={showShortcuts} className="cursor-pointer gap-2">
                 <BookOpen className="h-4 w-4" />
-                <span>شرح الاختصارات</span>
+                <span>{t("help.shortcuts")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Notifications */}
-          <DropdownMenu dir="rtl">
+          <DropdownMenu dir={direction}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
@@ -184,18 +191,18 @@ export function Header({ user }: HeaderProps) {
                 </DropdownMenuTrigger>
               </TooltipTrigger>
               <TooltipContent>
-                <p>التنبيهات</p>
+                <p>{t("notifications.title")}</p>
               </TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
               {notificationItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                   <Bell className="h-8 w-8 mb-2 opacity-20" />
-                  <p className="text-sm">لا توجد تنبيهات حاليًا</p>
+                  <p className="text-sm">{t("notifications.empty")}</p>
                 </div>
               ) : (
                 <>
-                  <DropdownMenuLabel>التنبيهات ({notificationCount})</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("notifications.count", { count: notificationCount })}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {notificationItems.map((item, idx) => (
                     <DropdownMenuItem
@@ -219,7 +226,7 @@ export function Header({ user }: HeaderProps) {
           </DropdownMenu>
 
           {/* User Menu */}
-          <DropdownMenu dir="rtl">
+          <DropdownMenu dir={direction}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 px-2 hover:bg-muted">
                 <UserAvatar
@@ -227,7 +234,7 @@ export function Header({ user }: HeaderProps) {
                   avatarData={user.avatarData}
                   size="sm"
                 />
-                <div className="text-right hidden sm:block">
+                <div className="text-start hidden sm:block">
                   <p className="text-sm font-medium leading-none text-foreground">{user.fullName}</p>
                   <p className="text-xs text-muted-foreground mt-1">{roleName}</p>
                 </div>
@@ -241,13 +248,13 @@ export function Header({ user }: HeaderProps) {
               <DropdownMenuSeparator className="sm:hidden" />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer gap-2 focus:bg-destructive/10 focus:text-destructive">
                 <LogOut className="h-4 w-4" />
-                <span>تسجيل الخروج</span>
+                <span>{t("actions.logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Mobile Nav Menu */}
-          <DropdownMenu dir="rtl">
+          <DropdownMenu dir={direction}>
             <DropdownMenuTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon" className="h-9 w-9">
                 <Menu className="h-5 w-5" />

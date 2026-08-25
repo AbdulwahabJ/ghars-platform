@@ -33,6 +33,7 @@ import { useAppSettings } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { ExpectedProstheticDateField } from "./ExpectedProstheticDateField";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 const NONE = "__none__";
 const CUSTOM = "__custom__";
@@ -65,6 +66,7 @@ function CaseForm({
   caseData,
   otherCases,
 }: CaseFormDialogProps) {
+  const { t } = useClinicalTranslation();
   const { toast } = useToast();
   const { settings } = useAppSettings();
   const createCase = useCreateImplantCase();
@@ -121,7 +123,7 @@ function CaseForm({
 
   const handleSubmit = () => {
     if (!treatingDoctor.trim()) {
-      toast({ variant: "destructive", title: "اسم الطبيب المعالج مطلوب." });
+      toast({ variant: "destructive", title: t("implant.treatingDoctor") });
       return;
     }
     const prosValue =
@@ -150,8 +152,8 @@ function CaseForm({
     const onError = (err: Error) =>
       toast({
         variant: "destructive",
-        title: "خطأ",
-        description: err.message || "تعذر حفظ حالة الزراعة.",
+        title: t("patient.error"),
+        description: err.message || t("implant.caseSaveFailed"),
       });
 
     if (isEdit && caseData) {
@@ -159,7 +161,7 @@ function CaseForm({
         { id: caseData.id, patientId, data: payload },
         {
           onSuccess: () => {
-            toast({ title: "تم حفظ تعديلات الحالة بنجاح" });
+             toast({ title: t("implant.caseSaved") });
             onOpenChange(false);
           },
           onError,
@@ -170,7 +172,7 @@ function CaseForm({
         { patientId, data: payload },
         {
           onSuccess: () => {
-            toast({ title: "تم تسجيل حالة الزراعة بنجاح" });
+             toast({ title: t("implant.caseCreated") });
             onOpenChange(false);
           },
           onError,
@@ -185,18 +187,18 @@ function CaseForm({
     <>
       <DialogHeader>
         <DialogTitle className="text-xl font-bold text-primary">
-          {isEdit ? "تعديل حالة الزراعة" : "تسجيل حالة زراعة جديدة"}
+           {isEdit ? t("implant.editCase") : t("implant.newCase")}
         </DialogTitle>
         <DialogDescription className="text-muted-foreground">
           {isEdit
-            ? "عدّل بيانات الحالة ثم اضغط حفظ."
-            : "أدخل بيانات حالة الزراعة. يمكن إضافة الزرعات بعد إنشاء الحالة."}
+             ? t("implant.caseDescriptionEdit")
+             : t("implant.caseDescriptionNew")}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
         <div className="space-y-2">
-          <FieldLabel htmlFor="case-procedure-date" label="تاريخ الإجراء" />
+           <FieldLabel htmlFor="case-procedure-date" label={t("implant.procedureDate")} />
           <OperationalDatePicker
             id="case-procedure-date"
             value={procedureDate}
@@ -204,7 +206,7 @@ function CaseForm({
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel htmlFor="case-status" label="حالة الحالة" />
+           <FieldLabel htmlFor="case-status" label={t("implant.caseStatus")} />
           <Select value={caseStatus} onValueChange={setCaseStatus}>
             <SelectTrigger id="case-status" className="h-[46px] rounded-[10px]">
               <SelectValue />
@@ -219,7 +221,7 @@ function CaseForm({
           </Select>
         </div>
         <div className="space-y-2">
-          <FieldLabel htmlFor="case-treating" label="الطبيب المعالج" />
+           <FieldLabel htmlFor="case-treating" label={t("implant.treatingDoctor")} />
           <Input
             id="case-treating"
             value={treatingDoctor}
@@ -227,37 +229,37 @@ function CaseForm({
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel htmlFor="case-referring" label="الطبيب المحوِّل" />
+           <FieldLabel htmlFor="case-referring" label={t("implant.referringDoctor")} />
           <Input
             id="case-referring"
             value={referringDoctor}
             onChange={(e) => setReferringDoctor(e.target.value)}
-            placeholder="اختياري"
+             placeholder={t("implant.optional")}
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel htmlFor="case-pros" label="مدة التركيب — Pros" helpKey="Pros" />
+           <FieldLabel htmlFor="case-pros" label={t("implant.prosDuration")} helpKey="Pros" />
           <div className="flex gap-2">
             <Select value={prosChoice} onValueChange={setProsChoice}>
               <SelectTrigger id="case-pros" className="h-[46px] rounded-[10px]">
-                <SelectValue placeholder="اختر" />
+               <SelectValue placeholder={t("implant.choose")} />
               </SelectTrigger>
               <SelectContent dir="rtl">
-                <SelectItem value={NONE}>بدون</SelectItem>
+                 <SelectItem value={NONE}>{t("implant.none")}</SelectItem>
                 {PROS_SUGGESTED_VALUES.map((v) => (
                   <SelectItem key={v} value={v}>
                     {v}
                   </SelectItem>
                 ))}
-                <SelectItem value={CUSTOM}>قيمة مخصصة</SelectItem>
+                 <SelectItem value={CUSTOM}>{t("implant.customValue")}</SelectItem>
               </SelectContent>
             </Select>
             {prosChoice === CUSTOM && (
               <Input
-                aria-label="قيمة مدة التركيب المخصصة"
+                 aria-label={t("implant.customValue")}
                 value={prosCustom}
                 onChange={(e) => setProsCustom(e.target.value)}
-                placeholder="أدخل القيمة"
+                 placeholder={t("implant.customValue")}
               />
             )}
           </div>
@@ -270,7 +272,7 @@ function CaseForm({
           idPrefix="case-expected-prosthetic"
         />
         <div className="space-y-2 md:col-span-2">
-          <FieldLabel htmlFor="case-note" label="ملاحظة عامة" />
+           <FieldLabel htmlFor="case-note" label={t("implant.generalNote")} />
           <Textarea
             id="case-note"
             value={generalNote}
@@ -281,7 +283,7 @@ function CaseForm({
 
         <div className="md:col-span-2 border-t border-border pt-4 space-y-4">
           <div className="flex items-center justify-between">
-            <FieldLabel htmlFor="case-reimplant" label="إعادة زراعة" />
+             <FieldLabel htmlFor="case-reimplant" label={t("implant.reimplantation")} />
             <Switch
               id="case-reimplant"
               checked={isReimplantation}
@@ -291,7 +293,7 @@ function CaseForm({
           {isReimplantation && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
-                <FieldLabel htmlFor="case-reimplant-reason" label="سبب إعادة الزراعة" />
+                 <FieldLabel htmlFor="case-reimplant-reason" label={t("implant.reimplantationReason")} />
                 <Textarea
                   id="case-reimplant-reason"
                   value={reimplantationReason}
@@ -300,16 +302,16 @@ function CaseForm({
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <FieldLabel htmlFor="case-source" label="الحالة المصدر" />
+                 <FieldLabel htmlFor="case-source" label={t("implant.sourceCase")} />
                 <Select value={sourceCaseId} onValueChange={setSourceCaseId}>
                   <SelectTrigger id="case-source" className="h-[46px] rounded-[10px]">
-                    <SelectValue placeholder="اختر الحالة الأصلية (اختياري)" />
+                     <SelectValue placeholder={t("implant.sourceCasePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
-                    <SelectItem value={NONE}>بدون ربط</SelectItem>
+                     <SelectItem value={NONE}>{t("implant.noLink")}</SelectItem>
                     {sourceOptions.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {`حالة ${formatSaudiDate(c.procedureDate ?? c.createdAt)} — ${c.caseStatus}`}
+                         {`${t("implant.case")} ${formatSaudiDate(c.procedureDate ?? c.createdAt)} — ${c.caseStatus}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -325,7 +327,7 @@ function CaseForm({
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <span>{isEdit ? "حفظ التعديلات" : "تسجيل الحالة"}</span>
+             <span>{isEdit ? t("implant.saveChanges") : t("implant.saveCase")}</span>
           )}
         </Button>
         <Button
@@ -334,7 +336,7 @@ function CaseForm({
           disabled={isPending}
           className="btn-outline w-full sm:w-auto"
         >
-          إلغاء
+           {t("implant.cancel")}
         </Button>
       </DialogFooter>
     </>

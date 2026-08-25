@@ -1,3 +1,5 @@
+import { getLocale } from "@/i18n";
+
 /**
  * Saudi-timezone display utilities. All user-facing dates and times display
  * in the Asia/Riyadh timezone (mandated). Storage stays UTC (timestamptz).
@@ -5,11 +7,13 @@
 const SAUDI_TZ = "Asia/Riyadh";
 
 /** Arabic locale with Latin digits for clarity in numbers and dates. */
-const LOCALE = "ar-SA-u-nu-latn-ca-gregory";
+function getDisplayLocale(): string {
+  return getLocale() === "en" ? "en-US" : "ar-SA-u-nu-latn-ca-gregory";
+}
 
 export function formatSaudiDate(value: string | Date): string {
   const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat(LOCALE, {
+  return new Intl.DateTimeFormat(getDisplayLocale(), {
     timeZone: SAUDI_TZ,
     year: "numeric",
     month: "long",
@@ -39,7 +43,7 @@ export function addMonthsToIsoDate(iso: string, months: number): string {
 
 export function formatSaudiDateTime(value: string | Date): string {
   const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat(LOCALE, {
+  return new Intl.DateTimeFormat(getDisplayLocale(), {
     timeZone: SAUDI_TZ,
     year: "numeric",
     month: "long",
@@ -51,7 +55,7 @@ export function formatSaudiDateTime(value: string | Date): string {
 
 export function formatSaudiWeekdayDate(value: string | Date): string {
   const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat(LOCALE, {
+  return new Intl.DateTimeFormat(getDisplayLocale(), {
     timeZone: SAUDI_TZ,
     weekday: "long",
     year: "numeric",
@@ -74,5 +78,8 @@ export function saudiHourNow(): number {
 /** صباح الخير before noon Saudi time, otherwise مساء الخير. */
 export function saudiGreeting(): string {
   const hour = saudiHourNow();
+  if (getLocale() === "en") {
+    return hour >= 4 && hour < 12 ? "Good morning" : "Good evening";
+  }
   return hour >= 4 && hour < 12 ? "صباح الخير" : "مساء الخير";
 }

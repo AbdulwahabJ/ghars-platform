@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney, todayIso } from "@/lib/money";
 import { PaymentFormDialog } from "./PaymentFormDialog";
+import { useTranslation } from "react-i18next";
 
 const STATUS_STYLES = {
   "مدفوع": "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -45,6 +46,7 @@ export function InstallmentPlanCard({
   canManage: boolean;
   canRecord: boolean;
 }) {
+  const { t } = useTranslation("operations");
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [generalPaymentOpen, setGeneralPaymentOpen] = useState(false);
@@ -54,9 +56,9 @@ export function InstallmentPlanCard({
     <Card data-testid="card-installment-plan">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div>
-          <CardTitle className="text-base">خطة التقسيط</CardTitle>
+          <CardTitle className="text-base">{t("financeForms.installmentPlan")}</CardTitle>
           <p className="mt-1 text-xs text-muted-foreground">
-            الخطة للمتابعة فقط؛ التحصيل يعتمد على الدفعات الفعلية.
+            {t("financeForms.planInfo")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -68,7 +70,7 @@ export function InstallmentPlanCard({
               data-testid="button-add-general-payment"
             >
               <Plus className="ms-1 h-4 w-4" />
-              دفعة عامة
+              {t("financeForms.generalPayment")}
             </Button>
           ) : null}
           {canManage ? (
@@ -79,7 +81,7 @@ export function InstallmentPlanCard({
               data-testid="button-toggle-installment-plan"
             >
               {plan ? <Pencil className="ms-1 h-4 w-4" /> : <Plus className="ms-1 h-4 w-4" />}
-              {plan ? "تعديل الخطة" : "إنشاء خطة"}
+              {plan ? t("financeForms.editPlan") : t("financeForms.createPlan")}
             </Button>
           ) : null}
         </div>
@@ -96,9 +98,9 @@ export function InstallmentPlanCard({
         {!plan && !editing ? (
           <div className="rounded-lg border border-dashed p-5 text-center">
             <CalendarClock className="mx-auto h-7 w-7 text-muted-foreground" />
-            <p className="mt-2 text-sm font-medium">لا توجد خطة تقسيط حالية.</p>
+            <p className="mt-2 text-sm font-medium">{t("financeForms.noPlan")}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              أنشئ جدول الاستحقاقات دون تغيير إجمالي الحالة أو المدفوع.
+              {t("financeForms.noPlanDescription")}
             </p>
           </div>
         ) : null}
@@ -106,11 +108,11 @@ export function InstallmentPlanCard({
         {plan ? (
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Metric label="المبلغ المجدول" value={formatMoney(plan.totalAmount)} />
-              <Metric label="عدد الأقساط" value={String(plan.installmentCount)} />
-              <Metric label="أول استحقاق" value={formatSaudiDate(plan.firstDueDate)} />
+               <Metric label={t("financeForms.scheduledAmount")} value={formatMoney(plan.totalAmount)} />
+               <Metric label={t("financeForms.installmentsCount")} value={String(plan.installmentCount)} />
+               <Metric label={t("financeForms.firstDueDate")} value={formatSaudiDate(plan.firstDueDate)} />
               <Metric
-                label="المسدد من الخطة"
+                 label={t("financeForms.planPaid")}
                 value={formatMoney(
                   plan.installments.reduce((sum, installment) => sum + installment.paidAmount, 0),
                 )}
@@ -136,13 +138,13 @@ export function InstallmentPlanCard({
             onClick={() => setHistoryOpen((value) => !value)}
             data-testid="button-toggle-payment-history"
           >
-            <span>سجل الدفعات ({data.payments.length})</span>
+            <span>{t("financeForms.paymentHistory", { count: data.payments.length })}</span>
             {historyOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
           {historyOpen ? (
             <div className="mt-3 space-y-2">
               {data.payments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">لا توجد دفعات مسجلة.</p>
+                <p className="text-sm text-muted-foreground">{t("financeForms.noRecordedPayments")}</p>
               ) : (
                 data.payments.map((payment) => (
                   <div
@@ -156,11 +158,11 @@ export function InstallmentPlanCard({
                       <span className="mx-1.5 text-muted-foreground">—</span>
                       <span>{formatSaudiDate(payment.paymentDate)}</span>
                       {payment.installmentId ? (
-                        <Badge variant="outline" className="ms-2 text-xs">مرتبطة بقسط</Badge>
+                          <Badge variant="outline" className="ms-2 text-xs">{t("financeForms.linkedInstallment")}</Badge>
                       ) : null}
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {payment.isVoided ? "ملغاة" : payment.paymentMethod ?? "—"}
+                       {payment.isVoided ? t("financeForms.voided") : payment.paymentMethod ?? "—"}
                     </span>
                   </div>
                 ))
@@ -197,6 +199,7 @@ function PlanEditor({
   onComplete: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const savePlan = useSaveInstallmentPlan();
   const current = data.installmentPlan;
   const [totalAmount, setTotalAmount] = useState("");
@@ -226,15 +229,15 @@ function PlanEditor({
     const amount = Number(totalAmount);
     const installmentCount = Number(count);
     if (!Number.isFinite(amount) || amount <= 0) {
-      setError("أدخل مبلغًا مجدولًا أكبر من صفر.");
+      setError(t("financeForms.planAmountInvalid"));
       return;
     }
     if (!Number.isInteger(installmentCount) || installmentCount < 1 || installmentCount > 60) {
-      setError("عدد الأقساط يجب أن يكون بين 1 و60.");
+      setError(t("financeForms.countInvalid"));
       return;
     }
     if (amount > data.summary.finalTotal) {
-      setError("المبلغ المجدول لا يمكن أن يتجاوز الإجمالي النهائي للحالة.");
+      setError(t("financeForms.planExceedsTotal"));
       return;
     }
     savePlan.mutate(
@@ -248,12 +251,12 @@ function PlanEditor({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم حفظ خطة التقسيط." });
+          toast({ title: t("financeForms.planSaved") });
           onComplete();
         },
         onError: (err) => {
           toast({
-            title: "تعذر حفظ خطة التقسيط",
+            title: t("financeForms.planSaveFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });

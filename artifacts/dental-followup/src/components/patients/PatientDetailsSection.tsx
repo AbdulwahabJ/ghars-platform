@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpdatePatient } from "@/hooks/use-patients";
 import { useToast } from "@/hooks/use-toast";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 interface PatientDetailsSectionProps {
   patient: Patient;
@@ -31,6 +32,7 @@ export function PatientDetailsSection({
   onRestore,
   isRestoring,
 }: PatientDetailsSectionProps) {
+  const { t } = useClinicalTranslation();
   const { toast } = useToast();
   const updatePatient = useUpdatePatient();
   const [isEditing, setIsEditing] = useState(false);
@@ -52,14 +54,14 @@ export function PatientDetailsSection({
       { id: patient.id, data: formData },
       {
         onSuccess: () => {
-          toast({ title: "تم حفظ بيانات المريض" });
+          toast({ title: t("patient.saved") });
           setIsEditing(false);
         },
         onError: (error: Error) =>
           toast({
             variant: "destructive",
-            title: "تعذر الحفظ",
-            description: error.message || "يرجى المحاولة مرة أخرى.",
+            title: t("patient.saveFailed"),
+            description: error.message || t("patient.retry"),
           }),
       },
     );
@@ -80,25 +82,25 @@ export function PatientDetailsSection({
     <section id="patient-details" className="scroll-mt-24">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-bold text-foreground">بيانات المريض</h2>
-          <p className="text-sm text-muted-foreground">بيانات الملف الأساسية والملاحظات الإدارية.</p>
+           <h2 className="text-lg font-bold text-foreground">{t("patient.data")}</h2>
+           <p className="text-sm text-muted-foreground">{t("patient.detailsDescription")}</p>
         </div>
         <div className="flex items-center gap-2 print:hidden">
           {!archived && !isEditing ? (
             <Button variant="outline" size="sm" onClick={startEditing}>
               <Pencil className="h-4 w-4 ms-1.5" />
-              تعديل
+               {t("patient.edit")}
             </Button>
           ) : null}
           {archived ? (
             <Button size="sm" onClick={onRestore} disabled={isRestoring}>
               {isRestoring ? <Loader2 className="h-4 w-4 animate-spin ms-1.5" /> : <RefreshCw className="h-4 w-4 ms-1.5" />}
-              استعادة الملف
+               {t("patient.restore")}
             </Button>
           ) : canArchive && !isEditing ? (
             <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={onArchive}>
               <Archive className="h-4 w-4 ms-1.5" />
-              أرشفة الملف
+               {t("patient.archive")}
             </Button>
           ) : null}
         </div>
@@ -108,7 +110,7 @@ export function PatientDetailsSection({
         <div className="space-y-4 rounded-lg border border-border bg-muted/20 p-4 print:hidden">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="space-y-1.5 text-sm font-medium">
-              رقم الملف
+               {t("patient.fileNumber")}
               <Input
                 dir="ltr"
                 value={formData.fileNumber ?? ""}
@@ -116,14 +118,14 @@ export function PatientDetailsSection({
               />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
-              الاسم الكامل
+               {t("patient.fullName")}
               <Input
                 value={formData.fullName ?? ""}
                 onChange={(event) => setFormData((current) => ({ ...current, fullName: event.target.value }))}
               />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
-              رقم الجوال
+               {t("patient.mobile")}
               <Input
                 dir="ltr"
                 value={formData.mobileNumber ?? ""}
@@ -131,7 +133,7 @@ export function PatientDetailsSection({
               />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
-              العمر
+               {t("patient.age")}
               <Input
                 type="number"
                 min={0}
@@ -144,7 +146,7 @@ export function PatientDetailsSection({
             </label>
           </div>
           <label className="block space-y-1.5 text-sm font-medium">
-            ملاحظة إدارية
+             {t("patient.administrativeNote")}
             <Textarea
               rows={3}
               value={formData.administrativeNote ?? ""}
@@ -154,21 +156,21 @@ export function PatientDetailsSection({
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={save} disabled={updatePatient.isPending}>
               {updatePatient.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1.5" /> : <Save className="h-4 w-4 ms-1.5" />}
-              حفظ
+               {t("patient.save")}
             </Button>
             <Button size="sm" variant="outline" onClick={cancel} disabled={updatePatient.isPending}>
               <X className="h-4 w-4 ms-1.5" />
-              إلغاء
+               {t("patient.cancel")}
             </Button>
           </div>
         </div>
       ) : (
         <dl className="grid grid-cols-1 gap-x-10 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Detail label="الاسم الكامل">{patient.fullName}</Detail>
-          <Detail label="رقم الملف"><span dir="ltr">{patient.fileNumber}</span></Detail>
-          <Detail label="رقم الجوال"><span dir="ltr">{patient.mobileNumber ?? "—"}</span></Detail>
-          <Detail label="العمر">{patient.age != null ? `${patient.age} سنة` : "—"}</Detail>
-          <Detail label="ملاحظة إدارية">{patient.administrativeNote ?? "—"}</Detail>
+           <Detail label={t("patient.fullName")}>{patient.fullName}</Detail>
+           <Detail label={t("patient.fileNumber")}><span dir="ltr">{patient.fileNumber}</span></Detail>
+           <Detail label={t("patient.mobile")}><span dir="ltr">{patient.mobileNumber ?? "—"}</span></Detail>
+           <Detail label={t("patient.age")}>{patient.age != null ? t("patient.years", { count: patient.age }) : "—"}</Detail>
+           <Detail label={t("patient.administrativeNote")}>{patient.administrativeNote ?? "—"}</Detail>
         </dl>
       )}
     </section>

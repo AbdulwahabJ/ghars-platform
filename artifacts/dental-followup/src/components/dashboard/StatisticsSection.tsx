@@ -14,13 +14,15 @@ import {
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { StatisticsResponse } from "@workspace/shared";
+import { useTranslation } from "react-i18next";
 
 const CHART_COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#64748b", "#ef4444"];
 
 function EmptyChart() {
+  const { t } = useTranslation("guidance");
   return (
     <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-      لا توجد بيانات خلال الفترة المحددة.
+      {t("dashboard.noPeriodData")}
     </div>
   );
 }
@@ -38,6 +40,7 @@ export function StatisticsSection({
   isLoading: boolean;
   isError: boolean;
 }) {
+  const { t } = useTranslation("guidance");
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -48,7 +51,7 @@ export function StatisticsSection({
   if (isError || !data) {
     return (
       <p className="text-sm text-destructive py-6 text-center">
-        تعذر تحميل الإحصائيات. حاول تحديث الصفحة.
+        {t("dashboard.statisticsLoadError")}
       </p>
     );
   }
@@ -59,8 +62,7 @@ export function StatisticsSection({
         <Card data-testid="chart-over-time">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">
-              الحالات والزرعات عبر الزمن (
-              {data.overTimeGrouping === "day" ? "يومي" : "شهري"})
+              {t("dashboard.overTime", { grouping: data.overTimeGrouping === "day" ? t("dashboard.daily") : t("dashboard.monthly") })}
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[260px]" dir="ltr">
@@ -74,8 +76,8 @@ export function StatisticsSection({
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={40} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="cases" name="حالات" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="implants" name="زرعات" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="cases" name={t("dashboard.cases")} fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="implants" name={t("dashboard.implants")} fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -83,7 +85,7 @@ export function StatisticsSection({
         </Card>
         <Card data-testid="chart-implant-systems">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">توزيع أنظمة الزرعات</CardTitle>
+            <CardTitle className="text-base">{t("dashboard.implantSystems")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[260px]" dir="ltr">
             {data.implantSystems.length === 0 ? (
@@ -114,7 +116,7 @@ export function StatisticsSection({
         </Card>
         <Card data-testid="chart-case-statuses">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">توزيع حالات الحالات</CardTitle>
+            <CardTitle className="text-base">{t("dashboard.caseStatuses")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[260px]" dir="ltr">
             {data.caseStatuses.length === 0 ? (
@@ -132,7 +134,7 @@ export function StatisticsSection({
                     orientation="right"
                   />
                   <Tooltip />
-                  <Bar dataKey="count" name="عدد" fill="#8b5cf6" radius={[4, 0, 0, 4]} />
+                  <Bar dataKey="count" name={t("dashboard.count")} fill="#8b5cf6" radius={[4, 0, 0, 4]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -144,12 +146,12 @@ export function StatisticsSection({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card data-testid="tile-implant-statuses">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">توزيع حالات الزرعات</CardTitle>
+            <CardTitle className="text-base">{t("dashboard.implantStatuses")}</CardTitle>
           </CardHeader>
           <CardContent>
             {data.implantStatuses.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                لا توجد زرعات خلال الفترة المحددة.
+                {t("dashboard.noPeriodImplants")}
               </p>
             ) : (
               <ul className="space-y-1.5">
@@ -165,12 +167,12 @@ export function StatisticsSection({
         </Card>
         <Card data-testid="tile-followup-outcomes">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">نتائج المتابعات</CardTitle>
+            <CardTitle className="text-base">{t("dashboard.followupOutcomes")}</CardTitle>
           </CardHeader>
           <CardContent>
             {data.followupOutcomes.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                لا توجد نتائج متابعات خلال الفترة المحددة.
+                {t("dashboard.noPeriodFollowupOutcomes")}
               </p>
             ) : (
               <ul className="space-y-1.5">
@@ -186,24 +188,24 @@ export function StatisticsSection({
         </Card>
         <Card data-testid="tile-failure-counts">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">الفشل وإعادة الزراعة</CardTitle>
+            <CardTitle className="text-base">{t("dashboard.failuresAndRedo")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1.5 text-sm">
               <li className="flex justify-between">
-                <span>زرعات فاشلة</span>
+                 <span>{t("dashboard.failedImplants")}</span>
                 <span className="font-semibold tabular-nums">
                   {data.failedImplants}
                 </span>
               </li>
               <li className="flex justify-between">
-                <span>زرعات تحتاج إعادة</span>
+                 <span>{t("dashboard.needsRedoImplants")}</span>
                 <span className="font-semibold tabular-nums">
                   {data.needsRedoImplants}
                 </span>
               </li>
               <li className="flex justify-between">
-                <span>حالات إعادة زراعة</span>
+                 <span>{t("dashboard.reimplantationCases")}</span>
                 <span className="font-semibold tabular-nums">
                   {data.reimplantationCases}
                 </span>

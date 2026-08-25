@@ -7,6 +7,8 @@ export const onboardingStatusEnum = pgEnum("onboarding_status", [
   "skipped",
 ]);
 
+export const localeEnum = pgEnum("locale", ["ar", "en"]);
+
 /** One preferences record per user (UNIQUE user_id). No patient data here. */
 export const userPreferencesTable = pgTable("user_preferences", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -14,6 +16,7 @@ export const userPreferencesTable = pgTable("user_preferences", {
     .notNull()
     .unique()
     .references(() => usersTable.id),
+  locale: localeEnum("locale").notNull().default("ar"),
   onboardingStatus: onboardingStatusEnum("onboarding_status")
     .notNull()
     .default("not_started"),

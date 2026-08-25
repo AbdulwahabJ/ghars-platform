@@ -46,20 +46,20 @@ import { useImplantOptions } from "@/hooks/use-implant-cases";
 import { financeExportUrl } from "@/lib/api";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney, todayIso } from "@/lib/money";
+import { useTranslation } from "react-i18next";
+import "@/i18n/locales/ar/operations";
+import "@/i18n/locales/en/operations";
 
 /* ------------------------------------------------------------------ */
 /* Period presets                                                      */
 /* ------------------------------------------------------------------ */
 
-const PERIODS = [
-  { id: "today", label: "اليوم" },
-  { id: "yesterday", label: "أمس" },
-  { id: "this_week", label: "هذا الأسبوع" },
-  { id: "this_month", label: "هذا الشهر" },
-  { id: "last_month", label: "الشهر الماضي" },
-  { id: "custom", label: "فترة مخصصة" },
-] as const;
-type PeriodId = (typeof PERIODS)[number]["id"];
+const PERIOD_IDS = ["today", "yesterday", "this_week", "this_month", "last_month", "custom"] as const;
+type PeriodId = (typeof PERIOD_IDS)[number];
+const PERIOD_TRANSLATION_KEYS: Record<PeriodId, string> = {
+  today: "finance.today", yesterday: "finance.yesterday", this_week: "finance.thisWeek",
+  this_month: "finance.thisMonth", last_month: "finance.lastMonth", custom: "finance.customPeriod",
+};
 
 function shiftDays(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -98,6 +98,7 @@ const CHART_COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
 /* ------------------------------------------------------------------ */
 
 export default function Finance() {
+  const { t } = useTranslation("operations");
   const { user } = useAuth();
   const { data: options } = useImplantOptions();
 
@@ -159,9 +160,9 @@ export default function Finance() {
           <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">
             <Lock className="h-10 w-10 text-muted-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-3">التقارير المالية</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-3">{t("finance.title")}</h1>
           <p className="text-muted-foreground">
-            ليست لديك صلاحية الوصول إلى البيانات المالية.
+            {t("finance.noAccess")}
           </p>
         </div>
       </Shell>
@@ -171,14 +172,14 @@ export default function Finance() {
   const kpis = data?.kpis;
   const kpiCards = kpis
     ? [
-        { label: "المقبوض خلال الفترة", value: formatMoney(kpis.collectedInPeriod) },
-        { label: "قيمة الحالات خلال الفترة", value: formatMoney(kpis.caseValueInPeriod) },
-        { label: "الرسوم الإضافية", value: formatMoney(kpis.chargesInPeriod) },
-        { label: "الخصومات", value: formatMoney(kpis.discountsInPeriod) },
-        { label: "إجمالي المتبقي", value: formatMoney(kpis.totalOutstanding) },
-        { label: "عدد الدفعات", value: String(kpis.paymentsCount) },
+        { label: t("finance.collected"), value: formatMoney(kpis.collectedInPeriod) },
+        { label: t("finance.caseValue"), value: formatMoney(kpis.caseValueInPeriod) },
+        { label: t("finance.charges"), value: formatMoney(kpis.chargesInPeriod) },
+        { label: t("finance.discounts"), value: formatMoney(kpis.discountsInPeriod) },
+        { label: t("finance.outstanding"), value: formatMoney(kpis.totalOutstanding) },
+        { label: t("finance.paymentsCount"), value: String(kpis.paymentsCount) },
         {
-          label: "عدد المرضى أصحاب المبالغ المتبقية",
+          label: t("finance.balancePatients"),
           value: String(kpis.patientsWithBalanceCount),
         },
       ]
@@ -196,7 +197,7 @@ export default function Finance() {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
-          <h1 className="text-2xl font-bold text-foreground">التقارير المالية</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("finance.title")}</h1>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -205,7 +206,7 @@ export default function Finance() {
               data-testid="button-export-csv"
             >
               <Download className="h-4 w-4 ms-1" />
-              تصدير CSV
+              {t("finance.exportCsv")}
             </Button>
             <Button
               variant="outline"
@@ -214,7 +215,7 @@ export default function Finance() {
               data-testid="button-print"
             >
               <Printer className="h-4 w-4 ms-1" />
-              طباعة
+              {t("finance.print")}
             </Button>
           </div>
         </div>
@@ -223,15 +224,15 @@ export default function Finance() {
         <Card className="print:hidden">
           <CardContent className="pt-5 space-y-4">
             <div className="flex flex-wrap gap-2">
-              {PERIODS.map((p) => (
+              {PERIOD_IDS.map((id) => (
                 <Button
-                  key={p.id}
+                  key={id}
                   size="sm"
-                  variant={period === p.id ? "default" : "outline"}
-                  onClick={() => setPeriod(p.id)}
-                  data-testid={`button-period-${p.id}`}
+                  variant={period === id ? "default" : "outline"}
+                  onClick={() => setPeriod(id)}
+                  data-testid={`button-period-${id}`}
                 >
-                  {p.label}
+                  {t(PERIOD_TRANSLATION_KEYS[id])}
                 </Button>
               ))}
               {period === "custom" ? (
@@ -243,7 +244,7 @@ export default function Finance() {
                       data-testid="input-custom-from"
                     />
                   </div>
-                  <span className="text-muted-foreground text-sm">إلى</span>
+                  <span className="text-muted-foreground text-sm">{t("finance.to")}</span>
                   <div className="w-40">
                     <OperationalDatePicker
                       value={customTo}
@@ -256,13 +257,13 @@ export default function Finance() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               <Input
-                placeholder="اسم المريض"
+                placeholder={t("finance.patientName")}
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
                 data-testid="input-filter-patient"
               />
               <Input
-                placeholder="رقم الملف"
+                placeholder={t("finance.fileNumber")}
                 value={fileNumber}
                 onChange={(e) => setFileNumber(e.target.value)}
                 data-testid="input-filter-file-number"
@@ -272,7 +273,7 @@ export default function Finance() {
                   <SelectValue placeholder="طريقة الدفع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>كل طرق الدفع</SelectItem>
+                  <SelectItem value={ALL}>{t("finance.allPaymentMethods")}</SelectItem>
                   {PAYMENT_METHODS.map((m) => (
                     <SelectItem key={m} value={m}>
                       {m}
@@ -285,7 +286,7 @@ export default function Finance() {
                   <SelectValue placeholder="حالة الدفع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>كل حالات الدفع</SelectItem>
+                  <SelectItem value={ALL}>{t("finance.allPaymentStatuses")}</SelectItem>
                   {PAYMENT_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
@@ -298,7 +299,7 @@ export default function Finance() {
                   <SelectValue placeholder="نظام الزرعة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>كل الأنظمة</SelectItem>
+                  <SelectItem value={ALL}>{t("finance.allSystems")}</SelectItem>
                   {(options?.systems ?? []).map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
@@ -317,7 +318,7 @@ export default function Finance() {
         ) : isError ? (
           <Alert variant="destructive">
             <AlertDescription>
-              تعذر تحميل التقرير المالي. يرجى المحاولة مرة أخرى.
+              {t("finance.financeLoadError")}
             </AlertDescription>
           </Alert>
         ) : data ? (
@@ -341,14 +342,13 @@ export default function Finance() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">
-                    التحصيل عبر الزمن (
-                    {data.collectionGrouping === "day" ? "يومي" : "شهري"})
+                    {t("finance.collectionOverTime", { grouping: t(data.collectionGrouping === "day" ? "finance.daily" : "finance.monthly") })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="h-[280px]" dir="ltr">
                   {data.collectionSeries.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                      لا توجد دفعات خلال الفترة المحددة.
+                      {t("finance.noPaymentsPeriod")}
                     </div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
@@ -367,12 +367,12 @@ export default function Finance() {
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">توزيع طرق الدفع</CardTitle>
+                  <CardTitle className="text-base">{t("finance.paymentMethodDistribution")}</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[280px]" dir="ltr">
                   {data.methodDistribution.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                      لا توجد دفعات خلال الفترة المحددة.
+                      {t("finance.noPaymentsPeriod")}
                     </div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
@@ -406,13 +406,13 @@ export default function Finance() {
             <Card data-testid="card-finance-payments">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">
-                  الدفعات ({data.payments.length})
+                  {t("finance.payments", { count: data.payments.length })}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {data.payments.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-6 text-center">
-                    لا توجد دفعات مطابقة للفلاتر المحددة.
+                    {t("finance.noPaymentsFilters")}
                   </p>
                 ) : (
                   <div className="overflow-x-auto">

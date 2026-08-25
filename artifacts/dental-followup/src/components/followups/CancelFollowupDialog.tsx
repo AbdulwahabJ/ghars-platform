@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { useFollowupOutcome } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface CancelFollowupDialogProps {
   open: boolean;
@@ -36,6 +37,7 @@ function CancelFollowupForm({
   followup,
 }: CancelFollowupDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const cancelFollowup = useFollowupOutcome(patientId);
 
   const submit = () => {
@@ -46,12 +48,12 @@ function CancelFollowupForm({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم إلغاء المتابعة وحفظها في السجل." });
+          toast({ title: t("followupForms.cancelSuccess") });
           onOpenChange(false);
         },
         onError: (error) => {
           toast({
-            title: "تعذر إلغاء المتابعة",
+            title: t("followupForms.cancelFailed"),
             description: error instanceof Error ? error.message : undefined,
             variant: "destructive",
           });
@@ -63,9 +65,9 @@ function CancelFollowupForm({
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle className="text-destructive">إلغاء المتابعة</DialogTitle>
+        <DialogTitle className="text-destructive">{t("followupForms.cancelTitle")}</DialogTitle>
         <DialogDescription>
-          ستتوقف هذه المتابعة عن الظهور كموعد نشط، مع بقاء سجلها محفوظًا للمراجعة.
+          {t("followupForms.cancelDescription")}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter className="mt-5 gap-2 sm:justify-start">
@@ -76,10 +78,10 @@ function CancelFollowupForm({
           data-testid="button-confirm-cancel-followup"
         >
           {cancelFollowup.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          تأكيد الإلغاء
+          {t("financeForms.confirmVoid")}
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={cancelFollowup.isPending}>
-          رجوع
+          {t("followupForms.back")}
         </Button>
       </DialogFooter>
     </>

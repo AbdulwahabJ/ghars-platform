@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { CommunicationResultForm } from "./CommunicationResultDialog";
 import { toRiyadhTimeValue } from "./followup-utils";
+import { useTranslation } from "react-i18next";
 
 interface WhatsAppDialogProps {
   open: boolean;
@@ -56,6 +57,7 @@ const NO_TEMPLATE = "__none__";
 
 function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const { data: templates } = useWhatsappTemplates();
   const createCommunication = useCreateCommunication(patient.id);
 
@@ -94,7 +96,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
   const openWhatsapp = () => {
     if (!mobile) return;
     if (!message.trim()) {
-      setError("نص الرسالة مطلوب.");
+      setError(t("followupForms.messageRequired"));
       return;
     }
     window.open(buildWhatsappLink(mobile, message.trim()), "_blank", "noopener");
@@ -111,7 +113,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
         },
         onError: (err) => {
           toast({
-            title: "تعذر تسجيل عملية التواصل",
+            title: t("followupForms.communicationCreateFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -138,15 +140,14 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>تواصل عبر واتساب</DialogTitle>
+        <DialogTitle>{t("followupForms.whatsappTitle")}</DialogTitle>
         <DialogDescription>
-          يفتح النظام واتساب برسالة جاهزة قابلة للتعديل، ولا يؤكد إرسالها أو
-          قراءتها.
+          {t("followupForms.whatsappDescription")}
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
         <p className="text-sm text-muted-foreground">
-          المريض: <span className="notranslate">{patient.fullName}</span>
+          {t("followupForms.patient")} <span className="notranslate">{patient.fullName}</span>
           {patient.mobileNumber ? (
             <>
               {" — "}
@@ -156,18 +157,18 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
         </p>
         {!mobile ? (
           <p className="text-sm text-destructive">
-            رقم الجوال غير صالح للتواصل عبر واتساب. حدّث رقم المريض أولًا.
+            {t("followupForms.invalidMobile")}
           </p>
         ) : null}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <FieldLabel label="القالب (اختياري)" />
+            <FieldLabel label={t("followupForms.templateOptional")} />
             <Select value={templateId} onValueChange={applyTemplate} dir="rtl">
               <SelectTrigger data-testid="select-whatsapp-template">
-                <SelectValue placeholder="بدون قالب" />
+                <SelectValue placeholder={t("followupForms.noTemplate")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_TEMPLATE}>بدون قالب</SelectItem>
+                <SelectItem value={NO_TEMPLATE}>{t("followupForms.noTemplate")}</SelectItem>
                 {(templates ?? []).map((t) => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.name}
@@ -177,7 +178,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
             </Select>
           </div>
           <div className="space-y-2">
-            <FieldLabel label="سبب التواصل" />
+            <FieldLabel label={t("followupForms.communicationReason")} />
             <Select value={reason} onValueChange={setReason} dir="rtl">
               <SelectTrigger data-testid="select-whatsapp-reason">
                 <SelectValue />
@@ -193,7 +194,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
           </div>
         </div>
         <div className="space-y-2">
-          <FieldLabel label="نص الرسالة" />
+          <FieldLabel label={t("followupForms.messageText")} />
           <Textarea
             value={message}
             onChange={(e) => {
@@ -201,7 +202,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
               setError(null);
             }}
             rows={6}
-            placeholder="اختر قالبًا أو اكتب رسالة"
+            placeholder={t("followupForms.chooseTemplate")}
             data-testid="input-whatsapp-message"
           />
         </div>
@@ -220,11 +221,11 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
           ) : (
             <MessageCircle className="h-4 w-4 ms-1" />
           )}
-          <span>فتح واتساب</span>
+          <span>{t("followupForms.openWhatsapp")}</span>
           <ExternalLink className="h-3.5 w-3.5 me-1" />
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          إلغاء
+          {t("financeForms.cancel")}
         </Button>
       </DialogFooter>
     </>

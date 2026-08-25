@@ -28,6 +28,7 @@ import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePic
 import { useCreateCharge } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
+import { useTranslation } from "react-i18next";
 
 const NO_IMPLANT = "__none__";
 
@@ -50,6 +51,7 @@ export function ChargeFormDialog(props: ChargeFormDialogProps) {
 
 function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const createCharge = useCreateCharge();
   const activeImplants = caseItem.implants.filter((i) => i.status === "active");
 
@@ -65,11 +67,11 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
   const submit = () => {
     const value = Number(amount);
     if (amount.trim() === "" || Number.isNaN(value) || value <= 0) {
-      setError("أدخل مبلغًا أكبر من صفر.");
+      setError(t("financeForms.positiveAmount"));
       return;
     }
     if (!chargeDate) {
-      setError("تاريخ الرسم مطلوب.");
+      setError(t("financeForms.chargeDateRequired"));
       return;
     }
     const data: ChargeInput = {
@@ -84,12 +86,12 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
       { caseId: caseItem.id, data },
       {
         onSuccess: () => {
-          toast({ title: "تمت إضافة الرسم بنجاح." });
+          toast({ title: t("financeForms.chargeAdded") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر إضافة الرسم",
+            title: t("financeForms.chargeAddFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -101,14 +103,14 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>إضافة رسم إضافي</DialogTitle>
+        <DialogTitle>{t("financeForms.addAdditionalCharge")}</DialogTitle>
         <DialogDescription>
-          يُضاف الرسم إلى الإجمالي النهائي للحالة تلقائيًا.
+          {t("financeForms.chargeDescription")}
         </DialogDescription>
       </DialogHeader>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
         <div className="space-y-2">
-          <FieldLabel label="نوع الرسم" />
+          <FieldLabel label={t("financeForms.chargeType")} />
           <Select
             value={chargeType}
             onValueChange={(v) => setChargeType(v as (typeof CHARGE_TYPES)[number])}
@@ -126,7 +128,7 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <FieldLabel label="المبلغ (ر.س)" />
+          <FieldLabel label={t("financeForms.amount")} />
           <Input
             type="number"
             inputMode="decimal"
@@ -141,7 +143,7 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel label="تاريخ الرسم" />
+          <FieldLabel label={t("financeForms.chargeDate")} />
           <OperationalDatePicker
             value={chargeDate}
             onChange={setChargeDate}
@@ -149,16 +151,16 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel label="ربط بزرعة (اختياري)" />
+          <FieldLabel label={t("financeForms.linkImplant")} />
           <Select value={implantId} onValueChange={setImplantId}>
             <SelectTrigger data-testid="select-charge-implant">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NO_IMPLANT}>بدون ربط</SelectItem>
+              <SelectItem value={NO_IMPLANT}>{t("financeForms.noLink")}</SelectItem>
               {activeImplants.map((i) => (
                 <SelectItem key={i.id} value={i.id}>
-                  سن {i.site}
+                  {t("financeForms.implantTooth", { site: i.site })}
                   {i.system ? ` — ${i.system}` : ""}
                 </SelectItem>
               ))}
@@ -166,7 +168,7 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
           </Select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <FieldLabel label="الوصف" />
+          <FieldLabel label={t("financeForms.description")} />
           <Input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -174,7 +176,7 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <FieldLabel label="ملاحظة" />
+          <FieldLabel label={t("financeForms.note")} />
           <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -187,10 +189,10 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={createCharge.isPending} data-testid="button-save-charge">
           {createCharge.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>إضافة</span>
+          <span>{t("financeForms.add")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          إلغاء
+          {t("financeForms.cancel")}
         </Button>
       </DialogFooter>
     </>

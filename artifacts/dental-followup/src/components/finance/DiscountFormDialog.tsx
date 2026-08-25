@@ -17,6 +17,7 @@ import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePic
 import { useCreateDiscount } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
+import { useTranslation } from "react-i18next";
 
 interface DiscountFormDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function DiscountFormDialog(props: DiscountFormDialogProps) {
 
 function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const createDiscount = useCreateDiscount();
 
   const [amount, setAmount] = useState("");
@@ -47,15 +49,15 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
   const submit = () => {
     const value = Number(amount);
     if (amount.trim() === "" || Number.isNaN(value) || value <= 0) {
-      setError("أدخل مبلغًا أكبر من صفر.");
+      setError(t("financeForms.positiveAmount"));
       return;
     }
     if (!discountDate) {
-      setError("تاريخ الخصم مطلوب.");
+      setError(t("financeForms.discountDateRequired"));
       return;
     }
     if (!reason.trim()) {
-      setError("سبب الخصم مطلوب.");
+      setError(t("financeForms.discountReasonRequired"));
       return;
     }
     const data: DiscountInput = {
@@ -67,12 +69,12 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
       { caseId, data },
       {
         onSuccess: () => {
-          toast({ title: "تمت إضافة الخصم بنجاح." });
+          toast({ title: t("financeForms.discountAdded") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر إضافة الخصم",
+            title: t("financeForms.discountAddFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -86,13 +88,13 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
       <DialogHeader className="text-right sm:text-right">
         <DialogTitle>إضافة خصم</DialogTitle>
         <DialogDescription>
-          يُخصم المبلغ من الإجمالي النهائي للحالة تلقائيًا.
+          {t("financeForms.discountDescription")}
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <FieldLabel label="المبلغ (ر.س)" />
+            <FieldLabel label={t("financeForms.amount")} />
             <Input
               type="number"
               inputMode="decimal"
@@ -107,7 +109,7 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <FieldLabel label="تاريخ الخصم" />
+            <FieldLabel label={t("financeForms.discountDate")} />
             <OperationalDatePicker
               value={discountDate}
               onChange={setDiscountDate}
@@ -116,7 +118,7 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
           </div>
         </div>
         <div className="space-y-2">
-          <FieldLabel label="سبب الخصم" />
+          <FieldLabel label={t("financeForms.discountReason")} />
           <Textarea
             value={reason}
             onChange={(e) => {
@@ -132,10 +134,10 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={createDiscount.isPending} data-testid="button-save-discount">
           {createDiscount.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>إضافة</span>
+          <span>{t("financeForms.add")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          إلغاء
+          {t("financeForms.cancel")}
         </Button>
       </DialogFooter>
     </>

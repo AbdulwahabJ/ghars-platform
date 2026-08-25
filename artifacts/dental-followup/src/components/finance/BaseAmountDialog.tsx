@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { FieldLabel } from "@/components/implants/FieldLabel";
 import { useUpdateBaseAmount } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface BaseAmountDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function BaseAmountDialog(props: BaseAmountDialogProps) {
 
 function BaseAmountForm({ onOpenChange, caseId, current }: BaseAmountDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const update = useUpdateBaseAmount();
   const [value, setValue] = useState(() => (current > 0 ? String(current) : ""));
   const [error, setError] = useState<string | null>(null);
@@ -41,19 +43,19 @@ function BaseAmountForm({ onOpenChange, caseId, current }: BaseAmountDialogProps
   const submit = () => {
     const amount = Number(value);
     if (value.trim() === "" || Number.isNaN(amount) || amount < 0) {
-      setError("أدخل مبلغًا صحيحًا (0 أو أكثر).");
+      setError(t("financeForms.validAmount"));
       return;
     }
     update.mutate(
       { caseId, data: { baseTreatmentAmount: Math.round(amount * 100) / 100 } },
       {
         onSuccess: () => {
-          toast({ title: "تم تحديث قيمة العلاج الأساسية." });
+          toast({ title: t("financeForms.baseUpdated") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر تحديث قيمة العلاج",
+            title: t("financeForms.baseUpdateFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -65,13 +67,13 @@ function BaseAmountForm({ onOpenChange, caseId, current }: BaseAmountDialogProps
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>قيمة العلاج الأساسية</DialogTitle>
+        <DialogTitle>{t("financeForms.baseTreatment")}</DialogTitle>
         <DialogDescription>
-          يُحتسب الإجمالي النهائي تلقائيًا: القيمة الأساسية + الرسوم − الخصومات.
+          {t("financeForms.baseAmountDescription")}
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-2 py-2">
-        <FieldLabel label="المبلغ (ر.س)" />
+        <FieldLabel label={t("financeForms.amount")} />
         <Input
           type="number"
           inputMode="decimal"
@@ -89,10 +91,10 @@ function BaseAmountForm({ onOpenChange, caseId, current }: BaseAmountDialogProps
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={update.isPending} data-testid="button-save-base-amount">
           {update.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>حفظ</span>
+          <span>{t("financeForms.save")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          إلغاء
+          {t("financeForms.cancel")}
         </Button>
       </DialogFooter>
     </>

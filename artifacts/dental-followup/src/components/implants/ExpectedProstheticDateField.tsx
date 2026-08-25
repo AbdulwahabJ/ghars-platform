@@ -5,14 +5,13 @@ import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePic
 import { formatSaudiDate, addMonthsToIsoDate } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 import { CalendarDays } from "lucide-react";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 export const EXPECTED_DATE_CUSTOM = "CUSTOM";
 
 const DURATION_OPTIONS = [
-  { value: "2M", label: "بعد شهرين", months: 2 },
-  { value: "3M", label: "بعد 3 أشهر", months: 3 },
-  { value: "4M", label: "بعد 4 أشهر", months: 4 },
-  { value: "6M", label: "بعد 6 أشهر", months: 6 },
+  { value: "2M", months: 2 }, { value: "3M", months: 3 },
+  { value: "4M", months: 4 }, { value: "6M", months: 6 },
 ] as const;
 
 type DurationValue = (typeof DURATION_OPTIONS)[number]["value"] | typeof EXPECTED_DATE_CUSTOM;
@@ -46,6 +45,7 @@ export function ExpectedProstheticDateField({
   compact = false,
   idPrefix = "expected-prosthetic",
 }: ExpectedProstheticDateFieldProps) {
+  const { t } = useClinicalTranslation();
   const [duration, setDuration] = useState<DurationValue>(() =>
     durationForDates(procedureDate, expectedDate),
   );
@@ -73,14 +73,14 @@ export function ExpectedProstheticDateField({
   return (
     <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3 sm:col-span-2", className)}>
       <div className="space-y-1.5">
-        <Label>المدة</Label>
+        <Label>{t("implant.duration")}</Label>
         <div
           className={cn(
             "grid grid-cols-2 gap-x-3 gap-y-2 rounded-md border border-input bg-background p-3",
             compact ? "min-h-8 p-2" : "min-h-[46px] rounded-[10px]",
           )}
           role="group"
-          aria-label="مدة التركيب المتوقعة"
+          aria-label={t("implant.expectedProstheticDuration")}
           data-testid={`${idPrefix}-duration-options`}
         >
           {DURATION_OPTIONS.map((option) => (
@@ -96,7 +96,7 @@ export function ExpectedProstheticDateField({
                   if (checked) setDuration(option.value);
                 }}
               />
-              <span>{option.label}</span>
+               <span>{t("implant.afterMonths", { count: option.months })}</span>
             </label>
           ))}
           <label
@@ -110,13 +110,13 @@ export function ExpectedProstheticDateField({
                 if (checked) setDuration(EXPECTED_DATE_CUSTOM);
               }}
             />
-            <span>مخصص</span>
+            <span>{t("implant.custom")}</span>
           </label>
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor={`${idPrefix}-date`}>تاريخ التركيب المتوقع</Label>
+        <Label htmlFor={`${idPrefix}-date`}>{t("implant.expectedProstheticDate")}</Label>
         {duration === EXPECTED_DATE_CUSTOM ? (
           <OperationalDatePicker
             id={`${idPrefix}-date`}
@@ -132,7 +132,7 @@ export function ExpectedProstheticDateField({
             id={`${idPrefix}-date`}
             role="textbox"
             aria-readonly="true"
-            aria-label="تاريخ التركيب المتوقع المحسوب"
+            aria-label={t("implant.calculatedExpectedDate")}
             className={cn(
               "flex w-full items-center justify-between gap-2 border border-input bg-muted/40 px-2.5 text-sm",
               compact ? "h-8 rounded-md" : "h-[46px] rounded-[10px]",
@@ -141,7 +141,7 @@ export function ExpectedProstheticDateField({
             data-testid={`${idPrefix}-calculated-date`}
           >
             <span className="truncate">
-              {automaticDate ? formatSaudiDate(automaticDate) : "سيظهر بعد تحديد تاريخ العملية"}
+               {automaticDate ? formatSaudiDate(automaticDate) : t("implant.appearsAfterProcedureDate")}
             </span>
             <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </div>
@@ -150,7 +150,7 @@ export function ExpectedProstheticDateField({
 
       {missingProcedureDate && (
         <p className="sm:col-span-2 text-xs text-destructive" role="alert">
-          حدد تاريخ العملية أولًا لحساب تاريخ التركيب المتوقع.
+           {t("implant.chooseProcedureDateFirst")}
         </p>
       )}
     </div>

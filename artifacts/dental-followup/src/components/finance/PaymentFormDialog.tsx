@@ -28,6 +28,7 @@ import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePic
 import { useCreatePayment } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
+import { useTranslation } from "react-i18next";
 
 interface PaymentFormDialogProps {
   open: boolean;
@@ -47,6 +48,7 @@ export function PaymentFormDialog(props: PaymentFormDialogProps) {
 }
 
 function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
+  const { t } = useTranslation("operations");
   const { toast } = useToast();
   const createPayment = useCreatePayment();
 
@@ -100,14 +102,14 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>تسجيل دفعة</DialogTitle>
+        <DialogTitle>{t("financeForms.recordPayment")}</DialogTitle>
         <DialogDescription>
           الدفعات لا تُحذف — يمكن إلغاؤها فقط مع ذكر السبب.
         </DialogDescription>
       </DialogHeader>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
         <div className="space-y-2">
-          <FieldLabel label="المبلغ (ر.س)" />
+          <FieldLabel label={t("financeForms.amount")} />
           <Input
             type="number"
             inputMode="decimal"
@@ -122,7 +124,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel label="تاريخ الدفعة" />
+          <FieldLabel label={t("financeForms.paymentDate")} />
           <OperationalDatePicker
             value={paymentDate}
             onChange={setPaymentDate}
@@ -130,7 +132,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel label="وصف الدفعة" />
+          <FieldLabel label={t("financeForms.paymentDescription")} />
           <Select
             value={paymentLabel}
             onValueChange={(v) => setPaymentLabel(v as (typeof PAYMENT_LABELS)[number])}
@@ -166,7 +168,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <FieldLabel label="رقم المرجع" />
+          <FieldLabel label={t("financeForms.referenceNumber")} />
           <Input
             value={referenceNumber}
             onChange={(e) => setReferenceNumber(e.target.value)}
@@ -187,7 +189,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={createPayment.isPending} data-testid="button-save-payment">
           {createPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>تسجيل الدفعة</span>
+          <span>{t("financeForms.recordPayment")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           إلغاء

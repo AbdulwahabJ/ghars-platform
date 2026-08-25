@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import gharsLogo from "@/assets/ghars-logo.png";
 import { Loader2 } from "lucide-react";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { useLocale } from "@/i18n/LocaleProvider";
+import { useTranslation } from "react-i18next";
 
 // Extend schema for password confirmation
 const setupFormSchema = setupInputSchema.extend({
@@ -33,6 +36,8 @@ export default function Setup() {
   const [, setLocation] = useLocation();
   const { setup, setupStatus } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("auth");
+  const { direction } = useLocale();
 
   useEffect(() => {
     if (setupStatus && !setupStatus.setupRequired) {
@@ -57,32 +62,35 @@ export default function Setup() {
     setup.mutate(setupData, {
       onSuccess: () => {
         toast({
-          title: "تم الإعداد بنجاح",
-          description: "يمكنك الآن تسجيل الدخول باستخدام حسابك.",
+          title: t("setup.successTitle"),
+          description: t("setup.successDescription"),
         });
         setLocation("/login");
       },
       onError: (error: Error) => {
         toast({
           variant: "destructive",
-          title: "خطأ",
-          description: error.message || "حدث خطأ أثناء الإعداد.",
+          title: t("common:errors.generic"),
+          description: error.message || t("common:errors.generic"),
         });
       },
     });
   };
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-background p-4" dir="rtl">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-background p-4" dir={direction}>
       <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-lg p-8 relative overflow-hidden">
+        <div className="absolute top-4 end-4">
+          <LanguageSwitcher />
+        </div>
         {/* Subtle decorative background elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/5 rounded-tr-full pointer-events-none" />
+        <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none" />
+        <div className="absolute bottom-0 start-0 w-24 h-24 bg-accent/5 rounded-tr-full pointer-events-none" />
         
         <div className="flex flex-col items-center mb-8 relative z-10">
-          <img src={gharsLogo} alt="شعار غرس" className="h-24 w-20 object-contain mb-4" />
+          <img src={gharsLogo} alt={t("login.logoAlt")} className="h-24 w-20 object-contain mb-4" />
           <h1 className="text-2xl font-bold text-foreground text-center">
-            إعداد النظام لأول مرة
+            {t("setup.title")}
           </h1>
           <p className="text-muted-foreground text-center mt-2 text-sm">
             <span dir="ltr" className="inline-flex items-baseline text-left">
@@ -90,7 +98,7 @@ export default function Setup() {
               <span className="mx-1 text-brand-blue-gray"> | </span>
               <span className="font-brand-latin">Ghars</span>
             </span>
-            <span className="block mt-1">نظام إدارة ومتابعة زراعة الأسنان</span>
+            <span className="block mt-1">{t("setup.description")}</span>
           </p>
         </div>
 
@@ -101,9 +109,9 @@ export default function Setup() {
               name="setupKey"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>مفتاح الإعداد</FormLabel>
+                  <FormLabel>{t("setup.setupKey")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="أدخل مفتاح الإعداد السري" type="password" {...field} dir="ltr" className="text-right" />
+                    <Input placeholder={t("setup.setupKeyPlaceholder")} type="password" {...field} dir="ltr" className="text-start" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,9 +123,9 @@ export default function Setup() {
               name="fullName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الاسم الكامل</FormLabel>
+                  <FormLabel>{t("setup.fullName")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="الاسم الكامل" {...field} />
+                    <Input placeholder={t("setup.fullNamePlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -129,9 +137,9 @@ export default function Setup() {
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>اسم المستخدم (بالإنجليزية)</FormLabel>
+                  <FormLabel>{t("setup.username")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="username" {...field} dir="ltr" className="text-right" />
+                    <Input placeholder={t("setup.usernamePlaceholder")} {...field} dir="ltr" className="text-start" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -143,14 +151,14 @@ export default function Setup() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>البريد الإلكتروني للاستعادة</FormLabel>
+                  <FormLabel>{t("setup.email")}</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="name@example.com"
                       type="email"
                       {...field}
                       dir="ltr"
-                      className="text-right"
+                      className="text-start"
                     />
                   </FormControl>
                   <FormMessage />
@@ -163,9 +171,9 @@ export default function Setup() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>كلمة المرور</FormLabel>
+                  <FormLabel>{t("setup.password")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="••••••••" type="password" {...field} dir="ltr" className="text-right" />
+                    <Input placeholder="••••••••" type="password" {...field} dir="ltr" className="text-start" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -177,9 +185,9 @@ export default function Setup() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>تأكيد كلمة المرور</FormLabel>
+                  <FormLabel>{t("setup.confirmPassword")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="••••••••" type="password" {...field} dir="ltr" className="text-right" />
+                    <Input placeholder="••••••••" type="password" {...field} dir="ltr" className="text-start" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -190,10 +198,10 @@ export default function Setup() {
               {setup.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <span>جاري الإعداد...</span>
+                   <span>{t("setup.submitting")}</span>
                 </>
               ) : (
-                <span>إتمام الإعداد</span>
+                 <span>{t("setup.submit")}</span>
               )}
             </Button>
           </form>

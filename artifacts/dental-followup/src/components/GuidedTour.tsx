@@ -11,12 +11,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 interface GuidedTourProps {
   autoStart?: boolean;
 }
 
 export function GuidedTour({ autoStart = false }: GuidedTourProps) {
+  const { t, i18n } = useTranslation("guidance");
+  const direction = i18n.dir();
   const [showWelcome, setShowWelcome] = useState(autoStart);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showQuickHelp, setShowQuickHelp] = useState(false);
@@ -33,10 +36,10 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
   const startDriverTour = useCallback(() => {
     const driverObj = driver({
       showProgress: true,
-      doneBtnText: "ابدأ العمل",
-      nextBtnText: "التالي",
-      prevBtnText: "السابق",
-      progressText: "{{current}} من 6",
+      doneBtnText: t("tour.done"),
+      nextBtnText: t("tour.next"),
+      prevBtnText: t("tour.previous"),
+      progressText: t("tour.progress"),
       allowClose: true,
       // driver.js merges per-step showProgress with "||" at render time, so a
       // per-step "showProgress: false" cannot override the global "true".
@@ -56,8 +59,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
         {
           element: "#tour-nav-tabs",
           popover: {
-            title: "التنقل الرئيسي",
-            description: "استخدم هذه التابات للانتقال بين الرئيسية، المرضى، والتقارير المالية.",
+            title: t("tour.navigationTitle"),
+            description: t("tour.navigationDescription"),
             side: "bottom",
             align: "center"
           }
@@ -65,8 +68,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
         {
           element: "#tour-global-search",
           popover: {
-            title: "البحث عن مريض",
-            description: "ابحث باستخدام اسم المريض، رقم الملف، أو رقم الجوال.",
+            title: t("tour.searchTitle"),
+            description: t("tour.searchDescription"),
             side: "bottom",
             align: "start"
           }
@@ -74,8 +77,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
         {
           element: "#tour-new-patient-btn",
           popover: {
-            title: "إضافة حالة جديدة",
-            description: "ابدأ من هنا لتسجيل مريض جديد أو إضافة حالة زراعة لمريض موجود.",
+            title: t("tour.newPatientTitle"),
+            description: t("tour.newPatientDescription"),
             side: "bottom",
             align: "start"
           }
@@ -83,8 +86,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
         {
           element: "#tour-dashboard-overview",
           popover: {
-            title: "ملخص العمل اليومي",
-            description: "تعرض هذه البطاقات المواعيد والمتابعات والحالات الجاهزة والمتأخرة.",
+            title: t("tour.overviewTitle"),
+            description: t("tour.overviewDescription"),
             side: "top",
             align: "start"
           }
@@ -92,8 +95,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
         {
           element: document.querySelector("#tour-patient-workspace") ? "#tour-patient-workspace" : "[href='/patients']",
           popover: {
-            title: "ملف المريض",
-            description: "داخل ملف المريض ستجد البيانات، الزرعات، الدفعات، المتابعة، والملخص.",
+            title: t("tour.workspaceTitle"),
+            description: t("tour.workspaceDescription"),
             side: "bottom",
             align: "start"
           }
@@ -101,8 +104,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
         {
           element: "#tour-help-icon",
           popover: {
-            title: "المساعدة والتواصل",
-            description: "يمكنك إعادة تشغيل الجولة التعريفية في أي وقت من علامة الاستفهام.",
+            title: t("tour.helpTitle"),
+            description: t("tour.helpDescription"),
             side: "bottom",
             align: "end"
           }
@@ -110,8 +113,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
         {
           element: "body",
           popover: {
-            title: "انتهت الجولة",
-            description: "أصبحت الآن جاهزًا لاستخدام النظام. يمكنك إعادة الجولة في أي وقت من علامة الاستفهام.",
+            title: t("tour.completeTitle"),
+            description: t("tour.completeDescription"),
             side: "bottom",
             align: "center",
             popoverClass: "tour-final-screen",
@@ -123,7 +126,7 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
     });
 
     driverObj.drive();
-  }, [autoStart, updateOnboarding]);
+  }, [autoStart, t, updateOnboarding]);
 
   useEffect(() => {
     const handleStartTour = () => {
@@ -148,59 +151,44 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
   return (
     <>
       <Dialog open={showWelcome} onOpenChange={(open) => !open && skipWelcome()}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+        <DialogContent className="sm:max-w-md text-start" dir={direction}>
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-primary">مرحبًا بك في نظام متابعة زراعة الأسنان</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-primary">{t("tour.welcomeTitle")}</DialogTitle>
             <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
-              يمكنك أخذ جولة تعريفية قصيرة للتعرف على أهم أجزاء النظام.
+              {t("tour.welcomeDescription")}
               <br />
-              تستغرق الجولة أقل من دقيقة، ويمكنك تشغيلها لاحقًا من علامة الاستفهام.
+              {t("tour.welcomeDuration")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
             <Button onClick={() => { setShowWelcome(false); startDriverTour(); }} className="btn-primary w-full sm:w-auto">
-              ابدأ الجولة
+              {t("tour.start")}
             </Button>
             <Button variant="outline" onClick={skipWelcome} className="btn-outline w-full sm:w-auto">
-              تخطي الآن
+              {t("tour.skip")}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showQuickHelp} onOpenChange={setShowQuickHelp}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+        <DialogContent className="sm:max-w-md text-start" dir={direction}>
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">مساعدة سريعة</DialogTitle>
+            <DialogTitle className="text-lg font-bold">{t("quickHelp.title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-4 text-foreground">
-            <p><strong>لإضافة مريض:</strong> اضغط تسجيل حالة زراعة جديدة.</p>
-            <p><strong>لإضافة حالة:</strong> اضغط تسجيل حالة زراعة جديدة.</p>
-            <p><strong>لإضافة زرعة:</strong> افتح ملف المريض ثم تاب الزرعات.</p>
-            <p><strong>للبحث عن مريض:</strong> استخدم الاسم أو رقم الملف أو رقم الجوال.</p>
-            <p><strong>لفتح ملف مريض:</strong> اضغط على سطر المريض في قائمة المرضى أو نتائج البحث.</p>
-            <p><strong>لتعديل بيانات المريض:</strong> افتح ملف المريض، عدّل الحقول، ثم اضغط حفظ التعديلات.</p>
-            <p><strong>لأرشفة ملف أو استعادته:</strong> من داخل ملف المريض في تاب البيانات.</p>
-            <p><strong>لإعادة الجولة التعريفية:</strong> من علامة الاستفهام في أعلى الشاشة.</p>
+            {(["addPatient", "addCase", "addImplant", "search", "openPatient", "editPatient", "archivePatient", "restartTour"] as const).map((key) => <p key={key}><strong>{t(`quickHelp.${key}`)} </strong>{t(`quickHelp.${key}Text`)}</p>)}
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+        <DialogContent className="sm:max-w-md text-start" dir={direction}>
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">شرح الاختصارات</DialogTitle>
+            <DialogTitle className="text-lg font-bold">{t("shortcuts.title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-4 text-foreground divide-y divide-border">
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">System</span><span className="text-muted-foreground">نظام الزرعة</span></div>
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">site</span><span className="text-muted-foreground">رقم السن أو الموقع</span></div>
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">SIZE</span><span className="text-muted-foreground">مقاس الزرعة</span></div>
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">Q</span><span className="text-muted-foreground">قيمة محفوظة كما في السجل الأصلي</span></div>
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">Former</span><span className="text-muted-foreground">قيمة محفوظة كما في السجل الأصلي</span></div>
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">Graft</span><span className="text-muted-foreground">معلومات ترقيع العظم حسب إدخال المستخدم</span></div>
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">Pros</span><span className="text-muted-foreground">مدة أو مرحلة التركيب</span></div>
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">DIRECT</span><span className="text-muted-foreground">إجراء مباشر</span></div>
-            <div className="py-2 flex justify-between"><span className="font-semibold text-primary">IMMED</span><span className="text-muted-foreground">إجراء فوري</span></div>
+            {[["System", "system"], ["site", "site"], ["SIZE", "size"], ["Q", "preserved"], ["Former", "preserved"], ["Graft", "graft"], ["Pros", "pros"], ["DIRECT", "direct"], ["IMMED", "immediate"]].map(([label, key]) => <div key={label} className="py-2 flex justify-between"><span className="font-semibold text-primary">{label}</span><span className="text-muted-foreground">{t(`shortcuts.${key}`)}</span></div>)}
           </div>
         </DialogContent>
       </Dialog>

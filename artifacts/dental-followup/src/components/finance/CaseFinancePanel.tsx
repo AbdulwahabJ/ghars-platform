@@ -46,6 +46,7 @@ import { ChargeFormDialog } from "./ChargeFormDialog";
 import { PaymentFormDialog } from "./PaymentFormDialog";
 import { VoidPaymentDialog } from "./VoidPaymentDialog";
 import { InstallmentPlanCard } from "./InstallmentPlanCard";
+import { useTranslation } from "react-i18next";
 
 const STATUS_STYLES: Record<PaymentStatus, string> = {
   "لم يدفع": "bg-muted text-muted-foreground",
@@ -137,14 +138,15 @@ function SummaryCard({
   caseItem: ImplantCaseWithImplants;
   canManage: boolean;
 }) {
+  const { t } = useTranslation("operations");
   const [baseOpen, setBaseOpen] = useState(false);
   const s = data.summary;
 
   const rows: Array<{ label: string; value: string; strong?: boolean }> = [
-    { label: "قيمة العلاج الأساسية", value: formatMoney(s.baseTreatmentAmount) },
+    { label: t("financeForms.baseTreatment"), value: formatMoney(s.baseTreatmentAmount) },
     { label: "الرسوم الإضافية", value: formatMoney(s.chargesTotal) },
     { label: "الخصومات", value: formatMoney(s.discountsTotal) },
-    { label: "الإجمالي النهائي", value: formatMoney(s.finalTotal), strong: true },
+    { label: t("financeForms.finalTotal"), value: formatMoney(s.finalTotal), strong: true },
     { label: "المدفوع", value: formatMoney(s.paidAmount) },
     { label: "المتبقي", value: formatMoney(s.outstanding), strong: true },
   ];
@@ -152,7 +154,7 @@ function SummaryCard({
   return (
     <Card data-testid="card-finance-summary">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-base">الملخص المالي</CardTitle>
+        <CardTitle className="text-base">{t("financeForms.summary")}</CardTitle>
         <div className="flex items-center gap-2">
           <PaymentStatusBadge status={s.paymentStatus} />
           {canManage ? (
@@ -163,7 +165,7 @@ function SummaryCard({
               data-testid="button-edit-base-amount"
             >
               <Pencil className="h-4 w-4 ms-1" />
-              قيمة العلاج
+               {t("financeForms.baseTreatment")}
             </Button>
           ) : null}
         </div>
@@ -198,7 +200,7 @@ function SummaryCard({
         </div>
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <p className="text-xs text-muted-foreground">نسبة السداد</p>
+            <p className="text-xs text-muted-foreground">{t("financeForms.paymentRate")}</p>
             <p className="text-xs font-medium tabular-nums">
               {s.paymentPercent == null ? "—" : `${s.paymentPercent}%`}
             </p>

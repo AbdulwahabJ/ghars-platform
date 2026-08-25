@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useImplantCases } from "@/hooks/use-implant-cases";
 import { formatSaudiDate } from "@/lib/datetime";
 import { CaseFinancePanel } from "./CaseFinancePanel";
+import { useTranslation } from "react-i18next";
 
 interface PaymentsTabProps {
   patient: Patient;
@@ -20,6 +21,7 @@ interface PaymentsTabProps {
 
 export function PaymentsTab({ patient }: PaymentsTabProps) {
   const { user } = useAuth();
+  const { t } = useTranslation("operations");
   const { data, isLoading, isError } = useImplantCases(patient.id);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
@@ -38,7 +40,7 @@ export function PaymentsTab({ patient }: PaymentsTabProps) {
           <Lock className="h-8 w-8 text-muted-foreground" />
         </div>
         <p className="text-muted-foreground">
-          ليست لديك صلاحية الوصول إلى البيانات المالية.
+          {t("finance.noAccess")}
         </p>
       </div>
     );
@@ -57,7 +59,7 @@ export function PaymentsTab({ patient }: PaymentsTabProps) {
       <div className="p-6">
         <Alert variant="destructive">
           <AlertDescription>
-            تعذر تحميل البيانات المالية. يرجى المحاولة مرة أخرى.
+            {t("financeForms.noFinancialData")}
           </AlertDescription>
         </Alert>
       </div>
@@ -71,8 +73,7 @@ export function PaymentsTab({ patient }: PaymentsTabProps) {
           <Wallet className="h-8 w-8 text-primary" />
         </div>
         <p className="text-muted-foreground">
-          لا توجد حالات زراعة نشطة لهذا المريض. أضف حالة زراعة أولًا من تبويب
-          الزرعات.
+          {t("financeForms.noActiveCases")}
         </p>
       </div>
     );
@@ -86,7 +87,7 @@ export function PaymentsTab({ patient }: PaymentsTabProps) {
       {activeCases.length > 1 ? (
         <div className="max-w-sm">
           <label className="text-sm font-medium text-foreground mb-1.5 block">
-            حالة الزراعة
+            {t("financeForms.implantCase")}
           </label>
           <Select
             value={selectedCase.id}

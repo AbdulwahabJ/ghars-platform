@@ -36,6 +36,7 @@ import {
   communicationResultClasses,
   followupStatusClasses,
 } from "./followup-utils";
+import { useTranslation } from "react-i18next";
 
 interface FollowupsTabProps {
   patient: Patient;
@@ -44,6 +45,7 @@ interface FollowupsTabProps {
 const CLOSED = CLOSED_FOLLOWUP_STATUSES as readonly string[];
 
 export function FollowupsTab({ patient }: FollowupsTabProps) {
+  const { t } = useTranslation("operations");
   const isArchived = Boolean(patient.archivedAt);
   const { data: casesData } = useImplantCases(patient.id);
   const { data: followups, isLoading } = useFollowups(patient.id);
@@ -96,7 +98,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
     <div className="space-y-6" data-testid="followups-tab">
       {/* Action bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-foreground">المتابعة</h2>
+        <h2 className="text-lg font-bold text-foreground">{t("followups.title")}</h2>
         {!isArchived ? (
           <div className="flex items-center gap-2">
             <Button
@@ -106,7 +108,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
               data-testid="button-whatsapp"
             >
               <MessageCircle className="h-4 w-4 text-[#25D366]" />
-              <span>تواصل عبر واتساب</span>
+              <span>{t("followups.whatsapp")}</span>
             </Button>
             <Button
               onClick={() => openForm(null, null)}
@@ -115,7 +117,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
               data-testid="button-add-followup"
             >
               <CalendarPlus className="h-4 w-4" />
-              <span>إضافة متابعة</span>
+              <span>{t("followups.add")}</span>
             </Button>
           </div>
         ) : null}
@@ -180,7 +182,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
           المواعيد المجدولة
         </h3>
         {buckets.today.length === 0 && buckets.upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground">لا توجد مواعيد مجدولة.</p>
+          <p className="text-sm text-muted-foreground">{t("followups.noScheduled")}</p>
         ) : (
           <>
             {buckets.today.map((f) => (
@@ -221,7 +223,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
           سجل المتابعات
         </h3>
         {history.length === 0 ? (
-          <p className="text-sm text-muted-foreground">لا توجد متابعات سابقة.</p>
+          <p className="text-sm text-muted-foreground">{t("followups.noHistory")}</p>
         ) : (
           history.map((f) => (
             <FollowupItem
@@ -248,7 +250,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
         {communicationsLoading ? (
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
         ) : (communications ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">لا يوجد سجل تواصل بعد.</p>
+          <p className="text-sm text-muted-foreground">{t("followups.noCommunications")}</p>
         ) : (
           (communications ?? []).map((c) => (
             <div

@@ -17,6 +17,7 @@ import { useVoidPayment } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
+import { useTranslation } from "react-i18next";
 
 interface VoidPaymentDialogProps {
   open: boolean;
@@ -42,25 +43,26 @@ function VoidPaymentForm({
   payment,
 }: VoidPaymentDialogProps & { payment: Payment }) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const voidPayment = useVoidPayment();
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
     if (!reason.trim()) {
-      setError("سبب الإلغاء مطلوب.");
+      setError(t("financeForms.voidReasonRequired"));
       return;
     }
     voidPayment.mutate(
       { id: payment.id, caseId, data: { reason: reason.trim() } },
       {
         onSuccess: () => {
-          toast({ title: "تم إلغاء الدفعة وإعادة احتساب المبالغ." });
+          toast({ title: t("financeForms.paymentVoided") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر إلغاء الدفعة",
+            title: t("financeForms.voidFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -72,17 +74,15 @@ function VoidPaymentForm({
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>إلغاء دفعة</DialogTitle>
+        <DialogTitle>{t("financeForms.voidPayment")}</DialogTitle>
         <DialogDescription>
-          الدفعة بمبلغ {formatMoney(payment.amount)} بتاريخ{" "}
-          {formatSaudiDate(payment.paymentDate)}.
+          {t("financeForms.voidDescription", { amount: formatMoney(payment.amount), date: formatSaudiDate(payment.paymentDate) })}
         </DialogDescription>
       </DialogHeader>
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          لا يمكن التراجع عن إلغاء الدفعة. ستبقى الدفعة ظاهرة في السجل بحالة
-          &quot;ملغاة&quot; ولن تُحتسب ضمن المدفوع.
+          {t("financeForms.voidWarning")}
         </AlertDescription>
       </Alert>
       <div className="space-y-2 py-2">
@@ -109,7 +109,7 @@ function VoidPaymentForm({
           <span>تأكيد الإلغاء</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          تراجع
+          {t("financeForms.back")}
         </Button>
       </DialogFooter>
     </>

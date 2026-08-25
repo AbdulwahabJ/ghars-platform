@@ -5,6 +5,7 @@ import {
   type Implant,
 } from "@workspace/shared";
 import { cn } from "@/lib/utils";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 type ToothState = "empty" | "active" | "reimplantable" | "archivedOnly";
 
@@ -49,6 +50,7 @@ export function FdiToothChart({
   onToothClick,
   disabled,
 }: FdiToothChartProps) {
+  const { t } = useClinicalTranslation();
   const renderRow = (row: readonly string[], rowLabel: string) => (
     <div className="flex items-center justify-center gap-[3px]" role="row" aria-label={rowLabel}>
       {row.map((site, index) => {
@@ -62,7 +64,7 @@ export function FdiToothChart({
               type="button"
               disabled={disabled}
               onClick={() => onToothClick?.(site, state)}
-              aria-label={`السن ${site}`}
+               aria-label={t("implant.toothAria", { site })}
               className={cn(
                 "h-8 w-8 md:h-9 md:w-9 rounded-lg border text-[11px] md:text-xs font-bold transition-colors disabled:opacity-60 disabled:pointer-events-none",
                 TOOTH_STYLES[state],
@@ -80,22 +82,22 @@ export function FdiToothChart({
     <div className="space-y-3">
       <div dir="ltr" className="overflow-x-auto pb-1">
         <div className="min-w-[560px] space-y-2 py-1">
-          {renderRow(FDI_UPPER_ROW, "الفك العلوي")}
-          {renderRow(FDI_LOWER_ROW, "الفك السفلي")}
+          {renderRow(FDI_UPPER_ROW, t("implant.upperJaw"))}
+          {renderRow(FDI_LOWER_ROW, t("implant.lowerJaw"))}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded bg-primary inline-block" /> يوجد زرعة
+          <span className="h-3 w-3 rounded bg-primary inline-block" /> {t("implant.chartActive")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded bg-destructive/20 border border-destructive/40 inline-block" /> فاشلة / تحتاج إعادة
+          <span className="h-3 w-3 rounded bg-destructive/20 border border-destructive/40 inline-block" /> {t("implant.chartReimplantable")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded bg-muted border border-border inline-block" /> مؤرشفة
+          <span className="h-3 w-3 rounded bg-muted border border-border inline-block" /> {t("implant.chartArchived")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded bg-background border border-border inline-block" /> بدون زرعة
+          <span className="h-3 w-3 rounded bg-background border border-border inline-block" /> {t("implant.chartEmpty")}
         </span>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { CaseCard } from "./CaseCard";
 import { CaseFormDialog } from "./CaseFormDialog";
 import { useImplantCases } from "@/hooks/use-implant-cases";
 import { useAuth } from "@/hooks/use-auth";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 interface ImplantsTabProps {
   patient: Patient;
@@ -14,6 +15,7 @@ interface ImplantsTabProps {
 }
 
 export function ImplantsTab({ patient, showArchived = false }: ImplantsTabProps) {
+  const { t } = useClinicalTranslation();
   const { user } = useAuth();
   const { data, isLoading, isError } = useImplantCases(patient.id);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
@@ -34,7 +36,7 @@ export function ImplantsTab({ patient, showArchived = false }: ImplantsTabProps)
       <div className="p-6">
         <Alert variant="destructive">
           <AlertDescription>
-            تعذر تحميل حالات الزراعة. يرجى المحاولة مرة أخرى.
+             {t("implant.loadFailed")}
           </AlertDescription>
         </Alert>
       </div>
@@ -49,15 +51,15 @@ export function ImplantsTab({ patient, showArchived = false }: ImplantsTabProps)
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-foreground">حالات الزراعة والزرعات</h2>
+           <h2 className="text-lg font-bold text-foreground">{t("implant.title")}</h2>
           <p className="text-sm text-muted-foreground">
-            يمكن تسجيل أكثر من حالة زراعة لنفس المريض.
+             {t("implant.description")}
           </p>
         </div>
         {!patientArchived && (
           <Button className="btn-primary" onClick={() => setNewCaseOpen(true)}>
-            <Plus className="h-4 w-4 ml-2" />
-            تسجيل حالة زراعة جديدة
+             <Plus className="h-4 w-4 ms-2" />
+             {t("implant.newCase")}
           </Button>
         )}
       </div>
@@ -68,11 +70,11 @@ export function ImplantsTab({ patient, showArchived = false }: ImplantsTabProps)
             <Stethoscope className="h-8 w-8 text-primary" />
           </div>
           <p className="font-semibold text-foreground mb-1">
-            لا توجد حالات زراعة مسجلة لهذا المريض بعد.
+             {t("implant.noCases")}
           </p>
           {!patientArchived && (
             <p className="text-sm text-muted-foreground">
-              اضغط تسجيل حالة زراعة جديدة للبدء.
+               {t("implant.startCase")}
             </p>
           )}
         </div>
@@ -91,7 +93,7 @@ export function ImplantsTab({ patient, showArchived = false }: ImplantsTabProps)
           {showArchived && archivedCases.length > 0 && (
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-muted-foreground border-t border-border pt-5">
-                الحالات المؤرشفة ({archivedCases.length})
+                 {t("implant.archivedCases", { count: archivedCases.length })}
               </h3>
               {archivedCases.map((caseItem) => (
                 <CaseCard

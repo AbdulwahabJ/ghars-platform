@@ -80,6 +80,8 @@
   },
   "dependencies": {
     "@fontsource/cairo": "^5.3.0",
-    "@fontsource/montserrat": "^5.3.0"
+    "@fontsource/montserrat": "^5.3.0",
+    "i18next": "^26.4.0",
+    "react-i18next": "^17.0.12"
   }
 }

@@ -34,6 +34,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { toRiyadhDateValue, toRiyadhInputValue } from "./followup-utils";
+import { useTranslation } from "react-i18next";
 
 interface FollowupFormDialogProps {
   open: boolean;
@@ -64,6 +65,7 @@ function FollowupForm({
   followup,
   prefillFrom,
 }: FollowupFormDialogProps) {
+  const { t } = useTranslation("operations");
   const { toast } = useToast();
   const { user } = useAuth();
   const createFollowup = useCreateFollowup(patientId);
@@ -154,7 +156,7 @@ function FollowupForm({
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>{isEdit ? "تعديل متابعة" : "إضافة متابعة"}</DialogTitle>
+        <DialogTitle>{isEdit ? t("followupForms.edit") : t("followupForms.add")}</DialogTitle>
         <DialogDescription>
           تُعرض جميع المواعيد بتوقيت الرياض.
         </DialogDescription>
@@ -162,10 +164,10 @@ function FollowupForm({
       <div className="space-y-4 py-2">
         {!isEdit ? (
           <div className="space-y-2">
-            <FieldLabel label="حالة الزراعة" />
+            <FieldLabel label={t("followupForms.implantCase")} />
             <Select value={caseId} onValueChange={setCaseId} dir="rtl">
               <SelectTrigger data-testid="select-followup-case">
-                <SelectValue placeholder="اختر الحالة" />
+                <SelectValue placeholder={t("followupForms.selectCase")} />
               </SelectTrigger>
               <SelectContent>
                 {activeCases.map((c) => (
@@ -182,7 +184,7 @@ function FollowupForm({
         ) : null}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <FieldLabel label="نوع المتابعة" />
+            <FieldLabel label={t("followupForms.type")} />
             <Select
               value={followupType}
               onValueChange={(v) => {
@@ -192,7 +194,7 @@ function FollowupForm({
               dir="rtl"
             >
               <SelectTrigger data-testid="select-followup-type">
-                <SelectValue placeholder="اختر النوع" />
+                <SelectValue placeholder={t("followupForms.selectType")} />
               </SelectTrigger>
               <SelectContent>
                 {FOLLOWUP_TYPES.map((t) => (
@@ -204,7 +206,7 @@ function FollowupForm({
             </Select>
           </div>
           <OperationalDateTimeFields
-            label="موعد المتابعة"
+            label={t("followupForms.appointment")}
             required
             value={scheduledAt}
             onChange={(v) => { setScheduledAt(v); setError(null); }}
@@ -212,7 +214,7 @@ function FollowupForm({
           />
         </div>
         <div className="space-y-2">
-          <FieldLabel label="المسؤول" />
+          <FieldLabel label={t("followupForms.assignee")} />
           {isEdit && assignableUsers && assignableUsers.length > 0 ? (
             <Select
               value={assignedUserId || "__none__"}
@@ -222,10 +224,10 @@ function FollowupForm({
               dir="rtl"
             >
               <SelectTrigger data-testid="select-followup-assignee">
-                <SelectValue placeholder="غير محدد" />
+                <SelectValue placeholder={t("followupForms.unspecified")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">غير محدد</SelectItem>
+                <SelectItem value="__none__">{t("followupForms.unspecified")}</SelectItem>
                 {assignableUsers.map((assignableUser) => (
                   <SelectItem key={assignableUser.id} value={assignableUser.id}>
                     {assignableUser.fullName}
@@ -239,8 +241,8 @@ function FollowupForm({
               data-testid="followup-current-assignee"
             >
               {isEdit
-                ? followup?.assignedUserName ?? "غير محدد"
-                : user?.fullName ?? "المستخدم الحالي"}
+                ? followup?.assignedUserName ?? t("followupForms.unspecified")
+                : user?.fullName ?? t("followupForms.currentUser")}
             </div>
           )}
         </div>
@@ -260,7 +262,7 @@ function FollowupForm({
         </div>
         {requiresContact ? (
           <div className="space-y-2">
-            <FieldLabel label="تاريخ استحقاق التواصل" />
+            <FieldLabel label={t("followupForms.contactDueDate")} />
             <OperationalDatePicker
               value={contactDueAt}
               onChange={(v) => { setContactDueAt(v); setError(null); }}
@@ -269,7 +271,7 @@ function FollowupForm({
           </div>
         ) : null}
         <div className="space-y-2">
-          <FieldLabel label="ملاحظة (اختياري)" />
+          <FieldLabel label={t("followupForms.optionalNote")} />
           <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -282,7 +284,7 @@ function FollowupForm({
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={pending} data-testid="button-save-followup">
           {pending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>{isEdit ? "حفظ التعديلات" : "إضافة"}</span>
+          <span>{isEdit ? t("followupForms.saveChanges") : t("followupForms.add")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           إلغاء

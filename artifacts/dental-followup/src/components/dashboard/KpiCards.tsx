@@ -14,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useTranslation } from "react-i18next";
 
 type SystemNames = {
   today: string[];
@@ -30,26 +31,27 @@ type KpiCard = {
 };
 
 export function KpiCards({ data }: { data: DashboardResponse }) {
+  const { t } = useTranslation("operations");
   const ws = data.workSummary;
 
   const cards: KpiCard[] = [
     {
       id: "implanted-patients",
-      label: "المرضى الذين تم زرعهم",
+      label: t("kpi.implantedPatients"),
       icon: Users,
       today: ws.today.implantedPatients,
       month: ws.month.implantedPatients,
     },
     {
       id: "implants",
-      label: "عدد الزرعات",
+      label: t("kpi.implantCount"),
       icon: Hexagon,
       today: ws.today.implants,
       month: ws.month.implants,
     },
     {
       id: "systems",
-      label: "الأنظمة المستخدمة",
+      label: t("kpi.systemsUsed"),
       icon: Layers,
       today: ws.today.implantSystems?.count ?? 0,
       month: ws.month.implantSystems?.count ?? 0,
@@ -60,14 +62,14 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
     },
     {
       id: "prosthetic-patients",
-      label: "مرضى التركيب",
+      label: t("kpi.prostheticPatients"),
       icon: UserCheck,
       today: ws.today.prostheticPatients,
       month: ws.month.prostheticPatients,
     },
     {
       id: "completed-prosthetics",
-      label: "التركيبات التي تمت",
+      label: t("kpi.completedProsthetics"),
       icon: CheckCircle,
       today: ws.today.completedProsthetics,
       month: ws.month.completedProsthetics,
@@ -91,8 +93,8 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      aria-label="عرض أسماء أنظمة الزرعات"
-                      className="mr-auto rounded-full p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={t("kpi.viewSystemNames")}
+                      className="ms-auto rounded-full p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Info className="h-3.5 w-3.5" />
                     </button>
@@ -103,11 +105,11 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
                     className="w-64 space-y-3 text-right"
                   >
                     <SystemNamesList
-                      label="الأنظمة المستخدمة اليوم"
+                      label={t("kpi.systemsToday")}
                       names={c.systemNames.today}
                     />
                     <SystemNamesList
-                      label="الأنظمة المستخدمة هذا الشهر"
+                      label={t("kpi.systemsMonth")}
                       names={c.systemNames.month}
                     />
                   </PopoverContent>
@@ -117,13 +119,13 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
 
             <div className="grid grid-cols-2 gap-3 divide-x divide-x-reverse divide-border/50">
               <div className="flex flex-col justify-end">
-                <span className="text-[11px] text-muted-foreground mb-1 font-medium">اليوم</span>
+                <span className="text-[11px] text-muted-foreground mb-1 font-medium">{t("kpi.today")}</span>
                 <span className="text-xl font-bold tabular-nums text-foreground leading-none notranslate">
                   {c.today}
                 </span>
               </div>
               <div className="flex flex-col justify-end pr-3">
-                <span className="text-[11px] text-muted-foreground mb-1 font-medium">هذا الشهر</span>
+                <span className="text-[11px] text-muted-foreground mb-1 font-medium">{t("kpi.thisMonth")}</span>
                 <span className="text-xl font-bold tabular-nums text-primary leading-none notranslate">
                   {c.month}
                 </span>
@@ -157,9 +159,14 @@ function SystemNamesList({
         </ul>
       ) : (
         <p className="text-xs text-muted-foreground">
-          لا توجد أنظمة مستخدمة في هذه الفترة.
+          <SystemNamesEmpty />
         </p>
       )}
     </div>
   );
+}
+
+function SystemNamesEmpty() {
+  const { t } = useTranslation("operations");
+  return <>{t("kpi.noSystems")}</>;
 }

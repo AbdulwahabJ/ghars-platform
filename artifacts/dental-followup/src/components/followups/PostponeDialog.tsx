@@ -16,6 +16,7 @@ import { OperationalDateTimeFields } from "@/components/dashboard/OperationalDat
 import { usePostponeFollowup } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDateTime } from "@/lib/datetime";
+import { useTranslation } from "react-i18next";
 
 interface PostponeDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function PostponeDialog(props: PostponeDialogProps) {
 
 function PostponeForm({ onOpenChange, patientId, followup }: PostponeDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const postpone = usePostponeFollowup(patientId);
   const [newScheduledAt, setNewScheduledAt] = useState("");
   const [note, setNote] = useState("");
@@ -44,7 +46,7 @@ function PostponeForm({ onOpenChange, patientId, followup }: PostponeDialogProps
 
   const submit = () => {
     if (!newScheduledAt) {
-      setError("حدد الموعد الجديد.");
+      setError(t("followupForms.newAppointmentRequired"));
       return;
     }
     postpone.mutate(
@@ -54,12 +56,12 @@ function PostponeForm({ onOpenChange, patientId, followup }: PostponeDialogProps
       },
       {
         onSuccess: () => {
-          toast({ title: "تم تأجيل المتابعة وإنشاء موعد جديد." });
+          toast({ title: t("followupForms.postponeSuccess") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر تأجيل المتابعة",
+            title: t("followupForms.postponeFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -71,26 +73,26 @@ function PostponeForm({ onOpenChange, patientId, followup }: PostponeDialogProps
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>تأجيل المتابعة</DialogTitle>
+        <DialogTitle>{t("followupForms.postponeTitle")}</DialogTitle>
         <DialogDescription>
-          يُحفظ الموعد الحالي في السجل بحالة «مؤجلة» ويُنشأ موعد جديد.
+          {t("followupForms.postponeDescription")}
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
         {followup!.scheduledAt ? (
           <p className="text-sm text-muted-foreground">
-            الموعد الحالي: {formatSaudiDateTime(followup!.scheduledAt)}
+            {t("followupForms.currentAppointment", { date: formatSaudiDateTime(followup!.scheduledAt) })}
           </p>
         ) : null}
         <OperationalDateTimeFields
-          label="الموعد الجديد"
+          label={t("followupForms.newAppointment")}
           required
           value={newScheduledAt}
           onChange={(v) => { setNewScheduledAt(v); setError(null); }}
           id="input-postpone-datetime"
         />
         <div className="space-y-2">
-          <FieldLabel label="ملاحظة (اختياري)" />
+          <FieldLabel label={t("followupForms.optionalNote")} />
           <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -103,10 +105,10 @@ function PostponeForm({ onOpenChange, patientId, followup }: PostponeDialogProps
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={postpone.isPending} data-testid="button-save-postpone">
           {postpone.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>تأجيل</span>
+          <span>{t("followups.postpone")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          إلغاء
+          {t("financeForms.cancel")}
         </Button>
       </DialogFooter>
     </>

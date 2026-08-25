@@ -9,8 +9,10 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { NewPatientDialog } from "@/components/patients/NewPatientDialog";
 import { formatSaudiDate } from "@/lib/datetime";
 import { Patient } from "@workspace/shared";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 export default function PatientsList() {
+  const { t } = useClinicalTranslation();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -39,24 +41,24 @@ export default function PatientsList() {
         {/* Header Actions */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">قائمة المرضى</h1>
-            <p className="text-muted-foreground mt-1">إدارة ملفات مرضى زراعة الأسنان</p>
+            <h1 className="text-2xl font-bold text-foreground">{t("patient.list")}</h1>
+            <p className="text-muted-foreground mt-1">{t("patient.manage")}</p>
           </div>
           <Button onClick={() => setNewPatientOpen(true)} className="btn-primary shrink-0 w-full sm:w-auto">
             <Plus className="h-5 w-5" />
-            إضافة مريض جديد
+            {t("patient.add")}
           </Button>
         </div>
 
         {/* Filters */}
         <div className="bg-card border border-border rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
           <div className="relative w-full md:max-w-md">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute end-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input 
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              placeholder="بحث بالاسم، رقم الملف، أو الجوال..." 
-              className="pl-4 pr-10 text-right w-full"
+              placeholder={t("patient.search")}
+              className="ps-4 pe-10 text-start w-full"
             />
           </div>
           
@@ -71,7 +73,7 @@ export default function PatientsList() {
                     : "text-muted-foreground hover:text-foreground hover:bg-black/5"
                 }`}
               >
-                {status === "active" ? "نشط" : status === "archived" ? "مؤرشف" : "الكل"}
+                {status === "active" ? t("patient.active") : status === "archived" ? t("patient.archived") : t("patient.all")}
               </button>
             ))}
           </div>
@@ -82,23 +84,23 @@ export default function PatientsList() {
           {isLoading ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p>جاري تحميل البيانات...</p>
+              <p>{t("patient.loading")}</p>
             </div>
           ) : !data || data.items.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
               <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">
                 <UserX className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-bold text-foreground mb-2">لا يوجد مرضى</h3>
+              <h3 className="text-lg font-bold text-foreground mb-2">{t("patient.empty")}</h3>
               <p className="text-muted-foreground max-w-sm mb-6">
                 {searchQuery 
-                  ? "لم يتم العثور على نتائج تطابق بحثك. جرب استخدام كلمات بحث مختلفة."
-                  : "لم يتم تسجيل أي مرضى في هذه القائمة بعد. يمكنك البدء بإضافة مريض جديد."}
+                  ? t("patient.noResults")
+                  : t("patient.emptyDescription")}
               </p>
               {!searchQuery && (
                 <Button onClick={() => setNewPatientOpen(true)} className="btn-secondary">
                   <Plus className="h-5 w-5" />
-                  تسجيل مريض
+                  {t("patient.register")}
                 </Button>
               )}
             </div>
@@ -108,12 +110,12 @@ export default function PatientsList() {
                 <table className="w-full text-right border-collapse">
                   <thead>
                     <tr className="bg-muted/50 border-b border-border">
-                      <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-32">رقم الملف</th>
-                      <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">اسم المريض</th>
-                      <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-40">رقم الجوال</th>
-                      <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-40">تاريخ الإضافة</th>
-                      <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-24">الحالة</th>
-                      <th className="px-2 py-4 w-10"><span className="sr-only">فتح الملف</span></th>
+                       <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-32">{t("patient.fileNumber")}</th>
+                       <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">{t("patient.fullName")}</th>
+                       <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-40">{t("patient.mobile")}</th>
+                       <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-40">{t("patient.addedAt")}</th>
+                       <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-24">{t("patient.status")}</th>
+                       <th className="px-2 py-4 w-10"><span className="sr-only">{t("patient.openFile")}</span></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -135,11 +137,11 @@ export default function PatientsList() {
                               ? 'bg-emerald-100 text-emerald-800' 
                               : 'bg-slate-100 text-slate-800'
                           }`}>
-                            {patient.status === 'active' ? 'نشط' : 'مؤرشف'}
+                             {patient.status === 'active' ? t("patient.active") : t("patient.archived")}
                           </span>
                         </td>
-                        <td className="px-2 py-4 text-left">
-                          <ChevronLeft className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <td className="px-2 py-4 text-end">
+                          <ChevronLeft className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity rtl:rotate-180" />
                         </td>
                       </tr>
                     ))}
@@ -151,7 +153,7 @@ export default function PatientsList() {
               {data.total > data.pageSize && (
                 <div className="border-t border-border p-4 flex items-center justify-between mt-auto">
                   <div className="text-sm text-muted-foreground">
-                    إجمالي النتائج: <span className="font-bold text-foreground">{data.total}</span>
+                     {t("patient.totalResults", { count: data.total })}
                   </div>
                   <div className="flex gap-2">
                     <Button 
@@ -162,7 +164,7 @@ export default function PatientsList() {
                       className="gap-1 h-9 px-3"
                     >
                       <ChevronRight className="h-4 w-4" />
-                      السابق
+                       {t("patient.previous")}
                     </Button>
                     <div className="flex items-center justify-center px-4 font-medium text-sm">
                       {page} / {Math.ceil(data.total / data.pageSize)}
@@ -174,7 +176,7 @@ export default function PatientsList() {
                       disabled={page >= Math.ceil(data.total / data.pageSize)}
                       className="gap-1 h-9 px-3"
                     >
-                      التالي
+                       {t("patient.next")}
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                   </div>

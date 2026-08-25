@@ -24,30 +24,12 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useAuditLogs } from "@/hooks/use-admin";
 import { auditExportUrl } from "@/lib/api";
 import { formatSaudiDateTime } from "@/lib/datetime";
+import { useTranslation } from "react-i18next";
 
 const ALL = "__all__";
 
-/** Arabic labels for audit actions shown in آخر النشاطات. */
-const ACTION_LABELS: Record<string, string> = {
-  patient_create: "إضافة مريض",
-  patient_update: "تعديل بيانات مريض",
-  patient_archive: "أرشفة ملف مريض",
-  patient_restore: "استعادة ملف مريض",
-  implant_case_create: "إضافة حالة زراعة",
-  implant_case_update: "تعديل حالة زراعة",
-  implant_create: "إضافة زرعة",
-  implant_update: "تعديل زرعة",
-  case_base_amount_update: "تحديث مبلغ العلاج",
-  payment_create: "تسجيل دفعة",
-  payment_void: "إلغاء دفعة",
-  followup_created: "إضافة متابعة",
-  followup_updated: "تعديل متابعة",
-  followup_completed: "إتمام متابعة",
-  user_create: "إنشاء مستخدم",
-  login_success: "تسجيل دخول",
-};
-
 function RecentActivitiesPreview() {
+  const { t } = useTranslation("admin");
   const { data, isLoading } = useAuditLogs({ limit: 6, page: 1 });
   const items = data?.items ?? [];
 
@@ -55,7 +37,7 @@ function RecentActivitiesPreview() {
     return (
       <Card className="mb-4">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">آخر النشاطات</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">{t("audit.recent")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex justify-center py-4">
@@ -71,7 +53,7 @@ function RecentActivitiesPreview() {
   return (
     <Card className="mb-4">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">آخر النشاطات</CardTitle>
+        <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">{t("audit.recent")}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <ul className="divide-y divide-border/60">
@@ -79,7 +61,7 @@ function RecentActivitiesPreview() {
             <li key={item.id} className="px-6 py-2.5">
               <p className="text-sm">
                 <span className="font-medium">
-                  {ACTION_LABELS[item.action] ?? item.action}
+                   {t(`audit.actions.${item.action}`, { defaultValue: item.action })}
                 </span>
                 {item.summary ? (
                   <span className="text-muted-foreground notranslate"> — {item.summary}</span>
@@ -98,6 +80,7 @@ function RecentActivitiesPreview() {
 }
 
 export function AuditLogTab() {
+  const { t } = useTranslation("admin");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [userId, setUserId] = useState(ALL);
@@ -128,18 +111,18 @@ export function AuditLogTab() {
     <RecentActivitiesPreview />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-        <CardTitle>سجل النشاط</CardTitle>
+        <CardTitle>{t("audit.title")}</CardTitle>
         <Button variant="outline" asChild>
           <a href={auditExportUrl(filters)} data-testid="link-audit-export">
             <Download className="h-4 w-4 ml-1" />
-            <span>تصدير CSV</span>
+            <span>{t("audit.exportCsv")}</span>
           </a>
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div className="space-y-1">
-            <Label htmlFor="audit-from">من تاريخ</Label>
+            <Label htmlFor="audit-from">{t("audit.from")}</Label>
             <Input
               id="audit-from"
               type="date"
@@ -151,7 +134,7 @@ export function AuditLogTab() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="audit-to">إلى تاريخ</Label>
+            <Label htmlFor="audit-to">{t("audit.to")}</Label>
             <Input
               id="audit-to"
               type="date"
@@ -163,7 +146,7 @@ export function AuditLogTab() {
             />
           </div>
           <div className="space-y-1">
-            <Label>المستخدم</Label>
+            <Label>{t("audit.user")}</Label>
             <Select
               dir="rtl"
               value={userId}
@@ -176,7 +159,7 @@ export function AuditLogTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>الكل</SelectItem>
+                <SelectItem value={ALL}>{t("audit.all")}</SelectItem>
                 {(data?.users ?? []).map((u) => (
                   <SelectItem key={u.id} value={u.id}>
                     {u.fullName}
@@ -186,7 +169,7 @@ export function AuditLogTab() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>الإجراء</Label>
+            <Label>{t("audit.action")}</Label>
             <Select
               dir="rtl"
               value={action}
@@ -199,7 +182,7 @@ export function AuditLogTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>الكل</SelectItem>
+                <SelectItem value={ALL}>{t("audit.all")}</SelectItem>
                 {(data?.actions ?? []).map((a) => (
                   <SelectItem key={a} value={a}>
                     <span dir="ltr">{a}</span>
@@ -209,7 +192,7 @@ export function AuditLogTab() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>نوع السجل</Label>
+            <Label>{t("audit.entityType")}</Label>
             <Select
               dir="rtl"
               value={entityType}
@@ -222,7 +205,7 @@ export function AuditLogTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>الكل</SelectItem>
+                <SelectItem value={ALL}>{t("audit.all")}</SelectItem>
                 {(data?.entityTypes ?? []).map((t) => (
                   <SelectItem key={t} value={t}>
                     <span dir="ltr">{t}</span>
@@ -232,7 +215,7 @@ export function AuditLogTab() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="audit-file">رقم الملف</Label>
+            <Label htmlFor="audit-file">{t("audit.fileNumber")}</Label>
             <Input
               id="audit-file"
               value={fileNumber}
@@ -240,7 +223,7 @@ export function AuditLogTab() {
                 setFileNumber(e.target.value);
                 resetPage();
               }}
-              placeholder="مثال: 1001"
+              placeholder={t("audit.fileNumberPlaceholder")}
               data-testid="input-audit-filenumber"
             />
           </div>
@@ -256,10 +239,10 @@ export function AuditLogTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">الوقت</TableHead>
-                    <TableHead className="text-right">المستخدم</TableHead>
-                    <TableHead className="text-right">الإجراء</TableHead>
-                    <TableHead className="text-right">الوصف</TableHead>
+                    <TableHead className="text-right">{t("audit.time")}</TableHead>
+                    <TableHead className="text-right">{t("audit.user")}</TableHead>
+                    <TableHead className="text-right">{t("audit.action")}</TableHead>
+                    <TableHead className="text-right">{t("audit.description")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -269,7 +252,7 @@ export function AuditLogTab() {
                         colSpan={4}
                         className="text-center text-muted-foreground py-8"
                       >
-                        لا توجد سجلات مطابقة للفلاتر المحددة.
+                        {t("audit.empty")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -290,7 +273,7 @@ export function AuditLogTab() {
             </div>
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                إجمالي السجلات: {data?.total ?? 0}
+                {t("audit.total", { count: data?.total ?? 0 })}
                 {isFetching && " …"}
               </p>
               <div className="flex items-center gap-2">
@@ -300,10 +283,10 @@ export function AuditLogTab() {
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
-                  السابق
+                  {t("audit.previous")}
                 </Button>
                 <span className="text-sm">
-                  صفحة {page} من {totalPages}
+                  {t("audit.page", { page, totalPages })}
                 </span>
                 <Button
                   variant="outline"
@@ -311,7 +294,7 @@ export function AuditLogTab() {
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  التالي
+                  {t("audit.next")}
                 </Button>
               </div>
             </div>

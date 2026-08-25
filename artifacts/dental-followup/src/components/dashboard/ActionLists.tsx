@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import type { DashboardListItem } from "@workspace/shared";
+import { useTranslation } from "react-i18next";
 
 function ListCard({
   title,
@@ -21,6 +22,7 @@ function ListCard({
   emptyText: string;
   testId: string;
 }) {
+  const { t } = useTranslation("guidance");
   return (
     <Card data-testid={testId}>
       <CardHeader className="pb-2">
@@ -64,7 +66,7 @@ function ListCard({
                   className="shrink-0"
                   data-testid={`link-open-patient-${item.patientId}`}
                 >
-                  <Link href={`/patients/${item.patientId}?tab=followup`}>فتح الملف</Link>
+                  <Link href={`/patients/${item.patientId}?tab=followup`}>{t("dashboard.openPatient")}</Link>
                 </Button>
               </li>
             ))}
@@ -82,20 +84,21 @@ export function ActionLists({
   todayAppointments: DashboardListItem[];
   overdueFollowups: DashboardListItem[];
 }) {
+  const { t } = useTranslation("guidance");
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <ListCard
-        title="حالات المراجعة"
+        title={t("dashboard.todayAppointments")}
         icon={<CalendarDays className="h-4 w-4 text-primary" />}
         items={todayAppointments}
-        emptyText="لا توجد مواعيد متابعة اليوم."
+        emptyText={t("dashboard.noTodayAppointments")}
         testId="list-today-appointments"
       />
       <ListCard
-        title="المتابعات المتأخرة"
+        title={t("dashboard.overdueFollowups")}
         icon={<AlarmClock className="h-4 w-4 text-destructive" />}
         items={overdueFollowups}
-        emptyText="لا توجد متابعات متأخرة."
+        emptyText={t("dashboard.noOverdueFollowups")}
         testId="list-overdue-followups"
       />
     </div>

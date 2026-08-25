@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 
 interface NewPatientDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ interface NewPatientDialogProps {
 }
 
 export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) {
+  const { t } = useClinicalTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -82,7 +84,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
       // If available, proceed to create
       createPatient.mutate(data, {
         onSuccess: (res) => {
-          toast({ title: "تم تسجيل المريض بنجاح" });
+          toast({ title: t("patient.registered") });
           onOpenChange(false);
           form.reset();
           setLocation(`/patients/${res.patient.id}`);
@@ -99,8 +101,8 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
           } else {
             toast({
               variant: "destructive",
-              title: "خطأ",
-              description: err.message || "فشل تسجيل المريض"
+               title: t("patient.error"),
+               description: err.message || t("patient.registrationFailed")
             });
           }
         }
@@ -108,8 +110,8 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
     } catch (err) {
       toast({
         variant: "destructive",
-        title: "خطأ",
-        description: (err instanceof Error && err.message) || "حدث خطأ أثناء التحقق من رقم الملف."
+         title: t("patient.error"),
+         description: (err instanceof Error && err.message) || t("patient.verifyFailed")
       });
     }
   };
@@ -127,7 +129,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
     if (duplicateData?.id) {
       restorePatient.mutate(duplicateData.id, {
         onSuccess: () => {
-          toast({ title: "تم استعادة ملف المريض بنجاح" });
+           toast({ title: t("patient.restoreSuccess") });
           onOpenChange(false);
           setDuplicateStatus(null);
           form.reset();
@@ -140,9 +142,9 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-xl text-right" dir="rtl">
+       <DialogContent className="sm:max-w-xl text-start" dir={document.documentElement.dir}>
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">تسجيل حالة زراعة جديدة</DialogTitle>
+             <DialogTitle className="text-xl font-bold">{t("patient.registerTitle")}</DialogTitle>
           </DialogHeader>
 
           <Form {...form}>
@@ -153,9 +155,9 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
                   name="fileNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>رقم الملف <span className="text-destructive">*</span></FormLabel>
+                       <FormLabel>{t("patient.fileNumber")} <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="أدخل رقم الملف" {...field} dir="ltr" className="text-right" />
+                         <Input placeholder={t("patient.filePlaceholder")} {...field} dir="ltr" className="text-start" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -167,9 +169,9 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>الاسم الكامل <span className="text-destructive">*</span></FormLabel>
+                       <FormLabel>{t("patient.fullName")} <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="اسم المريض الثلاثي أو الرباعي" {...field} />
+                         <Input placeholder={t("patient.namePlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -181,7 +183,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
                   name="mobileNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>رقم الجوال (اختياري)</FormLabel>
+                       <FormLabel>{t("patient.mobile")} ({t("patient.optional")})</FormLabel>
                       <FormControl>
                         <Input placeholder="05XXXXXXXX" {...field} value={field.value || ""} dir="ltr" className="text-right" />
                       </FormControl>
@@ -195,11 +197,11 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
                   name="age"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>العمر (اختياري)</FormLabel>
+                       <FormLabel>{t("patient.age")} ({t("patient.optional")})</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
-                          placeholder="العمر" 
+                           placeholder={t("patient.age")}
                           {...field} 
                           value={field.value ?? ""}
                           onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))}
@@ -216,9 +218,9 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
                 name="administrativeNote"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ملاحظة إدارية (اختياري)</FormLabel>
+                   <FormLabel>{t("patient.administrativeNote")} ({t("patient.optional")})</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="أي ملاحظات عامة حول المريض..." {...field} value={field.value || ""} rows={3} className="resize-none" />
+                     <Textarea placeholder={t("patient.notePlaceholder")} {...field} value={field.value || ""} rows={3} className="resize-none" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -232,12 +234,12 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
                   ) : (
                     <>
                       <Plus className="h-5 w-5" />
-                      <span>حفظ وتسجيل المريض</span>
+                       <span>{t("patient.saveAndRegister")}</span>
                     </>
                   )}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="btn-outline w-full sm:w-auto mt-0">
-                  إلغاء
+                   {t("patient.cancel")}
                 </Button>
               </DialogFooter>
             </form>
@@ -249,17 +251,17 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
       <Dialog open={duplicateStatus === "active"} onOpenChange={(v) => !v && setDuplicateStatus(null)}>
         <DialogContent className="sm:max-w-md text-right" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-primary">المريض مسجل مسبقًا</DialogTitle>
+           <DialogTitle className="text-xl font-bold text-primary">{t("patient.duplicateActiveTitle")}</DialogTitle>
             <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
-              هذا المريض مسجل مسبقًا. هل تريد فتح ملفه وإضافة حالة جديدة؟
+               {t("patient.duplicateActiveDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
             <Button onClick={handleOpenPatient} className="btn-primary w-full sm:w-auto">
-              فتح ملف المريض
+               {t("patient.openPatient")}
             </Button>
             <Button variant="outline" onClick={() => setDuplicateStatus(null)} className="btn-outline w-full sm:w-auto">
-              إلغاء
+               {t("patient.cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -269,20 +271,17 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
       <Dialog open={duplicateStatus === "archived"} onOpenChange={(v) => !v && setDuplicateStatus(null)}>
         <DialogContent className="sm:max-w-md text-right" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-destructive">الملف مؤرشف</DialogTitle>
+           <DialogTitle className="text-xl font-bold text-destructive">{t("patient.archivedFile")}</DialogTitle>
             <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
-              هذا المريض ({duplicateData?.name || "صاحب رقم الملف المدخل"}) مسجل مسبقًا ولكن ملفه مؤرشف.
-              لا يمكن إضافة حالات لملف مؤرشف.
-              <br /><br />
-              هل ترغب في استعادة الملف وتنشيطه؟
+               {t("patient.archivedDuplicate", { name: duplicateData?.name || t("patient.fileNumber") })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row sm:justify-start gap-3 mt-6">
             <Button onClick={handleRestorePatient} disabled={restorePatient.isPending} className="btn-primary w-full sm:w-auto">
-              {restorePatient.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>استعادة الملف</span>}
+               {restorePatient.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>{t("patient.restore")}</span>}
             </Button>
             <Button variant="outline" onClick={() => setDuplicateStatus(null)} className="btn-outline w-full sm:w-auto">
-              إلغاء
+               {t("patient.cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>

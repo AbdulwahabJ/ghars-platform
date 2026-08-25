@@ -36,12 +36,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/lib/api";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import { UserAvatar, AvatarUploader } from "@/components/ui/user-avatar";
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: "مدير النظام",
-  DOCTOR: "طبيب",
-  ASSISTANT: "مساعد",
-};
+import { useTranslation } from "react-i18next";
 
 /** Tri-state override: null = role default. */
 function overrideToSelect(v: boolean | null): string {
@@ -74,6 +69,7 @@ const EMPTY_FORM: UserFormState = {
 };
 
 export function UsersTab() {
+  const { t } = useTranslation("admin");
   const { user: me } = useAuth();
   const queryClient = useQueryClient();
   const { data, isLoading } = useAdminUsers();
@@ -93,12 +89,12 @@ export function UsersTab() {
   const fail = (err: unknown) =>
     toast({
       variant: "destructive",
-      title: "تعذر تنفيذ العملية",
-      description: err instanceof ApiError ? err.message : "حدث خطأ غير متوقع.",
+      title: t("users.operationFailed"),
+      description: err instanceof ApiError ? err.message : t("users.unexpectedError"),
     });
 
   const avatarError = (msg: string) =>
-    toast({ variant: "destructive", title: "صورة الملف الشخصي", description: msg });
+    toast({ variant: "destructive", title: t("users.avatar"), description: msg });
 
   const submitCreate = () => {
     create.mutate(
@@ -114,7 +110,7 @@ export function UsersTab() {
       },
       {
         onSuccess: () => {
-          toast({ title: "تم إنشاء المستخدم بنجاح." });
+          toast({ title: t("users.created") });
           setCreateOpen(false);
           setForm(EMPTY_FORM);
         },
@@ -143,7 +139,7 @@ export function UsersTab() {
       },
       {
         onSuccess: () => {
-          toast({ title: "تم حفظ التعديلات." });
+          toast({ title: t("users.saved") });
           setEditUser(null);
           // If the admin updated their own profile, refresh the auth user so
           // the header/hero reflect the new avatar immediately.
@@ -163,9 +159,8 @@ export function UsersTab() {
       {
         onSuccess: () => {
           toast({
-            title: "تمت إعادة تعيين كلمة المرور.",
-            description:
-              "تم إنهاء جلسات المستخدم الحالية وسيحتاج لتسجيل الدخول من جديد.",
+            title: t("users.passwordReset"),
+            description: t("users.passwordResetDescription"),
           });
           setResetUser(null);
           setNewPassword("");
@@ -188,13 +183,13 @@ export function UsersTab() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>إدارة المستخدمين</CardTitle>
+        <CardTitle>{t("users.title")}</CardTitle>
         <Button
           onClick={() => setCreateOpen(true)}
           data-testid="button-create-user"
         >
           <Plus className="h-4 w-4 ml-1" />
-          <span>مستخدم جديد</span>
+          <span>{t("users.newUser")}</span>
         </Button>
       </CardHeader>
       <CardContent>
@@ -202,15 +197,15 @@ export function UsersTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">الاسم الكامل</TableHead>
-                <TableHead className="text-right">اسم المستخدم</TableHead>
-                <TableHead className="text-right">البريد الإلكتروني</TableHead>
-                <TableHead className="text-right">الدور</TableHead>
-                <TableHead className="text-right">الحالة</TableHead>
-                <TableHead className="text-right">عرض المالية</TableHead>
-                <TableHead className="text-right">تسجيل دفعات</TableHead>
-                <TableHead className="text-right">آخر دخول</TableHead>
-                <TableHead className="text-right">إجراءات</TableHead>
+                <TableHead className="text-right">{t("users.fullName")}</TableHead>
+                <TableHead className="text-right">{t("users.username")}</TableHead>
+                <TableHead className="text-right">{t("users.email")}</TableHead>
+                <TableHead className="text-right">{t("users.role")}</TableHead>
+                <TableHead className="text-right">{t("users.status")}</TableHead>
+                <TableHead className="text-right">{t("users.viewFinancials")}</TableHead>
+                <TableHead className="text-right">{t("users.recordPayments")}</TableHead>
+                <TableHead className="text-right">{t("users.lastLogin")}</TableHead>
+                <TableHead className="text-right">{t("common:labels.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -232,16 +227,16 @@ export function UsersTab() {
                   <TableCell dir="ltr" className="text-right">
                     {u.email ?? "—"}
                   </TableCell>
-                  <TableCell>{ROLE_LABELS[u.role]}</TableCell>
+                  <TableCell>{t(`common:roles.${u.role.toLowerCase()}`)}</TableCell>
                   <TableCell>
                     {u.isActive ? (
-                      <Badge variant="secondary">نشط</Badge>
+                      <Badge variant="secondary">{t("users.active")}</Badge>
                     ) : (
-                      <Badge variant="destructive">موقوف</Badge>
+                      <Badge variant="destructive">{t("users.suspended")}</Badge>
                     )}
                   </TableCell>
-                  <TableCell>{u.canViewFinancials ? "نعم" : "لا"}</TableCell>
-                  <TableCell>{u.canRecordPayments ? "نعم" : "لا"}</TableCell>
+                  <TableCell>{u.canViewFinancials ? t("users.yes") : t("users.no")}</TableCell>
+                  <TableCell>{u.canRecordPayments ? t("users.yes") : t("users.no")}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     {u.lastLoginAt ? formatSaudiDateTime(u.lastLoginAt) : "—"}
                   </TableCell>
@@ -267,13 +262,13 @@ export function UsersTab() {
                         }}
                         data-testid={`button-edit-${u.username}`}
                       >
-                        تعديل
+                        {t("users.edit")}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setResetUser(u)}
-                        title="إعادة تعيين كلمة المرور"
+                        title={t("users.resetPassword")}
                       >
                         <KeyRound className="h-4 w-4" />
                       </Button>
@@ -288,8 +283,8 @@ export function UsersTab() {
                                 onSuccess: () =>
                                   toast({
                                     title: u.isActive
-                                      ? "تم إيقاف المستخدم وإنهاء جلساته."
-                                      : "تمت إعادة تفعيل المستخدم.",
+                                      ? t("users.deactivated")
+                                      : t("users.activated"),
                                   }),
                                 onError: fail,
                               },
@@ -303,7 +298,7 @@ export function UsersTab() {
                             <UserCheck className="h-4 w-4" />
                           )}
                           <span className="notranslate">
-                            {u.isActive ? "إيقاف" : "تفعيل"}
+                            {u.isActive ? t("users.deactivate") : t("users.activate")}
                           </span>
                         </Button>
                       )}
@@ -315,8 +310,7 @@ export function UsersTab() {
           </Table>
         </div>
         <p className="text-sm text-muted-foreground mt-4">
-          لا يمكن حذف المستخدمين حفاظًا على السجلات التاريخية — يمكن إيقافهم
-          فقط. إيقاف المستخدم يمنع دخوله فورًا مع بقاء جميع سجلاته ظاهرة.
+          {t("users.retentionNotice")}
         </p>
       </CardContent>
 
@@ -324,12 +318,12 @@ export function UsersTab() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent dir="rtl">
           <DialogHeader>
-            <DialogTitle>مستخدم جديد</DialogTitle>
+            <DialogTitle>{t("users.createTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Avatar */}
             <div className="space-y-2">
-              <Label>صورة المستخدم</Label>
+              <Label>{t("users.avatar")}</Label>
               <AvatarUploader
                 value={form.avatarData}
                 onChange={(v) => setForm({ ...form, avatarData: v })}
@@ -338,7 +332,7 @@ export function UsersTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="new-username">اسم المستخدم (للدخول)</Label>
+              <Label htmlFor="new-username">{t("users.usernameLogin")}</Label>
               <Input
                 id="new-username"
                 dir="ltr"
@@ -348,7 +342,7 @@ export function UsersTab() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-email">البريد الإلكتروني للاستعادة</Label>
+              <Label htmlFor="new-email">{t("users.recoveryEmail")}</Label>
               <Input
                 id="new-email"
                 type="email"
@@ -359,7 +353,7 @@ export function UsersTab() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-fullname">الاسم الكامل</Label>
+              <Label htmlFor="new-fullname">{t("users.fullName")}</Label>
               <Input
                 id="new-fullname"
                 value={form.fullName}
@@ -368,7 +362,7 @@ export function UsersTab() {
               />
             </div>
             <div className="space-y-2">
-              <Label>الدور</Label>
+              <Label>{t("users.role")}</Label>
               <Select
                 dir="rtl"
                 value={form.role}
@@ -378,14 +372,14 @@ export function UsersTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ADMIN">مدير النظام</SelectItem>
-                  <SelectItem value="DOCTOR">طبيب</SelectItem>
-                  <SelectItem value="ASSISTANT">مساعد</SelectItem>
+                  <SelectItem value="ADMIN">{t("common:roles.admin")}</SelectItem>
+                  <SelectItem value="DOCTOR">{t("common:roles.doctor")}</SelectItem>
+                  <SelectItem value="ASSISTANT">{t("common:roles.assistant")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-password">كلمة المرور المؤقتة</Label>
+              <Label htmlFor="new-password">{t("users.temporaryPassword")}</Label>
               <Input
                 id="new-password"
                 type="password"
@@ -395,7 +389,7 @@ export function UsersTab() {
                 data-testid="input-new-password"
               />
               <p className="text-xs text-muted-foreground">
-                12 خانة على الأقل وتتضمن حرفًا ورقمًا.
+                {t("users.passwordHint")}
               </p>
             </div>
             <PermissionSelects
@@ -414,7 +408,7 @@ export function UsersTab() {
               {create.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin ml-1" />
               )}
-              <span>إنشاء المستخدم</span>
+              <span>{t("users.create")}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -427,13 +421,13 @@ export function UsersTab() {
       >
         <DialogContent dir="rtl">
           <DialogHeader>
-            <DialogTitle>تعديل المستخدم {editUser?.fullName}</DialogTitle>
+            <DialogTitle>{t("users.editTitle", { name: editUser?.fullName })}</DialogTitle>
           </DialogHeader>
           {editForm && (
             <div className="space-y-4">
               {/* Avatar */}
               <div className="space-y-2">
-                <Label>صورة المستخدم</Label>
+                <Label>{t("users.avatar")}</Label>
                 <AvatarUploader
                   value={editForm.avatarData}
                   onChange={(v) => setEditForm({ ...editForm, avatarData: v })}
@@ -442,7 +436,7 @@ export function UsersTab() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-fullname">الاسم الكامل</Label>
+                <Label htmlFor="edit-fullname">{t("users.fullName")}</Label>
                 <Input
                   id="edit-fullname"
                   value={editForm.fullName}
@@ -452,7 +446,7 @@ export function UsersTab() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-email">البريد الإلكتروني للاستعادة</Label>
+                <Label htmlFor="edit-email">{t("users.recoveryEmail")}</Label>
                 <Input
                   id="edit-email"
                   type="email"
@@ -465,12 +459,12 @@ export function UsersTab() {
                 />
                 {!editUser?.email && (
                   <p className="text-xs text-muted-foreground">
-                    هذا الحساب قديم ولا يملك بريدًا للاستعادة حتى يتم حفظ بريد صالح.
+                    {t("users.legacyEmailNotice")}
                   </p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label>الدور</Label>
+                <Label>{t("users.role")}</Label>
                 <Select
                   dir="rtl"
                   value={editForm.role}
@@ -482,9 +476,9 @@ export function UsersTab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ADMIN">مدير النظام</SelectItem>
-                    <SelectItem value="DOCTOR">طبيب</SelectItem>
-                    <SelectItem value="ASSISTANT">مساعد</SelectItem>
+                    <SelectItem value="ADMIN">{t("common:roles.admin")}</SelectItem>
+                    <SelectItem value="DOCTOR">{t("common:roles.doctor")}</SelectItem>
+                    <SelectItem value="ASSISTANT">{t("common:roles.assistant")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -497,7 +491,7 @@ export function UsersTab() {
                 onPay={(v) => setEditForm({ ...editForm, canRecordPayments: v })}
               />
               <p className="text-xs text-muted-foreground">
-                تسري تعديلات الصلاحيات فورًا على جلسات المستخدم الحالية.
+                {t("users.permissionNotice")}
               </p>
             </div>
           )}
@@ -510,7 +504,7 @@ export function UsersTab() {
               {update.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin ml-1" />
               )}
-              <span>حفظ التعديلات</span>
+              <span>{t("users.saveChanges")}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -529,11 +523,11 @@ export function UsersTab() {
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle>
-              إعادة تعيين كلمة مرور {resetUser?.fullName}
+              {t("users.resetTitle", { name: resetUser?.fullName })}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="reset-password">كلمة المرور الجديدة</Label>
+            <Label htmlFor="reset-password">{t("users.newPassword")}</Label>
             <Input
               id="reset-password"
               type="password"
@@ -543,7 +537,7 @@ export function UsersTab() {
               data-testid="input-reset-password"
             />
             <p className="text-xs text-muted-foreground">
-              سيتم إنهاء جلسات المستخدم الحالية بعد إعادة التعيين.
+              {t("users.resetHint")}
             </p>
           </div>
           <DialogFooter>
@@ -555,7 +549,7 @@ export function UsersTab() {
               {resetPassword.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin ml-1" />
               )}
-              <span>إعادة التعيين</span>
+              <span>{t("users.reset")}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -575,31 +569,32 @@ function PermissionSelects({
   onView: (v: string) => void;
   onPay: (v: string) => void;
 }) {
+  const { t } = useTranslation("admin");
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label>عرض البيانات المالية</Label>
+        <Label>{t("users.viewFinancials")}</Label>
         <Select dir="rtl" value={view} onValueChange={onView}>
           <SelectTrigger data-testid="select-perm-view">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="default">حسب الدور (افتراضي)</SelectItem>
-            <SelectItem value="yes">مسموح</SelectItem>
-            <SelectItem value="no">ممنوع</SelectItem>
+            <SelectItem value="default">{t("users.permissionDefault")}</SelectItem>
+            <SelectItem value="yes">{t("users.allowed")}</SelectItem>
+            <SelectItem value="no">{t("users.denied")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-2">
-        <Label>تسجيل الدفعات</Label>
+        <Label>{t("users.recordPayments")}</Label>
         <Select dir="rtl" value={pay} onValueChange={onPay}>
           <SelectTrigger data-testid="select-perm-pay">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="default">حسب الدور (افتراضي)</SelectItem>
-            <SelectItem value="yes">مسموح</SelectItem>
-            <SelectItem value="no">ممنوع</SelectItem>
+            <SelectItem value="default">{t("users.permissionDefault")}</SelectItem>
+            <SelectItem value="yes">{t("users.allowed")}</SelectItem>
+            <SelectItem value="no">{t("users.denied")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

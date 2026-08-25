@@ -20,11 +20,14 @@ router.patch("/preferences", requireAuth, async (req, res) => {
   const [updated] = await db
     .update(userPreferencesTable)
     .set({
-      onboardingStatus: input.onboardingStatus,
+      ...(input.onboardingStatus !== undefined
+        ? { onboardingStatus: input.onboardingStatus }
+        : {}),
       onboardingCompletedAt:
         input.onboardingStatus === "completed" ? now : undefined,
       onboardingSkippedAt:
         input.onboardingStatus === "skipped" ? now : undefined,
+      ...(input.locale !== undefined ? { locale: input.locale } : {}),
       updatedAt: now,
     })
     .where(eq(userPreferencesTable.userId, user.id))

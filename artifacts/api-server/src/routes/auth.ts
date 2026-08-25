@@ -106,6 +106,7 @@ async function adminExists(): Promise<boolean> {
 
 function toPreferencesDto(row: UserPreferences): Preferences {
   return {
+    locale: row.locale,
     onboardingStatus: row.onboardingStatus,
     onboardingCompletedAt: row.onboardingCompletedAt?.toISOString() ?? null,
     onboardingSkippedAt: row.onboardingSkippedAt?.toISOString() ?? null,

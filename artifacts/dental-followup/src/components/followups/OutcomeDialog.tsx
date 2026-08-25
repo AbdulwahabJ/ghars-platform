@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FieldLabel } from "@/components/implants/FieldLabel";
 import { useFollowupOutcome } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface OutcomeDialogProps {
   open: boolean;
@@ -42,10 +43,11 @@ function OutcomeForm({
   onOpenChange,
   patientId,
   followup,
-  title = "تغيير حالة المتابعة",
-  successMessage = "تم تحديث حالة المتابعة.",
+  title,
+  successMessage,
 }: OutcomeDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const recordOutcome = useFollowupOutcome(patientId);
   const [status, setStatus] = useState<string>("");
   const [result, setResult] = useState("");
@@ -53,7 +55,7 @@ function OutcomeForm({
 
   const submit = () => {
     if (!status) {
-      setError("اختر نتيجة المتابعة.");
+      setError(t("followupForms.outcomeRequired"));
       return;
     }
     recordOutcome.mutate(
@@ -67,12 +69,12 @@ function OutcomeForm({
       },
       {
         onSuccess: () => {
-          toast({ title: successMessage });
+          toast({ title: successMessage ?? t("followupForms.saveChanges") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر تحديث حالة المتابعة",
+            title: t("followupForms.outcomeFailed"),
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -84,7 +86,7 @@ function OutcomeForm({
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>{title}</DialogTitle>
+        <DialogTitle>{title ?? t("followupForms.outcomeTitle")}</DialogTitle>
         <DialogDescription>{followup!.followupType}</DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
@@ -99,7 +101,7 @@ function OutcomeForm({
           ))}
         </RadioGroup>
         <div className="space-y-2">
-          <FieldLabel label="تفاصيل الحالة (اختياري)" />
+          <FieldLabel label={t("followupForms.detailsOptional")} />
           <Textarea
             value={result}
             onChange={(e) => setResult(e.target.value)}
@@ -112,10 +114,10 @@ function OutcomeForm({
       <DialogFooter className="gap-2 sm:justify-start">
         <Button onClick={submit} disabled={recordOutcome.isPending} data-testid="button-save-outcome">
           {recordOutcome.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>حفظ</span>
+          <span>{t("financeForms.save")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          إلغاء
+          {t("financeForms.cancel")}
         </Button>
       </DialogFooter>
     </>

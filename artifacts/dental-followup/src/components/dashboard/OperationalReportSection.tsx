@@ -18,6 +18,7 @@ import type {
   OperationalReportResponse,
   ReportFilters,
 } from "@workspace/shared";
+import { useTranslation } from "react-i18next";
 
 /**
  * Filtered operational report: on-screen table + CSV export + browser print.
@@ -34,13 +35,14 @@ export function OperationalReportSection({
   isError: boolean;
   filters: ReportFilters;
 }) {
+  const { t } = useTranslation("guidance");
   const showFinance = Boolean(data?.financialsIncluded);
 
   return (
     <Card data-testid="card-operational-report">
       <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3 flex-wrap">
         <CardTitle className="text-base">
-          التقرير التشغيلي ({data?.rows.length ?? 0})
+          {t("dashboard.operationalReport", { count: data?.rows.length ?? 0 })}
         </CardTitle>
         <div className="flex gap-2 print:hidden">
           <Button
@@ -51,7 +53,7 @@ export function OperationalReportSection({
             data-testid="button-export-operational"
           >
             <Download className="h-4 w-4" />
-            <span>تصدير CSV</span>
+            <span>{t("dashboard.exportCsv")}</span>
           </Button>
           <Button
             variant="outline"
@@ -61,7 +63,7 @@ export function OperationalReportSection({
             data-testid="button-print-operational"
           >
             <Printer className="h-4 w-4" />
-            <span>طباعة</span>
+            <span>{t("dashboard.print")}</span>
           </Button>
         </div>
       </CardHeader>
@@ -72,30 +74,30 @@ export function OperationalReportSection({
           </div>
         ) : isError || !data ? (
           <p className="text-sm text-destructive py-6 text-center">
-            تعذر تحميل التقرير التشغيلي. حاول تحديث الصفحة.
+            {t("dashboard.reportLoadError")}
           </p>
         ) : data.rows.length === 0 ? (
           <p className="text-sm text-muted-foreground px-6 pb-5">
-            لا توجد حالات مطابقة للفلاتر المحددة.
+            {t("dashboard.noFilteredCases")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">المريض</TableHead>
-                  <TableHead className="text-right">رقم الملف</TableHead>
-                  <TableHead className="text-right">حالة الحالة</TableHead>
-                  <TableHead className="text-right">الطبيب المعالج</TableHead>
-                  <TableHead className="text-right">تاريخ العملية</TableHead>
-                  <TableHead className="text-right">الزرعات</TableHead>
-                  <TableHead className="text-right">الأنظمة</TableHead>
-                  <TableHead className="text-right">المتابعة القادمة</TableHead>
+                  <TableHead className="text-start">{t("dashboard.patient")}</TableHead>
+                  <TableHead className="text-start">{t("dashboard.fileNumber")}</TableHead>
+                  <TableHead className="text-start">{t("dashboard.caseStatus")}</TableHead>
+                  <TableHead className="text-start">{t("dashboard.treatingDoctor")}</TableHead>
+                  <TableHead className="text-start">{t("dashboard.procedureDate")}</TableHead>
+                  <TableHead className="text-start">{t("dashboard.implants")}</TableHead>
+                  <TableHead className="text-start">{t("dashboard.systems")}</TableHead>
+                  <TableHead className="text-start">{t("dashboard.nextFollowup")}</TableHead>
                   <TableHead className="text-right print:hidden"> </TableHead>
                   {showFinance && (
                     <>
-                      <TableHead className="text-right">المتبقي</TableHead>
-                      <TableHead className="text-right">حالة السداد</TableHead>
+                       <TableHead className="text-start">{t("dashboard.remaining")}</TableHead>
+                       <TableHead className="text-start">{t("dashboard.paymentStatus")}</TableHead>
                     </>
                   )}
                 </TableRow>
@@ -108,12 +110,12 @@ export function OperationalReportSection({
                       <span className="flex gap-1 mt-1">
                         {r.isOverdue && (
                           <Badge variant="destructive" className="text-[10px]">
-                            متأخرة
+                             {t("dashboard.overdue")}
                           </Badge>
                         )}
                         {r.isReady && (
                           <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px]">
-                            جاهزة للتركيب
+                             {t("dashboard.readyForProsthesis")}
                           </Badge>
                         )}
                       </span>
@@ -135,7 +137,7 @@ export function OperationalReportSection({
                     </TableCell>
                     <TableCell className="print:hidden">
                       <Button asChild variant="ghost" size="sm">
-                        <Link href={`/patients/${r.patientId}`}>فتح الملف</Link>
+                        <Link href={`/patients/${r.patientId}`}>{t("dashboard.openPatient")}</Link>
                       </Button>
                     </TableCell>
                     {showFinance && (

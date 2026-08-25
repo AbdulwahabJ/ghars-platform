@@ -8,6 +8,7 @@ import { useCaseFinance } from "@/hooks/use-finance";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
 import { bucketFollowups } from "@/components/followups/followup-utils";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import type {
   Followup,
   ImplantCaseWithImplants,
@@ -28,10 +29,11 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function CaseFinanceSummaryRow({ caseId }: { caseId: string }) {
+  const { t } = useClinicalTranslation();
   const { data, isLoading } = useCaseFinance(caseId, true);
 
   if (isLoading) {
-    return <p className="text-xs text-muted-foreground">جارٍ تحميل الملخص المالي…</p>;
+    return <p className="text-xs text-muted-foreground">{t("summary.loadingFinance")}</p>;
   }
 
   if (!data) return null;
@@ -50,16 +52,16 @@ function CaseFinanceSummaryRow({ caseId }: { caseId: string }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-y border-border/70 py-3 md:grid-cols-4">
-        <Field label="الإجمالي النهائي" value={formatMoney(summary.finalTotal)} />
-        <Field label="المدفوع" value={formatMoney(summary.paidAmount)} />
-        <Field label="المتبقي" value={formatMoney(summary.outstanding)} />
-        <Field label="حالة السداد" value={summary.paymentStatus} />
+        <Field label={t("summary.finalTotal")} value={formatMoney(summary.finalTotal)} />
+        <Field label={t("summary.paid")} value={formatMoney(summary.paidAmount)} />
+        <Field label={t("summary.remaining")} value={formatMoney(summary.outstanding)} />
+        <Field label={t("summary.paymentStatus")} value={summary.paymentStatus} />
       </div>
       {installmentPlan ? (
         <div className="border-s border-border ps-3 text-sm">
-          <p className="font-medium text-foreground">خطة السداد</p>
+          <p className="font-medium text-foreground">{t("summary.installmentPlan")}</p>
           <p className="mt-1 text-muted-foreground">
-            {installmentPlan.installmentCount} أقساط — {paidInstallments} مدفوعة — {dueInstallments} مستحقة — {scheduledInstallments} مجدولة
+            {t("summary.installments", { count: installmentPlan.installmentCount })} — {t("summary.paidInstallments", { count: paidInstallments })} — {t("summary.dueInstallments", { count: dueInstallments })} — {t("summary.scheduledInstallments", { count: scheduledInstallments })}
           </p>
         </div>
       ) : null}
@@ -74,12 +76,13 @@ function ImplantTable({
   implantCase: ImplantCaseWithImplants;
   showArchived: boolean;
 }) {
+  const { t } = useClinicalTranslation();
   const implants = implantCase.implants.filter(
     (implant) => showArchived || implant.status === "active",
   );
 
   if (!implants.length) {
-    return <p className="text-sm text-muted-foreground">لا توجد زرعات مسجلة في هذه الحالة.</p>;
+    return <p className="text-sm text-muted-foreground">{t("summary.noImplants")}</p>;
   }
 
   return (
@@ -87,13 +90,13 @@ function ImplantTable({
       <table className="w-full min-w-[620px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-right text-xs text-muted-foreground">
-            <th className="px-2 py-1.5 font-medium">الموقع</th>
-            <th className="px-2 py-1.5 font-medium">النظام</th>
-            <th className="px-2 py-1.5 font-medium">القياس</th>
+             <th className="px-2 py-1.5 font-medium">{t("summary.site")}</th>
+             <th className="px-2 py-1.5 font-medium">{t("summary.system")}</th>
+             <th className="px-2 py-1.5 font-medium">{t("summary.size")}</th>
             <th className="px-2 py-1.5 font-medium">Q</th>
             <th className="px-2 py-1.5 font-medium">Former</th>
             <th className="px-2 py-1.5 font-medium">Graft</th>
-            <th className="px-2 py-1.5 font-medium">الحالة</th>
+             <th className="px-2 py-1.5 font-medium">{t("summary.status")}</th>
           </tr>
         </thead>
         <tbody>
@@ -119,7 +122,7 @@ function ImplantTable({
               <td className="px-2 py-1.5">
                 <span className="notranslate">{implant.implantStatus}</span>
                 {implant.status === "archived" ? (
-                  <Badge variant="secondary" className="ms-1 text-[10px]">مؤرشفة</Badge>
+                   <Badge variant="secondary" className="ms-1 text-[10px]">{t("summary.archived")}</Badge>
                 ) : null}
               </td>
             </tr>
@@ -137,6 +140,7 @@ function BoneGraftSummary({
   implantCase: ImplantCaseWithImplants;
   showArchived: boolean;
 }) {
+  const { t } = useClinicalTranslation();
   const procedures = implantCase.boneGraftProcedures.filter(
     (procedure) => showArchived || procedure.status === "active",
   );
@@ -145,18 +149,18 @@ function BoneGraftSummary({
 
   return (
     <div className="space-y-2">
-      <h5 className="text-sm font-bold text-foreground">الإجراءات الجراحية المساندة</h5>
+       <h5 className="text-sm font-bold text-foreground">{t("summary.adjunctProcedures")}</h5>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[620px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-right text-xs text-muted-foreground">
-              <th className="px-2 py-1.5 font-medium">التاريخ</th>
-              <th className="px-2 py-1.5 font-medium">الموقع</th>
-              <th className="px-2 py-1.5 font-medium">الفئة والوصف</th>
-              <th className="px-2 py-1.5 font-medium">الجهة / نوع الرفع</th>
-              <th className="px-2 py-1.5 font-medium">المادة</th>
-              <th className="px-2 py-1.5 font-medium">الغشاء</th>
-              <th className="px-2 py-1.5 font-medium">الحالة</th>
+               <th className="px-2 py-1.5 font-medium">{t("summary.date")}</th>
+               <th className="px-2 py-1.5 font-medium">{t("summary.site")}</th>
+               <th className="px-2 py-1.5 font-medium">{t("summary.categoryDescription")}</th>
+               <th className="px-2 py-1.5 font-medium">{t("summary.sideLiftType")}</th>
+               <th className="px-2 py-1.5 font-medium">{t("summary.material")}</th>
+               <th className="px-2 py-1.5 font-medium">{t("summary.membrane")}</th>
+               <th className="px-2 py-1.5 font-medium">{t("summary.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -171,7 +175,7 @@ function BoneGraftSummary({
                 <td className="px-2 py-1.5">
                   {procedure.procedureStatus}
                   {procedure.status === "archived" ? (
-                    <Badge variant="secondary" className="ms-1 text-[10px]">مؤرشفة</Badge>
+                     <Badge variant="secondary" className="ms-1 text-[10px]">{t("summary.archived")}</Badge>
                   ) : null}
                 </td>
               </tr>
@@ -190,6 +194,7 @@ function ProstheticSummary({
   implantCase: ImplantCaseWithImplants;
   showArchived: boolean;
 }) {
+  const { t } = useClinicalTranslation();
   const events = implantCase.prostheticEvents.filter(
     (event) => showArchived || event.status === "active",
   );
@@ -198,7 +203,7 @@ function ProstheticSummary({
 
   return (
     <div className="space-y-2">
-      <h5 className="text-sm font-bold text-foreground">سجل التركيبات</h5>
+       <h5 className="text-sm font-bold text-foreground">{t("summary.prostheticRecord")}</h5>
       <div className="divide-y divide-border/60 border-y border-border/60">
         {events.map((event) => {
           const implant = event.implantId
@@ -208,8 +213,8 @@ function ProstheticSummary({
             <div key={event.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
               <span>{formatSaudiDate(event.eventDate)} | {event.eventType}</span>
               <span className="text-muted-foreground">
-                {implant ? `السن ${implant.site}` : "على مستوى الحالة"}
-                {event.status === "archived" ? " — مؤرشف" : ""}
+                 {implant ? t("implant.tooth", { site: implant.site }) : t("summary.caseLevel")}
+                 {event.status === "archived" ? ` — ${t("summary.archived")}` : ""}
               </span>
             </div>
           );
@@ -226,28 +231,29 @@ function CaseSummary({
   implantCase: ImplantCaseWithImplants;
   showArchived: boolean;
 }) {
+  const { t } = useClinicalTranslation();
   return (
     <article className="space-y-4 border-b border-border pb-6 last:border-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-2">
-        <h4 className="font-bold text-foreground">حالة زراعة — {implantCase.caseStatus}</h4>
-        {implantCase.status === "archived" ? <Badge variant="secondary">مؤرشفة</Badge> : null}
-        {implantCase.isReimplantation ? <Badge variant="outline">إعادة زراعة</Badge> : null}
+         <h4 className="font-bold text-foreground">{t("summary.implantCase")} — {implantCase.caseStatus}</h4>
+         {implantCase.status === "archived" ? <Badge variant="secondary">{t("summary.archived")}</Badge> : null}
+         {implantCase.isReimplantation ? <Badge variant="outline">{t("implant.reimplantation")}</Badge> : null}
       </div>
       <div className="grid gap-x-6 gap-y-2 border-y border-border/70 py-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <Field
-          label="تاريخ العملية"
+           label={t("summary.procedureDate")}
           value={implantCase.procedureDate ? formatSaudiDate(implantCase.procedureDate) : "—"}
         />
-        <Field label="الطبيب المعالج" value={implantCase.treatingDoctor} />
+         <Field label={t("summary.treatingDoctor")} value={implantCase.treatingDoctor} />
         <Field label="Pros" value={implantCase.prosValue ?? "—"} />
         <Field
-          label="تاريخ التركيب المتوقع"
+           label={t("summary.expectedProstheticDate")}
           value={implantCase.expectedProstheticDate ? formatSaudiDate(implantCase.expectedProstheticDate) : "—"}
         />
         {implantCase.referringDoctor ? (
-          <Field label="الطبيب المحوِّل" value={implantCase.referringDoctor} />
+           <Field label={t("implant.referringDoctor")} value={implantCase.referringDoctor} />
         ) : null}
-        {implantCase.generalNote ? <Field label="ملاحظة عامة" value={implantCase.generalNote} /> : null}
+         {implantCase.generalNote ? <Field label={t("summary.generalNote")} value={implantCase.generalNote} /> : null}
       </div>
       <ImplantTable implantCase={implantCase} showArchived={showArchived} />
       <BoneGraftSummary implantCase={implantCase} showArchived={showArchived} />
@@ -265,6 +271,7 @@ export function SummaryTab({
   showArchived?: boolean;
   onManage?: () => void;
 }) {
+  const { t } = useClinicalTranslation();
   const { user } = useAuth();
   const canViewFinancials = Boolean(
     user?.canViewFinancials || user?.canRecordPayments,
@@ -307,46 +314,46 @@ export function SummaryTab({
     <div className="space-y-7" data-testid="summary-tab">
       <div className="hidden print:block">
         <h1 className="text-xl font-bold text-brand-navy">غرس | Ghars</h1>
-        <p className="mt-1 text-sm">ملخص ملف مريض</p>
+         <p className="mt-1 text-sm">{t("summary.patientFileSummary")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          رقم الملف: <span dir="ltr">{patient.fileNumber}</span> — تاريخ الطباعة: {formatSaudiDateTime(new Date())}
+           {t("summary.fileNumber")}: <span dir="ltr">{patient.fileNumber}</span> — {t("summary.printDate")}: {formatSaudiDateTime(new Date())}
         </p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4 print:hidden">
         <div>
-          <h2 className="text-xl font-bold text-foreground">بيانات المريض</h2>
-          <p className="mt-1 text-sm text-muted-foreground">ملخص طبي مختصر للقراءة والمراجعة والطباعة.</p>
+           <h2 className="text-xl font-bold text-foreground">{t("summary.patientData")}</h2>
+           <p className="mt-1 text-sm text-muted-foreground">{t("summary.clinicalSummaryDescription")}</p>
         </div>
         <div className="flex items-center gap-2">
           {onManage ? (
             <Button variant="outline" size="sm" onClick={onManage} data-testid="button-manage-patient">
-              إدارة / تعديل الملف
+               {t("summary.manageFile")}
             </Button>
           ) : null}
           <Button variant="outline" size="sm" onClick={() => window.print()} data-testid="button-print-summary">
             <Printer className="ms-1.5 h-4 w-4" />
-            طباعة الملف
+             {t("summary.printFile")}
           </Button>
         </div>
       </div>
 
       <section>
-        <h3 className="mb-3 font-bold text-foreground">بيانات المريض</h3>
+         <h3 className="mb-3 font-bold text-foreground">{t("summary.patientData")}</h3>
         <div className="grid grid-cols-1 gap-x-8 gap-y-2 border-y border-border/70 py-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="الاسم الكامل" value={patient.fullName} />
-          <Field label="رقم الملف" value={<span dir="ltr">{patient.fileNumber}</span>} />
-          <Field label="رقم الجوال" value={<span dir="ltr">{patient.mobileNumber || "—"}</span>} />
-          <Field label="العمر" value={patient.age != null ? `${patient.age} سنة` : "—"} />
-          <Field label="تاريخ الإضافة" value={formatSaudiDate(patient.createdAt)} />
-          <Field label="ملاحظة إدارية" value={patient.administrativeNote ?? "—"} />
+           <Field label={t("summary.fullName")} value={patient.fullName} />
+           <Field label={t("summary.fileNumber")} value={<span dir="ltr">{patient.fileNumber}</span>} />
+           <Field label={t("summary.mobile")} value={<span dir="ltr">{patient.mobileNumber || "—"}</span>} />
+           <Field label={t("summary.age")} value={patient.age != null ? t("patient.years", { count: patient.age }) : "—"} />
+           <Field label={t("summary.addedAt")} value={formatSaudiDate(patient.createdAt)} />
+           <Field label={t("summary.administrativeNote")} value={patient.administrativeNote ?? "—"} />
         </div>
       </section>
 
       <section>
-        <h3 className="mb-3 font-bold text-foreground">حالات الزراعة ({cases.length})</h3>
+         <h3 className="mb-3 font-bold text-foreground">{t("summary.implantCases", { count: cases.length })}</h3>
         {cases.length === 0 ? (
-          <p className="text-sm text-muted-foreground">لا توجد حالات زراعة مسجلة.</p>
+           <p className="text-sm text-muted-foreground">{t("summary.noCases")}</p>
         ) : (
           <div className="space-y-6">
             {cases.map((implantCase) => (
@@ -358,14 +365,14 @@ export function SummaryTab({
 
       {canViewFinancials ? (
         <section>
-          <h3 className="mb-3 font-bold text-foreground">الملخص المالي</h3>
+           <h3 className="mb-3 font-bold text-foreground">{t("summary.financialSummary")}</h3>
           {cases.length === 0 ? (
-            <p className="text-sm text-muted-foreground">لا توجد حالات زراعة نشطة لعرض ملخص مالي.</p>
+             <p className="text-sm text-muted-foreground">{t("summary.noActiveCasesFinance")}</p>
           ) : (
             <div className="space-y-4">
               {cases.map((implantCase) => (
                 <div key={`finance-${implantCase.id}`} className="break-inside-avoid">
-                  <p className="mb-2 text-sm font-medium">حالة زراعة — {implantCase.caseStatus}</p>
+                   <p className="mb-2 text-sm font-medium">{t("summary.implantCase")} — {implantCase.caseStatus}</p>
                   <CaseFinanceSummaryRow caseId={implantCase.id} />
                 </div>
               ))}
@@ -375,13 +382,13 @@ export function SummaryTab({
       ) : null}
 
       <section>
-        <h3 className="mb-3 font-bold text-foreground">ملخص المتابعات</h3>
+         <h3 className="mb-3 font-bold text-foreground">{t("summary.followupSummary")}</h3>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-y border-border/70 py-3 md:grid-cols-5">
-          <Field label="متابعات مجدولة" value={openFollowups.length} />
-          <Field label="متابعات متأخرة" value={overdueFollowups.length} />
-          <Field label="متابعات منجزة" value={completedFollowups.length} />
+           <Field label={t("summary.scheduledFollowups")} value={openFollowups.length} />
+           <Field label={t("summary.overdueFollowups")} value={overdueFollowups.length} />
+           <Field label={t("summary.completedFollowups")} value={completedFollowups.length} />
           <Field
-            label="المتابعة القادمة"
+             label={t("summary.nextFollowup")}
             value={
               nextFollowup?.scheduledAt
                 ? `${nextFollowup.followupType} — ${formatSaudiDateTime(nextFollowup.scheduledAt)}`
@@ -389,7 +396,7 @@ export function SummaryTab({
             }
           />
           <Field
-            label="آخر نتيجة متابعة"
+             label={t("summary.latestFollowupResult")}
             value={
               completedFollowups
                 .slice()
@@ -401,15 +408,15 @@ export function SummaryTab({
       </section>
 
       <section>
-        <h3 className="mb-3 font-bold text-foreground">ملخص التواصل</h3>
+         <h3 className="mb-3 font-bold text-foreground">{t("summary.communicationSummary")}</h3>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-y border-border/70 py-3 md:grid-cols-3">
-          <Field label="عدد مرات التواصل" value={communications.length} />
+           <Field label={t("summary.communicationCount")} value={communications.length} />
           <Field
-            label="آخر تواصل"
+             label={t("summary.latestCommunication")}
             value={latestCommunication ? formatSaudiDateTime(latestCommunication.createdAt) : "—"}
           />
           <Field
-            label="آخر نتيجة تواصل"
+             label={t("summary.latestCommunicationResult")}
             value={latestCommunicationWithResult?.communicationResult ?? "—"}
           />
         </div>
