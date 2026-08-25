@@ -47,6 +47,7 @@ import { financeExportUrl } from "@/lib/api";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney, todayIso } from "@/lib/money";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 import "@/i18n/locales/ar/operations";
 import "@/i18n/locales/en/operations";
 
@@ -99,6 +100,7 @@ const CHART_COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
 
 export default function Finance() {
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const { user } = useAuth();
   const { data: options } = useImplantOptions();
 
@@ -190,9 +192,9 @@ export default function Finance() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Print-only header */}
         <div className="hidden print:block text-center border-b border-border pb-4 mb-4">
-          <h1 className="text-xl font-bold text-brand-navy">غرس | Ghars — التقرير المالي</h1>
+          <h1 className="text-xl font-bold text-brand-navy">{t("finance.printTitle")}</h1>
           <p className="text-sm mt-1">
-            الفترة: {formatSaudiDate(filters.from)} — {formatSaudiDate(filters.to)}
+            {t("finance.printPeriod", { from: formatSaudiDate(filters.from), to: formatSaudiDate(filters.to) })}
           </p>
         </div>
 
@@ -276,7 +278,7 @@ export default function Finance() {
                   <SelectItem value={ALL}>{t("finance.allPaymentMethods")}</SelectItem>
                   {PAYMENT_METHODS.map((m) => (
                     <SelectItem key={m} value={m}>
-                      {m}
+                      {enumLabel("paymentMethod", m)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -289,7 +291,7 @@ export default function Finance() {
                   <SelectItem value={ALL}>{t("finance.allPaymentStatuses")}</SelectItem>
                   {PAYMENT_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {s}
+                      {enumLabel("paymentStatus", s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -383,7 +385,7 @@ export default function Finance() {
                           nameKey="method"
                           innerRadius={55}
                           outerRadius={90}
-                          label={(entry) => entry.method}
+                          label={(entry) => enumLabel("paymentMethod", entry.method)}
                         >
                           {data.methodDistribution.map((entry, i) => (
                             <Cell
@@ -448,11 +450,11 @@ export default function Finance() {
                             <TableCell className="font-mono text-xs" dir="ltr">
                               {p.implantCaseId.slice(0, 8)}
                             </TableCell>
-                            <TableCell>{p.paymentLabel ?? "—"}</TableCell>
+                            <TableCell>{p.paymentLabel ? enumLabel("paymentLabel", p.paymentLabel) : "—"}</TableCell>
                             <TableCell className="tabular-nums whitespace-nowrap">
                               {formatMoney(p.amount)}
                             </TableCell>
-                            <TableCell>{p.paymentMethod ?? "—"}</TableCell>
+                            <TableCell>{p.paymentMethod ? enumLabel("paymentMethod", p.paymentMethod) : "—"}</TableCell>
                             <TableCell>{p.createdByName ?? "—"}</TableCell>
                           </TableRow>
                         ))}

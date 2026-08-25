@@ -43,6 +43,7 @@ import { formatMoney } from "@/lib/money";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 import { BaseAmountDialog } from "./BaseAmountDialog";
 import { ChargeFormDialog } from "./ChargeFormDialog";
 import { PaymentFormDialog } from "./PaymentFormDialog";
@@ -58,13 +59,14 @@ const STATUS_STYLES: Record<PaymentStatus, string> = {
 };
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
+  const { enumLabel } = useEnumTranslation();
   return (
     <Badge
       variant="outline"
       className={cn("font-medium", STATUS_STYLES[status])}
       data-testid="badge-payment-status"
     >
-      {status}
+      {enumLabel("paymentStatus", status)}
     </Badge>
   );
 }
@@ -81,6 +83,7 @@ export function CaseFinancePanel({
   canManage,
   canRecord,
 }: CaseFinancePanelProps) {
+  const { t } = useTranslation("operations");
   const { data, isLoading, isError } = useCaseFinance(caseItem.id);
   const writable = patient.status !== "archived";
 
@@ -95,7 +98,7 @@ export function CaseFinancePanel({
     return (
       <Alert variant="destructive">
         <AlertDescription>
-          تعذر تحميل الملخص المالي. يرجى المحاولة مرة أخرى.
+          {t("financeForms.summaryLoadError")}
         </AlertDescription>
       </Alert>
     );
@@ -106,7 +109,7 @@ export function CaseFinancePanel({
       {!writable ? (
         <Alert>
           <AlertDescription>
-            ملف المريض مؤرشف — البيانات المالية للعرض فقط.
+            {t("financeForms.archivedReadOnly")}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -145,11 +148,11 @@ function SummaryCard({
 
   const rows: Array<{ label: string; value: string; strong?: boolean }> = [
     { label: t("financeForms.baseTreatment"), value: formatMoney(s.baseTreatmentAmount) },
-    { label: "الرسوم الإضافية", value: formatMoney(s.chargesTotal) },
-    { label: "الخصومات", value: formatMoney(s.discountsTotal) },
+    { label: t("financeForms.additionalCharges"), value: formatMoney(s.chargesTotal) },
+    { label: t("financeForms.discounts"), value: formatMoney(s.discountsTotal) },
     { label: t("financeForms.finalTotal"), value: formatMoney(s.finalTotal), strong: true },
-    { label: "المدفوع", value: formatMoney(s.paidAmount) },
-    { label: "المتبقي", value: formatMoney(s.outstanding), strong: true },
+    { label: t("financeForms.summaryPaid"), value: formatMoney(s.paidAmount) },
+    { label: t("financeForms.outstanding"), value: formatMoney(s.outstanding), strong: true },
   ];
 
   return (
@@ -176,8 +179,7 @@ function SummaryCard({
           <Alert variant="destructive" data-testid="alert-overpaid">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              تنبيه: المبلغ المدفوع يتجاوز الإجمالي النهائي (رصيد زائد). لن يتم
-              تعديل الإجماليات تلقائيًا — راجع الدفعات أو الرسوم.
+              {t("financeForms.overpaidWarning")}
             </AlertDescription>
           </Alert>
         ) : null}
@@ -235,6 +237,8 @@ function PaymentsSection({
   canRecord: boolean;
   canManage: boolean;
 }) {
+  const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const [addOpen, setAddOpen] = useState(false);
   const [voidTarget, setVoidTarget] = useState<string | null>(null);
   const voidPayment = data.payments.find((p) => p.id === voidTarget) ?? null;
@@ -242,31 +246,31 @@ function PaymentsSection({
   return (
     <Card data-testid="card-payments">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-base">الدفعات</CardTitle>
+        <CardTitle className="text-base">{t("financeForms.payments")}</CardTitle>
         {canRecord ? (
           <Button size="sm" onClick={() => setAddOpen(true)} data-testid="button-add-payment">
             <Plus className="h-4 w-4 ms-1" />
-            تسجيل دفعة
+            {t("financeForms.recordPayment")}
           </Button>
         ) : null}
       </CardHeader>
       <CardContent>
         {data.payments.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            لا توجد دفعات مسجلة لهذه الحالة.
+            {t("financeForms.noPayments")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-start">التاريخ</TableHead>
-                  <TableHead className="text-start">الوصف</TableHead>
-                  <TableHead className="text-start">المبلغ</TableHead>
-                  <TableHead className="text-start">طريقة الدفع</TableHead>
-                  <TableHead className="text-start">رقم المرجع</TableHead>
-                  <TableHead className="text-start">المستخدم</TableHead>
-                  <TableHead className="text-start">الحالة</TableHead>
+                  <TableHead className="text-start">{t("financeForms.date")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.description")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.amount")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.method")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.referenceNumber")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.user")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.status")}</TableHead>
                   {canManage ? <TableHead /> : null}
                 </TableRow>
               </TableHeader>
@@ -281,7 +285,7 @@ function PaymentsSection({
                       {formatSaudiDate(p.paymentDate)}
                     </TableCell>
                     <TableCell>
-                      {p.paymentLabel ?? "—"}
+                      {p.paymentLabel ? enumLabel("paymentLabel", p.paymentLabel) : "—"}
                       {p.note ? (
                         <p className="text-xs text-muted-foreground mt-0.5">{p.note}</p>
                       ) : null}
@@ -294,24 +298,24 @@ function PaymentsSection({
                     >
                       {formatMoney(p.amount)}
                     </TableCell>
-                    <TableCell>{p.paymentMethod ?? "—"}</TableCell>
+                    <TableCell>{p.paymentMethod ? enumLabel("paymentMethod", p.paymentMethod) : "—"}</TableCell>
                     <TableCell>{p.referenceNumber ?? "—"}</TableCell>
                     <TableCell>{p.createdByName ?? "—"}</TableCell>
                     <TableCell>
                       {p.isVoided ? (
                         <div>
                           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                            ملغاة
+                            {t("financeForms.voided")}
                           </Badge>
                           {p.voidReason ? (
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              السبب: {p.voidReason}
+                              {t("financeForms.reason")}: {p.voidReason}
                             </p>
                           ) : null}
                         </div>
                       ) : (
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                          سارية
+                          {t("financeForms.active")}
                         </Badge>
                       )}
                     </TableCell>
@@ -326,7 +330,7 @@ function PaymentsSection({
                             data-testid={`button-void-payment-${p.id}`}
                           >
                             <Ban className="h-4 w-4 ms-1" />
-                            إلغاء
+                            {t("financeForms.cancel")}
                           </Button>
                         ) : null}
                       </TableCell>
@@ -364,6 +368,7 @@ function ChargesSection({
 }) {
   const { toast } = useToast();
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const deleteCharge = useDeleteCharge();
@@ -392,29 +397,29 @@ function ChargesSection({
   return (
     <Card data-testid="card-charges">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-base">الرسوم الإضافية</CardTitle>
+        <CardTitle className="text-base">{t("financeForms.additionalCharges")}</CardTitle>
         {canManage ? (
           <Button size="sm" variant="outline" onClick={() => setAddOpen(true)} data-testid="button-add-charge">
             <Plus className="h-4 w-4 ms-1" />
-            إضافة رسم
+            {t("financeForms.addCharge")}
           </Button>
         ) : null}
       </CardHeader>
       <CardContent>
         {data.charges.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            لا توجد رسوم إضافية لهذه الحالة.
+            {t("financeForms.noCharges")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-start">التاريخ</TableHead>
-                  <TableHead className="text-start">النوع</TableHead>
-                  <TableHead className="text-start">الوصف</TableHead>
-                  <TableHead className="text-start">الزرعة</TableHead>
-                  <TableHead className="text-start">المبلغ</TableHead>
+                  <TableHead className="text-start">{t("financeForms.date")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.chargeType")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.description")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.implant")}</TableHead>
+                  <TableHead className="text-start">{t("financeForms.amount")}</TableHead>
                   {canManage ? <TableHead /> : null}
                 </TableRow>
               </TableHeader>
@@ -424,9 +429,9 @@ function ChargesSection({
                     <TableCell className="whitespace-nowrap">
                       {formatSaudiDate(c.chargeDate)}
                     </TableCell>
-                    <TableCell>{c.chargeType}</TableCell>
+                    <TableCell>{enumLabel("chargeType", c.chargeType)}</TableCell>
                     <TableCell>{c.description ?? "—"}</TableCell>
-                    <TableCell>{c.implantSite ? `سن ${c.implantSite}` : "—"}</TableCell>
+                    <TableCell>{c.implantSite ? t("financeForms.implantTooth", { site: c.implantSite }) : "—"}</TableCell>
                     <TableCell className="tabular-nums whitespace-nowrap">
                       {formatMoney(c.amount)}
                     </TableCell>
@@ -469,13 +474,13 @@ function ChargesSection({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>{t("financeForms.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-delete-charge"
             >
-              حذف
+              {t("financeForms.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

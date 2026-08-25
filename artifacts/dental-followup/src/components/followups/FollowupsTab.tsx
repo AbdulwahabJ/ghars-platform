@@ -37,6 +37,7 @@ import {
   followupStatusClasses,
 } from "./followup-utils";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 interface FollowupsTabProps {
   patient: Patient;
@@ -46,6 +47,7 @@ const CLOSED = CLOSED_FOLLOWUP_STATUSES as readonly string[];
 
 export function FollowupsTab({ patient }: FollowupsTabProps) {
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const isArchived = Boolean(patient.archivedAt);
   const { data: casesData } = useImplantCases(patient.id);
   const { data: followups, isLoading } = useFollowups(patient.id);
@@ -124,7 +126,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
       </div>
       {activeCases.length === 0 && !isArchived ? (
         <p className="text-sm text-muted-foreground">
-          أضف حالة زراعة أولًا لإنشاء متابعة.
+          {t("followups.addCaseFirst")}
         </p>
       ) : null}
 
@@ -133,7 +135,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
         <section className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
           <h3 className="flex items-center gap-2 text-sm font-bold text-destructive">
             <AlarmClock className="h-4 w-4" />
-            متابعات متأخرة ({buckets.overdue.length})
+            {t("followups.overdue", { count: buckets.overdue.length })}
           </h3>
           {buckets.overdue.map((f) => (
             <FollowupItem
@@ -156,18 +158,18 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
         <section className="rounded-lg border border-amber-300/60 bg-amber-50 p-4 space-y-3">
           <h3 className="flex items-center gap-2 text-sm font-bold text-amber-800">
             <PhoneCall className="h-4 w-4" />
-            مهام تواصل مستحقة ({contactTasks.length})
+            {t("followups.contactDue", { count: contactTasks.length })}
           </h3>
           {contactTasks.map((f) => (
             <div key={`contact-${f.id}`} className="flex items-center justify-between gap-2 text-sm">
               <span>
-                {f.followupType}
-                {f.contactDueAt ? ` — يستحق ${formatSaudiDate(f.contactDueAt)}` : null}
+                {enumLabel("followupType", f.followupType)}
+                {f.contactDueAt ? ` — ${t("followups.due", { date: formatSaudiDate(f.contactDueAt) })}` : null}
               </span>
               {!isArchived ? (
                 <Button size="sm" variant="outline" className="gap-1" onClick={() => openWhatsapp(f)}>
                   <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />
-                  <span>واتساب</span>
+                  <span>{t("followups.whatsappShort")}</span>
                 </Button>
               ) : null}
             </div>
@@ -179,7 +181,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
       <section className="rounded-lg border border-border p-4 space-y-3">
         <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
           <CalendarClock className="h-4 w-4 text-primary" />
-          المواعيد المجدولة
+          {t("followups.scheduledAppointments")}
         </h3>
         {buckets.today.length === 0 && buckets.upcoming.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("followups.noScheduled")}</p>
@@ -189,7 +191,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
               <FollowupItem
                 key={f.id}
                 followup={f}
-                highlight="اليوم"
+                highlight={t("followups.today")}
                 isArchived={isArchived}
                 onOutcome={setOutcomeTarget}
                 onPostpone={setPostponeTarget}
@@ -220,7 +222,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
       <section className="rounded-lg border border-border p-4 space-y-3">
         <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
           <History className="h-4 w-4 text-muted-foreground" />
-          سجل المتابعات
+          {t("followups.history")}
         </h3>
         {history.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("followups.noHistory")}</p>
@@ -245,7 +247,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
       <section className="rounded-lg border border-border p-4 space-y-3">
         <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
           <MessageCircle className="h-4 w-4 text-[#25D366]" />
-          سجل التواصل
+          {t("followups.communications")}
         </h3>
         {communicationsLoading ? (
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -260,15 +262,17 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <span>{c.communicationReason ?? "تواصل"}</span>
+                  <span>
+                    {enumLabel("communicationReason", c.communicationReason) || "—"}
+                  </span>
                   {c.templateName ? (
                     <span className="text-xs text-muted-foreground">
-                      (قالب: {c.templateName})
+                      ({t("followups.template")}: {c.templateName})
                     </span>
                   ) : null}
                 </div>
                 <Badge variant="outline" className={communicationResultClasses(c.communicationResult)}>
-                  {c.communicationResult ?? "بدون نتيجة"}
+                  {enumLabel("communicationResult", c.communicationResult) || "—"}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -281,7 +285,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
                 </p>
               ) : null}
               {c.resultNote ? (
-                <p className="text-xs text-muted-foreground">ملاحظة: {c.resultNote}</p>
+                <p className="text-xs text-muted-foreground">{t("followups.note")}: {c.resultNote}</p>
               ) : null}
               {!isArchived ? (
                 <Button
@@ -291,7 +295,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
                   onClick={() => setResultTarget(c)}
                   data-testid={`button-communication-result-${c.id}`}
                 >
-                  تسجيل النتيجة
+                  {t("followups.recordResult")}
                 </Button>
               ) : null}
             </div>
@@ -313,8 +317,8 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
         onOpenChange={(v) => !v && setOutcomeTarget(null)}
         patientId={patient.id}
         followup={outcomeTarget}
-        title="تغيير حالة المتابعة"
-        successMessage="تم تحديث حالة المتابعة."
+        title={t("followups.changeStatus")}
+        successMessage={t("followups.statusUpdated")}
       />
       <PostponeDialog
         open={Boolean(postponeTarget)}
@@ -367,6 +371,8 @@ function FollowupItem({
   onNewFrom,
   onWhatsapp,
 }: FollowupItemProps) {
+  const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const isOpen = f.followupStatus === "مجدولة";
   const isClosed = CLOSED.includes(f.followupStatus);
   const canAct = !isArchived && !isClosed;
@@ -378,23 +384,25 @@ function FollowupItem({
     >
       <div className="space-y-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium">{f.followupType}</span>
+          <span className="text-sm font-medium">
+            {enumLabel("followupType", f.followupType)}
+          </span>
           <Badge variant="outline" className={followupStatusClasses(f.followupStatus)}>
-            <span className="notranslate">{f.followupStatus}</span>
+            <span>{enumLabel("followupStatus", f.followupStatus)}</span>
           </Badge>
           {highlight ? (
             <Badge className="bg-primary text-primary-foreground">{highlight}</Badge>
           ) : null}
         </div>
         <p className="text-xs text-muted-foreground">
-          {f.scheduledAt ? formatSaudiDateTime(f.scheduledAt) : "بدون موعد"}
-          {f.assignedUserName ? ` — المسؤول: ${f.assignedUserName}` : null}
+          {f.scheduledAt ? formatSaudiDateTime(f.scheduledAt) : t("followups.noAppointment")}
+          {f.assignedUserName ? ` — ${t("followups.responsible")}: ${f.assignedUserName}` : null}
         </p>
         {f.result ? (
-          <p className="text-xs text-muted-foreground">النتيجة: {f.result}</p>
+          <p className="text-xs text-muted-foreground">{t("followups.result")}: {f.result}</p>
         ) : null}
         {f.note ? (
-          <p className="text-xs text-muted-foreground">ملاحظة: {f.note}</p>
+          <p className="text-xs text-muted-foreground">{t("followups.note")}: {f.note}</p>
         ) : null}
       </div>
       {!isArchived ? (
@@ -413,30 +421,30 @@ function FollowupItem({
             {canAct ? (
               <>
                 <DropdownMenuItem onClick={() => onOutcome(f)} data-testid={`action-status-${f.id}`}>
-                  تغيير الحالة
+                  {t("followups.changeStatus")}
                 </DropdownMenuItem>
                 {isOpen ? (
                   <DropdownMenuItem onClick={() => onPostpone(f)} data-testid={`action-postpone-${f.id}`}>
-                    تأجيل
+                    {t("followups.postpone")}
                   </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuItem onClick={() => onEdit(f)} data-testid={`action-edit-${f.id}`}>
-                  تعديل
+                  {t("followups.edit")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => onCancel(f)}
                   className="text-destructive focus:text-destructive"
                   data-testid={`action-cancel-${f.id}`}
                 >
-                  إلغاء المتابعة
+                  {t("followups.cancelFollowup")}
                 </DropdownMenuItem>
               </>
             ) : null}
             <DropdownMenuItem onClick={() => onNewFrom(f)} data-testid={`action-new-from-${f.id}`}>
-              متابعة جديدة من هذه
+              {t("followups.newFrom")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onWhatsapp(f)} data-testid={`action-whatsapp-${f.id}`}>
-              تواصل عبر واتساب
+              {t("followups.whatsapp")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

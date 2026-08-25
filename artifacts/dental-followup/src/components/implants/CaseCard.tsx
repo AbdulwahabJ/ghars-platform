@@ -35,6 +35,7 @@ import { formatSaudiDate } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 const FAILURE_STATUSES = ["زرعة فاشلة", "يحتاج إعادة زراعة"];
 const SUCCESS_STATUSES = ["تم التركيب", "مكتمل", "تمت إعادة الزراعة"];
@@ -72,6 +73,7 @@ export function CaseCard({
   readOnly,
 }: CaseCardProps) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const { toast } = useToast();
   const archiveCase = useArchiveImplantCase();
   const archiveProstheticEvent = useArchiveProstheticEvent();
@@ -226,7 +228,7 @@ export function CaseCard({
             <div className="flex flex-wrap items-center gap-2">
                <h3 className="text-lg font-bold text-foreground">{t("implant.case")}</h3>
               <Badge variant="outline" className={cn("border", caseStatusClasses(caseItem.caseStatus))}>
-                {caseItem.caseStatus}
+                {enumLabel("caseStatus", caseItem.caseStatus)}
               </Badge>
               {isArchived && (
                 <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
@@ -322,7 +324,7 @@ export function CaseCard({
               {sourceCase && (
                 <p>
                    <span className="text-muted-foreground">{t("implant.sourceCase")}: </span>
-                   {t("implant.case")} {formatSaudiDate(sourceCase.procedureDate ?? sourceCase.createdAt)} — {sourceCase.caseStatus}
+                   {t("implant.case")} {formatSaudiDate(sourceCase.procedureDate ?? sourceCase.createdAt)} — {enumLabel("caseStatus", sourceCase.caseStatus)}
                 </p>
               )}
             </div>
@@ -363,7 +365,7 @@ export function CaseCard({
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                          {event.eventType}
+                          {enumLabel("prostheticEventType", event.eventType)}
                         </Badge>
                         <span className="font-semibold text-foreground">
                           {formatSaudiDate(event.eventDate)}
@@ -427,7 +429,7 @@ export function CaseCard({
                 const implant = item.implantId ? caseItem.implants.find((candidate) => candidate.id === item.implantId) : null;
                 return <div key={item.id} className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{item.procedureCategory}</Badge>
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{enumLabel("adjunctProcedureCategory", item.procedureCategory)}</Badge>
                     <span>{item.procedureType}</span>
                     <span className="font-semibold">{formatSaudiDate(item.procedureDate)}</span>
                     <Badge variant="secondary">{item.procedureStatus}</Badge>
@@ -435,7 +437,7 @@ export function CaseCard({
                      {!isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 me-auto" onClick={() => setBoneGraftProcedureDialog(item)}><Pencil className="h-3.5 w-3.5 ms-1" />{t("implant.edit")}</Button>}
                      {canArchive && !isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setBoneGraftProcedureToArchive(item)}><Archive className="h-3.5 w-3.5 ms-1" />{t("implant.archive")}</Button>}
                   </div>
-                   {(item.procedureSide || item.liftType || item.material || item.membrane || item.site || item.note) && <p className="mt-1.5 text-muted-foreground">{[item.procedureSide && `${t("implant.procedureSide")}: ${item.procedureSide}`, item.liftType && `${t("implant.graftProcedureType")}: ${item.liftType}`, item.site && `${t("implant.procedureSite")}: ${item.site}`, item.material && `${t("implant.material")}: ${item.material}`, item.membrane && `${t("implant.membrane")}: ${item.membrane}`, item.note].filter(Boolean).join(" — ")}</p>}
+                   {(item.procedureSide || item.liftType || item.material || item.membrane || item.site || item.note) && <p className="mt-1.5 text-muted-foreground">{[item.procedureSide && `${t("implant.procedureSide")}: ${enumLabel("procedureSide", item.procedureSide)}`, item.liftType && `${t("implant.graftProcedureType")}: ${enumLabel("sinusLiftType", item.liftType)}`, item.site && `${t("implant.procedureSite")}: ${item.site}`, item.material && `${t("implant.material")}: ${item.material}`, item.membrane && `${t("implant.membrane")}: ${item.membrane}`, item.note].filter(Boolean).join(" — ")}</p>}
                 </div>;
               })}
             </div>

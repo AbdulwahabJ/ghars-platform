@@ -11,6 +11,7 @@ import { CASE_STATUSES, IMPLANT_STATUSES } from "@workspace/shared";
 import { REPORT_PERIODS, type ReportPeriodId } from "@/lib/report-periods";
 import { todayIso } from "@/lib/money";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 export const ALL = "__all__";
 
@@ -40,6 +41,7 @@ export function ReportFiltersBar({
   systemOptions: string[];
 }) {
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const set = (patch: Partial<ReportFilterState>) =>
     onChange({ ...state, ...patch });
 
@@ -152,7 +154,7 @@ export function ReportFiltersBar({
               <SelectItem value={ALL}>{t("filters.all")}</SelectItem>
               {CASE_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
-                  <span className="notranslate">{s}</span>
+                  {enumLabel("caseStatus", s)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -171,7 +173,7 @@ export function ReportFiltersBar({
               <SelectItem value={ALL}>{t("filters.all")}</SelectItem>
               {IMPLANT_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
-                  <span className="notranslate">{s}</span>
+                  {enumLabel("implantStatus", s)}
                 </SelectItem>
               ))}
             </SelectContent>

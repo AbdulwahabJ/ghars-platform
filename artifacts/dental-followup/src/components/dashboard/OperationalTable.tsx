@@ -45,6 +45,7 @@ import {
   type ReportFilterState,
 } from "./ReportFiltersBar";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 import i18n from "@/i18n";
 import { localizeErrorMessage } from "@/lib/localize-error";
 
@@ -72,7 +73,12 @@ interface ProstheticEventContext {
 
 const PAGE_SIZE = 10;
 const SHOW_PROSTHETIC_EVENT_LOG = false;
-const dashboardText = (key: string) => i18n.t(`guidance:dashboard.${key}`);
+const dashboardText = (key: string, options?: Record<string, unknown>) => {
+  const operationalKey = `operations:dashboard.${key}`;
+  return i18n.exists(operationalKey)
+    ? i18n.t(operationalKey, options)
+    : i18n.t(`guidance:dashboard.${key}`, options);
+};
 const NORMAL_IMPLANT_STATUS_PROGRESSION: readonly ImplantStatus[] = [
   "مزروعة",
   "مرحلة الالتئام",
@@ -136,7 +142,7 @@ function summaryAdjunctProcedureTypes(rows: OperationalRow[]): Array<[string, nu
 function summaryDoctor(rows: OperationalRow[]): string {
   const doctors = [...new Set(rows.map((r) => r.treatingDoctor).filter(Boolean))];
   if (doctors.length === 1) return doctors[0]!;
-  return doctors.length > 1 ? "متعددة" : "—";
+  return doctors.length > 1 ? dashboardText("multiple") : "—";
 }
 
 function summaryImplantCount(rows: OperationalRow[]): number {
@@ -163,7 +169,7 @@ function summaryPaymentStatus(rows: OperationalRow[]): string | null {
   const statuses = [...new Set(rows.map((r) => r.finance?.paymentStatus).filter(Boolean))];
   if (statuses.length === 0) return null;
   if (statuses.length === 1) return statuses[0] ?? null;
-  return "متعددة";
+  return dashboardText("multiple");
 }
 
 function hasOverdue(rows: OperationalRow[]): boolean {
@@ -276,6 +282,7 @@ function ImplantStatusStepper({
   onRequestProstheticDocumentation: (eventType: ProstheticEventType) => void;
 }) {
   const { t } = useTranslation("guidance");
+  const { enumLabel } = useEnumTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const update = useUpdateImplant();
@@ -315,7 +322,7 @@ function ImplantStatusStepper({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم تحديث حالة الزرعة" });
+          toast({ title: dashboardText("implantStatusUpdated") });
           void queryClient.invalidateQueries({
             queryKey: ["operational-report"],
           });
@@ -352,7 +359,7 @@ function ImplantStatusStepper({
               variant="outline"
               size="icon"
               className="h-7 w-7 shrink-0"
-              aria-label="المرحلة السابقة"
+              aria-label={dashboardText("previousStep")}
               disabled={busy || (!previousStatus && !isInstallationStatus)}
               onClick={() => {
                 if (isInstallationStatus) {
@@ -366,14 +373,14 @@ function ImplantStatusStepper({
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent>المرحلة السابقة</TooltipContent>
+        <TooltipContent>{dashboardText("previousStep")}</TooltipContent>
       </Tooltip>
 
       <Badge
         variant="outline"
-        className={`h-7 max-w-[150px] truncate px-2 text-[10px] notranslate ${implantStatusClass(implant.implantStatus)}`}
+        className={`h-7 max-w-[150px] truncate px-2 text-[10px] ${implantStatusClass(implant.implantStatus)}`}
       >
-        {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : implant.implantStatus}
+        {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : enumLabel("implantStatus", implant.implantStatus)}
       </Badge>
 
       <Tooltip>
@@ -384,7 +391,7 @@ function ImplantStatusStepper({
               variant="outline"
               size="icon"
               className="h-7 w-7 shrink-0"
-              aria-label="المرحلة التالية"
+              aria-label={dashboardText("nextStep")}
               disabled={busy || !nextStatus}
               onClick={() => nextStatus && requestStatusChange(nextStatus)}
             >
@@ -392,7 +399,7 @@ function ImplantStatusStepper({
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent>المرحلة التالية</TooltipContent>
+        <TooltipContent>{dashboardText("nextStep")}</TooltipContent>
       </Tooltip>
 
     </div>
@@ -409,6 +416,7 @@ function InlinePatientEdit({
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const update = useUpdatePatient();
   const [fullName, setFullName] = useState(p.fullName);
   const [mobile, setMobile] = useState(p.mobileNumber ?? "");
@@ -427,7 +435,7 @@ function InlinePatientEdit({
         },
       },
       {
-        onSuccess: () => { toast({ title: "تم تحديث بيانات المريض" }); onDone(); },
+        onSuccess: () => { toast({ title: dashboardText("patientUpdated") }); onDone(); },
         onError: (error) => { toast({ title: dashboardText("updateFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
@@ -437,19 +445,19 @@ function InlinePatientEdit({
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">الاسم *</Label>
+          <Label className="text-xs">{dashboardText("nameRequired")}</Label>
           <Input className="h-8 text-sm" value={fullName} onChange={(e) => setFullName(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">الجوال</Label>
+          <Label className="text-xs">{dashboardText("mobile")}</Label>
           <Input className="h-8 text-sm" dir="ltr" value={mobile} onChange={(e) => setMobile(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">العمر</Label>
+          <Label className="text-xs">{dashboardText("age")}</Label>
           <Input className="h-8 text-sm" type="number" min={0} max={130} value={age} onChange={(e) => setAge(e.target.value)} />
         </div>
         <div className="col-span-2 space-y-1">
-          <Label className="text-xs">ملاحظة إدارية</Label>
+          <Label className="text-xs">{dashboardText("administrativeNote")}</Label>
           <Textarea className="text-sm resize-none" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
@@ -476,6 +484,7 @@ function InlineCaseEdit({
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const update = useUpdateImplantCase();
   const [caseStatus, setCaseStatus] = useState<string>(c.caseStatus);
   const [treatingDoctor, setTreatingDoctor] = useState(c.treatingDoctor);
@@ -499,7 +508,7 @@ function InlineCaseEdit({
         },
       },
       {
-        onSuccess: () => { toast({ title: "تم تحديث الحالة" }); onDone(); },
+        onSuccess: () => { toast({ title: dashboardText("caseUpdated") }); onDone(); },
         onError: (error) => { toast({ title: dashboardText("updateFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
@@ -509,24 +518,24 @@ function InlineCaseEdit({
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">حالة الحالة</Label>
+          <Label className="text-xs">{dashboardText("caseStatus")}</Label>
           <Select value={caseStatus} onValueChange={setCaseStatus}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {CASE_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {CASE_STATUSES.map((s) => <SelectItem key={s} value={s}>{enumLabel("caseStatus", s)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">الطبيب المعالج</Label>
+          <Label className="text-xs">{dashboardText("treatingDoctor")}</Label>
           <Input className="h-8 text-sm" value={treatingDoctor} onChange={(e) => setTreatingDoctor(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">تاريخ العملية</Label>
+          <Label className="text-xs">{dashboardText("procedureDate")}</Label>
           <OperationalDatePicker value={procedureDate} onChange={setProcedureDate} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">مدة التركيب (Pros)</Label>
+          <Label className="text-xs">{dashboardText("prostheticDuration")}</Label>
           <Input className="h-8 text-sm" value={prosValue} onChange={(e) => setProsValue(e.target.value)} placeholder="3M" />
         </div>
         <ExpectedProstheticDateField
@@ -538,7 +547,7 @@ function InlineCaseEdit({
           idPrefix={`operational-${c.id}`}
         />
         <div className="col-span-2 space-y-1">
-          <Label className="text-xs">ملاحظة</Label>
+          <Label className="text-xs">{dashboardText("note")}</Label>
           <Textarea className="text-sm resize-none" rows={2} value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} />
         </div>
       </div>
@@ -567,6 +576,7 @@ function InlineImplantEdit({
   onRequestProstheticDocumentation: (eventType: ProstheticEventType) => void;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const update = useUpdateImplant();
   const { data: implantOptions } = useImplantOptions();
   const [site, setSite] = useState(imp.site);
@@ -607,7 +617,7 @@ function InlineImplantEdit({
         },
       },
       {
-        onSuccess: () => { toast({ title: "تم تحديث الزرعة" }); onDone(); },
+        onSuccess: () => { toast({ title: dashboardText("implantUpdated") }); onDone(); },
         onError: (error) => { toast({ title: dashboardText("updateFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
@@ -617,15 +627,15 @@ function InlineImplantEdit({
     <div className="space-y-2">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">الموقع (FDI)</Label>
+          <Label className="text-xs">{dashboardText("siteFdi")}</Label>
           <Select dir="ltr" value={site} onValueChange={(value) => setSite(value as typeof FDI_SITES[number])}>
             <SelectTrigger className="h-7 text-xs text-start"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
+              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("upperJaw")}</div>
               {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
-              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك السفلي</div>
+              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("lowerJaw")}</div>
               {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
@@ -633,7 +643,7 @@ function InlineImplantEdit({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">النظام</Label>
+          <Label className="text-xs">{dashboardText("system")}</Label>
           <Select value={system || "__none__"} onValueChange={(v) => setSystem(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
@@ -643,11 +653,11 @@ function InlineImplantEdit({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">القطر</Label>
+          <Label className="text-xs">{dashboardText("diameter")}</Label>
           <Input className="h-7 text-xs" type="number" step="0.1" value={diameter} onChange={(e) => setDiameter(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">الطول</Label>
+          <Label className="text-xs">{dashboardText("length")}</Label>
           <Input className="h-7 text-xs" type="number" step="0.1" value={length} onChange={(e) => setLength(e.target.value)} />
         </div>
         <div className="space-y-1">
@@ -681,11 +691,11 @@ function InlineImplantEdit({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">الحالة</Label>
+          <Label className="text-xs">{dashboardText("status")}</Label>
           <Select value={implantStatus} onValueChange={(v) => handleStatusChange(v as ImplantStatus)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{enumLabel("implantStatus", s)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -717,16 +727,17 @@ function CaseSelector({
   selected: string;
   onSelect: (id: string) => void;
 }) {
+  const { enumLabel } = useEnumTranslation();
   if (cases.length <= 1) return null;
   return (
     <div className="space-y-1">
-      <Label className="text-xs">الحالة *</Label>
+      <Label className="text-xs">{dashboardText("caseRequired")}</Label>
       <Select value={selected} onValueChange={onSelect}>
-        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="اختر الحالة" /></SelectTrigger>
+        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder={dashboardText("selectCase")} /></SelectTrigger>
         <SelectContent>
           {cases.map((c) => (
             <SelectItem key={c.id} value={c.id}>
-              {c.caseStatus} — {c.treatingDoctor}
+              {enumLabel("caseStatus", c.caseStatus)} — {c.treatingDoctor}
             </SelectItem>
           ))}
         </SelectContent>
@@ -786,7 +797,7 @@ function InlineAddImplant({
       },
       {
         onSuccess: () => {
-          toast({ title: "تمت إضافة الزرعة" });
+          toast({ title: dashboardText("implantAdded") });
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
@@ -797,25 +808,25 @@ function InlineAddImplant({
 
   return (
     <div className="space-y-3 pt-1">
-      <p className="text-xs font-semibold text-muted-foreground">إضافة زرعة</p>
+      <p className="text-xs font-semibold text-muted-foreground">{dashboardText("addImplant")}</p>
       <CaseSelector cases={cases} selected={caseId} onSelect={setCaseId} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {/* Site */}
         <div className="space-y-1">
-          <Label className="text-xs">الموقع (FDI) *</Label>
+          <Label className="text-xs">{dashboardText("siteFdiRequired")}</Label>
           <Select dir="ltr" value={site} onValueChange={(value) => setSite(value as typeof FDI_SITES[number])}>
             <SelectTrigger className="h-8 text-sm text-start"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
-              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
+              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("upperJaw")}</div>
               {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك السفلي</div>
+              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("lowerJaw")}</div>
               {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         {/* System */}
         <div className="space-y-1">
-          <Label className="text-xs">النظام</Label>
+          <Label className="text-xs">{dashboardText("system")}</Label>
           <Select value={system || "__none__"} onValueChange={(v) => setSystem(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
@@ -826,12 +837,12 @@ function InlineAddImplant({
         </div>
         {/* Diameter */}
         <div className="space-y-1">
-          <Label className="text-xs">القطر</Label>
+          <Label className="text-xs">{dashboardText("diameter")}</Label>
           <Input className="h-8 text-sm" type="number" step="0.1" min={0} value={diameter} onChange={(e) => setDiameter(e.target.value)} />
         </div>
         {/* Length */}
         <div className="space-y-1">
-          <Label className="text-xs">الطول</Label>
+          <Label className="text-xs">{dashboardText("length")}</Label>
           <Input className="h-8 text-sm" type="number" step="0.1" min={0} value={length} onChange={(e) => setLength(e.target.value)} />
         </div>
         {/* Q */}
@@ -869,7 +880,7 @@ function InlineAddImplant({
         </div>
         {/* Implant Status */}
         <div className="space-y-1">
-          <Label className="text-xs">حالة الزرعة</Label>
+          <Label className="text-xs">{dashboardText("implantStatus")}</Label>
           <Select value={implantStatus} onValueChange={(value) => setImplantStatus(value as ImplantStatus)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -881,18 +892,18 @@ function InlineAddImplant({
         {graftValue && (
           <>
             <div className="space-y-1">
-              <Label className="text-xs">نوع إجراء الترقيع</Label>
+              <Label className="text-xs">{dashboardText("graftProcedureType")}</Label>
               <Input className="h-8 text-sm" value={graftProcedureType} onChange={(e) => setGraftProcedureType(e.target.value)} />
             </div>
             <div className="col-span-2 sm:col-span-3 space-y-1">
-              <Label className="text-xs">ملاحظة الترقيع</Label>
+              <Label className="text-xs">{dashboardText("graftNote")}</Label>
               <Input className="h-8 text-sm" value={graftNote} onChange={(e) => setGraftNote(e.target.value)} />
             </div>
           </>
         )}
         {/* Implant note — full width */}
         <div className="col-span-2 sm:col-span-4 space-y-1">
-          <Label className="text-xs">ملاحظة</Label>
+          <Label className="text-xs">{dashboardText("note")}</Label>
           <Textarea className="text-sm resize-none" rows={2} value={implantNote} onChange={(e) => setImplantNote(e.target.value)} />
         </div>
       </div>
@@ -946,7 +957,7 @@ function InlineRecordPayment({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم تسجيل الدفعة" });
+          toast({ title: dashboardText("paymentRecorded") });
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
@@ -957,15 +968,15 @@ function InlineRecordPayment({
 
   return (
     <div className="space-y-3 pt-1">
-      <p className="text-xs font-semibold text-muted-foreground">تسجيل دفعة</p>
+      <p className="text-xs font-semibold text-muted-foreground">{dashboardText("recordPayment")}</p>
       <CaseSelector cases={cases} selected={caseId} onSelect={setCaseId} />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">المبلغ (ر.س) *</Label>
+          <Label className="text-xs">{dashboardText("amountSarRequired")}</Label>
           <Input className="h-8 text-sm" type="number" step="0.01" min={0.01} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">وصف الدفعة</Label>
+          <Label className="text-xs">{dashboardText("paymentDescription")}</Label>
           <Select value={paymentLabel} onValueChange={(value) => setPaymentLabel(value as typeof PAYMENT_LABELS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -974,7 +985,7 @@ function InlineRecordPayment({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">طريقة الدفع</Label>
+          <Label className="text-xs">{dashboardText("paymentMethod")}</Label>
           <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as typeof PAYMENT_METHODS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -983,15 +994,15 @@ function InlineRecordPayment({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">تاريخ الدفعة</Label>
+          <Label className="text-xs">{dashboardText("paymentDate")}</Label>
           <OperationalDatePicker value={paymentDate} onChange={setPaymentDate} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">رقم المرجع</Label>
-          <Input className="h-8 text-sm" dir="ltr" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="اختياري" />
+          <Label className="text-xs">{dashboardText("referenceNumber")}</Label>
+          <Input className="h-8 text-sm" dir="ltr" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder={dashboardText("optional")} />
         </div>
         <div className="col-span-2 sm:col-span-3 space-y-1">
-          <Label className="text-xs">ملاحظة</Label>
+          <Label className="text-xs">{dashboardText("note")}</Label>
           <Textarea className="text-sm resize-none" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
@@ -1018,6 +1029,7 @@ function InlineAddFollowup({
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const create = useCreateFollowup(patientId);
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -1052,7 +1064,7 @@ function InlineAddFollowup({
       },
       {
         onSuccess: () => {
-          toast({ title: "تمت إضافة المتابعة" });
+          toast({ title: dashboardText("followupAdded") });
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
@@ -1063,15 +1075,19 @@ function InlineAddFollowup({
 
   return (
     <div className="space-y-3 pt-1">
-      <p className="text-xs font-semibold text-muted-foreground">إضافة متابعة</p>
+      <p className="text-xs font-semibold text-muted-foreground">{dashboardText("addFollowup")}</p>
       <CaseSelector cases={cases} selected={caseId} onSelect={setCaseId} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">نوع المتابعة *</Label>
+          <Label className="text-xs">{dashboardText("followupTypeRequired")}</Label>
           <Select value={followupType} onValueChange={(value) => setFollowupType(value as FollowupType)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {FOLLOWUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              {FOLLOWUP_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {enumLabel("followupType", type)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -1079,21 +1095,21 @@ function InlineAddFollowup({
           value={scheduledAt}
           onChange={setScheduledAt}
           required
-          label="موعد المتابعة"
+          label={dashboardText("followupAppointment")}
         />
         <div className="space-y-1">
-          <Label className="text-xs">المسؤول</Label>
+          <Label className="text-xs">{dashboardText("assignee")}</Label>
           <div
             className="flex h-8 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
             data-testid="inline-followup-current-assignee"
           >
-            {user?.fullName ?? "المستخدم الحالي"}
+            {user?.fullName ?? dashboardText("currentUser")}
           </div>
         </div>
         <OperationalDateTimeFields
           value={nextAppointmentAt}
           onChange={setNextAppointmentAt}
-          label="الموعد التالي"
+          label={dashboardText("nextAppointment")}
         />
         <div className="col-span-1 sm:col-span-2 flex items-center gap-2 pt-1">
           <Checkbox
@@ -1101,16 +1117,16 @@ function InlineAddFollowup({
             checked={requiresContact}
             onCheckedChange={(v) => setRequiresContact(!!v)}
           />
-          <Label htmlFor="qe-requires-contact" className="text-xs cursor-pointer">يتطلب تواصلًا</Label>
+          <Label htmlFor="qe-requires-contact" className="text-xs cursor-pointer">{dashboardText("requiresContact")}</Label>
         </div>
         {requiresContact && (
           <div className="space-y-1">
-            <Label className="text-xs">تاريخ التواصل</Label>
+            <Label className="text-xs">{dashboardText("contactDueDate")}</Label>
             <OperationalDatePicker value={contactDueAt} onChange={setContactDueAt} />
           </div>
         )}
         <div className="col-span-1 sm:col-span-2 space-y-1">
-          <Label className="text-xs">ملاحظة</Label>
+          <Label className="text-xs">{dashboardText("note")}</Label>
           <Textarea className="text-sm resize-none" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
@@ -1160,6 +1176,7 @@ function InlineFollowupEdit({
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const update = useUpdateFollowup(patientId);
   const { data: assignableUsers } = useAssignableUsers();
   const [followupType, setFollowupType] = useState<FollowupType>(
@@ -1189,7 +1206,7 @@ function InlineFollowupEdit({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم تحديث المتابعة" });
+          toast({ title: dashboardText("followupUpdated") });
           onDone();
         },
         onError: (error) => {
@@ -1207,11 +1224,15 @@ function InlineFollowupEdit({
     <div className="space-y-3 pt-1">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">نوع المتابعة</Label>
+          <Label className="text-xs">{dashboardText("followupType")}</Label>
           <Select value={followupType} onValueChange={(value) => setFollowupType(value as FollowupType)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {FOLLOWUP_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+              {FOLLOWUP_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {enumLabel("followupType", type)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -1221,7 +1242,7 @@ function InlineFollowupEdit({
         />
         {assignableUsers && assignableUsers.length > 0 && (
           <div className="space-y-1">
-            <Label className="text-xs">المسؤول</Label>
+            <Label className="text-xs">{dashboardText("assignee")}</Label>
             <Select value={assignedUserId || "__none__"} onValueChange={(value) => setAssignedUserId(value === "__none__" ? "" : value)}>
               <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>
@@ -1237,16 +1258,16 @@ function InlineFollowupEdit({
         />
         <div className="flex items-center gap-2 pt-5">
           <Checkbox id={`edit-contact-${followup.id}`} checked={requiresContact} onCheckedChange={(value) => setRequiresContact(Boolean(value))} />
-          <Label htmlFor={`edit-contact-${followup.id}`} className="text-xs cursor-pointer">يتطلب تواصلًا</Label>
+          <Label htmlFor={`edit-contact-${followup.id}`} className="text-xs cursor-pointer">{dashboardText("requiresContact")}</Label>
         </div>
         {requiresContact && (
           <div className="space-y-1">
-            <Label className="text-xs">موعد التواصل</Label>
+            <Label className="text-xs">{dashboardText("contactDueDate")}</Label>
             <OperationalDatePicker value={contactDueAt} onChange={setContactDueAt} />
           </div>
         )}
         <div className="sm:col-span-2 space-y-1">
-          <Label className="text-xs">الملاحظة</Label>
+          <Label className="text-xs">{dashboardText("note")}</Label>
           <Textarea className="text-sm resize-none" rows={2} value={note} onChange={(event) => setNote(event.target.value)} />
         </div>
       </div>
@@ -1308,7 +1329,7 @@ function InlinePaymentEdit({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم تحديث الدفعة" });
+          toast({ title: dashboardText("paymentUpdated") });
           onDone();
         },
         onError: (error) => {
@@ -1326,37 +1347,37 @@ function InlinePaymentEdit({
     <div className="space-y-3 pt-1">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">المبلغ (ر.س) *</Label>
+          <Label className="text-xs">{dashboardText("amountSarRequired")}</Label>
           <Input className="h-8 text-sm" type="number" step="0.01" min={0.01} value={amount}
             onChange={(event) => setAmount(event.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">تاريخ الدفعة *</Label>
+          <Label className="text-xs">{dashboardText("paymentDateRequired")}</Label>
           <OperationalDatePicker value={paymentDate} onChange={setPaymentDate} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">وصف الدفعة</Label>
+          <Label className="text-xs">{dashboardText("paymentDescription")}</Label>
           <Select value={paymentLabel} onValueChange={(v) => setPaymentLabel(v as typeof PAYMENT_LABELS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">طريقة الدفع</Label>
+          <Label className="text-xs">{dashboardText("paymentMethod")}</Label>
           <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as typeof PAYMENT_METHODS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">رقم المرجع</Label>
+          <Label className="text-xs">{dashboardText("referenceNumber")}</Label>
           <Input className="h-8 text-sm" value={referenceNumber}
-            onChange={(event) => setReferenceNumber(event.target.value)} placeholder="اختياري" />
+            onChange={(event) => setReferenceNumber(event.target.value)} placeholder={dashboardText("optional")} />
         </div>
         <div className="sm:col-span-3 space-y-1">
-          <Label className="text-xs">الملاحظة</Label>
+          <Label className="text-xs">{dashboardText("note")}</Label>
           <Input className="h-8 text-sm" value={note}
-            onChange={(event) => setNote(event.target.value)} placeholder="اختياري" />
+            onChange={(event) => setNote(event.target.value)} placeholder={dashboardText("optional")} />
         </div>
       </div>
       <div className="flex gap-2">
@@ -1405,7 +1426,7 @@ function CasePaymentsSection({
       { id: payment.id, caseId, data: { reason: voidReason.trim() } },
       {
         onSuccess: () => {
-          toast({ title: "تم إلغاء الدفعة" });
+          toast({ title: dashboardText("paymentVoided") });
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           setVoidingPaymentId(null);
           setVoidReason("");
@@ -1425,7 +1446,7 @@ function CasePaymentsSection({
     return <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> جارٍ التحميل...</div>;
   }
   if (payments.length === 0) {
-    return <p className="text-xs text-muted-foreground py-1">لا توجد دفعات مسجلة.</p>;
+    return <p className="text-xs text-muted-foreground py-1">{dashboardText("noPayments")}</p>;
   }
 
   return (
@@ -1445,10 +1466,10 @@ function CasePaymentsSection({
                 إلغاء الدفعة — {formatMoney(payment.amount)} ({payment.paymentDate})
               </p>
               <div className="space-y-1">
-                <Label className="text-xs">سبب الإلغاء *</Label>
+                <Label className="text-xs">{dashboardText("voidReasonRequired")}</Label>
                 <Input className="h-8 text-sm" value={voidReason}
                   onChange={(event) => setVoidReason(event.target.value)}
-                  placeholder="يرجى ذكر سبب الإلغاء..." autoFocus />
+                  placeholder={dashboardText("voidReasonPlaceholder")} autoFocus />
               </div>
               <div className="flex gap-2">
                 <Button type="button" size="sm" variant="destructive"
@@ -1461,7 +1482,7 @@ function CasePaymentsSection({
                 <Button type="button" size="sm" variant="outline"
                   onClick={() => setVoidingPaymentId(null)}
                   disabled={voidPayment.isPending}
-                  className="h-7 text-xs">رجوع</Button>
+                  className="h-7 text-xs">{dashboardText("back")}</Button>
               </div>
             </div>
           ) : (
@@ -1470,7 +1491,7 @@ function CasePaymentsSection({
                 <div className="flex items-center gap-2">
                   <span className="font-bold tabular-nums">{formatMoney(payment.amount)}</span>
                   {payment.isVoided && (
-                    <Badge variant="destructive" className="text-[10px]">ملغاة</Badge>
+                    <Badge variant="destructive" className="text-[10px]">{dashboardText("voided")}</Badge>
                   )}
                 </div>
                 {!payment.isVoided && canManage && (
@@ -1490,30 +1511,30 @@ function CasePaymentsSection({
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
                 <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">التاريخ</span>
+                  <span className="text-muted-foreground">{dashboardText("date")}</span>
                   <span>{formatSaudiDate(payment.paymentDate ?? "")}</span>
                 </div>
                 {payment.paymentLabel && (
                   <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">الوصف</span>
+                    <span className="text-muted-foreground">{dashboardText("description")}</span>
                     <span>{payment.paymentLabel}</span>
                   </div>
                 )}
                 {payment.paymentMethod && (
                   <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">الطريقة</span>
+                    <span className="text-muted-foreground">{dashboardText("method")}</span>
                     <span>{payment.paymentMethod}</span>
                   </div>
                 )}
                 {payment.referenceNumber && (
                   <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">المرجع</span>
+                    <span className="text-muted-foreground">{dashboardText("reference")}</span>
                     <span dir="ltr">{payment.referenceNumber}</span>
                   </div>
                 )}
                 {payment.isVoided && payment.voidReason && (
                   <div className="col-span-2 flex justify-between gap-2">
-                    <span className="text-muted-foreground">سبب الإلغاء</span>
+                    <span className="text-muted-foreground">{dashboardText("voidReason")}</span>
                     <span className="text-destructive">{payment.voidReason}</span>
                   </div>
                 )}
@@ -1535,6 +1556,7 @@ function OperationalFinanceSummary({
   canManage: boolean;
   canRecord: boolean;
 }) {
+  const { enumLabel } = useEnumTranslation();
   const financeQuery = useCaseFinance(row.caseId, true);
   const [finalTotalOpen, setFinalTotalOpen] = useState(false);
   const summary = financeQuery.data?.summary;
@@ -1545,7 +1567,7 @@ function OperationalFinanceSummary({
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
           <div className="flex items-start justify-between gap-1">
-            <p className="text-[11px] text-muted-foreground">الإجمالي</p>
+            <p className="text-[11px] text-muted-foreground">{dashboardText("total")}</p>
             {canManage && (
               <Button
                 type="button"
@@ -1564,24 +1586,24 @@ function OperationalFinanceSummary({
           <p className="mt-1 text-base font-bold tabular-nums">{formatMoney(row.finance!.finalTotal)}</p>
         </div>
         <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
-          <p className="text-[11px] text-muted-foreground">المدفوع</p>
+          <p className="text-[11px] text-muted-foreground">{dashboardText("paid")}</p>
           <p className="mt-1 text-base font-bold tabular-nums">{formatMoney(row.finance!.paid)}</p>
         </div>
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
-          <p className="text-[11px] text-muted-foreground">المتبقي</p>
+          <p className="text-[11px] text-muted-foreground">{dashboardText("remaining")}</p>
           <p className="mt-1 text-base font-bold tabular-nums text-primary">{formatMoney(row.finance!.remaining)}</p>
         </div>
         <div className="rounded-lg border border-border/70 bg-muted/35 p-2.5">
-          <p className="text-[11px] text-muted-foreground">حالة السداد</p>
+          <p className="text-[11px] text-muted-foreground">{dashboardText("paymentStatus")}</p>
           <Badge className={`mt-1 text-[10px] ${paymentStatusClass(row.finance!.paymentStatus)}`}>
-            {row.finance!.paymentStatus}
+            {enumLabel("paymentStatus", row.finance!.paymentStatus)}
           </Badge>
         </div>
       </div>
       {installmentPlan ? (
         <div className="mt-3 rounded-lg border border-primary/20 bg-primary/[0.03] p-2.5" data-testid={`operational-installment-plan-${row.caseId}`}>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-foreground">تقسيم الدفعات</p>
+            <p className="text-xs font-semibold text-foreground">{dashboardText("paymentBreakdown")}</p>
             <span className="text-[11px] text-muted-foreground">
               {installmentPlan.installmentCount} دفعات — {formatMoney(installmentPlan.totalAmount)}
             </span>
@@ -1622,6 +1644,7 @@ function OperationalInstallmentRow({
   canRecord: boolean;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const createPayment = useCreatePayment();
   const [paying, setPaying] = useState(false);
   const [amount, setAmount] = useState("");
@@ -1659,7 +1682,7 @@ function OperationalInstallmentRow({
       },
       {
         onSuccess: () => {
-          toast({ title: "تم تسجيل دفع القسط." });
+          toast({ title: dashboardText("installmentPaymentRecorded") });
           setPaying(false);
         },
         onError: (err) => {
@@ -1689,7 +1712,7 @@ function OperationalInstallmentRow({
           </p>
         </div>
         <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] ${installmentStatusClass(installment.status)}`}>
-          {installment.status}
+          {enumLabel("installmentStatus", installment.status)}
         </span>
         {!isPaid && canRecord ? (
           <Button
@@ -1704,13 +1727,13 @@ function OperationalInstallmentRow({
             تم الدفع
           </Button>
         ) : isPaid ? (
-          <Check className="h-4 w-4 text-emerald-600" aria-label="تم الدفع" />
+          <Check className="h-4 w-4 text-emerald-600" aria-label={dashboardText("paid")} />
         ) : null}
       </div>
       {paying ? (
         <div className="mt-2 grid items-end gap-2 rounded-md bg-muted/40 p-2 sm:grid-cols-4" data-testid={`form-pay-operational-installment-${installment.id}`}>
           <div className="space-y-1">
-            <Label className="text-[10px]">المبلغ</Label>
+            <Label className="text-[10px]">{dashboardText("amount")}</Label>
             <Input
               type="number"
               min={0.01}
@@ -1723,21 +1746,21 @@ function OperationalInstallmentRow({
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-[10px]">التاريخ</Label>
+            <Label className="text-[10px]">{dashboardText("date")}</Label>
             <Input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} className="h-7 text-xs" />
           </div>
           <div className="space-y-1">
-            <Label className="text-[10px]">الطريقة</Label>
+            <Label className="text-[10px]">{dashboardText("method")}</Label>
             <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as (typeof PAYMENT_METHODS)[number])}>
               <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {PAYMENT_METHODS.map((method) => <SelectItem key={method} value={method}>{method}</SelectItem>)}
+                {PAYMENT_METHODS.map((method) => <SelectItem key={method} value={method}>{enumLabel("paymentMethod", method)}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="flex gap-1">
             <Button type="button" size="sm" className="h-7 text-[10px]" onClick={submitPayment} disabled={createPayment.isPending || !paymentDate}>
-              {createPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حفظ"}
+              {createPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : dashboardText("save")}
             </Button>
             <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[10px]" onClick={() => setPaying(false)}>
               إلغاء
@@ -1761,7 +1784,9 @@ function PatientExpandedRow({
   group: PatientGroup;
   showFinance: boolean;
 }) {
+  const { t } = useTranslation("operations");
   const { user } = useAuth();
+  const { enumLabel } = useEnumTranslation();
   const canRecordPayments = user?.role === "ADMIN" || user?.canRecordPayments;
   const canManageFinancials = user?.role === "ADMIN" || (user?.role === "DOCTOR" && user?.canViewFinancials);
   const canDeleteRows = user?.role === "ADMIN";
@@ -1806,7 +1831,7 @@ function PatientExpandedRow({
       { id: imp.id, patientId: group.patientId },
       {
         onSuccess: () => {
-          toast({ title: "تم حذف الزرعة من العرض النشط" });
+          toast({ title: t("dashboard.implantArchived") });
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           setConfirmArchiveImplantId(null);
         },
@@ -1826,7 +1851,7 @@ function PatientExpandedRow({
       { id: eventId, patientId: group.patientId },
       {
         onSuccess: () => {
-          toast({ title: "تمت أرشفة سجل التركيب" });
+          toast({ title: t("dashboard.prostheticEventArchived") });
           setConfirmArchiveProstheticEventId(null);
         },
         onError: (error) => {
@@ -1845,7 +1870,7 @@ function PatientExpandedRow({
       { id: procedureId, patientId: group.patientId },
       {
         onSuccess: () => {
-          toast({ title: "تمت أرشفة سجل الإجراءات الجراحية المساندة" });
+          toast({ title: t("dashboard.adjunctProcedureArchived") });
           setConfirmArchiveBoneGraftProcedureId(null);
         },
         onError: (error) =>
@@ -1861,7 +1886,7 @@ function PatientExpandedRow({
   const doArchivePatient = () => {
     archivePatient.mutate(group.patientId, {
       onSuccess: () => {
-        toast({ title: "تم حذف الصف من الجدول" });
+        toast({ title: t("dashboard.patientRowArchived") });
         void qc.invalidateQueries({ queryKey: ["operational-report"] });
         void qc.invalidateQueries({ queryKey: ["dashboard"] });
         void qc.invalidateQueries({ queryKey: ["statistics"] });
@@ -1923,11 +1948,11 @@ function PatientExpandedRow({
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
               <ClipboardList className="h-3.5 w-3.5" />
-              بيانات المريض
+              {t("dashboard.patientInformation")}
             </h4>
             {!editingPatient && (
               <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={startEditPatient}>
-                <Pencil className="h-3 w-3" /> تعديل
+                <Pencil className="h-3 w-3" /> {t("dashboard.edit")}
               </Button>
             )}
           </div>
@@ -1936,28 +1961,28 @@ function PatientExpandedRow({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               <div className="rounded-lg bg-muted/45 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground mb-0.5">الاسم</p>
+                <p className="text-[11px] text-muted-foreground mb-0.5">{t("dashboard.name")}</p>
                 <p className="font-semibold notranslate truncate">{p?.fullName ?? group.patientName}</p>
               </div>
               <div className="rounded-lg bg-muted/45 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground mb-0.5">رقم الملف</p>
+                <p className="text-[11px] text-muted-foreground mb-0.5">{t("dashboard.fileNumber")}</p>
                 <p dir="ltr" className="font-medium">{group.fileNumber}</p>
               </div>
               {p?.mobileNumber && (
                 <div className="rounded-lg bg-muted/45 px-3 py-2">
-                  <p className="text-[11px] text-muted-foreground mb-0.5">الجوال</p>
+                  <p className="text-[11px] text-muted-foreground mb-0.5">{t("dashboard.mobile")}</p>
                   <p dir="ltr" className="font-medium notranslate">{p.mobileNumber}</p>
                 </div>
               )}
               {p?.age != null && (
                 <div className="rounded-lg bg-muted/45 px-3 py-2">
-                  <p className="text-[11px] text-muted-foreground mb-0.5">العمر</p>
+                  <p className="text-[11px] text-muted-foreground mb-0.5">{t("dashboard.age")}</p>
                   <p className="font-medium">{p.age}</p>
                 </div>
               )}
               {p?.createdAt && (
                 <div className="rounded-lg bg-muted/45 px-3 py-2 sm:col-span-2">
-                  <p className="text-[11px] text-muted-foreground mb-0.5">تاريخ الإضافة</p>
+                  <p className="text-[11px] text-muted-foreground mb-0.5">{t("dashboard.createdDate")}</p>
                   <p className="font-medium">{formatSaudiDate(p.createdAt)}</p>
                 </div>
               )}
@@ -1969,14 +1994,14 @@ function PatientExpandedRow({
         <div className="bg-card rounded-xl border border-border p-4 space-y-2">
           <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
-            المتابعة
+            {t("dashboard.followup")}
           </h4>
           {allFollowups.length === 0 ? (
-            <p className="text-sm text-muted-foreground">لا توجد متابعات مسجلة.</p>
+            <p className="text-sm text-muted-foreground">{t("dashboard.noFollowups")}</p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                {allFollowups.length} {allFollowups.length === 1 ? "متابعة" : "متابعات"}
+                {t("dashboard.followupsCount", { count: allFollowups.length })}
               </p>
               {displayedFollowups.map((followup) => (
                 <div key={followup.id} className="rounded-lg border border-border/70 bg-background/70 p-2.5 space-y-1.5 text-xs">
@@ -1990,58 +2015,60 @@ function PatientExpandedRow({
                     <>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium notranslate">{followup.followupType}</span>
+                          <span className="font-medium">
+                            {enumLabel("followupType", followup.followupType)}
+                          </span>
                           <Badge variant="outline" className={followupStatusClasses(followup.followupStatus)}>
-                            <span className="notranslate">{followup.followupStatus}</span>
+                            <span>{enumLabel("followupStatus", followup.followupStatus)}</span>
                           </Badge>
                         </div>
                         {!["تمت", "ملغاة", "مؤجلة"].includes(followup.followupStatus) && (
                           <div className="flex gap-1">
                             <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-muted-foreground" onClick={() => startEditFollowup(followup.id)}>
-                              <Pencil className="h-3 w-3" /> تعديل
+                              <Pencil className="h-3 w-3" /> {t("dashboard.edit")}
                             </Button>
                             <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-muted-foreground" onClick={() => setStatusFollowup(followup)}>
-                              <Check className="h-3 w-3" /> تغيير الحالة
+                              <Check className="h-3 w-3" /> {t("dashboard.changeStatus")}
                             </Button>
                             <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-destructive hover:text-destructive" onClick={() => setCancelFollowup(followup)}>
-                              <X className="h-3 w-3" /> إلغاء المتابعة
+                              <X className="h-3 w-3" /> {t("dashboard.cancelFollowup")}
                             </Button>
                           </div>
                         )}
                       </div>
                       {followup.scheduledAt && (
                         <div className="flex justify-between gap-2">
-                          <span className="text-muted-foreground">الموعد</span>
+                          <span className="text-muted-foreground">{t("dashboard.appointment")}</span>
                           <span>{formatSaudiDateTime(followup.scheduledAt)}</span>
                         </div>
                       )}
                       {followup.assignedUserName && (
                         <div className="flex justify-between gap-2">
-                          <span className="text-muted-foreground">المسؤول</span>
+                          <span className="text-muted-foreground">{t("dashboard.assignee")}</span>
                           <span>{followup.assignedUserName}</span>
                         </div>
                       )}
                       {followup.contactDueAt && (
                         <div className="flex justify-between gap-2">
-                          <span className="text-muted-foreground">موعد التواصل</span>
+                          <span className="text-muted-foreground">{t("dashboard.contactDueDate")}</span>
                           <span>{formatSaudiDate(followup.contactDueAt)}</span>
                         </div>
                       )}
                       {followup.nextAppointmentAt && (
                         <div className="flex justify-between gap-2">
-                          <span className="text-muted-foreground">الموعد التالي</span>
+                          <span className="text-muted-foreground">{t("dashboard.nextAppointment")}</span>
                           <span>{formatSaudiDateTime(followup.nextAppointmentAt)}</span>
                         </div>
                       )}
                       {followup.result && (
                         <p>
-                          <span className="text-muted-foreground">النتيجة: </span>
+                          <span className="text-muted-foreground">{t("dashboard.result")}: </span>
                           {followup.result}
                         </p>
                       )}
                       {followup.note && (
                         <p>
-                          <span className="text-muted-foreground">الملاحظة: </span>
+                          <span className="text-muted-foreground">{t("dashboard.note")}: </span>
                           {followup.note}
                         </p>
                       )}
@@ -2058,14 +2085,14 @@ function PatientExpandedRow({
           <div className="bg-card rounded-xl border border-border p-4 space-y-2">
             <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
               <Banknote className="h-3.5 w-3.5" />
-              المالية
+              {t("dashboard.financials")}
             </h4>
             {group.rows.map((row) =>
               row.finance ? (
                 <div key={row.caseId} className="space-y-2 text-sm">
                   {group.rows.length > 1 && (
                     <p className="text-xs font-medium text-muted-foreground">
-                      الحالة: {row.caseStatus}
+                       {t("dashboard.case")}: {enumLabel("caseStatus", row.caseStatus)}
                     </p>
                   )}
                    <OperationalFinanceSummary
@@ -2085,8 +2112,8 @@ function PatientExpandedRow({
         onOpenChange={(open) => !open && setStatusFollowup(null)}
         patientId={group.patientId}
         followup={statusFollowup}
-        title="تغيير حالة المتابعة"
-        successMessage="تم تحديث حالة المتابعة."
+        title={t("dashboard.changeFollowupStatus")}
+        successMessage={t("dashboard.followupStatusUpdated")}
       />
       <CancelFollowupDialog
         open={Boolean(cancelFollowup)}
@@ -2100,7 +2127,7 @@ function PatientExpandedRow({
         <div className="space-y-3">
           <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
             <Stethoscope className="h-3.5 w-3.5" />
-            حالات الزراعة
+            {t("dashboard.implantCases")}
           </h4>
           <div className="space-y-3">
             {activeCases.map((c) => (
@@ -2111,7 +2138,7 @@ function PatientExpandedRow({
                   <div className="flex flex-wrap gap-3 justify-between items-start">
                     <div className="space-y-1 text-sm flex-1">
                       <div className="flex gap-2 flex-wrap">
-                        <Badge variant="outline" className="text-[11px] notranslate">{c.caseStatus}</Badge>
+                        <Badge variant="outline" className="text-[11px]">{enumLabel("caseStatus", c.caseStatus)}</Badge>
                         {c.prosValue && (
                           <Badge variant="secondary" className="text-[11px] notranslate">Pros: {c.prosValue}</Badge>
                         )}
@@ -2119,13 +2146,13 @@ function PatientExpandedRow({
                       <p className="text-xs text-muted-foreground notranslate">
                         {c.treatingDoctor}
                         {c.procedureDate ? ` — ${formatSaudiDate(c.procedureDate)}` : ""}
-                        {c.expectedProstheticDate ? ` — تركيب: ${formatSaudiDate(c.expectedProstheticDate)}` : ""}
+                         {c.expectedProstheticDate ? ` — ${t("dashboard.prosthetic")}: ${formatSaudiDate(c.expectedProstheticDate)}` : ""}
                       </p>
                       {c.generalNote && <p className="text-xs text-muted-foreground">{c.generalNote}</p>}
                     </div>
                      <div className="flex flex-wrap items-center gap-1 shrink-0">
                        <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => startEditCase(c.id)}>
-                         <Pencil className="h-3 w-3" /> تعديل
+                         <Pencil className="h-3 w-3" /> {t("dashboard.edit")}
                        </Button>
                      </div>
                   </div>
@@ -2136,7 +2163,7 @@ function PatientExpandedRow({
                   <div className="mt-3 border-t border-border/60 pt-3">
                     <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                       <Activity className="h-3 w-3" />
-                      الزرعات ({c.implants.filter((i) => i.status === "active").length})
+                      {t("dashboard.implantsCount", { count: c.implants.filter((i) => i.status === "active").length })}
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                       {c.implants
@@ -2170,7 +2197,7 @@ function PatientExpandedRow({
                                   <div className="flex items-center gap-2">
                                     <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg bg-primary/10 px-2 font-bold text-primary" dir="ltr">{imp.site}</span>
                                     <div>
-                                      <p className="font-semibold">السن / الموقع</p>
+                                       <p className="font-semibold">{t("dashboard.toothSite")}</p>
                                       <p className="text-[11px] text-muted-foreground" dir="ltr">{imp.site}</p>
                                     </div>
                                   </div>
@@ -2180,7 +2207,7 @@ function PatientExpandedRow({
                                       type="button"
                                       className="text-muted-foreground hover:text-foreground transition-colors rounded p-1.5 hover:bg-muted"
                                       onClick={() => startEditImplant(imp.id)}
-                                      title="تعديل الزرعة"
+                                       title={t("dashboard.editImplant")}
                                     >
                                       <Pencil className="h-3 w-3" />
                                     </button>
@@ -2188,7 +2215,7 @@ function PatientExpandedRow({
                                       type="button"
                                       className="text-muted-foreground hover:text-destructive transition-colors rounded p-1.5 hover:bg-destructive/10"
                                       onClick={() => setConfirmArchiveImplantId(imp.id)}
-                                      title="حذف الزرعة"
+                                       title={t("dashboard.archiveImplant")}
                                     >
                                       <Trash2 className="h-3 w-3" />
                                     </button>
@@ -2197,7 +2224,7 @@ function PatientExpandedRow({
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-2">
                                   <div>
-                                    <p className="text-[10px] text-muted-foreground">النظام</p>
+                                    <p className="text-[10px] text-muted-foreground">{t("dashboard.system")}</p>
                                     <p className="font-medium notranslate truncate">{imp.system || "—"}</p>
                                   </div>
                                   <div>
@@ -2221,7 +2248,7 @@ function PatientExpandedRow({
                                     <p className="font-medium">{imp.graftValue || "—"}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] text-muted-foreground">حالة الزرعة</p>
+                                    <p className="text-[10px] text-muted-foreground">{t("dashboard.implantStatus")}</p>
                                      {user?.role === "ADMIN" ? (
                                        <ImplantStatusStepper
                                          implant={imp}
@@ -2238,16 +2265,16 @@ function PatientExpandedRow({
                                      ) : (
                                        <Badge
                                          variant="outline"
-                                         className={`text-[10px] notranslate ${implantStatusClass(imp.implantStatus)}`}
+                                          className={`text-[10px] ${implantStatusClass(imp.implantStatus)}`}
                                        >
-                                         {imp.implantStatus}
+                                          {enumLabel("implantStatus", imp.implantStatus)}
                                        </Badge>
                                      )}
                                   </div>
                                 </div>
                                 {imp.graftProcedureType && (
                                   <p className="rounded-md bg-muted/50 px-2 py-1.5">
-                                    <span className="text-muted-foreground">نوع إجراء الترقيع: </span>
+                                     <span className="text-muted-foreground">{t("dashboard.graftProcedureType")}: </span>
                                     {imp.graftProcedureType}
                                   </p>
                                 )}
@@ -2260,19 +2287,19 @@ function PatientExpandedRow({
                                 )}
                                 {imp.graftNote && (
                                   <p className="text-muted-foreground">
-                                    <span className="font-medium text-foreground">ملاحظة الترقيع: </span>{imp.graftNote}
+                                     <span className="font-medium text-foreground">{t("dashboard.graftNote")}: </span>{imp.graftNote}
                                   </p>
                                 )}
                                 {imp.implantNote && (
                                   <p className="text-muted-foreground">
-                                    <span className="font-medium text-foreground">الملاحظة: </span>{imp.implantNote}
+                                     <span className="font-medium text-foreground">{t("dashboard.note")}: </span>{imp.implantNote}
                                   </p>
                                 )}
                                 {confirmArchiveImplantId === imp.id && (
                                   <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2.5 space-y-2 mt-1">
                                     <p className="text-[11px] flex items-start gap-1.5">
                                       <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
-                                      هل تريد حذف هذه الزرعة من العرض النشط؟ سيتم أرشفتها ويمكن استعادتها لاحقًا.
+                                       {t("dashboard.archiveImplantConfirmation")}
                                     </p>
                                     <div className="flex gap-2">
                                       <Button type="button" size="sm" variant="destructive"
@@ -2280,12 +2307,12 @@ function PatientExpandedRow({
                                         disabled={archiveImplant.isPending}
                                         className="h-6 text-[11px]">
                                         {archiveImplant.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                                        تأكيد الحذف
+                                         {t("dashboard.confirmArchive")}
                                       </Button>
                                       <Button type="button" size="sm" variant="outline"
                                         onClick={() => setConfirmArchiveImplantId(null)}
                                         disabled={archiveImplant.isPending}
-                                        className="h-6 text-[11px]">إلغاء</Button>
+                                         className="h-6 text-[11px]">{t("dashboard.cancel")}</Button>
                                     </div>
                                   </div>
                                 )}
@@ -2336,7 +2363,7 @@ function PatientExpandedRow({
                                <div className="flex flex-wrap items-center justify-between gap-2">
                                  <div className="flex flex-wrap items-center gap-2">
                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                                     {event.eventType}
+                                      {enumLabel("prostheticEventType", event.eventType)}
                                    </Badge>
                                    <span className="font-medium">{formatSaudiDate(event.eventDate)}</span>
                                    {implant && (
@@ -2428,7 +2455,7 @@ function PatientExpandedRow({
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                         <Activity className="h-3 w-3" />
-                         الإجراءات الجراحية المساندة
+                          {t("dashboard.adjunctProcedures")}
                       </p>
                       <div className="flex items-center gap-1">
                         <Badge variant="secondary" className="text-[10px]">
@@ -2436,7 +2463,7 @@ function PatientExpandedRow({
                         </Badge>
                         <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-primary hover:text-primary" onClick={() => setBoneGraftContext({ caseItem: c, procedure: null })}>
                           <Plus className="h-3 w-3" />
-                          إضافة إجراء
+                          {t("dashboard.addProcedure")}
                         </Button>
                       </div>
                     </div>
@@ -2445,19 +2472,19 @@ function PatientExpandedRow({
                         {(c.boneGraftProcedures ?? []).filter((procedure) => procedure.status === "active").map((procedure) => (
                           <div key={procedure.id} className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs space-y-1.5">
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{procedure.procedureCategory}</Badge>
+                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{enumLabel("adjunctProcedureCategory", procedure.procedureCategory)}</Badge>
                               <span>{procedure.procedureType}</span>
                               <span className="font-medium">{formatSaudiDate(procedure.procedureDate)}</span>
                               <Badge variant="secondary">{procedure.procedureStatus}</Badge>
-                              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] me-auto" onClick={() => setBoneGraftContext({ caseItem: c, procedure })}><Pencil className="h-3 w-3" />تعديل</Button>
-                              {canArchiveProstheticEvents && <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-destructive hover:text-destructive" onClick={() => setConfirmArchiveBoneGraftProcedureId(procedure.id)}><Archive className="h-3 w-3" />أرشفة</Button>}
+                               <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] me-auto" onClick={() => setBoneGraftContext({ caseItem: c, procedure })}><Pencil className="h-3 w-3" />{t("dashboard.edit")}</Button>
+                               {canArchiveProstheticEvents && <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-destructive hover:text-destructive" onClick={() => setConfirmArchiveBoneGraftProcedureId(procedure.id)}><Archive className="h-3 w-3" />{t("dashboard.archive")}</Button>}
                             </div>
-                            {(procedure.procedureSide || procedure.liftType || procedure.material || procedure.membrane || procedure.note) && <p className="text-muted-foreground">{[procedure.procedureSide && `الجهة: ${procedure.procedureSide}`, procedure.liftType && `نوع الرفع: ${procedure.liftType}`, procedure.material && `المادة: ${procedure.material}`, procedure.membrane && `الغشاء: ${procedure.membrane}`, procedure.note].filter(Boolean).join(" — ")}</p>}
-                            {confirmArchiveBoneGraftProcedureId === procedure.id && <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2"><p className="mb-2 text-[11px]">سيُستبعد السجل من المؤشرات النشطة مع بقائه محفوظًا.</p><div className="flex gap-2"><Button type="button" size="sm" variant="destructive" className="h-6 text-[11px]" onClick={() => doArchiveBoneGraftProcedure(procedure.id)} disabled={archiveBoneGraftProcedure.isPending}>تأكيد الأرشفة</Button><Button type="button" size="sm" variant="outline" className="h-6 text-[11px]" onClick={() => setConfirmArchiveBoneGraftProcedureId(null)}>إلغاء</Button></div></div>}
+                            {(procedure.procedureSide || procedure.liftType || procedure.material || procedure.membrane || procedure.note) && <p className="text-muted-foreground">{[procedure.procedureSide && `${dashboardText("side")}: ${enumLabel("procedureSide", procedure.procedureSide)}`, procedure.liftType && `${dashboardText("liftType")}: ${enumLabel("sinusLiftType", procedure.liftType)}`, procedure.material && `${dashboardText("material")}: ${procedure.material}`, procedure.membrane && `${dashboardText("membrane")}: ${procedure.membrane}`, procedure.note].filter(Boolean).join(" — ")}</p>}
+                            {confirmArchiveBoneGraftProcedureId === procedure.id && <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2"><p className="mb-2 text-[11px]">{t("dashboard.archiveProcedureConfirmation")}</p><div className="flex gap-2"><Button type="button" size="sm" variant="destructive" className="h-6 text-[11px]" onClick={() => doArchiveBoneGraftProcedure(procedure.id)} disabled={archiveBoneGraftProcedure.isPending}>{t("dashboard.confirmArchive")}</Button><Button type="button" size="sm" variant="outline" className="h-6 text-[11px]" onClick={() => setConfirmArchiveBoneGraftProcedureId(null)}>{t("dashboard.cancel")}</Button></div></div>}
                           </div>
                         ))}
                       </div>
-                    ) : <p className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">لا توجد إجراءات جراحية مساندة موثقة لهذه الحالة.</p>}
+                    ) : <p className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">{t("dashboard.noAdjunctProcedures")}</p>}
                   </div>
                   {boneGraftContext?.caseItem.id === c.id && (
                     <BoneGraftProcedureDialog
@@ -2487,7 +2514,7 @@ function PatientExpandedRow({
             className="h-8 text-xs gap-1"
           >
             {activeAction === "implant" ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-            إضافة زرعة
+             {t("dashboard.addImplant")}
           </Button>
 
           {canRecordPayments && (
@@ -2499,7 +2526,7 @@ function PatientExpandedRow({
               className="h-8 text-xs gap-1"
             >
               {activeAction === "payment" ? <X className="h-3.5 w-3.5" /> : <Banknote className="h-3.5 w-3.5" />}
-              تسجيل دفعة
+               {t("dashboard.recordPayment")}
             </Button>
           )}
 
@@ -2511,14 +2538,14 @@ function PatientExpandedRow({
             className="h-8 text-xs gap-1"
           >
             {activeAction === "followup" ? <X className="h-3.5 w-3.5" /> : <Calendar className="h-3.5 w-3.5" />}
-            إضافة متابعة
+             {t("dashboard.addFollowup")}
           </Button>
 
           {/* Secondary — navigate only */}
           <Button asChild size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground gap-1 me-auto">
             <Link href={`/patients/${group.patientId}`}>
               <ExternalLink className="h-3 w-3" />
-              الملف الكامل ↗
+               {t("dashboard.fullPatientFile")} ↗
             </Link>
           </Button>
           {canDeleteRows && (
@@ -2530,7 +2557,7 @@ function PatientExpandedRow({
               onClick={() => setConfirmArchivePatient(true)}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              حذف الصف
+               {t("dashboard.archiveRow")}
             </Button>
           )}
         </div>
@@ -2539,7 +2566,7 @@ function PatientExpandedRow({
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2">
             <p className="text-xs flex items-start gap-1.5">
               <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
-              سيتم إخفاء صف <strong>{group.patientName}</strong> وجميع حالاته من الجدول عبر أرشفة الملف، ويمكن استعادته لاحقًا من الملفات المؤرشفة.
+               {t("dashboard.archivePatientConfirmation", { patient: group.patientName })}
             </p>
             <div className="flex gap-2">
               <Button
@@ -2551,7 +2578,7 @@ function PatientExpandedRow({
                 className="h-7 text-xs"
               >
                 {archivePatient.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-                تأكيد حذف الصف
+                 {t("dashboard.confirmArchiveRow")}
               </Button>
               <Button
                 type="button"
@@ -2561,7 +2588,7 @@ function PatientExpandedRow({
                 disabled={archivePatient.isPending}
                 className="h-7 text-xs"
               >
-                إلغاء
+                 {t("dashboard.cancel")}
               </Button>
             </div>
           </div>
@@ -2596,7 +2623,7 @@ function PatientExpandedRow({
         {/* No active cases warning */}
         {activeAction !== null && activeCases.length === 0 && (
           <p className="text-sm text-muted-foreground px-1">
-            لا توجد حالات نشطة. أضف حالة زراعة أولًا عبر الملف الكامل.
+             {t("dashboard.noActiveCases")}
           </p>
         )}
 
@@ -2625,6 +2652,7 @@ function PatientSummaryRow({
   const remaining = showFinance ? summaryRemaining(group.rows) : null;
   const payStatus = showFinance ? summaryPaymentStatus(group.rows) : null;
   const systems = summarySystems(group.rows);
+  const { enumLabel } = useEnumTranslation();
 
   return (
     <tr
@@ -2638,11 +2666,11 @@ function PatientSummaryRow({
             <p className="font-medium text-sm notranslate leading-tight">{group.patientName}</p>
             <div className="flex gap-1 mt-1 flex-wrap">
               {overdue && (
-                <Badge variant="destructive" className="text-[10px]">متأخرة</Badge>
+                <Badge variant="destructive" className="text-[10px]">{dashboardText("overdue")}</Badge>
               )}
               {ready && (
                 <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px]">
-                  جاهزة للتركيب
+                  {dashboardText("readyForProsthetic")}
                 </Badge>
               )}
             </div>
@@ -2670,7 +2698,7 @@ function PatientSummaryRow({
           <td className="px-4 py-3 text-sm">
             {payStatus ? (
               <Badge className={`text-[10px] ${paymentStatusClass(payStatus)}`}>
-                {payStatus}
+                {enumLabel("paymentStatus", payStatus)}
               </Badge>
             ) : "—"}
           </td>
@@ -2712,17 +2740,17 @@ function PatientCard({
             <p className="text-xs text-muted-foreground shrink-0" dir="ltr">{group.fileNumber}</p>
           </div>
           <div className="flex gap-1 mt-1 flex-wrap">
-            {overdue && <Badge variant="destructive" className="text-[10px]">متأخرة</Badge>}
-            {ready && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px]">جاهزة للتركيب</Badge>}
+            {overdue && <Badge variant="destructive" className="text-[10px]">{dashboardText("overdue")}</Badge>}
+            {ready && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px]">{dashboardText("readyForProsthetic")}</Badge>}
             <ClinicalSummaryBadges rows={group.rows} />
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2 text-xs text-muted-foreground">
-            <span>{summaryImplantCount(group.rows)} زرعة</span>
+            <span>{dashboardText("implantCount", { count: summaryImplantCount(group.rows) })}</span>
             {summaryNextFollowup(group.rows) && (
-              <span>متابعة: {formatSaudiDate(summaryNextFollowup(group.rows)!)}</span>
+              <span>{dashboardText("followupDate", { date: formatSaudiDate(summaryNextFollowup(group.rows)!) })}</span>
             )}
             {remaining !== null && (
-              <span className="font-medium text-foreground">{formatMoney(remaining)} متبقي</span>
+              <span className="font-medium text-foreground">{dashboardText("remainingAmount", { amount: formatMoney(remaining) })}</span>
             )}
             {payStatus && (
               <Badge className={`text-[10px] ${paymentStatusClass(payStatus)}`}>{payStatus}</Badge>
@@ -2924,7 +2952,7 @@ export function OperationalTable({
                   variant="ghost"
                   size="icon"
                   onClick={() => onSearchChange("")}
-                  aria-label="مسح البحث"
+                  aria-label={t("dashboard.clearSearch")}
                   data-testid="button-clear-operational-search"
                   className="absolute start-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
                 >
@@ -2958,8 +2986,8 @@ export function OperationalTable({
               !showNewRecord && (
                 <p className="text-sm text-muted-foreground px-6 pb-5 pt-4">
                   {searchValue.trim()
-                    ? "لا توجد نتائج مطابقة للبحث."
-                    : "لا توجد حالات مطابقة للفلاتر المحددة."}
+                    ? t("dashboard.noOperationalSearchResults")
+                    : t("dashboard.noFilteredCases")}
                 </p>
               )
             ) : (
@@ -3022,7 +3050,7 @@ export function OperationalTable({
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-border print:hidden">
                     <span className="text-xs text-muted-foreground">
-                      صفحة {safePage} من {totalPages} &mdash; إجمالي {totalGroups} مريض
+                      {t("dashboard.pagination", { page: safePage, totalPages, count: totalGroups })}
                     </span>
                     <div className="flex items-center gap-1">
                       <Button
@@ -3031,7 +3059,7 @@ export function OperationalTable({
                         className="h-7 w-7"
                         disabled={safePage === 1}
                         onClick={() => { setPage(1); setExpandedPatientId(null); }}
-                        title="الصفحة الأولى"
+                        title={t("dashboard.firstPage")}
                       >
                         <span className="text-sm leading-none">«</span>
                       </Button>
@@ -3041,7 +3069,7 @@ export function OperationalTable({
                         className="h-7 w-7"
                         disabled={safePage === 1}
                         onClick={() => { setPage((p) => Math.max(1, p - 1)); setExpandedPatientId(null); }}
-                        title="الصفحة السابقة"
+                        title={t("dashboard.previousPage")}
                       >
                         <span className="text-sm leading-none">‹</span>
                       </Button>
@@ -3051,7 +3079,7 @@ export function OperationalTable({
                         className="h-7 w-7"
                         disabled={safePage === totalPages}
                         onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); setExpandedPatientId(null); }}
-                        title="الصفحة التالية"
+                        title={t("dashboard.nextPage")}
                       >
                         <span className="text-sm leading-none">›</span>
                       </Button>
@@ -3061,7 +3089,7 @@ export function OperationalTable({
                         className="h-7 w-7"
                         disabled={safePage === totalPages}
                         onClick={() => { setPage(totalPages); setExpandedPatientId(null); }}
-                        title="الصفحة الأخيرة"
+                        title={t("dashboard.lastPage")}
                       >
                         <span className="text-sm leading-none">»</span>
                       </Button>

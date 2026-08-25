@@ -28,6 +28,7 @@ import { useStatistics } from "@/hooks/use-reports";
 import { formatMoney, todayIso } from "@/lib/money";
 import { reportPeriodRange } from "@/lib/report-periods";
 import { useTranslation } from "react-i18next";
+import { type EnumCategory, useEnumTranslation } from "@/i18n/use-enum-translation";
 
 const CHART_COLORS = ["#1d7a8c", "#295c9b", "#d78b30", "#7a5cc7", "#517176", "#b95353"];
 const countFormat = new Intl.NumberFormat("ar-SA-u-nu-latn");
@@ -71,7 +72,16 @@ function Kpi({
   );
 }
 
-function DistributionList({ data, emptyLabel }: { data: StatCount[]; emptyLabel: string }) {
+function DistributionList({
+  data,
+  emptyLabel,
+  enumCategory,
+}: {
+  data: StatCount[];
+  emptyLabel: string;
+  enumCategory?: EnumCategory;
+}) {
+  const { enumLabel } = useEnumTranslation();
   if (data.length === 0) {
     return <p className="text-sm text-muted-foreground py-3">{emptyLabel}</p>;
   }
@@ -79,7 +89,7 @@ function DistributionList({ data, emptyLabel }: { data: StatCount[]; emptyLabel:
     <ul className="divide-y divide-border/70">
       {data.slice(0, 8).map((item) => (
         <li key={item.name} className="flex items-center justify-between gap-3 py-2 text-sm">
-          <span className="truncate notranslate">{item.name}</span>
+          <span className="truncate">{enumCategory ? enumLabel(enumCategory, item.name) : item.name}</span>
           <span className="font-semibold tabular-nums notranslate">
             {countFormat.format(item.count)}
           </span>
@@ -169,6 +179,7 @@ function downloadCsv(
 
 export default function Statistics() {
   const { t, i18n } = useTranslation("statistics");
+  const { enumLabel } = useEnumTranslation();
   const isRtl = i18n.dir() === "rtl";
   const today = useMemo(() => todayIso(), []);
   const [filterState, setFilterState] = useState<ReportFilterState>({
@@ -328,8 +339,8 @@ export default function Statistics() {
                     </ResponsiveContainer>
                   )}
                 </ChartFrame>
-                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("caseStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.caseStatuses} emptyLabel={t("noCasesPeriod")} /></CardContent></Card>
-                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("implantStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.implantStatuses} emptyLabel={t("noImplantsPeriod")} /></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("caseStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.caseStatuses} emptyLabel={t("noCasesPeriod")} enumCategory="caseStatus" /></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("implantStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.implantStatuses} emptyLabel={t("noImplantsPeriod")} enumCategory="implantStatus" /></CardContent></Card>
               </div>
             </section>
 
@@ -341,7 +352,7 @@ export default function Statistics() {
                      <ResponsiveContainer width="100%" height="100%"><LineChart data={hub.boneGraftProcedures.overTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} /><Tooltip /><Line type="monotone" dataKey="count" name={t("procedures")} stroke="#7c5b2b" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer>
                   )}
                 </ChartFrame>
-                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("typesAndMaterials")}</CardTitle></CardHeader><CardContent className="space-y-3"><DistributionList data={hub.boneGraftProcedures.types} emptyLabel={t("noDocumentedProcedures")} /><div className="border-t pt-2"><DistributionList data={hub.boneGraftProcedures.materials} emptyLabel={t("noRecordedMaterials")} /></div></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("typesAndMaterials")}</CardTitle></CardHeader><CardContent className="space-y-3"><DistributionList data={hub.boneGraftProcedures.types} emptyLabel={t("noDocumentedProcedures")} enumCategory="adjunctProcedureCategory" /><div className="border-t pt-2"><DistributionList data={hub.boneGraftProcedures.materials} emptyLabel={t("noRecordedMaterials")} /></div></CardContent></Card>
                  <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("proceduresSummary")}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>{t("totalProcedures")}</span><b>{hub.boneGraftProcedures.total}</b></div><div className="flex justify-between"><span>{t("cases")}</span><b>{hub.boneGraftProcedures.cases}</b></div><div className="flex justify-between"><span>{t("patients")}</span><b>{hub.boneGraftProcedures.patients}</b></div><div className="mt-3 border-t pt-2"><DistributionList data={hub.boneGraftProcedures.statuses} emptyLabel={t("noRecordedCases")} /></div></CardContent></Card>
               </div>
             </section>
@@ -354,13 +365,13 @@ export default function Statistics() {
                       <ResponsiveContainer width="100%" height="100%"><LineChart data={hub.prosthetics.overTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} /><Tooltip /><Line type="monotone" dataKey="count" name={t("prosthetics")} stroke="#1d7a8c" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer>
                   )}
                 </ChartFrame>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("prosthetics")}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>{t("temporary")}</span><b className="tabular-nums">{hub.prosthetics.temporary}</b></div><div className="flex justify-between"><span>{t("permanent")}</span><b className="tabular-nums">{hub.prosthetics.permanent}</b></div><div className="flex justify-between"><span>{t("readyForProsthetics")}</span><b className="tabular-nums">{hub.prosthetics.readyCases}</b></div><div className="mt-3 border-t pt-2"><DistributionList data={hub.prosthetics.byDoctor} emptyLabel={t("noDocumentedProsthetics")} /></div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("prosthetics")}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>{enumLabel("prostheticEventType", "تركيب مؤقت")}</span><b className="tabular-nums">{hub.prosthetics.temporary}</b></div><div className="flex justify-between"><span>{enumLabel("prostheticEventType", "تركيب دائم")}</span><b className="tabular-nums">{hub.prosthetics.permanent}</b></div><div className="flex justify-between"><span>{t("readyForProsthetics")}</span><b className="tabular-nums">{hub.prosthetics.readyCases}</b></div><div className="mt-3 border-t pt-2"><DistributionList data={hub.prosthetics.byDoctor} emptyLabel={t("noDocumentedProsthetics")} /></div></CardContent></Card>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("followupStatus")}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>{t("scheduled")}</span><b className="tabular-nums">{hub.followups.scheduled}</b></div><div className="flex justify-between"><span>{t("dueToday")}</span><b className="tabular-nums">{hub.followups.dueToday}</b></div><div className="flex justify-between text-destructive"><span>{t("overdue")}</span><b className="tabular-nums">{hub.followups.overdue}</b></div><div className="flex justify-between"><span>{t("needsRecontact")}</span><b className="tabular-nums">{hub.followups.needsRecontact}</b></div></CardContent></Card>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("followupTypes")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.followups.types} emptyLabel={t("noFollowups")} /></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("followupOutcomes")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.followups.outcomes} emptyLabel={t("noFollowupOutcomes")} /></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("communicationLog")}</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex justify-between text-sm"><span>{t("totalRecords")}</span><b className="tabular-nums">{hub.communications.total}</b></div><div className="flex justify-between text-sm"><span>{t("recordsWithResults")}</span><b className="tabular-nums">{hub.communications.withResults}</b></div><DistributionList data={hub.communications.results} emptyLabel={t("noCommunicationRecords")} /></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("followupTypes")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.followups.types} emptyLabel={t("noFollowups")} enumCategory="followupType" /></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("followupOutcomes")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.followups.outcomes} emptyLabel={t("noFollowupOutcomes")} enumCategory="followupStatus" /></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("communicationLog")}</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex justify-between text-sm"><span>{t("totalRecords")}</span><b className="tabular-nums">{hub.communications.total}</b></div><div className="flex justify-between text-sm"><span>{t("recordsWithResults")}</span><b className="tabular-nums">{hub.communications.withResults}</b></div><DistributionList data={hub.communications.results} emptyLabel={t("noCommunicationRecords")} enumCategory="communicationResult" /></CardContent></Card>
               </div>
             </section>
 
@@ -379,7 +390,7 @@ export default function Statistics() {
                       <ResponsiveContainer width="100%" height="100%"><BarChart data={hub.financials.collectionsOverTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} width={45} /><Tooltip formatter={(v) => formatMoney(Number(v))} /><Bar dataKey="count" name={t("collected")} fill="#1d7a8c" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
                     )}
                   </ChartFrame>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("paymentMethodsAndStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.financials.paymentMethods} emptyLabel={t("noPaymentsPeriod")} /><div className="mt-3 border-t pt-2"><DistributionList data={hub.financials.paymentStatuses} emptyLabel={t("noFinancialStatuses")} /></div></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("paymentMethodsAndStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.financials.paymentMethods} emptyLabel={t("noPaymentsPeriod")} enumCategory="paymentMethod" /><div className="mt-3 border-t pt-2"><DistributionList data={hub.financials.paymentStatuses} emptyLabel={t("noFinancialStatuses")} enumCategory="paymentStatus" /></div></CardContent></Card>
                 </div>
               </section>
             ) : null}

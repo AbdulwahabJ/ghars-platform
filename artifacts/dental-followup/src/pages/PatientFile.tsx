@@ -207,15 +207,15 @@ export default function PatientFile() {
               </section>
               <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
                 <div className="mb-5">
-                  <h2 className="text-lg font-bold text-foreground">المالية</h2>
-                  <p className="text-sm text-muted-foreground">ملخص العلاج والدفعات والرسوم لكل حالة نشطة.</p>
+                  <h2 className="text-lg font-bold text-foreground">{t("patient.finance")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("patient.financeDescription")}</p>
                 </div>
                 <PaymentsTab patient={patient} />
               </section>
               <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
                 <div className="mb-5">
-                  <h2 className="text-lg font-bold text-foreground">المتابعات وسجل التواصل</h2>
-                  <p className="text-sm text-muted-foreground">المواعيد والنتائج وسجل التواصل المرتبط بالملف.</p>
+                  <h2 className="text-lg font-bold text-foreground">{t("patient.followups")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("patient.followupsDescription")}</p>
                 </div>
                 <FollowupsTab patient={patient} />
               </section>

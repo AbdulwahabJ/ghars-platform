@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
   TEMPLATE_PLACEHOLDERS,
-  TEMPLATE_PLACEHOLDER_LABELS,
   findUnknownPlaceholders,
   renderTemplate,
   type AdminTemplate,
@@ -74,12 +73,11 @@ export function TemplatesTab() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>قوالب رسائل واتساب</CardTitle>
+          <CardTitle>{t("templates.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            تُفتح الرسائل يدويًا عبر واتساب (wa.me) — لا يوجد إرسال تلقائي.
-            المتغيرات المدعومة:{" "}
+            {t("templates.description")}{" "}
             {TEMPLATE_PLACEHOLDERS.map((p) => (
               <code key={p} className="mx-1 px-1 bg-muted rounded" dir="ltr">
                 {`{{${p}}}`}
@@ -87,19 +85,19 @@ export function TemplatesTab() {
             ))}
           </p>
           <div className="grid gap-3">
-            {templates.map((t) => (
+            {templates.map((template) => (
               <div
-                key={t.id}
+                key={template.id}
                 className="border border-border rounded-lg p-4 space-y-2"
-                data-testid={`card-template-${t.id}`}
+                data-testid={`card-template-${template.id}`}
               >
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{t.name}</span>
-                    {t.isApproved ? (
-                      <Badge variant="secondary">مفعّل</Badge>
+                    <span className="font-medium">{template.name}</span>
+                    {template.isApproved ? (
+                      <Badge variant="secondary">{t("templates.active")}</Badge>
                     ) : (
-                      <Badge variant="outline">موقوف</Badge>
+                      <Badge variant="outline">{t("templates.inactive")}</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
@@ -107,32 +105,32 @@ export function TemplatesTab() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setEditing(t);
-                        setName(t.name);
-                        setBody(t.body);
+                        setEditing(template);
+                        setName(template.name);
+                        setBody(template.body);
                       }}
-                      data-testid={`button-edit-template-${t.id}`}
+                      data-testid={`button-edit-template-${template.id}`}
                     >
-                      تعديل
+                      {t("templates.edit")}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() =>
                         setActive.mutate(
-                          { id: t.id, active: !t.isApproved },
+                          { id: template.id, active: !template.isApproved },
                           { onError: fail },
                         )
                       }
                     >
                       <span className="notranslate">
-                        {t.isApproved ? "إيقاف" : "تفعيل"}
+                        {template.isApproved ? t("templates.deactivate") : t("templates.activate")}
                       </span>
                     </Button>
                   </div>
                 </div>
                 <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                  {t.body}
+                  {template.body}
                 </p>
               </div>
             ))}
@@ -143,11 +141,11 @@ export function TemplatesTab() {
       {editing && (
         <Card>
           <CardHeader>
-            <CardTitle>تعديل القالب: {editing.name}</CardTitle>
+          <CardTitle>{t("templates.editTitle", { name: editing.name })}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="tpl-name">اسم القالب</Label>
+              <Label htmlFor="tpl-name">{t("templates.name")}</Label>
               <Input
                 id="tpl-name"
                 value={name}
@@ -156,7 +154,7 @@ export function TemplatesTab() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tpl-body">نص الرسالة</Label>
+              <Label htmlFor="tpl-body">{t("templates.messageBody")}</Label>
               <Textarea
                 id="tpl-body"
                 rows={5}
@@ -169,14 +167,14 @@ export function TemplatesTab() {
                   {t("templates.unknownPlaceholders", {
                     unknown: unknown.map((u) => `{{${u}}}`).join("، "),
                     supported: TEMPLATE_PLACEHOLDERS.map(
-                      (p) => `{{${p}}} (${TEMPLATE_PLACEHOLDER_LABELS[p]})`,
+                      (p) => `{{${p}}} (${t(`templates.placeholderLabels.${p}`)})`,
                     ).join("، "),
                   })}
                 </p>
               )}
             </div>
             <div className="space-y-1">
-              <Label>معاينة بنموذج بيانات</Label>
+              <Label>{t("templates.preview")}</Label>
               <div className="border border-border rounded-lg p-3 bg-muted/50 text-sm whitespace-pre-wrap">
                 {renderTemplate(body, SAMPLE)}
               </div>
@@ -190,10 +188,10 @@ export function TemplatesTab() {
                 {update.isPending && (
                   <Loader2 className="h-4 w-4 animate-spin ms-1" />
                 )}
-                <span>حفظ القالب</span>
+                <span>{t("templates.save")}</span>
               </Button>
               <Button variant="ghost" onClick={() => setEditing(null)}>
-                إلغاء
+                {t("templates.cancel")}
               </Button>
             </div>
           </CardContent>

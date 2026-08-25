@@ -11,6 +11,7 @@ import arAdmin from "./locales/ar/admin";
 import arGuidance from "./locales/ar/guidance";
 import arQuickEntry from "./locales/ar/quickEntry";
 import arStatistics from "./locales/ar/statistics";
+import arEnums from "./locales/ar/enums";
 import enCommon from "./locales/en/common";
 import enAuth from "./locales/en/auth";
 import enErrors from "./locales/en/errors";
@@ -21,6 +22,7 @@ import enAdmin from "./locales/en/admin";
 import enGuidance from "./locales/en/guidance";
 import enQuickEntry from "./locales/en/quickEntry";
 import enStatistics from "./locales/en/statistics";
+import enEnums from "./locales/en/enums";
 
 export const SUPPORTED_LOCALES = ["ar", "en"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
@@ -45,6 +47,7 @@ export const resources = {
     guidance: arGuidance,
     quickEntry: arQuickEntry,
     statistics: arStatistics,
+    enums: arEnums,
   },
   en: {
     common: enCommon,
@@ -57,6 +60,7 @@ export const resources = {
     guidance: enGuidance,
     quickEntry: enQuickEntry,
     statistics: enStatistics,
+    enums: enEnums,
   },
 } as const;
 
@@ -66,7 +70,7 @@ void i18n.use(initReactI18next).init({
   fallbackLng: DEFAULT_LOCALE,
   supportedLngs: SUPPORTED_LOCALES,
   defaultNS: "common",
-  ns: ["common", "auth", "errors", "validation", "operations", "clinical", "admin", "guidance", "quickEntry", "statistics"],
+  ns: ["common", "auth", "errors", "validation", "operations", "clinical", "admin", "guidance", "quickEntry", "statistics", "enums"],
   interpolation: { escapeValue: false },
   returnNull: false,
   missingKeyHandler: (_lngs, _ns, key) => {

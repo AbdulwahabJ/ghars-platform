@@ -9,6 +9,7 @@ import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
 import { bucketFollowups } from "@/components/followups/followup-utils";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 import type {
   Followup,
   ImplantCaseWithImplants,
@@ -30,6 +31,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 function CaseFinanceSummaryRow({ caseId }: { caseId: string }) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const { data, isLoading } = useCaseFinance(caseId, true);
 
   if (isLoading) {
@@ -55,7 +57,7 @@ function CaseFinanceSummaryRow({ caseId }: { caseId: string }) {
         <Field label={t("summary.finalTotal")} value={formatMoney(summary.finalTotal)} />
         <Field label={t("summary.paid")} value={formatMoney(summary.paidAmount)} />
         <Field label={t("summary.remaining")} value={formatMoney(summary.outstanding)} />
-        <Field label={t("summary.paymentStatus")} value={summary.paymentStatus} />
+        <Field label={t("summary.paymentStatus")} value={enumLabel("paymentStatus", summary.paymentStatus)} />
       </div>
       {installmentPlan ? (
         <div className="border-s border-border ps-3 text-sm">
@@ -77,6 +79,7 @@ function ImplantTable({
   showArchived: boolean;
 }) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const implants = implantCase.implants.filter(
     (implant) => showArchived || implant.status === "active",
   );
@@ -120,7 +123,7 @@ function ImplantTable({
                 {implant.graftProcedureType ? ` (${implant.graftProcedureType})` : ""}
               </td>
               <td className="px-2 py-1.5">
-                <span className="notranslate">{implant.implantStatus}</span>
+                <span>{enumLabel("implantStatus", implant.implantStatus)}</span>
                 {implant.status === "archived" ? (
                    <Badge variant="secondary" className="ms-1 text-[10px]">{t("summary.archived")}</Badge>
                 ) : null}
@@ -141,6 +144,7 @@ function BoneGraftSummary({
   showArchived: boolean;
 }) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const procedures = implantCase.boneGraftProcedures.filter(
     (procedure) => showArchived || procedure.status === "active",
   );
@@ -168,8 +172,8 @@ function BoneGraftSummary({
               <tr key={procedure.id} className="border-b border-border/50 last:border-0">
                 <td className="px-2 py-1.5">{formatSaudiDate(procedure.procedureDate)}</td>
                 <td className="px-2 py-1.5">{procedure.site ?? "—"}</td>
-                <td className="px-2 py-1.5">{procedure.procedureCategory} — {procedure.procedureType}</td>
-                <td className="px-2 py-1.5">{[procedure.procedureSide, procedure.liftType].filter(Boolean).join(" — ") || "—"}</td>
+                <td className="px-2 py-1.5">{enumLabel("adjunctProcedureCategory", procedure.procedureCategory)} — {procedure.procedureType}</td>
+                <td className="px-2 py-1.5">{[procedure.procedureSide && enumLabel("procedureSide", procedure.procedureSide), procedure.liftType && enumLabel("sinusLiftType", procedure.liftType)].filter(Boolean).join(" — ") || "—"}</td>
                 <td className="px-2 py-1.5">{procedure.material ?? "—"}</td>
                 <td className="px-2 py-1.5">{procedure.membrane ?? "—"}</td>
                 <td className="px-2 py-1.5">
@@ -195,6 +199,7 @@ function ProstheticSummary({
   showArchived: boolean;
 }) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const events = implantCase.prostheticEvents.filter(
     (event) => showArchived || event.status === "active",
   );
@@ -211,7 +216,7 @@ function ProstheticSummary({
             : null;
           return (
             <div key={event.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-              <span>{formatSaudiDate(event.eventDate)} | {event.eventType}</span>
+              <span>{formatSaudiDate(event.eventDate)} | {enumLabel("prostheticEventType", event.eventType)}</span>
               <span className="text-muted-foreground">
                  {implant ? t("implant.tooth", { site: implant.site }) : t("summary.caseLevel")}
                  {event.status === "archived" ? ` — ${t("summary.archived")}` : ""}
@@ -232,10 +237,11 @@ function CaseSummary({
   showArchived: boolean;
 }) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   return (
     <article className="space-y-4 border-b border-border pb-6 last:border-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-2">
-         <h4 className="font-bold text-foreground">{t("summary.implantCase")} — {implantCase.caseStatus}</h4>
+         <h4 className="font-bold text-foreground">{t("summary.implantCase")} — {enumLabel("caseStatus", implantCase.caseStatus)}</h4>
          {implantCase.status === "archived" ? <Badge variant="secondary">{t("summary.archived")}</Badge> : null}
          {implantCase.isReimplantation ? <Badge variant="outline">{t("implant.reimplantation")}</Badge> : null}
       </div>
@@ -272,6 +278,7 @@ export function SummaryTab({
   onManage?: () => void;
 }) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const { user } = useAuth();
   const canViewFinancials = Boolean(
     user?.canViewFinancials || user?.canRecordPayments,
@@ -293,6 +300,9 @@ export function SummaryTab({
   const nextFollowup = openFollowups
     .filter((followup) => followup.scheduledAt)
     .sort((first, second) => first.scheduledAt!.localeCompare(second.scheduledAt!))[0];
+  const latestCompletedFollowup = completedFollowups
+    .slice()
+    .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt))[0];
   const communications = communicationsData ?? [];
   const recentCommunications = communications
     .slice()
@@ -372,7 +382,7 @@ export function SummaryTab({
             <div className="space-y-4">
               {cases.map((implantCase) => (
                 <div key={`finance-${implantCase.id}`} className="break-inside-avoid">
-                   <p className="mb-2 text-sm font-medium">{t("summary.implantCase")} — {implantCase.caseStatus}</p>
+                    <p className="mb-2 text-sm font-medium">{t("summary.implantCase")} — {enumLabel("caseStatus", implantCase.caseStatus)}</p>
                   <CaseFinanceSummaryRow caseId={implantCase.id} />
                 </div>
               ))}
@@ -391,17 +401,16 @@ export function SummaryTab({
              label={t("summary.nextFollowup")}
             value={
               nextFollowup?.scheduledAt
-                ? `${nextFollowup.followupType} — ${formatSaudiDateTime(nextFollowup.scheduledAt)}`
+                ? `${enumLabel("followupType", nextFollowup.followupType)} — ${formatSaudiDateTime(nextFollowup.scheduledAt)}`
                 : "—"
             }
           />
           <Field
              label={t("summary.latestFollowupResult")}
             value={
-              completedFollowups
-                .slice()
-                .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt))[0]
-                ?.followupStatus ?? "—"
+               latestCompletedFollowup
+                ? enumLabel("followupStatus", latestCompletedFollowup.followupStatus)
+                : "—"
             }
           />
         </div>
@@ -417,7 +426,14 @@ export function SummaryTab({
           />
           <Field
              label={t("summary.latestCommunicationResult")}
-            value={latestCommunicationWithResult?.communicationResult ?? "—"}
+             value={
+               latestCommunicationWithResult?.communicationResult
+                 ? enumLabel(
+                     "communicationResult",
+                     latestCommunicationWithResult.communicationResult,
+                   )
+                 : "—"
+             }
           />
         </div>
       </section>

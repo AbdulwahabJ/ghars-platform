@@ -34,6 +34,7 @@ import { CommunicationResultForm } from "./CommunicationResultDialog";
 import { toRiyadhTimeValue } from "./followup-utils";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 interface WhatsAppDialogProps {
   open: boolean;
@@ -59,6 +60,7 @@ const NO_TEMPLATE = "__none__";
 function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) {
   const { toast } = useToast();
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const { data: templates } = useWhatsappTemplates();
   const createCommunication = useCreateCommunication(patient.id);
 
@@ -187,7 +189,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
               <SelectContent>
                 {COMMUNICATION_REASONS.map((r) => (
                   <SelectItem key={r} value={r}>
-                    {r}
+                    {enumLabel("communicationReason", r)}
                   </SelectItem>
                 ))}
               </SelectContent>

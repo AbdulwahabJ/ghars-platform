@@ -119,12 +119,12 @@ function SettingsForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>إعدادات النظام</CardTitle>
+        <CardTitle>{t("settings.systemTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 max-w-2xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="set-clinic-name">اسم العيادة</Label>
+            <Label htmlFor="set-clinic-name">{t("settings.clinicName")}</Label>
             <Input
               id="set-clinic-name"
               value={form.clinicName}
@@ -133,7 +133,7 @@ function SettingsForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="set-system-name">اسم النظام (في الترويسة)</Label>
+            <Label htmlFor="set-system-name">{t("settings.systemName")}</Label>
             <Input
               id="set-system-name"
               value={form.systemName}
@@ -142,7 +142,7 @@ function SettingsForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="set-doctor">الطبيب المعالج الافتراضي</Label>
+            <Label htmlFor="set-doctor">{t("settings.defaultTreatingDoctor")}</Label>
             <Input
               id="set-doctor"
               value={form.defaultTreatingDoctor}
@@ -153,7 +153,7 @@ function SettingsForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="set-phone">هاتف العيادة (اختياري)</Label>
+            <Label htmlFor="set-phone">{t("settings.clinicPhone")}</Label>
             <Input
               id="set-phone"
               dir="ltr"
@@ -162,7 +162,7 @@ function SettingsForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="set-pros">قيمة Pros الافتراضية (اختياري)</Label>
+            <Label htmlFor="set-pros">{t("settings.defaultProsValue")}</Label>
             <Input
               id="set-pros"
               value={form.defaultProsValue}
@@ -172,7 +172,7 @@ function SettingsForm({
             />
           </div>
           <div className="space-y-2">
-            <Label>المسؤول الافتراضي عن المتابعات (اختياري)</Label>
+            <Label>{t("settings.defaultFollowupAssignee")}</Label>
             <Select
               value={form.defaultFollowupAssigneeUserId}
               onValueChange={(v) =>
@@ -183,7 +183,7 @@ function SettingsForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">بدون افتراضي</SelectItem>
+                <SelectItem value="none">{t("settings.noDefault")}</SelectItem>
                 {(assignableQuery.data?.users ?? []).map((u) => (
                   <SelectItem key={u.id} value={u.id}>
                     {u.fullName}
@@ -194,7 +194,7 @@ function SettingsForm({
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="set-address">عنوان العيادة (اختياري)</Label>
+          <Label htmlFor="set-address">{t("settings.clinicAddress")}</Label>
           <Textarea
             id="set-address"
             rows={2}
@@ -205,17 +205,17 @@ function SettingsForm({
 
         {/* Logo */}
         <div className="space-y-2">
-          <Label>شعار العيادة</Label>
+          <Label>{t("settings.clinicLogo")}</Label>
           <div className="flex items-center gap-4">
             {form.clinicLogo ? (
               <img
                 src={form.clinicLogo}
-                alt="شعار العيادة"
+                alt={t("settings.clinicLogo")}
                 className="h-14 w-auto object-contain border border-border rounded p-1 bg-white"
               />
             ) : (
               <span className="text-sm text-muted-foreground">
-                الشعار الافتراضي مستخدم حاليًا.
+                {t("settings.defaultLogoInUse")}
               </span>
             )}
             <input
@@ -228,7 +228,7 @@ function SettingsForm({
             />
             <Button variant="outline" onClick={() => fileRef.current?.click()}>
               <Upload className="h-4 w-4 ms-1" />
-              <span>رفع شعار</span>
+              <span>{t("settings.uploadLogo")}</span>
             </Button>
             {form.clinicLogo && (
               <Button
@@ -236,12 +236,12 @@ function SettingsForm({
                 onClick={() => setForm({ ...form, clinicLogo: null })}
               >
                 <X className="h-4 w-4 ms-1" />
-                <span>إزالة الشعار</span>
+                <span>{t("settings.removeLogo")}</span>
               </Button>
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            PNG أو JPEG أو WebP بحد أقصى 500 كيلوبايت.
+            {t("settings.logoHelp")}
           </p>
         </div>
 
@@ -253,7 +253,7 @@ function SettingsForm({
           {updateSettings.isPending && (
             <Loader2 className="h-4 w-4 animate-spin ms-1" />
           )}
-          <span>حفظ الإعدادات</span>
+          <span>{t("settings.save")}</span>
         </Button>
       </CardContent>
     </Card>

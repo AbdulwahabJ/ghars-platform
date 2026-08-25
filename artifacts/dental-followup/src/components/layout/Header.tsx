@@ -82,9 +82,9 @@ export function Header({ user }: HeaderProps) {
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40 print:hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Right: Existing logo slot & Ghars brand name */}
-        <div className="flex items-center gap-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-4">
+        {/* Brand: start edge in both locales */}
+        <div className="flex min-w-0 items-center gap-3 justify-self-start">
           <img
             src={settings.clinicLogo ?? gharsSymbol}
             alt={t("brand.latin")}
@@ -107,8 +107,8 @@ export function Header({ user }: HeaderProps) {
           </span>
         </div>
 
-        {/* Center: Tabs */}
-        <nav className="hidden md:flex items-center gap-1 absolute start-1/2 -translate-x-1/2 h-full" data-testid="nav-tabs" id="tour-nav-tabs">
+        {/* Center: Tabs stay in their own grid column to prevent overlap with edge actions. */}
+        <nav className="hidden md:flex items-center gap-1 justify-self-center h-full" data-testid="nav-tabs" id="tour-nav-tabs">
           {navItems.map((item) => {
             const isActive =
               item.path === "/"
@@ -130,8 +130,8 @@ export function Header({ user }: HeaderProps) {
           })}
         </nav>
 
-        {/* Left: Actions */}
-        <div className="flex items-center gap-2">
+        {/* Actions: end edge in both locales */}
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5 justify-self-end">
           <LanguageSwitcher />
 
           {/* Help Menu */}
@@ -234,8 +234,8 @@ export function Header({ user }: HeaderProps) {
                   avatarData={user.avatarData}
                   size="sm"
                 />
-                <div className="text-start hidden sm:block">
-                  <p className="text-sm font-medium leading-none text-foreground">{user.fullName}</p>
+                <div className="text-start hidden sm:block max-w-[9rem]">
+                  <p className="text-sm font-medium leading-none text-foreground truncate">{user.fullName}</p>
                   <p className="text-xs text-muted-foreground mt-1">{roleName}</p>
                 </div>
               </Button>

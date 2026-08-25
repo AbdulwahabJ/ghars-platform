@@ -36,6 +36,7 @@ import { formatSaudiDate } from "@/lib/datetime";
 import { toRiyadhDateValue, toRiyadhInputValue } from "./followup-utils";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 interface FollowupFormDialogProps {
   open: boolean;
@@ -67,6 +68,7 @@ function FollowupForm({
   prefillFrom,
 }: FollowupFormDialogProps) {
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const createFollowup = useCreateFollowup(patientId);
@@ -163,7 +165,7 @@ function FollowupForm({
       <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{isEdit ? t("followupForms.edit") : t("followupForms.add")}</DialogTitle>
         <DialogDescription>
-          تُعرض جميع المواعيد بتوقيت الرياض.
+          {t("followupForms.riyadhTimeNotice")}
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
@@ -201,9 +203,9 @@ function FollowupForm({
                 <SelectValue placeholder={t("followupForms.selectType")} />
               </SelectTrigger>
               <SelectContent>
-                {FOLLOWUP_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
+                {FOLLOWUP_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {enumLabel("followupType", type)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -260,7 +262,7 @@ function FollowupForm({
             data-testid="checkbox-requires-contact"
           />
           <label htmlFor="requires-contact" className="text-sm cursor-pointer">
-            يتطلب تواصلًا مع المريض
+            {t("followupForms.requiresContact")}
           </label>
         </div>
         {requiresContact ? (
@@ -290,7 +292,7 @@ function FollowupForm({
           <span>{isEdit ? t("followupForms.saveChanges") : t("followupForms.add")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          إلغاء
+          {t("followupForms.cancel")}
         </Button>
       </DialogFooter>
     </>

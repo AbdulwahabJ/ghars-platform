@@ -15,6 +15,7 @@ import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { StatisticsResponse } from "@workspace/shared";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 const CHART_COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#64748b", "#ef4444"];
 
@@ -41,6 +42,7 @@ export function StatisticsSection({
   isError: boolean;
 }) {
   const { t } = useTranslation("guidance");
+  const { enumLabel } = useEnumTranslation();
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -132,8 +134,9 @@ export function StatisticsSection({
                     tick={{ fontSize: 11 }}
                     width={110}
                     orientation="right"
+                      tickFormatter={(value) => enumLabel("caseStatus", String(value))}
                   />
-                  <Tooltip />
+                   <Tooltip labelFormatter={(value) => enumLabel("caseStatus", String(value))} />
                   <Bar dataKey="count" name={t("dashboard.count")} fill="#8b5cf6" radius={[4, 0, 0, 4]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -157,7 +160,7 @@ export function StatisticsSection({
               <ul className="space-y-1.5">
                 {data.implantStatuses.map((s) => (
                   <li key={s.name} className="flex justify-between text-sm">
-                    <span className="notranslate">{s.name}</span>
+                     <span>{enumLabel("implantStatus", s.name)}</span>
                     <span className="font-semibold tabular-nums">{s.count}</span>
                   </li>
                 ))}
@@ -178,7 +181,7 @@ export function StatisticsSection({
               <ul className="space-y-1.5">
                 {data.followupOutcomes.map((s) => (
                   <li key={s.name} className="flex justify-between text-sm">
-                    <span className="notranslate">{s.name}</span>
+                     <span>{enumLabel("followupStatus", s.name)}</span>
                     <span className="font-semibold tabular-nums">{s.count}</span>
                   </li>
                 ))}

@@ -28,6 +28,7 @@ import { useCreateProstheticEvent } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 const CASE_LEVEL = "__case_level__";
 
@@ -83,6 +84,7 @@ function ProstheticEventForm({
 }) {
   const { toast } = useToast();
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const createEvent = useCreateProstheticEvent();
   const [eventType, setEventType] = useState<ProstheticEventType>(
     initialEventType ?? "تركيب دائم",
@@ -144,7 +146,9 @@ function ProstheticEventForm({
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {PROSTHETIC_EVENT_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>{type}</SelectItem>
+                <SelectItem key={type} value={type}>
+                  {enumLabel("prostheticEventType", type)}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

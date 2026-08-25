@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { AlertTriangle, Download, FileUp, Loader2 } from "lucide-react";
 import {
   IMPORT_TYPES,
-  IMPORT_TYPE_LABELS,
   type ImportCommitResponse,
   type ImportMode,
   type ImportPreviewResponse,
@@ -118,21 +117,19 @@ export function ImportTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>استيراد البيانات القديمة (CSV)</CardTitle>
+        <CardTitle>{t("import.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            الاستيراد آمن دائمًا: المعاينة لا تكتب أي شيء في قاعدة البيانات،
-            والتنفيذ لا يستبدل أو يعدّل أي سجل موجود أبدًا — السجلات المكررة
-            تُتخطى أو تُرفض حسب الوضع المختار.
+            {t("import.safetyNotice")}
           </AlertDescription>
         </Alert>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label>نوع البيانات</Label>
+            <Label>{t("import.dataType")}</Label>
             <Select
               value={type}
               onValueChange={(v) => {
@@ -144,16 +141,16 @@ export function ImportTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {IMPORT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {IMPORT_TYPE_LABELS[t]}
+                {IMPORT_TYPES.map((importType) => (
+                  <SelectItem key={importType} value={importType}>
+                    {t(`import.types.${importType}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>التعامل مع المكرر</Label>
+            <Label>{t("import.duplicateHandling")}</Label>
             <Select
               value={mode}
               onValueChange={(v) => {
@@ -166,20 +163,20 @@ export function ImportTab() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="skip_duplicates">
-                  تخطي السجلات المكررة
+                  {t("import.skipDuplicates")}
                 </SelectItem>
                 <SelectItem value="create_only">
-                  رفض الملف إذا احتوى مكررات (إنشاء فقط)
+                  {t("import.createOnly")}
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>قالب جاهز</Label>
+            <Label>{t("import.readyTemplate")}</Label>
             <Button variant="outline" className="w-full" asChild>
               <a href={importTemplateUrl(type)} data-testid="link-import-template">
                 <Download className="h-4 w-4 ms-1" />
-                <span>تنزيل قالب {IMPORT_TYPE_LABELS[type]}</span>
+                <span>{t("import.downloadTemplate", { type: t(`import.types.${type}`) })}</span>
               </a>
             </Button>
           </div>
@@ -196,7 +193,7 @@ export function ImportTab() {
           />
           <Button variant="outline" onClick={() => fileRef.current?.click()}>
             <FileUp className="h-4 w-4 ms-1" />
-            <span>اختيار ملف CSV</span>
+            <span>{t("import.chooseFile")}</span>
           </Button>
           {fileName && (
             <span className="text-sm text-muted-foreground" dir="ltr">
@@ -211,7 +208,7 @@ export function ImportTab() {
             {preview.isPending && (
               <Loader2 className="h-4 w-4 animate-spin ms-1" />
             )}
-            <span>معاينة (بدون حفظ)</span>
+            <span>{t("import.preview")}</span>
           </Button>
         </div>
 
@@ -219,16 +216,16 @@ export function ImportTab() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="secondary">
-                إجمالي الصفوف: {previewResult.totalRows}
+                {t("import.totalRows", { count: previewResult.totalRows })}
               </Badge>
-              <Badge variant="secondary">صالح: {previewResult.validRows}</Badge>
+              <Badge variant="secondary">{t("import.valid", { count: previewResult.validRows })}</Badge>
               <Badge variant={previewResult.duplicateRows > 0 ? "outline" : "secondary"}>
-                مكرر: {previewResult.duplicateRows}
+                {t("import.duplicate", { count: previewResult.duplicateRows })}
               </Badge>
               <Badge
                 variant={previewResult.invalidRows > 0 ? "destructive" : "secondary"}
               >
-                غير صالح: {previewResult.invalidRows}
+                {t("import.invalid", { count: previewResult.invalidRows })}
               </Badge>
             </div>
             <RowsTable rows={previewResult.rows} truncated={previewResult.truncated} />
@@ -241,10 +238,10 @@ export function ImportTab() {
                 {commit.isPending && (
                   <Loader2 className="h-4 w-4 animate-spin ms-1" />
                 )}
-                <span>تأكيد الاستيراد ({previewResult.validRows} سجل)</span>
+                <span>{t("import.confirmImport", { count: previewResult.validRows })}</span>
               </Button>
               <Button variant="ghost" onClick={reset}>
-                إلغاء
+                {t("import.cancel")}
               </Button>
             </div>
           </div>
@@ -254,8 +251,7 @@ export function ImportTab() {
           <div className="space-y-3">
             <Alert>
               <AlertDescription>
-                اكتمل الاستيراد: تم استيراد {commitResult.imported} سجلًا،
-                وتخطي {commitResult.skipped}، وفشل {commitResult.failed}.
+                {t("import.commitSummary", commitResult)}
               </AlertDescription>
             </Alert>
             <RowsTable rows={commitResult.rows} truncated={commitResult.truncated} />
@@ -266,12 +262,6 @@ export function ImportTab() {
   );
 }
 
-const STATUS_LABELS: Record<ImportRowResult["status"], string> = {
-  valid: "صالح",
-  invalid: "غير صالح",
-  duplicate: "مكرر",
-};
-
 function RowsTable({
   rows,
   truncated,
@@ -279,15 +269,16 @@ function RowsTable({
   rows: ImportRowResult[];
   truncated: boolean;
 }) {
+  const { t } = useTranslation("admin");
   return (
     <div className="overflow-x-auto max-h-96 overflow-y-auto border border-border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="text-start w-16">الصف</TableHead>
-            <TableHead className="text-start w-24">الحالة</TableHead>
-            <TableHead className="text-start">الملخص</TableHead>
-            <TableHead className="text-start">الأخطاء</TableHead>
+            <TableHead className="text-start w-16">{t("import.row")}</TableHead>
+            <TableHead className="text-start w-24">{t("import.status")}</TableHead>
+            <TableHead className="text-start">{t("import.summary")}</TableHead>
+            <TableHead className="text-start">{t("import.errors")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -304,7 +295,7 @@ function RowsTable({
                         : "destructive"
                   }
                 >
-                  {STATUS_LABELS[r.status]}
+                  {t(`import.statuses.${r.status}`)}
                 </Badge>
               </TableCell>
               <TableCell>{r.summary}</TableCell>
@@ -317,7 +308,7 @@ function RowsTable({
       </Table>
       {truncated && (
         <p className="text-xs text-muted-foreground p-2">
-          تم عرض جزء من الصفوف فقط للاختصار.
+          {t("import.truncated")}
         </p>
       )}
     </div>

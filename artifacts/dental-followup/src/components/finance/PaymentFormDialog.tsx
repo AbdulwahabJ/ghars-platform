@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 interface PaymentFormDialogProps {
   open: boolean;
@@ -50,6 +51,7 @@ export function PaymentFormDialog(props: PaymentFormDialogProps) {
 
 function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const { toast } = useToast();
   const createPayment = useCreatePayment();
 
@@ -105,7 +107,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
       <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{t("financeForms.recordPayment")}</DialogTitle>
         <DialogDescription>
-          الدفعات لا تُحذف — يمكن إلغاؤها فقط مع ذكر السبب.
+          {t("financeForms.paymentVoidNotice")}
         </DialogDescription>
       </DialogHeader>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
@@ -144,14 +146,14 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
             <SelectContent>
               {PAYMENT_LABELS.map((l) => (
                 <SelectItem key={l} value={l}>
-                  {l}
+                  {enumLabel("paymentLabel", l)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <FieldLabel label="طريقة الدفع" />
+          <FieldLabel label={t("financeForms.method")} />
           <Select
             value={paymentMethod}
             onValueChange={(v) => setPaymentMethod(v as (typeof PAYMENT_METHODS)[number])}
@@ -162,7 +164,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
             <SelectContent>
               {PAYMENT_METHODS.map((m) => (
                 <SelectItem key={m} value={m}>
-                  {m}
+                  {enumLabel("paymentMethod", m)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -177,7 +179,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <FieldLabel label="ملاحظة" />
+          <FieldLabel label={t("financeForms.note")} />
           <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -193,7 +195,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
           <span>{t("financeForms.recordPayment")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          إلغاء
+          {t("financeForms.cancel")}
         </Button>
       </DialogFooter>
     </>

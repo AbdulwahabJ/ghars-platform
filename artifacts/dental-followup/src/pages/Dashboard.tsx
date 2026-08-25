@@ -343,11 +343,14 @@ export default function Dashboard() {
           {/* Print-only report header */}
           <div className="hidden print:block mb-4">
             <h1 className="text-xl font-bold text-brand-navy">غرس | Ghars</h1>
-            <p className="text-sm mt-1">نظام إدارة ومتابعة زراعة الأسنان</p>
-            <p className="text-sm mt-1">التقرير التشغيلي</p>
+            <p className="text-sm mt-1">{t("dashboard.productDescription")}</p>
+            <p className="text-sm mt-1">{t("dashboard.operationalReport")}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              الفترة: {reportFilters.from} إلى {reportFilters.to} — تاريخ
-              الإنشاء: {formatSaudiDateTime(new Date())}
+              {t("dashboard.period", {
+                from: reportFilters.from,
+                to: reportFilters.to,
+              })}{" "}
+              — {t("dashboard.generatedAt", { date: formatSaudiDateTime(new Date()) })}
             </p>
           </div>
 

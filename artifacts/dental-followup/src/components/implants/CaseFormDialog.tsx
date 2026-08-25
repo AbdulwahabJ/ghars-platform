@@ -35,6 +35,7 @@ import { formatSaudiDate } from "@/lib/datetime";
 import { ExpectedProstheticDateField } from "./ExpectedProstheticDateField";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 const NONE = "__none__";
 const CUSTOM = "__custom__";
@@ -68,6 +69,7 @@ function CaseForm({
   otherCases,
 }: CaseFormDialogProps) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const { toast } = useToast();
   const { settings } = useAppSettings();
   const createCase = useCreateImplantCase();
@@ -215,7 +217,7 @@ function CaseForm({
             <SelectContent>
               {CASE_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {s}
+                   {enumLabel("caseStatus", s)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -312,7 +314,7 @@ function CaseForm({
                      <SelectItem value={NONE}>{t("implant.noLink")}</SelectItem>
                     {sourceOptions.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                         {`${t("implant.case")} ${formatSaudiDate(c.procedureDate ?? c.createdAt)} — ${c.caseStatus}`}
+                         {`${t("implant.case")} ${formatSaudiDate(c.procedureDate ?? c.createdAt)} — ${enumLabel("caseStatus", c.caseStatus)}`}
                       </SelectItem>
                     ))}
                   </SelectContent>

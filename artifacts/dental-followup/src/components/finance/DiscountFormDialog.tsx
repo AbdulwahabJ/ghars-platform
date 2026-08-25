@@ -87,7 +87,7 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
   return (
     <>
       <DialogHeader className="text-start sm:text-start">
-        <DialogTitle>إضافة خصم</DialogTitle>
+        <DialogTitle>{t("financeForms.addDiscount")}</DialogTitle>
         <DialogDescription>
           {t("financeForms.discountDescription")}
         </DialogDescription>

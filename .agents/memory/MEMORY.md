@@ -16,3 +16,4 @@
 - [Bilingual brand ordering](bilingual-brand-ordering.md) — Arabic/Latin lockups need an explicit LTR wrapper with isolated RTL Arabic text to preserve the requested visual order.
 - [i18n namespace registration](i18n-namespace-registration.md) — register plain locale resources centrally at startup; do not add bundles from component render paths.
 - [Locale direction ownership](locale-direction-ownership.md) — locale provider owns RTL/LTR; avoid feature-level forced directions so flex layouts and overlays flip together.
+- [Operational localization namespaces](operational-localization-namespaces.md) — dashboard workflow chrome belongs to operations; retain guidance only for legacy help and explicitly verify rendered keys.

@@ -19,6 +19,7 @@ import type {
   ReportFilters,
 } from "@workspace/shared";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 /**
  * Filtered operational report: on-screen table + CSV export + browser print.
@@ -36,6 +37,7 @@ export function OperationalReportSection({
   filters: ReportFilters;
 }) {
   const { t } = useTranslation("guidance");
+  const { enumLabel } = useEnumTranslation();
   const showFinance = Boolean(data?.financialsIncluded);
 
   return (
@@ -121,7 +123,7 @@ export function OperationalReportSection({
                       </span>
                     </TableCell>
                     <TableCell dir="ltr">{r.fileNumber}</TableCell>
-                    <TableCell className="notranslate">{r.caseStatus}</TableCell>
+                    <TableCell>{enumLabel("caseStatus", r.caseStatus)}</TableCell>
                     <TableCell className="notranslate">{r.treatingDoctor}</TableCell>
                     <TableCell>
                       {r.procedureDate ? formatSaudiDate(r.procedureDate) : "—"}
@@ -145,8 +147,8 @@ export function OperationalReportSection({
                         <TableCell className="tabular-nums">
                           {r.finance ? formatMoney(r.finance.remaining) : "—"}
                         </TableCell>
-                        <TableCell className="notranslate">
-                          {r.finance?.paymentStatus ?? "—"}
+                        <TableCell>
+                          {r.finance ? enumLabel("paymentStatus", r.finance.paymentStatus) : "—"}
                         </TableCell>
                       </>
                     )}

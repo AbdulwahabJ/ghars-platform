@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 const NO_IMPLANT = "__none__";
 
@@ -53,6 +54,7 @@ export function ChargeFormDialog(props: ChargeFormDialogProps) {
 function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
   const { toast } = useToast();
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const createCharge = useCreateCharge();
   const activeImplants = caseItem.implants.filter((i) => i.status === "active");
 
@@ -122,7 +124,7 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
             <SelectContent>
               {CHARGE_TYPES.map((t) => (
                 <SelectItem key={t} value={t}>
-                  {t}
+                  {enumLabel("chargeType", t)}
                 </SelectItem>
               ))}
             </SelectContent>

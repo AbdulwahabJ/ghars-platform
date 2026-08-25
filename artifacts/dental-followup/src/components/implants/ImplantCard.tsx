@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 function formatSize(implant: Implant): string | null {
   if (implant.diameter == null && implant.length == null) return null;
@@ -57,6 +58,7 @@ export function ImplantCard({
   onCopy,
 }: ImplantCardProps) {
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const { toast } = useToast();
   const archiveImplant = useArchiveImplant();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -82,11 +84,11 @@ export function ImplantCard({
 
   const size = formatSize(implant);
   const detailRows: Array<[string, string | null]> = [
-    ["System", implant.system],
-    ["SIZE", size],
-    ["Q", implant.qValue],
-    ["Former", implant.formerValue],
-    ["Graft", implant.graftValue],
+    [t("implant.system"), implant.system],
+    [t("implant.size"), size],
+    [t("implant.q"), implant.qValue],
+    [t("implant.former"), implant.formerValue],
+    [t("implant.graft"), implant.graftValue],
   ];
   const graftIsPositive =
     Boolean(implant.graftValue) &&
@@ -114,7 +116,7 @@ export function ImplantCard({
           </div>
         </div>
         <Badge className={cn("border", statusVariant(implant))} variant="outline">
-           {isArchived ? t("implant.archived") : implant.implantStatus}
+           {isArchived ? t("implant.archived") : enumLabel("implantStatus", implant.implantStatus)}
         </Badge>
       </div>
 
@@ -135,13 +137,13 @@ export function ImplantCard({
         <div className="space-y-1 border-s-2 border-primary/20 ps-3 text-sm">
           {implant.graftProcedureType && (
             <p>
-              <span className="text-muted-foreground">نوع إجراء الترقيع: </span>
+              <span className="text-muted-foreground">{t("implant.graftProcedureType")}: </span>
               {implant.graftProcedureType}
             </p>
           )}
           {implant.graftNote && (
             <p>
-              <span className="text-muted-foreground">ملاحظة الترقيع: </span>
+              <span className="text-muted-foreground">{t("implant.graftNote")}: </span>
               {implant.graftNote}
             </p>
           )}
@@ -160,7 +162,7 @@ export function ImplantCard({
 
       {implant.implantNote && (
         <p className="border-t border-border pt-2 text-sm leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-foreground">NOTE: </span>
+          <span className="font-semibold text-foreground">{t("implant.note")}: </span>
           {implant.implantNote}
         </p>
       )}

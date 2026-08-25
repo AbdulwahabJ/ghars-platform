@@ -18,6 +18,7 @@ import { useFollowupOutcome } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 interface OutcomeDialogProps {
   open: boolean;
@@ -49,6 +50,7 @@ function OutcomeForm({
 }: OutcomeDialogProps) {
   const { toast } = useToast();
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const recordOutcome = useFollowupOutcome(patientId);
   const [status, setStatus] = useState<string>("");
   const [result, setResult] = useState("");
@@ -88,7 +90,9 @@ function OutcomeForm({
     <>
       <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{title ?? t("followupForms.outcomeTitle")}</DialogTitle>
-        <DialogDescription>{followup!.followupType}</DialogDescription>
+        <DialogDescription>
+          {enumLabel("followupType", followup!.followupType)}
+        </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
         <RadioGroup value={status} onValueChange={(v) => { setStatus(v); setError(null); }} className="space-y-1">
@@ -96,7 +100,7 @@ function OutcomeForm({
             <div key={s} className="flex items-center gap-2">
               <RadioGroupItem value={s} id={`outcome-${s}`} data-testid={`radio-outcome-${s}`} />
               <label htmlFor={`outcome-${s}`} className="text-sm cursor-pointer">
-                {s}
+                {enumLabel("followupStatus", s)}
               </label>
             </div>
           ))}

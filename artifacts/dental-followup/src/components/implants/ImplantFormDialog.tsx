@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 export type ImplantDialogMode = "add" | "edit" | "copy";
 
@@ -74,6 +75,7 @@ function ImplantForm({
 }: ImplantFormDialogProps) {
   const { toast } = useToast();
   const { t } = useClinicalTranslation();
+  const { enumLabel } = useEnumTranslation();
   const { data: options } = useImplantOptions();
   const createImplant = useCreateImplant();
   const updateImplant = useUpdateImplant();
@@ -339,7 +341,7 @@ function ImplantForm({
             <SelectContent>
               {IMPLANT_STATUSES.filter((s) => s !== "مؤرشفة").map((s) => (
                 <SelectItem key={s} value={s}>
-                  {s}
+                   {enumLabel("implantStatus", s)}
                 </SelectItem>
               ))}
             </SelectContent>

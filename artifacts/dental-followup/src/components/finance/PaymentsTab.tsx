@@ -14,6 +14,7 @@ import { useImplantCases } from "@/hooks/use-implant-cases";
 import { formatSaudiDate } from "@/lib/datetime";
 import { CaseFinancePanel } from "./CaseFinancePanel";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 interface PaymentsTabProps {
   patient: Patient;
@@ -22,6 +23,7 @@ interface PaymentsTabProps {
 export function PaymentsTab({ patient }: PaymentsTabProps) {
   const { user } = useAuth();
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const { data, isLoading, isError } = useImplantCases(patient.id);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
@@ -99,7 +101,7 @@ export function PaymentsTab({ patient }: PaymentsTabProps) {
             <SelectContent>
               {activeCases.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.caseStatus} — {formatSaudiDate(c.createdAt)}
+                  {enumLabel("caseStatus", c.caseStatus)} — {formatSaudiDate(c.createdAt)}
                 </SelectItem>
               ))}
             </SelectContent>

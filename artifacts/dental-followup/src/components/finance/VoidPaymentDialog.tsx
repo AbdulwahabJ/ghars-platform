@@ -87,7 +87,7 @@ function VoidPaymentForm({
         </AlertDescription>
       </Alert>
       <div className="space-y-2 py-2">
-        <FieldLabel label="سبب الإلغاء" />
+        <FieldLabel label={t("financeForms.voidReason")} />
         <Textarea
           value={reason}
           onChange={(e) => {
@@ -107,7 +107,7 @@ function VoidPaymentForm({
           data-testid="button-confirm-void"
         >
           {voidPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-1" /> : null}
-          <span>تأكيد الإلغاء</span>
+          <span>{t("financeForms.confirmVoid")}</span>
         </Button>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           {t("financeForms.back")}

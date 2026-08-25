@@ -27,6 +27,7 @@ import { formatMoney, todayIso } from "@/lib/money";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { PaymentFormDialog } from "./PaymentFormDialog";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 const STATUS_STYLES = {
   "مدفوع": "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -48,6 +49,7 @@ export function InstallmentPlanCard({
   canRecord: boolean;
 }) {
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [generalPaymentOpen, setGeneralPaymentOpen] = useState(false);
@@ -163,7 +165,7 @@ export function InstallmentPlanCard({
                       ) : null}
                     </div>
                     <span className="text-xs text-muted-foreground">
-                       {payment.isVoided ? t("financeForms.voided") : payment.paymentMethod ?? "—"}
+                        {payment.isVoided ? t("financeForms.voided") : enumLabel("paymentMethod", payment.paymentMethod) || "—"}
                     </span>
                   </div>
                 ))
@@ -270,25 +272,25 @@ function PlanEditor({
     <div className="rounded-lg border bg-muted/20 p-3 space-y-3" data-testid="installment-plan-editor">
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <Label htmlFor="installment-total">المبلغ المجدول (ر.س)</Label>
+          <Label htmlFor="installment-total">{t("financeForms.planAmount")}</Label>
           <Input id="installment-total" type="number" min={0.01} step="0.01" value={totalAmount} onChange={(event) => { setTotalAmount(event.target.value); setError(null); }} data-testid="input-installment-total" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="installment-count">عدد الأقساط</Label>
+          <Label htmlFor="installment-count">{t("financeForms.count")}</Label>
           <Input id="installment-count" type="number" min={1} max={60} step={1} value={count} onChange={(event) => { setCount(event.target.value); setError(null); }} data-testid="input-installment-count" />
         </div>
         <div className="space-y-1.5">
-          <Label>أول تاريخ استحقاق</Label>
+          <Label>{t("financeForms.firstDueDate")}</Label>
           <OperationalDatePicker value={firstDueDate} onChange={setFirstDueDate} data-testid="input-installment-first-date" />
         </div>
       </div>
       {preview.length ? (
         <div className="rounded-md border bg-background px-3 py-2">
-          <p className="text-xs font-medium text-muted-foreground">معاينة الجدول قبل الحفظ</p>
+          <p className="text-xs font-medium text-muted-foreground">{t("financeForms.preview")}</p>
           <div className="mt-2 grid gap-1.5 text-xs sm:grid-cols-2 lg:grid-cols-3">
             {preview.map((item, index) => (
               <div key={`${item.date}-${index}`} className="flex justify-between rounded bg-muted/45 px-2 py-1.5">
-                <span>قسط {index + 1} — {formatSaudiDate(item.date)}</span>
+                <span>{t("financeForms.installment", { count: index + 1 })} — {formatSaudiDate(item.date)}</span>
                 <strong className="tabular-nums">{formatMoney(item.value)}</strong>
               </div>
             ))}
@@ -299,9 +301,9 @@ function PlanEditor({
       <div className="flex gap-2">
         <Button size="sm" onClick={submit} disabled={!preview.length || savePlan.isPending} data-testid="button-save-installment-plan">
           {savePlan.isPending ? <CalendarClock className="ms-1 h-4 w-4 animate-spin" /> : <Save className="ms-1 h-4 w-4" />}
-          حفظ الخطة
+          {t("financeForms.savePlan")}
         </Button>
-        <Button size="sm" variant="outline" onClick={onComplete}>إلغاء</Button>
+        <Button size="sm" variant="outline" onClick={onComplete}>{t("financeForms.cancel")}</Button>
       </div>
     </div>
   );
@@ -318,6 +320,7 @@ function InstallmentRow({
 }) {
   const { toast } = useToast();
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const createPayment = useCreatePayment();
   const [paying, setPaying] = useState(false);
   const [amount, setAmount] = useState("");
@@ -372,29 +375,29 @@ function InstallmentRow({
         <div className="flex min-w-0 items-center gap-2">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">{installment.sequence}</span>
           <div>
-            <p className="text-sm font-medium">استحقاق {formatSaudiDate(installment.dueDate)}</p>
+            <p className="text-sm font-medium">{t("financeForms.due", { date: formatSaudiDate(installment.dueDate) })}</p>
             <p className="text-xs text-muted-foreground">
-              مجدول: <span className="tabular-nums">{formatMoney(installment.amount)}</span>
-              {" — "}مسدد: <span className="tabular-nums">{formatMoney(installment.paidAmount)}</span>
+              {t("financeForms.scheduled")} <span className="tabular-nums">{formatMoney(installment.amount)}</span>
+              {" — "}{t("financeForms.paid")} <span className="tabular-nums">{formatMoney(installment.paidAmount)}</span>
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className={STATUS_STYLES[installment.status]}>{installment.status}</Badge>
+          <Badge variant="outline" className={STATUS_STYLES[installment.status]}>{enumLabel("installmentStatus", installment.status)}</Badge>
           {!isPaid && canRecord ? (
             <Button size="sm" variant="outline" onClick={openPayment} data-testid={`button-pay-installment-${installment.id}`}>
               <Plus className="ms-1 h-3.5 w-3.5" />
-              تسجيل دفعة
+              {t("financeForms.recordInstallmentPayment")}
             </Button>
           ) : isPaid ? <Check className="h-4 w-4 text-emerald-600" /> : null}
         </div>
       </div>
       {paying ? (
         <div className="mt-3 grid items-end gap-2 rounded-md bg-muted/40 p-2.5 sm:grid-cols-4">
-          <div className="space-y-1"><Label className="text-xs">المبلغ</Label><Input type="number" min={0.01} max={installment.outstanding} step="0.01" value={amount} onChange={(event) => { setAmount(event.target.value); setError(null); }} data-testid={`input-installment-payment-${installment.id}`} /></div>
-          <div className="space-y-1"><Label className="text-xs">التاريخ</Label><OperationalDatePicker value={paymentDate} onChange={setPaymentDate} /></div>
-          <div className="space-y-1"><Label className="text-xs">الطريقة</Label><Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as (typeof PAYMENT_METHODS)[number])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PAYMENT_METHODS.map((method) => <SelectItem key={method} value={method}>{method}</SelectItem>)}</SelectContent></Select></div>
-          <div className="flex gap-2"><Button size="sm" onClick={submitPayment} disabled={createPayment.isPending}>{createPayment.isPending ? <CalendarClock className="h-4 w-4 animate-spin" /> : "حفظ"}</Button><Button size="sm" variant="ghost" onClick={() => setPaying(false)}>إلغاء</Button></div>
+          <div className="space-y-1"><Label className="text-xs">{t("financeForms.amount")}</Label><Input type="number" min={0.01} max={installment.outstanding} step="0.01" value={amount} onChange={(event) => { setAmount(event.target.value); setError(null); }} data-testid={`input-installment-payment-${installment.id}`} /></div>
+          <div className="space-y-1"><Label className="text-xs">{t("financeForms.date")}</Label><OperationalDatePicker value={paymentDate} onChange={setPaymentDate} /></div>
+          <div className="space-y-1"><Label className="text-xs">{t("financeForms.method")}</Label><Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as (typeof PAYMENT_METHODS)[number])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PAYMENT_METHODS.map((method) => <SelectItem key={method} value={method}>{enumLabel("paymentMethod", method)}</SelectItem>)}</SelectContent></Select></div>
+          <div className="flex gap-2"><Button size="sm" onClick={submitPayment} disabled={createPayment.isPending}>{createPayment.isPending ? <CalendarClock className="h-4 w-4 animate-spin" /> : t("financeForms.save")}</Button><Button size="sm" variant="ghost" onClick={() => setPaying(false)}>{t("financeForms.cancel")}</Button></div>
           {error ? <p className="text-xs text-destructive sm:col-span-4">{error}</p> : null}
         </div>
       ) : null}

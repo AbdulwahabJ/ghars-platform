@@ -50,6 +50,7 @@ import {
 } from "./OperationalDatePicker";
 import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProstheticDateField";
 import { useTranslation } from "react-i18next";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 /* ------------------------------------------------------------------ */
 /* Internal form schema (more permissive than API schema — API validates)
@@ -222,6 +223,7 @@ export function InlineNewRecord({
   onSuccess: () => void;
 }) {
   const { t, i18n } = useTranslation("quickEntry");
+  const { enumLabel } = useEnumTranslation();
   const optionLabel = (value: string) => t(`options.${value}`, { defaultValue: value });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1217,8 +1219,10 @@ export function InlineNewRecord({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {FOLLOWUP_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      {FOLLOWUP_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {enumLabel("followupType", type)}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

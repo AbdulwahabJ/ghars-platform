@@ -17,6 +17,7 @@ import { useRecordCommunicationResult } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 interface CommunicationResultDialogProps {
   open: boolean;
@@ -44,6 +45,7 @@ export function CommunicationResultForm({
 }: Omit<CommunicationResultDialogProps, "open">) {
   const { toast } = useToast();
   const { t } = useTranslation("operations");
+  const { enumLabel } = useEnumTranslation();
   const recordResult = useRecordCommunicationResult(patientId);
   const [result, setResult] = useState<string>("");
   const [note, setNote] = useState("");
@@ -100,7 +102,7 @@ export function CommunicationResultForm({
             <div key={r} className="flex items-center gap-2">
               <RadioGroupItem value={r} id={`result-${r}`} data-testid={`radio-result-${r}`} />
               <label htmlFor={`result-${r}`} className="text-sm cursor-pointer">
-                {r}
+                {enumLabel("communicationResult", r)}
               </label>
             </div>
           ))}
