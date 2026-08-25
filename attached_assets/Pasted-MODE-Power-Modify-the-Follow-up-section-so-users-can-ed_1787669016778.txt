@@ -1,0 +1,378 @@
+MODE: Power
+
+Modify the Follow-up section so users can edit follow-up records, change follow-up status, and cancel/archive follow-ups directly from the Follow-up interface — not only from the Patient Medical File.
+
+IMPORTANT:
+Do NOT create a second follow-up data source.
+Do NOT duplicate follow-up logic.
+Use the SAME canonical follow-up records, APIs, permissions, and business logic already used by the Patient File.
+
+==================================================
+1. FOLLOW-UP ITEM ACTIONS
+==================================================
+
+For every follow-up item/card in the Follow-up section, add clearly accessible actions for:
+
+- Edit
+- Change status
+- Cancel / Archive follow-up
+
+Keep the UI clean and compact.
+
+Do not redesign the Follow-up page.
+
+==================================================
+2. EDIT FOLLOW-UP
+==================================================
+
+When the user clicks Edit:
+
+Reuse the existing Follow-up edit form/dialog/component if one already exists.
+
+Do NOT build a separate editing workflow unnecessarily.
+
+Allow editing the same canonical fields currently supported by the system, including:
+
+- follow-up type
+- date
+- time
+- assigned/responsible user
+- notes
+- follow-up status
+
+Use the EXISTING canonical status values from the system.
+
+Examples may include:
+
+- Scheduled
+- Completed
+- Cancelled
+- Postponed
+- Needs re-contact
+
+But inspect the existing schema/enums first and reuse the real values.
+
+Do NOT introduce duplicate or conflicting status values.
+
+==================================================
+3. STATUS EDITING
+==================================================
+
+The follow-up status must be editable directly from the Follow-up interface.
+
+Preferred UX:
+
+show the current status as a badge/chip.
+
+Provide either:
+
+A. a small status-edit control next to the badge
+
+OR
+
+B. include status inside the existing Edit dialog
+
+Choose whichever best matches the current UI.
+
+Do not create an unnecessarily complex workflow.
+
+==================================================
+4. CANCEL / ARCHIVE
+==================================================
+
+Add a clear Cancel / Archive action for each follow-up.
+
+Before executing:
+
+show a confirmation dialog.
+
+Example Arabic UI:
+
+"هل أنت متأكد من إلغاء هذه المتابعة؟"
+
+If the current system uses:
+
+- archive
+- soft delete
+- cancelled status
+
+then follow the existing canonical behavior.
+
+Do NOT hard-delete records if the current architecture uses archive/soft-delete.
+
+==================================================
+5. SINGLE SOURCE OF TRUTH — CRITICAL
+==================================================
+
+This is the most important requirement.
+
+Any change made from the Follow-up interface must update the SAME canonical follow-up record used everywhere else.
+
+Do NOT create:
+
+- local mirrored state
+- duplicate follow-up tables
+- duplicate follow-up records
+- frontend-only status overrides
+
+The Follow-up interface and Patient File must be two views over the SAME backend data.
+
+==================================================
+6. SYSTEM-WIDE SYNCHRONIZATION
+==================================================
+
+After:
+
+- editing a follow-up
+- changing its status
+- cancelling/archiving it
+
+the change must immediately be reflected wherever follow-up data is used, including:
+
+- Patient Medical File
+- Patient Procedures
+- Operational Table if applicable
+- Dashboard
+- Statistics
+- follow-up counters
+- overdue follow-ups
+- scheduled follow-ups
+- completed follow-ups
+- any other surface depending on follow-up data
+
+Use the existing React Query architecture.
+
+Invalidate/refetch the correct canonical query keys after successful mutation.
+
+Do NOT require a manual page refresh.
+
+==================================================
+7. DASHBOARD CONSISTENCY
+==================================================
+
+If Dashboard follow-up cards or counters depend on these records:
+
+ensure they update after mutations.
+
+Examples:
+
+- overdue follow-ups
+- today's follow-ups
+- scheduled follow-ups
+- completed follow-ups
+
+Do NOT change Dashboard calculation rules.
+
+Only ensure canonical data refreshes correctly.
+
+==================================================
+8. STATISTICS CONSISTENCY
+==================================================
+
+If Statistics uses follow-up data:
+
+status changes and archive/cancel actions must affect statistics according to the EXISTING reporting rules.
+
+Do NOT rewrite Statistics logic.
+
+Do NOT calculate follow-up statistics differently on the frontend.
+
+==================================================
+9. PERMISSIONS
+==================================================
+
+Inspect the current permission model first.
+
+Reuse the SAME existing permissions used for editing/cancelling follow-ups from the Patient File.
+
+Do not create new permissions unless absolutely required.
+
+Permission enforcement must remain SERVER-SIDE.
+
+Do not rely only on hiding UI buttons.
+
+Unauthorized users must not be able to call mutation endpoints directly.
+
+==================================================
+10. API REUSE
+==================================================
+
+Inspect existing APIs/hooks first.
+
+If APIs already exist for:
+
+- updating follow-ups
+- changing status
+- cancelling/archiving follow-ups
+
+reuse them.
+
+Do NOT create parallel endpoints unnecessarily.
+
+If a required endpoint does not exist:
+
+add the minimum backend change required using the project's current conventions.
+
+==================================================
+11. UI REQUIREMENTS
+==================================================
+
+Keep the current Follow-up visual design.
+
+Do not redesign the card layout.
+
+Add actions in a compact professional way.
+
+Recommended:
+
+Status badge
+
+Then small actions such as:
+
+تعديل
+إلغاء المتابعة
+
+Use appropriate icons if the current design system already uses them.
+
+Do not overcrowd the card.
+
+==================================================
+12. STATUS COLORS
+==================================================
+
+Preserve semantic status colors.
+
+For example:
+
+Completed
+→ green
+
+Cancelled
+→ red / muted destructive style
+
+Scheduled
+→ existing neutral/teal style
+
+Postponed
+→ warning style if already defined
+
+Do NOT convert status badges to Ghars navy if they represent semantic states.
+
+==================================================
+13. ERROR HANDLING
+==================================================
+
+If an update fails:
+
+show a clear user-friendly error.
+
+Do NOT silently fail.
+
+Do NOT expose raw backend/database errors.
+
+If a specific field is invalid:
+
+identify the exact field and reason.
+
+==================================================
+14. DATE / TIME
+==================================================
+
+Preserve the current date/time handling.
+
+Do not introduce manual raw datetime text inputs if the system already uses proper pickers.
+
+Preserve Saudi/Riyadh display behavior currently used by the project.
+
+==================================================
+15. NO WORKFLOW REGRESSIONS
+==================================================
+
+Do NOT modify unrelated logic such as:
+
+- implants
+- prosthetic workflow
+- payments
+- finance
+- adjunct surgical procedures
+- patient identity
+- statistics calculations
+- authentication
+
+Only make changes necessary for canonical follow-up editing/cancellation from the Follow-up interface.
+
+==================================================
+16. TESTS
+==================================================
+
+Use isolated test data.
+
+Verify:
+
+A. Edit a scheduled follow-up from the Follow-up section.
+
+B. Change its status to Completed.
+
+C. Confirm Patient File immediately shows Completed.
+
+D. Confirm Dashboard counters refresh correctly.
+
+E. Confirm Statistics reflects the existing canonical rule.
+
+F. Edit date/time/responsible user/notes.
+
+G. Confirm changes appear everywhere without refresh.
+
+H. Cancel/archive a follow-up.
+
+I. Confirm the follow-up disappears or shows Cancelled according to current business rules.
+
+J. Confirm archived/cancelled follow-ups are handled correctly in Dashboard and Statistics.
+
+K. Confirm unauthorized user cannot edit/cancel follow-ups.
+
+L. Confirm Patient File follow-up editing still works normally.
+
+==================================================
+17. FINAL VERIFICATION
+==================================================
+
+Run:
+
+- affected frontend TypeScript
+- affected backend TypeScript
+- lint
+- focused Follow-up API tests
+- permission tests
+- browser verification
+
+Confirm:
+
+- edit works
+- status change works
+- cancel/archive works
+- no manual refresh required
+- all system surfaces remain synchronized
+- no duplicate follow-up state was introduced
+- no console errors
+- no regression in Patient File
+
+Do not publish.
+
+==================================================
+18. FINAL REPORT
+==================================================
+
+At completion report briefly:
+
+1. Files changed
+2. Existing APIs/components reused
+3. What was added to the Follow-up section
+4. Whether status editing works directly from Follow-up
+5. Whether cancel/archive works directly from Follow-up
+6. How cross-system synchronization was handled
+7. Permission behavior
+8. Test results
+9. Exact checkpoint commit hash
+
+Create a stable checkpoint and stop.
