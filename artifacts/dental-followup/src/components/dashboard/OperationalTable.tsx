@@ -24,7 +24,7 @@ import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LAB
 import { followupStatusClasses } from "@/components/followups/followup-utils";
 import { useArchivePatient, usePatient, useUpdatePatient } from "@/hooks/use-patients";
 import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useArchiveProstheticEvent, useArchiveBoneGraftProcedure, useImplantOptions } from "@/hooks/use-implant-cases";
-import { useFollowups, useCreateFollowup, useUpdateFollowup, useFollowupOutcome, useAssignableUsers } from "@/hooks/use-followups";
+import { useFollowups, useCreateFollowup, useUpdateFollowup, useAssignableUsers } from "@/hooks/use-followups";
 import { useCreatePayment, useUpdatePayment, useVoidPayment, useCaseFinance } from "@/hooks/use-finance";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,8 @@ import { ProstheticEventDialog } from "@/components/implants/ProstheticEventDial
 import { BoneGraftProcedureDialog } from "@/components/implants/BoneGraftProcedureDialog";
 import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProstheticDateField";
 import { FinalTotalDialog } from "@/components/finance/FinalTotalDialog";
+import { OutcomeDialog } from "@/components/followups/OutcomeDialog";
+import { CancelFollowupDialog } from "@/components/followups/CancelFollowupDialog";
 import {
   OperationalDatePicker,
   OperationalDateTimeFields,
@@ -1773,7 +1775,6 @@ function PatientExpandedRow({
   const archiveProstheticEvent = useArchiveProstheticEvent();
   const archiveBoneGraftProcedure = useArchiveBoneGraftProcedure();
   const archivePatient = useArchivePatient();
-  const followupOutcome = useFollowupOutcome(group.patientId);
 
   // Inline edit state — one section at a time
   const [editingPatient, setEditingPatient] = useState(false);
@@ -1784,7 +1785,8 @@ function PatientExpandedRow({
   const [confirmArchiveImplantId, setConfirmArchiveImplantId] = useState<string | null>(null);
   const [confirmArchivePatient, setConfirmArchivePatient] = useState(false);
   const [confirmArchiveProstheticEventId, setConfirmArchiveProstheticEventId] = useState<string | null>(null);
-  const [confirmCancelFollowupId, setConfirmCancelFollowupId] = useState<string | null>(null);
+  const [statusFollowup, setStatusFollowup] = useState<Followup | null>(null);
+  const [cancelFollowup, setCancelFollowup] = useState<Followup | null>(null);
   // Inline quick-action state — one form open at a time
   type QuickAction = "implant" | "payment" | "followup";
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
@@ -1793,10 +1795,10 @@ function PatientExpandedRow({
   const [boneGraftContext, setBoneGraftContext] = useState<{ caseItem: ImplantCaseWithImplants; procedure?: BoneGraftProcedure | null } | null>(null);
   const [confirmArchiveBoneGraftProcedureId, setConfirmArchiveBoneGraftProcedureId] = useState<string | null>(null);
 
-  const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
-  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmArchiveProstheticEventId(null); setConfirmCancelFollowupId(null); setProstheticEventContext(null); };
-  const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
-  const startEditFollowup = (id: string) => { setEditingFollowupId(id); setEditingPatient(false); setEditingCaseId(null); setEditingImplantId(null); setConfirmArchiveImplantId(null); setConfirmCancelFollowupId(null); };
+  const startEditPatient = () => { setEditingPatient(true); setEditingCaseId(null); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setStatusFollowup(null); setCancelFollowup(null); };
+  const startEditCase = (id: string) => { setEditingCaseId(id); setEditingPatient(false); setEditingImplantId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setConfirmArchiveProstheticEventId(null); setStatusFollowup(null); setCancelFollowup(null); setProstheticEventContext(null); };
+  const startEditImplant = (id: string) => { setEditingImplantId(id); setEditingPatient(false); setEditingCaseId(null); setEditingFollowupId(null); setConfirmArchiveImplantId(null); setStatusFollowup(null); setCancelFollowup(null); };
+  const startEditFollowup = (id: string) => { setEditingFollowupId(id); setEditingPatient(false); setEditingCaseId(null); setEditingImplantId(null); setConfirmArchiveImplantId(null); setStatusFollowup(null); setCancelFollowup(null); };
 
   const doArchiveImplant = (imp: Implant) => {
     archiveImplant.mutate(
@@ -1874,25 +1876,6 @@ function PatientExpandedRow({
     });
   };
 
-  const doCancelFollowup = (followupId: string) => {
-    followupOutcome.mutate(
-      { id: followupId, input: { status: "ملغاة" as const, note: null, result: null } },
-      {
-        onSuccess: () => {
-          toast({ title: "تم إلغاء المتابعة" });
-          setConfirmCancelFollowupId(null);
-        },
-        onError: (error) => {
-          toast({
-            title: "تعذر إلغاء المتابعة",
-            description: error instanceof Error ? error.message : undefined,
-            variant: "destructive",
-          });
-        },
-      },
-    );
-  };
-
   const toggleAction = (action: QuickAction) =>
     setActiveAction((prev) => (prev === action ? null : action));
 
@@ -1911,13 +1894,17 @@ function PatientExpandedRow({
   }
 
   const p = patient.data?.patient;
-  const displayedFollowups = allFollowups.filter((f) => f.followupStatus !== "ملغاة").sort((a, b) => {
+  const displayedFollowups = allFollowups.sort((a, b) => {
     const aTime = a.scheduledAt ? new Date(a.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
     const bTime = b.scheduledAt ? new Date(b.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
-    const aPriority = a.followupStatus === "مجدولة"
+    const aPriority = a.followupStatus === "ملغاة"
+      ? 3
+      : a.followupStatus === "مجدولة"
       ? (aTime >= now ? 0 : 1)
       : 2;
-    const bPriority = b.followupStatus === "مجدولة"
+    const bPriority = b.followupStatus === "ملغاة"
+      ? 3
+      : b.followupStatus === "مجدولة"
       ? (bTime >= now ? 0 : 1)
       : 2;
     return aPriority - bPriority || aTime - bTime;
@@ -2012,33 +1999,15 @@ function PatientExpandedRow({
                             <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-muted-foreground" onClick={() => startEditFollowup(followup.id)}>
                               <Pencil className="h-3 w-3" /> تعديل
                             </Button>
-                            <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-destructive hover:text-destructive" onClick={() => setConfirmCancelFollowupId(followup.id)}>
+                            <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-muted-foreground" onClick={() => setStatusFollowup(followup)}>
+                              <Check className="h-3 w-3" /> تغيير الحالة
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 text-destructive hover:text-destructive" onClick={() => setCancelFollowup(followup)}>
                               <X className="h-3 w-3" /> إلغاء المتابعة
                             </Button>
                           </div>
                         )}
                       </div>
-                      {confirmCancelFollowupId === followup.id && (
-                        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2.5 space-y-2">
-                          <p className="text-[11px] flex items-start gap-1.5">
-                            <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
-                            هل تريد إلغاء هذه المتابعة؟ سيبقى السجل محفوظًا في سجل المتابعات.
-                          </p>
-                          <div className="flex gap-2">
-                            <Button type="button" size="sm" variant="destructive"
-                              onClick={() => doCancelFollowup(followup.id)}
-                              disabled={followupOutcome.isPending}
-                              className="h-6 text-[11px]">
-                              {followupOutcome.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                              تأكيد الإلغاء
-                            </Button>
-                            <Button type="button" size="sm" variant="outline"
-                              onClick={() => setConfirmCancelFollowupId(null)}
-                              disabled={followupOutcome.isPending}
-                              className="h-6 text-[11px]">إلغاء</Button>
-                          </div>
-                        </div>
-                      )}
                       {followup.scheduledAt && (
                         <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">الموعد</span>
@@ -2110,6 +2079,20 @@ function PatientExpandedRow({
           </div>
         )}
       </div>
+      <OutcomeDialog
+        open={Boolean(statusFollowup)}
+        onOpenChange={(open) => !open && setStatusFollowup(null)}
+        patientId={group.patientId}
+        followup={statusFollowup}
+        title="تغيير حالة المتابعة"
+        successMessage="تم تحديث حالة المتابعة."
+      />
+      <CancelFollowupDialog
+        open={Boolean(cancelFollowup)}
+        onOpenChange={(open) => !open && setCancelFollowup(null)}
+        patientId={group.patientId}
+        followup={cancelFollowup}
+      />
 
       {/* B — حالات الزراعة */}
       {activeCases.length > 0 && (

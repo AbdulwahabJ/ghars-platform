@@ -25,7 +25,11 @@ import {
   OperationalDatePicker,
   OperationalDateTimeFields,
 } from "@/components/dashboard/OperationalDatePicker";
-import { useCreateFollowup, useUpdateFollowup } from "@/hooks/use-followups";
+import {
+  useAssignableUsers,
+  useCreateFollowup,
+  useUpdateFollowup,
+} from "@/hooks/use-followups";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
@@ -64,6 +68,7 @@ function FollowupForm({
   const { user } = useAuth();
   const createFollowup = useCreateFollowup(patientId);
   const updateFollowup = useUpdateFollowup(patientId);
+  const { data: assignableUsers } = useAssignableUsers();
   const isEdit = Boolean(followup);
   const source = followup ?? prefillFrom ?? null;
 
@@ -84,8 +89,10 @@ function FollowupForm({
     followup?.contactDueAt ? toRiyadhDateValue(followup.contactDueAt) : "",
   );
   const [note, setNote] = useState(followup?.note ?? "");
-  // New follow-ups belong to the logged-in user; edits preserve the existing owner.
-  const assignedUserId = isEdit ? source?.assignedUserId ?? null : user?.id ?? null;
+  // New follow-ups belong to the logged-in user; edits can reassign an active user.
+  const [assignedUserId, setAssignedUserId] = useState(
+    isEdit ? source?.assignedUserId ?? "" : user?.id ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
 
   const pending = createFollowup.isPending || updateFollowup.isPending;
@@ -120,7 +127,7 @@ function FollowupForm({
           ? toRiyadhInputValue(followup.nextAppointmentAt)
           : null,
       note: note.trim() || null,
-        assignedUserId,
+        assignedUserId: assignedUserId || null,
     };
     const callbacks = {
       onSuccess: () => {
@@ -206,14 +213,36 @@ function FollowupForm({
         </div>
         <div className="space-y-2">
           <FieldLabel label="المسؤول" />
-          <div
-            className="flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-foreground"
-            data-testid="followup-current-assignee"
-          >
-            {isEdit
-              ? followup?.assignedUserName ?? "غير محدد"
-              : user?.fullName ?? "المستخدم الحالي"}
-          </div>
+          {isEdit && assignableUsers && assignableUsers.length > 0 ? (
+            <Select
+              value={assignedUserId || "__none__"}
+              onValueChange={(value) =>
+                setAssignedUserId(value === "__none__" ? "" : value)
+              }
+              dir="rtl"
+            >
+              <SelectTrigger data-testid="select-followup-assignee">
+                <SelectValue placeholder="غير محدد" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">غير محدد</SelectItem>
+                {assignableUsers.map((assignableUser) => (
+                  <SelectItem key={assignableUser.id} value={assignableUser.id}>
+                    {assignableUser.fullName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div
+              className="flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-foreground"
+              data-testid="followup-current-assignee"
+            >
+              {isEdit
+                ? followup?.assignedUserName ?? "غير محدد"
+                : user?.fullName ?? "المستخدم الحالي"}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Checkbox

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
 import { addMonthsToIsoDate } from "@/lib/datetime";
@@ -65,28 +65,50 @@ export function ExpectedProstheticDateField({
   }, [duration, expectedDate, procedureDate]);
 
   const missingProcedureDate = duration !== EXPECTED_DATE_CUSTOM && !procedureDate;
-  const controlClass = compact ? "h-8 text-sm" : "h-[46px] rounded-[10px]";
 
   return (
     <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3 sm:col-span-2", className)}>
       <div className="space-y-1.5">
-        <Label htmlFor={`${idPrefix}-duration`}>المدة</Label>
-        <Select
-          value={duration}
-          onValueChange={(value) => setDuration(value as DurationValue)}
+        <Label>المدة</Label>
+        <div
+          className={cn(
+            "grid grid-cols-2 gap-x-3 gap-y-2 rounded-md border border-input bg-background p-3",
+            compact ? "min-h-8 p-2" : "min-h-[46px] rounded-[10px]",
+          )}
+          role="group"
+          aria-label="مدة التركيب المتوقعة"
+          data-testid={`${idPrefix}-duration-options`}
         >
-          <SelectTrigger id={`${idPrefix}-duration`} className={controlClass}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent dir="rtl">
-            {DURATION_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-            <SelectItem value={EXPECTED_DATE_CUSTOM}>مخصص</SelectItem>
-          </SelectContent>
-        </Select>
+          {DURATION_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              htmlFor={`${idPrefix}-duration-${option.value}`}
+              className="flex cursor-pointer items-center gap-2 text-sm"
+            >
+              <Checkbox
+                id={`${idPrefix}-duration-${option.value}`}
+                checked={duration === option.value}
+                onCheckedChange={(checked) => {
+                  if (checked) setDuration(option.value);
+                }}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+          <label
+            htmlFor={`${idPrefix}-duration-custom`}
+            className="flex cursor-pointer items-center gap-2 text-sm"
+          >
+            <Checkbox
+              id={`${idPrefix}-duration-custom`}
+              checked={duration === EXPECTED_DATE_CUSTOM}
+              onCheckedChange={(checked) => {
+                if (checked) setDuration(EXPECTED_DATE_CUSTOM);
+              }}
+            />
+            <span>مخصص</span>
+          </label>
+        </div>
       </div>
 
       <div className="space-y-1.5">

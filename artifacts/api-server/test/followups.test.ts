@@ -157,6 +157,47 @@ describe("follow-up lifecycle", () => {
     expect(res.body.followup.note).toBe("تعديل الطبيب");
   });
 
+  it("allows an open follow-up to be reassigned and its status changed", async () => {
+    const created = await createFollowup(admin);
+    const users = await admin.get("/api/users/assignable");
+    const doctorUser = users.body.users.find(
+      (user: { role: string }) => user.role === "DOCTOR",
+    );
+    expect(doctorUser).toBeTruthy();
+
+    const reassigned = await assistant
+      .patch(`/api/followups/${created.body.followup.id}`)
+      .send({ assignedUserId: doctorUser.id });
+    expect(reassigned.status).toBe(200);
+    expect(reassigned.body.followup.assignedUserId).toBe(doctorUser.id);
+
+    const noResponse = await assistant
+      .post(`/api/followups/${created.body.followup.id}/outcome`)
+      .send({ status: "لا يوجد رد", result: "سيعاد التواصل لاحقًا" });
+    expect(noResponse.status).toBe(200);
+    expect(noResponse.body.followup.followupStatus).toBe("لا يوجد رد");
+
+    const completed = await doctor
+      .post(`/api/followups/${created.body.followup.id}/outcome`)
+      .send({ status: "تمت", result: "تمت المراجعة" });
+    expect(completed.status).toBe(200);
+    expect(completed.body.followup.followupStatus).toBe("تمت");
+  });
+
+  it("requires authentication to edit or change a follow-up status", async () => {
+    const created = await createFollowup(admin);
+    const anonymous = agentFor(app);
+    const edit = await anonymous
+      .patch(`/api/followups/${created.body.followup.id}`)
+      .send({ note: "محاولة غير مصرح بها" });
+    expect(edit.status).toBe(401);
+
+    const status = await anonymous
+      .post(`/api/followups/${created.body.followup.id}/outcome`)
+      .send({ status: "تمت" });
+    expect(status.status).toBe(401);
+  });
+
   it("completing stores the result and closes the record", async () => {
     const created = await createFollowup(admin);
     const id = created.body.followup.id;

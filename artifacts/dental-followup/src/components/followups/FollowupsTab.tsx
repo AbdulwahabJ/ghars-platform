@@ -28,6 +28,7 @@ import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { FollowupFormDialog } from "./FollowupFormDialog";
 import { OutcomeDialog } from "./OutcomeDialog";
 import { PostponeDialog } from "./PostponeDialog";
+import { CancelFollowupDialog } from "./CancelFollowupDialog";
 import { WhatsAppDialog } from "./WhatsAppDialog";
 import { CommunicationResultDialog } from "./CommunicationResultDialog";
 import {
@@ -57,6 +58,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
   const [prefillFrom, setPrefillFrom] = useState<Followup | null>(null);
   const [outcomeTarget, setOutcomeTarget] = useState<Followup | null>(null);
   const [postponeTarget, setPostponeTarget] = useState<Followup | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Followup | null>(null);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappFollowup, setWhatsappFollowup] = useState<Followup | null>(null);
   const [resultTarget, setResultTarget] = useState<Communication | null>(null);
@@ -138,6 +140,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
               isArchived={isArchived}
               onOutcome={setOutcomeTarget}
               onPostpone={setPostponeTarget}
+              onCancel={setCancelTarget}
               onEdit={(x) => openForm(x, null)}
               onNewFrom={(x) => openForm(null, x)}
               onWhatsapp={openWhatsapp}
@@ -188,6 +191,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
                 isArchived={isArchived}
                 onOutcome={setOutcomeTarget}
                 onPostpone={setPostponeTarget}
+                onCancel={setCancelTarget}
                 onEdit={(x) => openForm(x, null)}
                 onNewFrom={(x) => openForm(null, x)}
                 onWhatsapp={openWhatsapp}
@@ -200,6 +204,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
                 isArchived={isArchived}
                 onOutcome={setOutcomeTarget}
                 onPostpone={setPostponeTarget}
+                onCancel={setCancelTarget}
                 onEdit={(x) => openForm(x, null)}
                 onNewFrom={(x) => openForm(null, x)}
                 onWhatsapp={openWhatsapp}
@@ -225,6 +230,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
               isArchived={isArchived}
               onOutcome={setOutcomeTarget}
               onPostpone={setPostponeTarget}
+              onCancel={setCancelTarget}
               onEdit={(x) => openForm(x, null)}
               onNewFrom={(x) => openForm(null, x)}
               onWhatsapp={openWhatsapp}
@@ -305,12 +311,20 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
         onOpenChange={(v) => !v && setOutcomeTarget(null)}
         patientId={patient.id}
         followup={outcomeTarget}
+        title="تغيير حالة المتابعة"
+        successMessage="تم تحديث حالة المتابعة."
       />
       <PostponeDialog
         open={Boolean(postponeTarget)}
         onOpenChange={(v) => !v && setPostponeTarget(null)}
         patientId={patient.id}
         followup={postponeTarget}
+      />
+      <CancelFollowupDialog
+        open={Boolean(cancelTarget)}
+        onOpenChange={(v) => !v && setCancelTarget(null)}
+        patientId={patient.id}
+        followup={cancelTarget}
       />
       <WhatsAppDialog
         open={whatsappOpen}
@@ -334,6 +348,7 @@ interface FollowupItemProps {
   isArchived: boolean;
   onOutcome: (f: Followup) => void;
   onPostpone: (f: Followup) => void;
+  onCancel: (f: Followup) => void;
   onEdit: (f: Followup) => void;
   onNewFrom: (f: Followup) => void;
   onWhatsapp: (f: Followup) => void;
@@ -345,6 +360,7 @@ function FollowupItem({
   isArchived,
   onOutcome,
   onPostpone,
+  onCancel,
   onEdit,
   onNewFrom,
   onWhatsapp,
@@ -392,20 +408,27 @@ function FollowupItem({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {canAct && isOpen ? (
+            {canAct ? (
               <>
-                <DropdownMenuItem onClick={() => onOutcome(f)} data-testid={`action-outcome-${f.id}`}>
-                  تسجيل النتيجة
+                <DropdownMenuItem onClick={() => onOutcome(f)} data-testid={`action-status-${f.id}`}>
+                  تغيير الحالة
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onPostpone(f)} data-testid={`action-postpone-${f.id}`}>
-                  تأجيل
+                {isOpen ? (
+                  <DropdownMenuItem onClick={() => onPostpone(f)} data-testid={`action-postpone-${f.id}`}>
+                    تأجيل
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem onClick={() => onEdit(f)} data-testid={`action-edit-${f.id}`}>
+                  تعديل
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onCancel(f)}
+                  className="text-destructive focus:text-destructive"
+                  data-testid={`action-cancel-${f.id}`}
+                >
+                  إلغاء المتابعة
                 </DropdownMenuItem>
               </>
-            ) : null}
-            {canAct ? (
-              <DropdownMenuItem onClick={() => onEdit(f)} data-testid={`action-edit-${f.id}`}>
-                تعديل
-              </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem onClick={() => onNewFrom(f)} data-testid={`action-new-from-${f.id}`}>
               متابعة جديدة من هذه

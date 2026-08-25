@@ -22,6 +22,9 @@ interface OutcomeDialogProps {
   onOpenChange: (open: boolean) => void;
   patientId: string;
   followup: Followup | null;
+  /** Cancellation has its own confirmation dialog, so it is not a status option here. */
+  title?: string;
+  successMessage?: string;
 }
 
 export function OutcomeDialog(props: OutcomeDialogProps) {
@@ -35,7 +38,13 @@ export function OutcomeDialog(props: OutcomeDialogProps) {
   );
 }
 
-function OutcomeForm({ onOpenChange, patientId, followup }: OutcomeDialogProps) {
+function OutcomeForm({
+  onOpenChange,
+  patientId,
+  followup,
+  title = "تغيير حالة المتابعة",
+  successMessage = "تم تحديث حالة المتابعة.",
+}: OutcomeDialogProps) {
   const { toast } = useToast();
   const recordOutcome = useFollowupOutcome(patientId);
   const [status, setStatus] = useState<string>("");
@@ -58,12 +67,12 @@ function OutcomeForm({ onOpenChange, patientId, followup }: OutcomeDialogProps) 
       },
       {
         onSuccess: () => {
-          toast({ title: "تم تسجيل نتيجة المتابعة." });
+          toast({ title: successMessage });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر تسجيل النتيجة",
+            title: "تعذر تحديث حالة المتابعة",
             description: err instanceof Error ? err.message : undefined,
             variant: "destructive",
           });
@@ -75,12 +84,12 @@ function OutcomeForm({ onOpenChange, patientId, followup }: OutcomeDialogProps) 
   return (
     <>
       <DialogHeader className="text-right sm:text-right">
-        <DialogTitle>تسجيل نتيجة المتابعة</DialogTitle>
+        <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{followup!.followupType}</DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
         <RadioGroup value={status} onValueChange={(v) => { setStatus(v); setError(null); }} dir="rtl" className="space-y-1">
-          {FOLLOWUP_OUTCOME_STATUSES.map((s) => (
+            {FOLLOWUP_OUTCOME_STATUSES.filter((s) => s !== "ملغاة").map((s) => (
             <div key={s} className="flex items-center gap-2">
               <RadioGroupItem value={s} id={`outcome-${s}`} data-testid={`radio-outcome-${s}`} />
               <label htmlFor={`outcome-${s}`} className="text-sm cursor-pointer">
@@ -90,7 +99,7 @@ function OutcomeForm({ onOpenChange, patientId, followup }: OutcomeDialogProps) 
           ))}
         </RadioGroup>
         <div className="space-y-2">
-          <FieldLabel label="تفاصيل النتيجة (اختياري)" />
+          <FieldLabel label="تفاصيل الحالة (اختياري)" />
           <Textarea
             value={result}
             onChange={(e) => setResult(e.target.value)}
