@@ -2819,6 +2819,7 @@ export function OperationalTable({
   doctorOptions: string[];
   systemOptions: string[];
 }) {
+  const { t } = useTranslation("guidance");
   const showFinance = Boolean(data?.financialsIncluded);
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const [showNewRecord, setShowNewRecord] = useState(false);

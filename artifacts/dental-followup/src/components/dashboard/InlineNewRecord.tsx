@@ -228,7 +228,6 @@ function SectionHeader({
   onToggle: () => void;
   optional?: boolean;
 }) {
-  const { t, i18n } = useTranslation("guidance");
   return (
     <button
       type="button"
@@ -255,6 +254,7 @@ export function InlineNewRecord({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t, i18n } = useTranslation("guidance");
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
