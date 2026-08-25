@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,8 +31,14 @@ type SetupFormValues = z.infer<typeof setupFormSchema>;
 
 export default function Setup() {
   const [, setLocation] = useLocation();
-  const { setup } = useAuth();
+  const { setup, setupStatus } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (setupStatus && !setupStatus.setupRequired) {
+      setLocation("/login");
+    }
+  }, [setLocation, setupStatus]);
   
   const form = useForm<SetupFormValues>({
     resolver: zodResolver(setupFormSchema),
