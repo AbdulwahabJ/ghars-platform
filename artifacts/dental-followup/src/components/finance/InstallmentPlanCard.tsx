@@ -24,6 +24,7 @@ import { useCreatePayment, useSaveInstallmentPlan } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney, todayIso } from "@/lib/money";
+import { localizeErrorMessage } from "@/lib/localize-error";
 import { PaymentFormDialog } from "./PaymentFormDialog";
 import { useTranslation } from "react-i18next";
 
@@ -257,7 +258,7 @@ function PlanEditor({
         onError: (err) => {
           toast({
             title: t("financeForms.planSaveFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -316,6 +317,7 @@ function InstallmentRow({
   canRecord: boolean;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const createPayment = useCreatePayment();
   const [paying, setPaying] = useState(false);
   const [amount, setAmount] = useState("");
@@ -334,7 +336,7 @@ function InstallmentRow({
   const submitPayment = () => {
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0 || value > installment.outstanding) {
-      setError("أدخل مبلغًا لا يتجاوز المتبقي من القسط.");
+      setError(t("financeForms.installmentAmountInvalid"));
       return;
     }
     const data: PaymentInput = {
@@ -350,13 +352,13 @@ function InstallmentRow({
       { caseId, data },
       {
         onSuccess: () => {
-          toast({ title: "تم تسجيل دفعة القسط." });
+          toast({ title: t("financeForms.installmentPaymentRecorded") });
           setPaying(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر تسجيل دفعة القسط",
-            description: err instanceof Error ? err.message : undefined,
+            title: t("financeForms.installmentPaymentFailed"),
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },

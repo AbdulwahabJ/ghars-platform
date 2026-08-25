@@ -92,7 +92,7 @@ export function Header({ user }: HeaderProps) {
           />
           <span className="font-semibold text-lg text-brand-navy tracking-tight hidden sm:block">
             {displaySystemName?.includes(" | ") ? (
-              <span dir="ltr" className="inline-flex items-baseline text-left">
+              <span dir="ltr" className="inline-flex items-baseline text-start">
                 <span dir="rtl" className="font-brand-arabic">
                   {displaySystemName.split(" | ")[0]}
                 </span>
@@ -108,7 +108,7 @@ export function Header({ user }: HeaderProps) {
         </div>
 
         {/* Center: Tabs */}
-        <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2 h-full" data-testid="nav-tabs" id="tour-nav-tabs">
+        <nav className="hidden md:flex items-center gap-1 absolute start-1/2 -translate-x-1/2 h-full" data-testid="nav-tabs" id="tour-nav-tabs">
           {navItems.map((item) => {
             const isActive =
               item.path === "/"
@@ -181,7 +181,7 @@ export function Header({ user }: HeaderProps) {
                     <Bell className="h-5 w-5" />
                     {notificationCount > 0 ? (
                       <span
-                        className="absolute -top-0.5 -left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-[18px] text-center font-bold notranslate"
+                        className="absolute -top-0.5 -start-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-[18px] text-center font-bold notranslate"
                         data-testid="badge-notification-count"
                       >
                         {notificationCount > 99 ? "+99" : notificationCount}

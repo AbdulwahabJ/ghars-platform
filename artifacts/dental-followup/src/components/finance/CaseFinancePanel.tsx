@@ -40,13 +40,14 @@ import { useCaseFinance, useDeleteCharge } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
+import { localizeErrorMessage } from "@/lib/localize-error";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import { BaseAmountDialog } from "./BaseAmountDialog";
 import { ChargeFormDialog } from "./ChargeFormDialog";
 import { PaymentFormDialog } from "./PaymentFormDialog";
 import { VoidPaymentDialog } from "./VoidPaymentDialog";
 import { InstallmentPlanCard } from "./InstallmentPlanCard";
-import { useTranslation } from "react-i18next";
 
 const STATUS_STYLES: Record<PaymentStatus, string> = {
   "لم يدفع": "bg-muted text-muted-foreground",
@@ -259,13 +260,13 @@ function PaymentsSection({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">التاريخ</TableHead>
-                  <TableHead className="text-right">الوصف</TableHead>
-                  <TableHead className="text-right">المبلغ</TableHead>
-                  <TableHead className="text-right">طريقة الدفع</TableHead>
-                  <TableHead className="text-right">رقم المرجع</TableHead>
-                  <TableHead className="text-right">المستخدم</TableHead>
-                  <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-start">التاريخ</TableHead>
+                  <TableHead className="text-start">الوصف</TableHead>
+                  <TableHead className="text-start">المبلغ</TableHead>
+                  <TableHead className="text-start">طريقة الدفع</TableHead>
+                  <TableHead className="text-start">رقم المرجع</TableHead>
+                  <TableHead className="text-start">المستخدم</TableHead>
+                  <TableHead className="text-start">الحالة</TableHead>
                   {canManage ? <TableHead /> : null}
                 </TableRow>
               </TableHeader>
@@ -362,6 +363,7 @@ function ChargesSection({
   canManage: boolean;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation("operations");
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const deleteCharge = useDeleteCharge();
@@ -372,13 +374,13 @@ function ChargesSection({
       { id: deleteTarget, caseId: caseItem.id },
       {
         onSuccess: () => {
-          toast({ title: "تم حذف الرسم." });
+          toast({ title: t("financeForms.chargeDeleted") });
           setDeleteTarget(null);
         },
         onError: (err) => {
           toast({
-            title: "تعذر حذف الرسم",
-            description: err instanceof Error ? err.message : undefined,
+            title: t("financeForms.chargeDeleteFailed"),
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
           setDeleteTarget(null);
@@ -408,11 +410,11 @@ function ChargesSection({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">التاريخ</TableHead>
-                  <TableHead className="text-right">النوع</TableHead>
-                  <TableHead className="text-right">الوصف</TableHead>
-                  <TableHead className="text-right">الزرعة</TableHead>
-                  <TableHead className="text-right">المبلغ</TableHead>
+                  <TableHead className="text-start">التاريخ</TableHead>
+                  <TableHead className="text-start">النوع</TableHead>
+                  <TableHead className="text-start">الوصف</TableHead>
+                  <TableHead className="text-start">الزرعة</TableHead>
+                  <TableHead className="text-start">المبلغ</TableHead>
                   {canManage ? <TableHead /> : null}
                 </TableRow>
               </TableHeader>
@@ -459,11 +461,11 @@ function ChargesSection({
           if (!open) setDeleteTarget(null);
         }}
       >
-        <AlertDialogContent dir="rtl" className="text-right">
+        <AlertDialogContent className="text-start">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف الرسم</AlertDialogTitle>
+            <AlertDialogTitle>{t("financeForms.deleteChargeTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف هذا الرسم وإعادة احتساب الإجمالي النهائي. هل أنت متأكد؟
+              {t("financeForms.deleteChargeDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">

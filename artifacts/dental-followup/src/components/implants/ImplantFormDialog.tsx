@@ -36,6 +36,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 export type ImplantDialogMode = "add" | "edit" | "copy";
 
@@ -55,7 +56,7 @@ export function ImplantFormDialog(props: ImplantFormDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl text-right max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-2xl text-start max-h-[90vh] overflow-y-auto">
         {/* The form mounts fresh on every open, so state initializers run each time. */}
         <ImplantForm {...props} />
       </DialogContent>
@@ -197,7 +198,7 @@ function ImplantForm({
       toast({
         variant: "destructive",
          title: t("patient.error"),
-         description: err.message || t("implant.implantSaveFailed"),
+          description: localizeErrorMessage(err),
       });
 
     if (mode === "edit" && implant) {
@@ -245,7 +246,7 @@ function ImplantForm({
             <SelectTrigger id="implant-site" className="h-[46px] rounded-[10px]">
                <SelectValue placeholder={t("implant.chooseTooth")} />
             </SelectTrigger>
-            <SelectContent dir="rtl" className="max-h-64">
+            <SelectContent className="max-h-64">
               {FDI_SITES.map((s) => (
                 <SelectItem key={s} value={s} disabled={occupiedSites.has(s)}>
                   {s}
@@ -335,7 +336,7 @@ function ImplantForm({
             <SelectTrigger id="implant-status" className="h-[46px] rounded-[10px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent dir="rtl">
+            <SelectContent>
               {IMPLANT_STATUSES.filter((s) => s !== "مؤرشفة").map((s) => (
                 <SelectItem key={s} value={s}>
                   {s}
@@ -403,7 +404,7 @@ function ImplantForm({
               className="max-w-[240px]"
             />
             <Button type="button" variant="outline" onClick={addCustomTag} className="btn-outline">
-              <Plus className="h-4 w-4 ml-1" />
+              <Plus className="h-4 w-4 ms-1" />
                {t("implant.add")}
             </Button>
           </div>

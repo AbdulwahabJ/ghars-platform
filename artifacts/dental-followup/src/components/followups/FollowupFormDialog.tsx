@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { toRiyadhDateValue, toRiyadhInputValue } from "./followup-utils";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface FollowupFormDialogProps {
   open: boolean;
@@ -51,7 +52,7 @@ export function FollowupFormDialog(props: FollowupFormDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg text-right max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-lg text-start max-h-[90vh] overflow-y-auto">
         <FollowupForm {...props} />
       </DialogContent>
     </Dialog>
@@ -101,19 +102,19 @@ function FollowupForm({
 
   const submit = () => {
     if (!isEdit && !caseId) {
-      setError("اختر حالة الزراعة أولًا.");
+      setError(t("followupForms.implantCaseRequired"));
       return;
     }
     if (!followupType) {
-      setError("نوع المتابعة مطلوب.");
+      setError(t("followupForms.typeRequired"));
       return;
     }
     if (!scheduledAt) {
-      setError("موعد المتابعة مطلوب.");
+      setError(t("followupForms.appointmentRequired"));
       return;
     }
     if (requiresContact && !contactDueAt) {
-      setError("حدد تاريخ استحقاق التواصل.");
+      setError(t("followupForms.contactDueDateRequired"));
       return;
     }
     const payload = {
@@ -134,14 +135,18 @@ function FollowupForm({
     const callbacks = {
       onSuccess: () => {
         toast({
-          title: isEdit ? "تم تحديث المتابعة." : "تمت إضافة المتابعة.",
+          title: isEdit
+            ? t("followupForms.followupUpdated")
+            : t("followupForms.followupAdded"),
         });
         onOpenChange(false);
       },
       onError: (err: unknown) => {
         toast({
-          title: isEdit ? "تعذر تحديث المتابعة" : "تعذر إضافة المتابعة",
-          description: err instanceof Error ? err.message : undefined,
+          title: isEdit
+            ? t("followupForms.followupUpdateFailed")
+            : t("followupForms.followupAddFailed"),
+          description: localizeErrorMessage(err),
           variant: "destructive" as const,
         });
       },
@@ -155,7 +160,7 @@ function FollowupForm({
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{isEdit ? t("followupForms.edit") : t("followupForms.add")}</DialogTitle>
         <DialogDescription>
           تُعرض جميع المواعيد بتوقيت الرياض.
@@ -165,7 +170,7 @@ function FollowupForm({
         {!isEdit ? (
           <div className="space-y-2">
             <FieldLabel label={t("followupForms.implantCase")} />
-            <Select value={caseId} onValueChange={setCaseId} dir="rtl">
+            <Select value={caseId} onValueChange={setCaseId}>
               <SelectTrigger data-testid="select-followup-case">
                 <SelectValue placeholder={t("followupForms.selectCase")} />
               </SelectTrigger>
@@ -191,7 +196,6 @@ function FollowupForm({
                 setFollowupType(v);
                 setError(null);
               }}
-              dir="rtl"
             >
               <SelectTrigger data-testid="select-followup-type">
                 <SelectValue placeholder={t("followupForms.selectType")} />
@@ -221,7 +225,6 @@ function FollowupForm({
               onValueChange={(value) =>
                 setAssignedUserId(value === "__none__" ? "" : value)
               }
-              dir="rtl"
             >
               <SelectTrigger data-testid="select-followup-assignee">
                 <SelectValue placeholder={t("followupForms.unspecified")} />

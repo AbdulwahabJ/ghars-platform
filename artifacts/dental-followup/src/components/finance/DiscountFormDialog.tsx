@@ -18,6 +18,7 @@ import { useCreateDiscount } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface DiscountFormDialogProps {
   open: boolean;
@@ -29,7 +30,7 @@ export function DiscountFormDialog(props: DiscountFormDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
+      <DialogContent className="sm:max-w-md text-start">
         <DiscountForm {...props} />
       </DialogContent>
     </Dialog>
@@ -75,7 +76,7 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
         onError: (err) => {
           toast({
             title: t("financeForms.discountAddFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -85,7 +86,7 @@ function DiscountForm({ onOpenChange, caseId }: DiscountFormDialogProps) {
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>إضافة خصم</DialogTitle>
         <DialogDescription>
           {t("financeForms.discountDescription")}

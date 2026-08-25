@@ -36,6 +36,7 @@ const auth = {
     submit: "Save password",
     success: "Your password has been changed. You can now sign in with your new password.",
     goToLogin: "Go to sign in",
+    passwordMismatch: "Passwords do not match.",
   },
   setup: {
     title: "Set up the system",
@@ -53,6 +54,7 @@ const auth = {
     submitting: "Setting up...",
     successTitle: "Setup complete",
     successDescription: "You can now sign in with your account.",
+    passwordMismatch: "Passwords do not match.",
   },
 } as const;
 

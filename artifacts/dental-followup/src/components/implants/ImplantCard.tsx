@@ -15,6 +15,7 @@ import { useArchiveImplant } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 function formatSize(implant: Implant): string | null {
   if (implant.diameter == null && implant.length == null) return null;
@@ -73,7 +74,7 @@ export function ImplantCard({
           toast({
             variant: "destructive",
              title: t("patient.error"),
-             description: err.message || t("implant.archiveFailed"),
+             description: localizeErrorMessage(err),
           }),
       },
     );
@@ -172,7 +173,7 @@ export function ImplantCard({
             className="btn-outline h-9"
             onClick={() => onEdit(implant)}
           >
-            <Pencil className="h-3.5 w-3.5 ml-1.5" />
+            <Pencil className="h-3.5 w-3.5 ms-1.5" />
                {t("implant.edit")}
           </Button>
           <Button
@@ -181,7 +182,7 @@ export function ImplantCard({
             className="btn-outline h-9"
             onClick={() => onCopy(implant)}
           >
-            <Copy className="h-3.5 w-3.5 ml-1.5" />
+            <Copy className="h-3.5 w-3.5 ms-1.5" />
                {t("implant.copyImplant")}
           </Button>
           {canArchive && (
@@ -191,7 +192,7 @@ export function ImplantCard({
               className="h-9 text-destructive border-destructive hover:bg-destructive/10"
               onClick={() => setShowConfirm(true)}
             >
-              <Archive className="h-3.5 w-3.5 ml-1.5" />
+              <Archive className="h-3.5 w-3.5 ms-1.5" />
                {t("implant.archive")}
             </Button>
           )}

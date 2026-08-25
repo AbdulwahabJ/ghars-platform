@@ -15,3 +15,4 @@
 - [Quick-entry atomic route](quick-entry-route.md) — POST /api/quick-entry creates patient+case+implants+payment+followup in one transaction; shared schema in lib/shared/src/schemas/quick-entry.ts; numeric DB columns need String() cast for diameter/length.
 - [Bilingual brand ordering](bilingual-brand-ordering.md) — Arabic/Latin lockups need an explicit LTR wrapper with isolated RTL Arabic text to preserve the requested visual order.
 - [i18n namespace registration](i18n-namespace-registration.md) — register plain locale resources centrally at startup; do not add bundles from component render paths.
+- [Locale direction ownership](locale-direction-ownership.md) — locale provider owns RTL/LTR; avoid feature-level forced directions so flex layouts and overlays flip together.

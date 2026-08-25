@@ -2,13 +2,13 @@ export function PageBackgroundDecorations() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute left-1/2 top-0 z-0 h-full w-screen -translate-x-1/2 overflow-hidden print:hidden"
+      className="pointer-events-none absolute start-1/2 top-0 z-0 h-full w-screen -translate-x-1/2 overflow-hidden print:hidden"
     >
-      <div className="absolute left-[-10rem] top-[8rem] hidden h-[34rem] w-[34rem] rounded-full bg-cyan-300/20 blur-3xl md:block" />
-      <div className="absolute right-[-11rem] top-[24rem] hidden h-[38rem] w-[38rem] rounded-full bg-blue-300/15 blur-3xl md:block" />
+      <div className="absolute start-[-10rem] top-[8rem] hidden h-[34rem] w-[34rem] rounded-full bg-cyan-300/20 blur-3xl md:block" />
+      <div className="absolute end-[-11rem] top-[24rem] hidden h-[38rem] w-[38rem] rounded-full bg-blue-300/15 blur-3xl md:block" />
 
       <svg
-        className="absolute left-[-10rem] top-[7rem] hidden h-[34rem] w-[34rem] opacity-90 md:block"
+        className="absolute start-[-10rem] top-[7rem] hidden h-[34rem] w-[34rem] opacity-90 md:block"
         viewBox="0 0 560 620"
         fill="none"
       >
@@ -66,7 +66,7 @@ export function PageBackgroundDecorations() {
       </svg>
 
       <svg
-        className="absolute right-[-11rem] top-[22rem] hidden h-[38rem] w-[38rem] opacity-90 md:block"
+        className="absolute end-[-11rem] top-[22rem] hidden h-[38rem] w-[38rem] opacity-90 md:block"
         viewBox="0 0 620 680"
         fill="none"
       >
@@ -123,8 +123,8 @@ export function PageBackgroundDecorations() {
         </g>
       </svg>
 
-      <div className="absolute left-4 top-[15rem] h-16 w-16 rounded-full border border-cyan-500/20 md:hidden" />
-      <div className="absolute right-4 top-[32rem] h-20 w-20 rounded-full border border-blue-500/15 md:hidden" />
+      <div className="absolute start-4 top-[15rem] h-16 w-16 rounded-full border border-cyan-500/20 md:hidden" />
+      <div className="absolute end-4 top-[32rem] h-20 w-20 rounded-full border border-blue-500/15 md:hidden" />
     </div>
   );
 }

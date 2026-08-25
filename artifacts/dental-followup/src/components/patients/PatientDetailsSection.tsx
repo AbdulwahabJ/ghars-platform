@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUpdatePatient } from "@/hooks/use-patients";
 import { useToast } from "@/hooks/use-toast";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface PatientDetailsSectionProps {
   patient: Patient;
@@ -61,7 +62,7 @@ export function PatientDetailsSection({
           toast({
             variant: "destructive",
             title: t("patient.saveFailed"),
-            description: error.message || t("patient.retry"),
+            description: localizeErrorMessage(error),
           }),
       },
     );

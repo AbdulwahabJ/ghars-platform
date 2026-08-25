@@ -90,6 +90,7 @@ import type {
   QuickEntryResponse,
 } from "@workspace/shared";
 import i18n from "@/i18n";
+import { localizeApiErrorMessage } from "@/lib/localize-error";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
 
@@ -133,11 +134,7 @@ async function request<T>(
       const body = data as { error?: string; code?: string; field?: string };
       code = body.code;
       field = body.field;
-      if (code && i18n.exists(`errors.${code}`)) {
-        message = i18n.t(`errors.${code}`);
-      } else if (body.error && !code && i18n.language === "ar") {
-        message = body.error;
-      }
+      message = localizeApiErrorMessage(code, body.error);
     } catch {
       // Non-JSON error body — keep the localized generic message.
     }

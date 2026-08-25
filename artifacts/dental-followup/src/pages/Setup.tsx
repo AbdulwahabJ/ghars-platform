@@ -21,16 +21,11 @@ import { Loader2 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
-// Extend schema for password confirmation
-const setupFormSchema = setupInputSchema.extend({
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "كلمة المرور غير متطابقة",
-  path: ["confirmPassword"],
-});
-
-type SetupFormValues = z.infer<typeof setupFormSchema>;
+type SetupFormValues = z.infer<typeof setupInputSchema> & {
+  confirmPassword: string;
+};
 
 export default function Setup() {
   const [, setLocation] = useLocation();
@@ -38,6 +33,12 @@ export default function Setup() {
   const { toast } = useToast();
   const { t } = useTranslation("auth");
   const { direction } = useLocale();
+  const setupFormSchema = setupInputSchema.extend({
+    confirmPassword: z.string(),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t("setup.passwordMismatch"),
+    path: ["confirmPassword"],
+  });
 
   useEffect(() => {
     if (setupStatus && !setupStatus.setupRequired) {
@@ -71,7 +72,7 @@ export default function Setup() {
         toast({
           variant: "destructive",
           title: t("common:errors.generic"),
-          description: error.message || t("common:errors.generic"),
+          description: localizeErrorMessage(error),
         });
       },
     });
@@ -93,7 +94,7 @@ export default function Setup() {
             {t("setup.title")}
           </h1>
           <p className="text-muted-foreground text-center mt-2 text-sm">
-            <span dir="ltr" className="inline-flex items-baseline text-left">
+            <span dir="ltr" className="inline-flex items-baseline text-start">
               <span dir="rtl" className="font-semibold text-brand-navy">غرس</span>
               <span className="mx-1 text-brand-blue-gray"> | </span>
               <span className="font-brand-latin">Ghars</span>
@@ -197,7 +198,7 @@ export default function Setup() {
             <Button type="submit" className="w-full btn-primary mt-6" disabled={setup.isPending}>
               {setup.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                    <span>{t("setup.submitting")}</span>
                 </>
               ) : (

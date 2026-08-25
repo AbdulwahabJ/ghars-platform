@@ -10,9 +10,11 @@ import { NewPatientDialog } from "@/components/patients/NewPatientDialog";
 import { formatSaudiDate } from "@/lib/datetime";
 import { Patient } from "@workspace/shared";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { useLocale } from "@/i18n/LocaleProvider";
 
 export default function PatientsList() {
   const { t } = useClinicalTranslation();
+  const { direction } = useLocale();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -107,7 +109,7 @@ export default function PatientsList() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-right border-collapse">
+                <table className="w-full text-start border-collapse">
                   <thead>
                     <tr className="bg-muted/50 border-b border-border">
                        <th className="px-6 py-4 text-sm font-semibold text-muted-foreground w-32">{t("patient.fileNumber")}</th>
@@ -141,7 +143,7 @@ export default function PatientsList() {
                           </span>
                         </td>
                         <td className="px-2 py-4 text-end">
-                          <ChevronLeft className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity rtl:rotate-180" />
+                          {direction === "rtl" ? <ChevronLeft className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" /> : <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
                         </td>
                       </tr>
                     ))}
@@ -163,7 +165,7 @@ export default function PatientsList() {
                       disabled={page === 1}
                       className="gap-1 h-9 px-3"
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      {direction === "rtl" ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                        {t("patient.previous")}
                     </Button>
                     <div className="flex items-center justify-center px-4 font-medium text-sm">
@@ -177,7 +179,7 @@ export default function PatientsList() {
                       className="gap-1 h-9 px-3"
                     >
                        {t("patient.next")}
-                      <ChevronLeft className="h-4 w-4" />
+                       {direction === "rtl" ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>

@@ -1,0 +1,304 @@
+==================================================
+STRICT CUSTOMER VISIBILITY — RELEASE BLOCKER
+==================================================
+
+Normal Ghars customer users MUST NEVER be aware of, discover, browse, or access other Ghars customer organizations.
+
+This applies to ALL tenant users including:
+
+- Tenant Owner
+- Tenant Admin
+- Doctors
+- Reception
+- Finance users
+- any other customer role
+
+A tenant user must see ONLY their own organization.
+
+==================================================
+1. NO CUSTOMER/TENANT SWITCHER
+==================================================
+
+Do NOT show customer users:
+
+- tenant selector
+- organization switcher
+- list of Ghars customers
+- customer IDs of other tenants
+- other organization names
+- other tenant statistics
+
+The authenticated user's tenant is derived automatically from the server-side account/session.
+
+There should be no normal UI where a customer chooses a tenant.
+
+==================================================
+2. ONE USER → ONE CUSTOMER TENANT
+==================================================
+
+For the current commercial model:
+
+a normal customer user belongs to exactly ONE tenant.
+
+Do NOT implement multi-tenant membership for ordinary customer users.
+
+Do NOT allow the same normal user account to freely switch between customer organizations.
+
+If this capability is ever required in the future, it must be explicitly designed and secured separately.
+
+==================================================
+3. PLATFORM ADMIN IS THE ONLY CROSS-TENANT ROLE
+==================================================
+
+Only:
+
+platform_super_admin
+
+may access the Platform Admin control center and view the list of Ghars customers.
+
+Tenant Admin is NOT Platform Admin.
+
+A customer Tenant Admin must never see:
+
+- Customers page
+- Trials page for other customers
+- Activation Requests of other customers
+- Platform Errors across customers
+- Platform Settings
+- System-wide customer statistics
+
+==================================================
+4. FRONTEND ROUTE ISOLATION
+==================================================
+
+Customer users must not have navigation links to:
+
+/platform-admin
+
+But hiding the link is NOT sufficient.
+
+If a customer manually enters:
+
+/platform-admin
+
+show a safe localized:
+
+403 / Access Denied
+
+and do not load Platform Admin data.
+
+==================================================
+5. BACKEND ISOLATION
+==================================================
+
+Every customer API must derive:
+
+tenant_id
+
+from the authenticated server-side user/session.
+
+NEVER trust tenant_id coming from:
+
+- request body
+- query parameter
+- URL parameter
+- frontend localStorage
+- hidden form field
+
+Customer frontend must not decide which tenant it belongs to.
+
+==================================================
+6. ALL DATA MUST BE TENANT-SCOPED
+==================================================
+
+Explicitly verify tenant filtering for:
+
+- patients
+- patient search
+- phone search
+- implant cases
+- implants
+- adjunct surgical procedures
+- prosthetic events
+- follow-ups
+- communications
+- payments
+- charges
+- discounts
+- installment plans
+- Dashboard
+- Statistics
+- reports
+- exports
+- users
+- roles/permissions where tenant-owned
+- settings/lists
+- audit logs
+- uploaded files
+- notifications
+- any autocomplete/search endpoint
+
+No exception.
+
+==================================================
+7. DIRECT ID ATTACK TEST
+==================================================
+
+Create:
+
+Tenant A
+Tenant B
+
+Take known IDs from Tenant B and authenticate as Tenant A.
+
+Attempt direct access to:
+
+/patients/{B_ID}
+/cases/{B_ID}
+/implants/{B_ID}
+/followups/{B_ID}
+/payments/{B_ID}
+/users/{B_ID}
+
+and equivalent API routes.
+
+Expected:
+
+NO Tenant B data returned.
+
+Use safe 404/403 behavior according to application conventions.
+
+==================================================
+8. SEARCH LEAK TEST
+==================================================
+
+Authenticate as Tenant A.
+
+Search using:
+
+- exact Tenant B patient name
+- exact Tenant B phone
+- exact Tenant B case value
+- Tenant B user email where applicable
+
+Expected:
+
+zero Tenant B business records exposed.
+
+Search isolation is a RELEASE BLOCKER.
+
+==================================================
+9. STATISTICS LEAK TEST
+==================================================
+
+Tenant A Dashboard and Statistics must be calculated ONLY from Tenant A records.
+
+Create known activity in Tenant B and prove that Tenant A metrics do not change.
+
+Test:
+
+patients
+implants
+prosthetics
+follow-ups
+finance
+communications
+doctor activity
+
+==================================================
+10. EXPORT LEAK TEST
+==================================================
+
+Export data while authenticated as Tenant A.
+
+Inspect the exported result.
+
+It must contain:
+
+ONLY Tenant A data.
+
+ZERO Tenant B records.
+
+Export isolation is a RELEASE BLOCKER.
+
+==================================================
+11. USER MANAGEMENT ISOLATION
+==================================================
+
+Tenant Admin A can:
+
+- list Tenant A users
+- create Tenant A users
+- edit permitted Tenant A users
+
+Tenant Admin A MUST NOT:
+
+- discover Tenant B users
+- edit Tenant B users
+- assign a user to Tenant B
+- specify arbitrary tenant_id
+- create platform_super_admin
+- view Platform Admin users
+
+==================================================
+12. SETTINGS ISOLATION
+==================================================
+
+Tenant Settings belong only to that tenant.
+
+Changing a list/value in Tenant A must not modify Tenant B configuration.
+
+Platform Settings remain completely separate.
+
+==================================================
+13. FILE ISOLATION
+==================================================
+
+If Ghars stores files or avatars:
+
+a customer must not be able to access another tenant's private file by guessing:
+
+- URL
+- ID
+- filename
+
+Protect file retrieval server-side where files are private.
+
+==================================================
+14. ERROR PRIVACY
+==================================================
+
+Customer-facing errors must never reveal:
+
+- another tenant's name
+- another customer's ID
+- whether a guessed foreign record exists
+- another tenant's user email
+- cross-tenant database information
+
+==================================================
+15. AUTOMATED RELEASE GATE
+==================================================
+
+Create a dedicated automated tenant-isolation test suite.
+
+The commercial release MUST be considered BLOCKED if any cross-tenant test fails.
+
+At minimum test:
+
+- CRUD
+- direct IDs
+- search
+- Dashboard
+- Statistics
+- Finance
+- Users
+- Export
+- Audit
+- Files where applicable
+
+Report explicitly:
+
+TENANT ISOLATION: PASS / FAIL
+
+Do NOT describe the application as ready for sale unless this is PASS.

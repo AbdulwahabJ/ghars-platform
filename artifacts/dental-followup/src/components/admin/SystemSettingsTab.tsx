@@ -16,7 +16,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppSettings } from "@/hooks/use-settings";
 import { useUpdateAppSettings } from "@/hooks/use-admin";
 import { useQuery } from "@tanstack/react-query";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 const MAX_LOGO_BYTES = 500 * 1024;
 
@@ -43,6 +45,7 @@ function SettingsForm({
 }) {
   const updateSettings = useUpdateAppSettings();
   const { toast } = useToast();
+  const { t } = useTranslation("admin");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const assignableQuery = useQuery({
@@ -67,16 +70,16 @@ function SettingsForm({
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
       toast({
         variant: "destructive",
-        title: "صيغة الشعار غير مدعومة",
-        description: "الرجاء اختيار صورة PNG أو JPEG أو WebP.",
+        title: t("settings.logoFormatUnsupportedTitle"),
+        description: t("settings.logoFormatUnsupportedDescription"),
       });
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
       toast({
         variant: "destructive",
-        title: "حجم الشعار كبير جدًا",
-        description: "الحد الأقصى 500 كيلوبايت.",
+        title: t("settings.logoTooLargeTitle"),
+        description: t("settings.logoTooLargeDescription"),
       });
       return;
     }
@@ -102,13 +105,12 @@ function SettingsForm({
         clinicLogo: form.clinicLogo,
       },
       {
-        onSuccess: () => toast({ title: "تم حفظ الإعدادات بنجاح." }),
+        onSuccess: () => toast({ title: t("settings.saveSuccess") }),
         onError: (err) =>
           toast({
             variant: "destructive",
-            title: "تعذر حفظ الإعدادات",
-            description:
-              err instanceof ApiError ? err.message : "حدث خطأ غير متوقع.",
+            title: t("settings.saveFailed"),
+            description: localizeErrorMessage(err),
           }),
       },
     );
@@ -172,7 +174,6 @@ function SettingsForm({
           <div className="space-y-2">
             <Label>المسؤول الافتراضي عن المتابعات (اختياري)</Label>
             <Select
-              dir="rtl"
               value={form.defaultFollowupAssigneeUserId}
               onValueChange={(v) =>
                 setForm({ ...form, defaultFollowupAssigneeUserId: v })
@@ -226,7 +227,7 @@ function SettingsForm({
               data-testid="input-logo-file"
             />
             <Button variant="outline" onClick={() => fileRef.current?.click()}>
-              <Upload className="h-4 w-4 ml-1" />
+              <Upload className="h-4 w-4 ms-1" />
               <span>رفع شعار</span>
             </Button>
             {form.clinicLogo && (
@@ -234,7 +235,7 @@ function SettingsForm({
                 variant="ghost"
                 onClick={() => setForm({ ...form, clinicLogo: null })}
               >
-                <X className="h-4 w-4 ml-1" />
+                <X className="h-4 w-4 ms-1" />
                 <span>إزالة الشعار</span>
               </Button>
             )}
@@ -250,7 +251,7 @@ function SettingsForm({
           data-testid="button-save-settings"
         >
           {updateSettings.isPending && (
-            <Loader2 className="h-4 w-4 animate-spin ml-1" />
+            <Loader2 className="h-4 w-4 animate-spin ms-1" />
           )}
           <span>حفظ الإعدادات</span>
         </Button>

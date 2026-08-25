@@ -45,7 +45,7 @@ export function FieldLabel({ htmlFor, label, helpKey }: FieldLabelProps) {
                 <Info className="h-3.5 w-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent dir="rtl" className="max-w-[220px] text-right">
+            <TooltipContent className="max-w-[220px] text-start">
               {help}
             </TooltipContent>
           </Tooltip>

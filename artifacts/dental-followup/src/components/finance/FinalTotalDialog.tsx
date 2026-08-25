@@ -14,6 +14,7 @@ import { FieldLabel } from "@/components/implants/FieldLabel";
 import { useUpdateBaseAmount } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface FinalTotalDialogProps {
   open: boolean;
@@ -62,7 +63,7 @@ export function FinalTotalDialog({
         onError: (err) => {
           toast({
             title: t("financeForms.totalUpdateFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -72,8 +73,8 @@ export function FinalTotalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
-        <DialogHeader className="text-right sm:text-right">
+      <DialogContent className="sm:max-w-md text-start">
+        <DialogHeader className="text-start sm:text-start">
           <DialogTitle>{t("financeForms.editFinalTotal")}</DialogTitle>
           <DialogDescription>
             {t("financeForms.finalTotalDescription")}

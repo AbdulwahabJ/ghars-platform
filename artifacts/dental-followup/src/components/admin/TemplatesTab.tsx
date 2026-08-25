@@ -18,7 +18,8 @@ import {
   useAdminTemplates,
   useAdminTemplateMutations,
 } from "@/hooks/use-admin";
-import { ApiError } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 const SAMPLE = {
   patientName: "محمد أحمد",
@@ -30,6 +31,7 @@ export function TemplatesTab() {
   const { data, isLoading } = useAdminTemplates();
   const { update, setActive } = useAdminTemplateMutations();
   const { toast } = useToast();
+  const { t } = useTranslation("admin");
 
   const [editing, setEditing] = useState<AdminTemplate | null>(null);
   const [name, setName] = useState("");
@@ -40,8 +42,8 @@ export function TemplatesTab() {
   const fail = (err: unknown) =>
     toast({
       variant: "destructive",
-      title: "تعذر تنفيذ العملية",
-      description: err instanceof ApiError ? err.message : "حدث خطأ غير متوقع.",
+      title: t("templates.operationFailed"),
+      description: localizeErrorMessage(err),
     });
 
   const save = () => {
@@ -50,7 +52,7 @@ export function TemplatesTab() {
       { id: editing.id, input: { name, body } },
       {
         onSuccess: () => {
-          toast({ title: "تم حفظ القالب." });
+          toast({ title: t("templates.saveSuccess") });
           setEditing(null);
         },
         onError: fail,
@@ -164,12 +166,12 @@ export function TemplatesTab() {
               />
               {unknown.length > 0 && (
                 <p className="text-sm text-destructive">
-                  متغيرات غير معروفة:{" "}
-                  {unknown.map((u) => `{{${u}}}`).join("، ")} — المتغيرات
-                  المدعومة فقط:{" "}
-                  {TEMPLATE_PLACEHOLDERS.map(
-                    (p) => `{{${p}}} (${TEMPLATE_PLACEHOLDER_LABELS[p]})`,
-                  ).join("، ")}
+                  {t("templates.unknownPlaceholders", {
+                    unknown: unknown.map((u) => `{{${u}}}`).join("، "),
+                    supported: TEMPLATE_PLACEHOLDERS.map(
+                      (p) => `{{${p}}} (${TEMPLATE_PLACEHOLDER_LABELS[p]})`,
+                    ).join("، "),
+                  })}
                 </p>
               )}
             </div>
@@ -186,7 +188,7 @@ export function TemplatesTab() {
                 data-testid="button-save-template"
               >
                 {update.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                  <Loader2 className="h-4 w-4 animate-spin ms-1" />
                 )}
                 <span>حفظ القالب</span>
               </Button>

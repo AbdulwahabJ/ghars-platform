@@ -89,7 +89,7 @@ function ImplantTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[620px] border-collapse text-sm">
         <thead>
-          <tr className="border-b border-border text-right text-xs text-muted-foreground">
+          <tr className="border-b border-border text-start text-xs text-muted-foreground">
              <th className="px-2 py-1.5 font-medium">{t("summary.site")}</th>
              <th className="px-2 py-1.5 font-medium">{t("summary.system")}</th>
              <th className="px-2 py-1.5 font-medium">{t("summary.size")}</th>
@@ -153,7 +153,7 @@ function BoneGraftSummary({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[620px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border text-right text-xs text-muted-foreground">
+            <tr className="border-b border-border text-start text-xs text-muted-foreground">
                <th className="px-2 py-1.5 font-medium">{t("summary.date")}</th>
                <th className="px-2 py-1.5 font-medium">{t("summary.site")}</th>
                <th className="px-2 py-1.5 font-medium">{t("summary.categoryDescription")}</th>

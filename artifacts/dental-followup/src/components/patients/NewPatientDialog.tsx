@@ -28,6 +28,7 @@ import { Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface NewPatientDialogProps {
   open: boolean;
@@ -102,7 +103,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
             toast({
               variant: "destructive",
                title: t("patient.error"),
-               description: err.message || t("patient.registrationFailed")
+               description: localizeErrorMessage(err)
             });
           }
         }
@@ -111,7 +112,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
       toast({
         variant: "destructive",
          title: t("patient.error"),
-         description: (err instanceof Error && err.message) || t("patient.verifyFailed")
+          description: localizeErrorMessage(err)
       });
     }
   };
@@ -185,7 +186,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
                     <FormItem>
                        <FormLabel>{t("patient.mobile")} ({t("patient.optional")})</FormLabel>
                       <FormControl>
-                        <Input placeholder="05XXXXXXXX" {...field} value={field.value || ""} dir="ltr" className="text-right" />
+                        <Input placeholder="05XXXXXXXX" {...field} value={field.value || ""} dir="ltr" className="text-start" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -249,7 +250,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
 
       {/* Duplicate Active Dialog */}
       <Dialog open={duplicateStatus === "active"} onOpenChange={(v) => !v && setDuplicateStatus(null)}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+        <DialogContent className="sm:max-w-md text-start">
           <DialogHeader>
            <DialogTitle className="text-xl font-bold text-primary">{t("patient.duplicateActiveTitle")}</DialogTitle>
             <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">
@@ -269,7 +270,7 @@ export function NewPatientDialog({ open, onOpenChange }: NewPatientDialogProps) 
 
       {/* Duplicate Archived Dialog */}
       <Dialog open={duplicateStatus === "archived"} onOpenChange={(v) => !v && setDuplicateStatus(null)}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+        <DialogContent className="sm:max-w-md text-start">
           <DialogHeader>
            <DialogTitle className="text-xl font-bold text-destructive">{t("patient.archivedFile")}</DialogTitle>
             <DialogDescription className="text-base text-foreground mt-4 leading-relaxed">

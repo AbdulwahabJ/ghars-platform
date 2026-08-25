@@ -28,17 +28,15 @@ import { useStatistics } from "@/hooks/use-reports";
 import { formatMoney, todayIso } from "@/lib/money";
 import { reportPeriodRange } from "@/lib/report-periods";
 import { useTranslation } from "react-i18next";
-import "@/i18n/locales/ar/operations";
-import "@/i18n/locales/en/operations";
 
 const CHART_COLORS = ["#1d7a8c", "#295c9b", "#d78b30", "#7a5cc7", "#517176", "#b95353"];
 const countFormat = new Intl.NumberFormat("ar-SA-u-nu-latn");
 
 function EmptyChart() {
-  const { t } = useTranslation("operations");
+  const { t } = useTranslation("statistics");
   return (
     <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-      {t("statistics.noDataPeriod")}
+      {t("noDataPeriod")}
     </div>
   );
 }
@@ -116,24 +114,29 @@ function csvCell(value: string | number) {
   return `"${String(value).replaceAll('"', '""')}"`;
 }
 
-function downloadCsv(hub: StatisticsHub, from: string, to: string) {
+function downloadCsv(
+  hub: StatisticsHub,
+  from: string,
+  to: string,
+  t: (key: string, options?: Record<string, unknown>) => string,
+) {
   const rows: Array<Array<string | number>> = [
-    ["مركز الإحصائيات", "من", from, "إلى", to],
+    [t("csv.title"), t("csv.from"), from, t("csv.to"), to],
     [],
-    ["المؤشر", "القيمة"],
-    ["المرضى ضمن نطاق الحالات", hub.overview.patients],
-    ["حالات الزراعة", hub.overview.cases],
-    ["الزرعات", hub.overview.implants],
-    ["التركيبات الموثقة", hub.overview.prostheticEvents],
-    ["المتابعات", hub.overview.followups],
-    ["المتابعات المتأخرة", hub.overview.overdueFollowups],
-    ["الزرعات الفاشلة", hub.overview.failedImplants],
-    ["الزرعات التي تحتاج إعادة", hub.overview.needsRedoImplants],
+    [t("csv.metric"), t("csv.value")],
+    [t("csv.patientsInCases"), hub.overview.patients],
+    [t("csv.implantCases"), hub.overview.cases],
+    [t("csv.implants"), hub.overview.implants],
+    [t("csv.documentedProsthetics"), hub.overview.prostheticEvents],
+    [t("csv.followups"), hub.overview.followups],
+    [t("csv.overdueFollowups"), hub.overview.overdueFollowups],
+    [t("csv.failedImplants"), hub.overview.failedImplants],
+    [t("csv.needsRedoImplants"), hub.overview.needsRedoImplants],
     [],
-    ["النظام", "عدد الزرعات"],
+    [t("csv.system"), t("csv.implantCount")],
     ...hub.prosthetics.byDoctor.map((item) => [item.name, item.count]),
     [],
-    ["الطبيب", "المرضى", "الحالات", "الزرعات", "التركيبات", "المتابعات"],
+    [t("csv.doctor"), t("csv.patients"), t("csv.cases"), t("csv.implants"), t("csv.prosthetics"), t("csv.followups")],
     ...hub.doctors.map((doctor) => [
       doctor.name,
       doctor.patients,
@@ -146,10 +149,10 @@ function downloadCsv(hub: StatisticsHub, from: string, to: string) {
   if (hub.financials) {
     rows.push(
       [],
-      ["المؤشرات المالية", "القيمة"],
-      ["قيمة العلاج ضمن النطاق", hub.financials.treatmentValue],
-      ["المحصل خلال الفترة", hub.financials.collected],
-      ["المتبقي للحالات المختارة", hub.financials.remaining],
+      [t("csv.financialMetrics"), t("csv.value")],
+      [t("csv.treatmentValue"), hub.financials.treatmentValue],
+      [t("csv.collected"), hub.financials.collected],
+      [t("csv.remaining"), hub.financials.remaining],
     );
   }
   const blob = new Blob(
@@ -165,7 +168,8 @@ function downloadCsv(hub: StatisticsHub, from: string, to: string) {
 }
 
 export default function Statistics() {
-  const { t } = useTranslation("operations");
+  const { t, i18n } = useTranslation("statistics");
+  const isRtl = i18n.dir() === "rtl";
   const today = useMemo(() => todayIso(), []);
   const [filterState, setFilterState] = useState<ReportFilterState>({
     period: "last_3_months",
@@ -214,32 +218,32 @@ export default function Statistics() {
   const hub = data?.hub;
 
   useEffect(() => {
-    document.title = "الإحصائيات | غرس Ghars";
-  }, []);
+    document.title = t("documentTitle");
+  }, [t, i18n.language]);
 
   return (
     <Shell decorated>
       <div className="space-y-6 pb-8" data-testid="statistics-hub">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between print:mb-5">
           <div>
-            <p className="text-sm font-medium text-primary">{t("statistics.analyticsCenter")}</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight">{t("statistics.title")}</h1>
+            <p className="text-sm font-medium text-primary">{t("analyticsCenter")}</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">{t("title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {t("statistics.subtitle")}
+              {t("subtitle")}
             </p>
           </div>
           <div className="flex gap-2 print:hidden">
             <Button variant="outline" onClick={() => window.print()} data-testid="button-print-statistics">
-              <Printer className="ml-2 h-4 w-4" />
-              {t("statistics.print")}
+              <Printer className={isRtl ? "ms-2 h-4 w-4" : "me-2 h-4 w-4"} />
+              {t("print")}
             </Button>
             <Button
-              onClick={() => hub && downloadCsv(hub, filters.from, filters.to)}
+              onClick={() => hub && downloadCsv(hub, filters.from, filters.to, t)}
               disabled={!hub}
               data-testid="button-export-statistics"
             >
-              <Download className="ml-2 h-4 w-4" />
-              {t("statistics.exportCsv")}
+              <Download className={isRtl ? "ms-2 h-4 w-4" : "me-2 h-4 w-4"} />
+              {t("exportCsv")}
             </Button>
           </div>
         </header>
@@ -254,7 +258,7 @@ export default function Statistics() {
         </section>
 
         <div className="hidden print:block text-sm text-muted-foreground">
-          {t("statistics.period")} <span className="notranslate">{filters.from}</span> {t("statistics.to")}{" "}
+          {t("period")} <span className="notranslate">{filters.from}</span> {t("to")}{" "}
           <span className="notranslate">{filters.to}</span>
         </div>
 
@@ -265,21 +269,21 @@ export default function Statistics() {
         ) : statistics.isError || !hub ? (
           <Card>
             <CardContent className="py-14 text-center text-sm text-destructive">
-              {t("statistics.loadError")}
+              {t("loadError")}
             </CardContent>
           </Card>
         ) : (
           <>
             <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <Kpi title={t("statistics.implantCases")} value={hub.overview.cases} hint="ضمن الفترة والفلاتر" />
-              <Kpi title={t("statistics.implants")} value={hub.overview.implants} hint={`${hub.overview.systems} أنظمة مستخدمة`} />
-               <Kpi title={t("statistics.adjunctProcedures")} value={hub.overview.boneGraftProcedures} hint="سجلات سريرية نشطة" />
-               <Kpi title={t("statistics.prosthetics")} value={hub.overview.prostheticEvents} hint={`${hub.overview.prostheticPatients} مرضى`} />
-               <Kpi title={t("statistics.overdueFollowups")} value={hub.overview.overdueFollowups} hint="تحتاج مراجعة" tone="warning" />
+              <Kpi title={t("implantCases")} value={hub.overview.cases} hint={t("periodAndFilters")} />
+              <Kpi title={t("implants")} value={hub.overview.implants} hint={t("systemsUsed", { count: hub.overview.systems })} />
+               <Kpi title={t("adjunctProcedures")} value={hub.overview.boneGraftProcedures} hint={t("activeClinicalRecords")} />
+               <Kpi title={t("prosthetics")} value={hub.overview.prostheticEvents} hint={t("patientsCount", { count: hub.overview.prostheticPatients })} />
+               <Kpi title={t("overdueFollowups")} value={hub.overview.overdueFollowups} hint={t("needsReview")} tone="warning" />
               <Kpi
-                title="زرعات تحتاج معالجة"
+                title={t("needsTreatment")}
                 value={hub.overview.failedImplants + hub.overview.needsRedoImplants}
-                hint="فاشلة أو تحتاج إعادة"
+                hint={t("failedOrNeedsRedo")}
                 tone={hub.overview.failedImplants > 0 ? "danger" : "default"}
               />
             </section>
@@ -287,10 +291,10 @@ export default function Statistics() {
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                 <h2 className="font-semibold">{t("statistics.patientsCasesImplants")}</h2>
+                  <h2 className="font-semibold">{t("patientsCasesImplants")}</h2>
               </div>
               <div className="grid gap-4 xl:grid-cols-3">
-                <ChartFrame title={`تدفق الحالات والزرعات (${data.overTimeGrouping === "day" ? "يومي" : "شهري"})`} className="xl:col-span-2">
+                <ChartFrame title={t("caseImplantFlow", { grouping: data.overTimeGrouping === "day" ? t("daily") : t("monthly") })} className="xl:col-span-2">
                   {data.overTime.length === 0 ? <EmptyChart /> : (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data.overTime}>
@@ -298,24 +302,24 @@ export default function Statistics() {
                         <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
                         <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} />
                         <Tooltip />
-                        <Bar dataKey="cases" name="حالات" fill="#295c9b" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="implants" name="زرعات" fill="#1d7a8c" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="cases" name={t("cases")} fill="#295c9b" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="implants" name={t("implants")} fill="#1d7a8c" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
                 </ChartFrame>
                 <Card>
-                   <CardHeader className="pb-2"><CardTitle className="text-base">{t("statistics.patientIndicators")}</CardTitle></CardHeader>
+                   <CardHeader className="pb-2"><CardTitle className="text-base">{t("patientIndicators")}</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex justify-between text-sm"><span>مرضى جدد</span><strong className="tabular-nums">{hub.patients.newPatients}</strong></div>
-                    <div className="flex justify-between text-sm"><span>مرضى لديهم زرعات</span><strong className="tabular-nums">{hub.patients.implantedPatients}</strong></div>
-                    <div className="flex justify-between text-sm"><span>مرضى ضمن الحالات</span><strong className="tabular-nums">{hub.patients.casePatients}</strong></div>
-                    <div className="flex justify-between text-sm"><span>مرضى وصلوا للتركيب</span><strong className="tabular-nums">{hub.patients.prostheticPatients}</strong></div>
+                     <div className="flex justify-between text-sm"><span>{t("newPatients")}</span><strong className="tabular-nums">{hub.patients.newPatients}</strong></div>
+                     <div className="flex justify-between text-sm"><span>{t("implantedPatients")}</span><strong className="tabular-nums">{hub.patients.implantedPatients}</strong></div>
+                     <div className="flex justify-between text-sm"><span>{t("casePatients")}</span><strong className="tabular-nums">{hub.patients.casePatients}</strong></div>
+                     <div className="flex justify-between text-sm"><span>{t("prostheticPatients")}</span><strong className="tabular-nums">{hub.patients.prostheticPatients}</strong></div>
                   </CardContent>
                 </Card>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                 <ChartFrame title={t("statistics.implantSystems")}>
+                 <ChartFrame title={t("implantSystems")}>
                   {data.implantSystems.length === 0 ? <EmptyChart /> : (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart><Pie data={data.implantSystems} dataKey="count" nameKey="name" innerRadius={52} outerRadius={88}>
@@ -324,69 +328,69 @@ export default function Statistics() {
                     </ResponsiveContainer>
                   )}
                 </ChartFrame>
-                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("statistics.caseStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.caseStatuses} emptyLabel="لا توجد حالات خلال الفترة." /></CardContent></Card>
-                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("statistics.implantStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.implantStatuses} emptyLabel="لا توجد زرعات خلال الفترة." /></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("caseStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.caseStatuses} emptyLabel={t("noCasesPeriod")} /></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("implantStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={data.implantStatuses} emptyLabel={t("noImplantsPeriod")} /></CardContent></Card>
               </div>
             </section>
 
             <section className="space-y-3">
-               <div className="flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /><h2 className="font-semibold">الإجراءات الجراحية المساندة</h2></div>
+               <div className="flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /><h2 className="font-semibold">{t("adjunctSurgicalProcedures")}</h2></div>
               <div className="grid gap-4 lg:grid-cols-3">
-                 <ChartFrame title="الإجراءات الجراحية المساندة عبر الزمن">
+                 <ChartFrame title={t("adjunctProceduresOverTime")}>
                   {hub.boneGraftProcedures.overTime.length === 0 ? <EmptyChart /> : (
-                    <ResponsiveContainer width="100%" height="100%"><LineChart data={hub.boneGraftProcedures.overTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} /><Tooltip /><Line type="monotone" dataKey="count" name="إجراءات" stroke="#7c5b2b" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer>
+                     <ResponsiveContainer width="100%" height="100%"><LineChart data={hub.boneGraftProcedures.overTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} /><Tooltip /><Line type="monotone" dataKey="count" name={t("procedures")} stroke="#7c5b2b" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer>
                   )}
                 </ChartFrame>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">الأنواع والمواد</CardTitle></CardHeader><CardContent className="space-y-3"><DistributionList data={hub.boneGraftProcedures.types} emptyLabel="لا توجد إجراءات موثقة." /><div className="border-t pt-2"><DistributionList data={hub.boneGraftProcedures.materials} emptyLabel="لا توجد مواد مسجلة." /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">ملخص الإجراءات</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>إجمالي الإجراءات</span><b>{hub.boneGraftProcedures.total}</b></div><div className="flex justify-between"><span>الحالات</span><b>{hub.boneGraftProcedures.cases}</b></div><div className="flex justify-between"><span>المرضى</span><b>{hub.boneGraftProcedures.patients}</b></div><div className="mt-3 border-t pt-2"><DistributionList data={hub.boneGraftProcedures.statuses} emptyLabel="لا توجد حالات مسجلة." /></div></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("typesAndMaterials")}</CardTitle></CardHeader><CardContent className="space-y-3"><DistributionList data={hub.boneGraftProcedures.types} emptyLabel={t("noDocumentedProcedures")} /><div className="border-t pt-2"><DistributionList data={hub.boneGraftProcedures.materials} emptyLabel={t("noRecordedMaterials")} /></div></CardContent></Card>
+                 <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("proceduresSummary")}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>{t("totalProcedures")}</span><b>{hub.boneGraftProcedures.total}</b></div><div className="flex justify-between"><span>{t("cases")}</span><b>{hub.boneGraftProcedures.cases}</b></div><div className="flex justify-between"><span>{t("patients")}</span><b>{hub.boneGraftProcedures.patients}</b></div><div className="mt-3 border-t pt-2"><DistributionList data={hub.boneGraftProcedures.statuses} emptyLabel={t("noRecordedCases")} /></div></CardContent></Card>
               </div>
             </section>
 
             <section className="space-y-3">
-              <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /><h2 className="font-semibold">التركيبات والمتابعات والتواصل</h2></div>
+              <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /><h2 className="font-semibold">{t("prostheticsFollowupsCommunications")}</h2></div>
               <div className="grid gap-4 lg:grid-cols-3">
-                <ChartFrame title="التركيبات الموثقة عبر الزمن">
+                <ChartFrame title={t("prostheticsOverTime")}>
                   {hub.prosthetics.overTime.length === 0 ? <EmptyChart /> : (
-                    <ResponsiveContainer width="100%" height="100%"><LineChart data={hub.prosthetics.overTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} /><Tooltip /><Line type="monotone" dataKey="count" name="تركيبات" stroke="#1d7a8c" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer>
+                      <ResponsiveContainer width="100%" height="100%"><LineChart data={hub.prosthetics.overTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} /><Tooltip /><Line type="monotone" dataKey="count" name={t("prosthetics")} stroke="#1d7a8c" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer>
                   )}
                 </ChartFrame>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">التركيبات</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>مؤقت</span><b className="tabular-nums">{hub.prosthetics.temporary}</b></div><div className="flex justify-between"><span>دائم</span><b className="tabular-nums">{hub.prosthetics.permanent}</b></div><div className="flex justify-between"><span>حالات جاهزة للتركيب</span><b className="tabular-nums">{hub.prosthetics.readyCases}</b></div><div className="mt-3 border-t pt-2"><DistributionList data={hub.prosthetics.byDoctor} emptyLabel="لا توجد تركيبات موثقة." /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">حالة المتابعات</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>مجدولة</span><b className="tabular-nums">{hub.followups.scheduled}</b></div><div className="flex justify-between"><span>مستحقة اليوم</span><b className="tabular-nums">{hub.followups.dueToday}</b></div><div className="flex justify-between text-destructive"><span>متأخرة</span><b className="tabular-nums">{hub.followups.overdue}</b></div><div className="flex justify-between"><span>تحتاج إعادة تواصل</span><b className="tabular-nums">{hub.followups.needsRecontact}</b></div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("prosthetics")}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>{t("temporary")}</span><b className="tabular-nums">{hub.prosthetics.temporary}</b></div><div className="flex justify-between"><span>{t("permanent")}</span><b className="tabular-nums">{hub.prosthetics.permanent}</b></div><div className="flex justify-between"><span>{t("readyForProsthetics")}</span><b className="tabular-nums">{hub.prosthetics.readyCases}</b></div><div className="mt-3 border-t pt-2"><DistributionList data={hub.prosthetics.byDoctor} emptyLabel={t("noDocumentedProsthetics")} /></div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("followupStatus")}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>{t("scheduled")}</span><b className="tabular-nums">{hub.followups.scheduled}</b></div><div className="flex justify-between"><span>{t("dueToday")}</span><b className="tabular-nums">{hub.followups.dueToday}</b></div><div className="flex justify-between text-destructive"><span>{t("overdue")}</span><b className="tabular-nums">{hub.followups.overdue}</b></div><div className="flex justify-between"><span>{t("needsRecontact")}</span><b className="tabular-nums">{hub.followups.needsRecontact}</b></div></CardContent></Card>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">أنواع المتابعة</CardTitle></CardHeader><CardContent><DistributionList data={hub.followups.types} emptyLabel="لا توجد متابعات." /></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">نتائج المتابعة</CardTitle></CardHeader><CardContent><DistributionList data={hub.followups.outcomes} emptyLabel="لا توجد نتائج متابعات." /></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-base">سجل التواصل</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex justify-between text-sm"><span>إجمالي السجلات</span><b className="tabular-nums">{hub.communications.total}</b></div><div className="flex justify-between text-sm"><span>سجلات بنتيجة</span><b className="tabular-nums">{hub.communications.withResults}</b></div><DistributionList data={hub.communications.results} emptyLabel="لا توجد سجلات تواصل." /></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("followupTypes")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.followups.types} emptyLabel={t("noFollowups")} /></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("followupOutcomes")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.followups.outcomes} emptyLabel={t("noFollowupOutcomes")} /></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("communicationLog")}</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex justify-between text-sm"><span>{t("totalRecords")}</span><b className="tabular-nums">{hub.communications.total}</b></div><div className="flex justify-between text-sm"><span>{t("recordsWithResults")}</span><b className="tabular-nums">{hub.communications.withResults}</b></div><DistributionList data={hub.communications.results} emptyLabel={t("noCommunicationRecords")} /></CardContent></Card>
               </div>
             </section>
 
             {hub.financials ? (
               <section className="space-y-3" data-testid="statistics-financial-section">
-                <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /><h2 className="font-semibold">المالية</h2></div>
+                <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /><h2 className="font-semibold">{t("financial")}</h2></div>
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  <Kpi title="قيمة العلاج" value={formatMoney(hub.financials.treatmentValue)} hint="ضمن الحالات المختارة" />
-                  <Kpi title="المحصل خلال الفترة" value={formatMoney(hub.financials.collected)} hint={`${hub.financials.payments} دفعات غير ملغاة`} />
-                  <Kpi title="المتبقي للحالات" value={formatMoney(hub.financials.remaining)} hint="بحسب السجلات الفعلية" tone="warning" />
-                  <Kpi title="الخصومات" value={formatMoney(hub.financials.discounts)} hint={`إضافات: ${formatMoney(hub.financials.charges)}`} />
+                  <Kpi title={t("treatmentValue")} value={formatMoney(hub.financials.treatmentValue)} hint={t("selectedCases")} />
+                  <Kpi title={t("collectedDuringPeriod")} value={formatMoney(hub.financials.collected)} hint={t("nonVoidedPayments", { count: hub.financials.payments })} />
+                  <Kpi title={t("remainingForCases")} value={formatMoney(hub.financials.remaining)} hint={t("basedOnActualRecords")} tone="warning" />
+                  <Kpi title={t("discounts")} value={formatMoney(hub.financials.discounts)} hint={t("charges", { amount: formatMoney(hub.financials.charges) })} />
                 </div>
                 <div className="grid gap-4 lg:grid-cols-3">
-                  <ChartFrame title="التحصيل عبر الزمن" className="lg:col-span-2">
+                  <ChartFrame title={t("collectionsOverTime")} className="lg:col-span-2">
                     {hub.financials.collectionsOverTime.length === 0 ? <EmptyChart /> : (
-                      <ResponsiveContainer width="100%" height="100%"><BarChart data={hub.financials.collectionsOverTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} width={45} /><Tooltip formatter={(v) => formatMoney(Number(v))} /><Bar dataKey="count" name="المحصل" fill="#1d7a8c" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
+                      <ResponsiveContainer width="100%" height="100%"><BarChart data={hub.financials.collectionsOverTime}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.45} /><XAxis dataKey="bucket" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} width={45} /><Tooltip formatter={(v) => formatMoney(Number(v))} /><Bar dataKey="count" name={t("collected")} fill="#1d7a8c" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
                     )}
                   </ChartFrame>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-base">طرق وحالات الدفع</CardTitle></CardHeader><CardContent><DistributionList data={hub.financials.paymentMethods} emptyLabel="لا توجد دفعات خلال الفترة." /><div className="mt-3 border-t pt-2"><DistributionList data={hub.financials.paymentStatuses} emptyLabel="لا توجد حالات مالية." /></div></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-base">{t("paymentMethodsAndStatuses")}</CardTitle></CardHeader><CardContent><DistributionList data={hub.financials.paymentMethods} emptyLabel={t("noPaymentsPeriod")} /><div className="mt-3 border-t pt-2"><DistributionList data={hub.financials.paymentStatuses} emptyLabel={t("noFinancialStatuses")} /></div></CardContent></Card>
                 </div>
               </section>
             ) : null}
 
             <section className="space-y-3">
-              <div className="flex items-center gap-2"><TrendingDown className="h-4 w-4 text-primary" /><h2 className="font-semibold">النشاط حسب الطبيب</h2></div>
+              <div className="flex items-center gap-2"><TrendingDown className="h-4 w-4 text-primary" /><h2 className="font-semibold">{t("activityByDoctor")}</h2></div>
               <Card>
                 <CardContent className="p-0 overflow-x-auto">
                   <table className="w-full min-w-[680px] text-sm">
-                    <thead className="bg-muted/60 text-muted-foreground"><tr><th className="p-3 text-right font-medium">الطبيب</th><th className="p-3 text-center font-medium">المرضى</th><th className="p-3 text-center font-medium">الحالات</th><th className="p-3 text-center font-medium">الزرعات</th><th className="p-3 text-center font-medium">التركيبات</th><th className="p-3 text-center font-medium">المتابعات</th></tr></thead>
-                    <tbody>{hub.doctors.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">لا توجد بيانات أطباء ضمن الفلاتر.</td></tr> : hub.doctors.map((doctor) => <tr key={doctor.name} className="border-t"><td className="p-3 font-medium notranslate">{doctor.name}</td><td className="p-3 text-center tabular-nums">{doctor.patients}</td><td className="p-3 text-center tabular-nums">{doctor.cases}</td><td className="p-3 text-center tabular-nums">{doctor.implants}</td><td className="p-3 text-center tabular-nums">{doctor.prosthetics}</td><td className="p-3 text-center tabular-nums">{doctor.followups}</td></tr>)}</tbody>
+                    <thead className="bg-muted/60 text-muted-foreground"><tr><th className={`p-3 font-medium ${isRtl ? "text-start" : "text-start"}`}>{t("doctor")}</th><th className="p-3 text-center font-medium">{t("patients")}</th><th className="p-3 text-center font-medium">{t("cases")}</th><th className="p-3 text-center font-medium">{t("implants")}</th><th className="p-3 text-center font-medium">{t("prostheticsColumn")}</th><th className="p-3 text-center font-medium">{t("followups")}</th></tr></thead>
+                    <tbody>{hub.doctors.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">{t("noDoctorData")}</td></tr> : hub.doctors.map((doctor) => <tr key={doctor.name} className="border-t"><td className="p-3 font-medium notranslate">{doctor.name}</td><td className="p-3 text-center tabular-nums">{doctor.patients}</td><td className="p-3 text-center tabular-nums">{doctor.cases}</td><td className="p-3 text-center tabular-nums">{doctor.implants}</td><td className="p-3 text-center tabular-nums">{doctor.prosthetics}</td><td className="p-3 text-center tabular-nums">{doctor.followups}</td></tr>)}</tbody>
                   </table>
                 </CardContent>
               </Card>

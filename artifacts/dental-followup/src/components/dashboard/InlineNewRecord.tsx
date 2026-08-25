@@ -26,6 +26,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useAppSettings } from "@/hooks/use-settings";
 import { ApiError } from "@/lib/api";
+import {
+  localizeErrorMessage,
+  localizeValidationMessage,
+} from "@/lib/localize-error";
 import { formatMoney, todayIso } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,10 +55,10 @@ import { useTranslation } from "react-i18next";
 /* Internal form schema (more permissive than API schema — API validates)
 /* ------------------------------------------------------------------ */
 
-const formSchema = z.object({
+const createFormSchema = (t: (key: string) => string) => z.object({
   // Patient
-  fileNumber: z.string().min(1, "رقم الملف مطلوب"),
-  fullName: z.string().min(1, "اسم المريض مطلوب"),
+  fileNumber: z.string().min(1, t("validation.fileNumberRequired")),
+  fullName: z.string().min(1, t("validation.fullNameRequired")),
   mobileNumber: z.string().optional(),
   age: z.string().optional(),
 
@@ -69,7 +73,7 @@ const formSchema = z.object({
 
   // Implants
   implants: z.array(z.object({
-    site: z.string().min(1, "الموقع مطلوب"),
+    site: z.string().min(1, t("validation.siteRequired")),
     system: z.string().optional(),
     diameter: z.string().optional(),
     length: z.string().optional(),
@@ -115,7 +119,7 @@ const formSchema = z.object({
   followupAssignedUserId: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>;
 
 type FormErrorDetail = {
   path: string;
@@ -123,79 +127,36 @@ type FormErrorDetail = {
   message: string;
 };
 
-const FIELD_LABELS: Record<string, string> = {
-  fileNumber: "رقم الملف",
-  fullName: "اسم المريض",
-  mobileNumber: "رقم الجوال",
-  age: "العمر",
-  procedureDate: "تاريخ العملية",
-  treatingDoctor: "الطبيب المعالج",
-  caseStatus: "حالة الحالة",
-  prosValue: "مدة التركيب",
-  expectedProstheticDate: "تاريخ التركيب المتوقع",
-  generalNote: "ملاحظة الحالة",
-  baseTreatmentAmount: "مبلغ العلاج الأساسي",
-  installmentTotalAmount: "مبلغ التقسيط",
-  installmentCount: "عدد الدفعات",
-  installmentFirstDueDate: "أول استحقاق",
-  paymentAmount: "مبلغ الدفعة الأولى",
-  paymentDate: "تاريخ الدفعة",
-  paymentLabel: "وصف الدفعة",
-  paymentMethod: "طريقة الدفع",
-  followupType: "نوع المتابعة",
-  followupScheduledAt: "موعد المتابعة (التاريخ والوقت)",
-  followupAssignedUserId: "مسؤول المتابعة",
-  followupNote: "ملاحظة المتابعة",
-  site: "موقع الزرعة (FDI)",
-  system: "نظام الزرعة",
-  diameter: "قطر الزرعة",
-  length: "طول الزرعة",
-  qValue: "قيمة Q",
-  formerValue: "قيمة Former",
-  graftValue: "قيمة Graft",
-  implantStatus: "حالة الزرعة",
-  implantNote: "ملاحظة الزرعة",
-};
-
-function fieldLabel(path: string): string {
+function fieldLabel(path: string, t: (key: string, options?: Record<string, unknown>) => string): string {
   const implantPath = /^implants\.(\d+)\.(.+)$/.exec(path);
   if (implantPath) {
-    const field = FIELD_LABELS[implantPath[2]] ?? implantPath[2];
-    return `الزرعة ${Number(implantPath[1]) + 1}: ${field}`;
+    return t("errors.implantField", { number: Number(implantPath[1]) + 1, field: t(`fields.${implantPath[2]}`) });
   }
-  const apiPathAliases: Record<string, string> = {
-    "patient.fileNumber": "رقم الملف",
-    "patient.fullName": "اسم المريض",
-    "patient.mobileNumber": "رقم الجوال",
-    "patient.age": "العمر",
-    "case.procedureDate": "تاريخ العملية",
-    "case.treatingDoctor": "الطبيب المعالج",
-    "case.caseStatus": "حالة الحالة",
-    "initialPayment.amount": "مبلغ الدفعة الأولى",
-    "initialPayment.paymentDate": "تاريخ الدفعة",
-    "initialPayment.paymentLabel": "وصف الدفعة",
-    "initialPayment.paymentMethod": "طريقة الدفع",
-    "followup.followupType": "نوع المتابعة",
-    "followup.scheduledAt": "موعد المتابعة (التاريخ والوقت)",
-    "followup.assignedUserId": "مسؤول المتابعة",
+  const aliases: Record<string, string> = {
+    "patient.fileNumber": "fileNumber", "patient.fullName": "fullName", "patient.mobileNumber": "mobileNumber",
+    "patient.age": "age", "case.procedureDate": "procedureDate", "case.treatingDoctor": "treatingDoctor",
+    "case.caseStatus": "caseStatus", "initialPayment.amount": "paymentAmount",
+    "initialPayment.paymentDate": "paymentDate", "initialPayment.paymentLabel": "paymentLabel",
+    "initialPayment.paymentMethod": "paymentMethod", "followup.followupType": "followupType",
+    "followup.scheduledAt": "followupScheduledAt", "followup.assignedUserId": "followupAssignedUserId",
   };
-  return apiPathAliases[path] ?? FIELD_LABELS[path] ?? (path || "البيانات العامة");
+  return path ? t(`fields.${aliases[path] ?? path}`) : t("fields.general");
 }
 
-function collectFormErrors(node: unknown, path = ""): FormErrorDetail[] {
+function collectFormErrors(node: unknown, t: (key: string, options?: Record<string, unknown>) => string, path = ""): FormErrorDetail[] {
   if (!node || typeof node !== "object") return [];
   const record = node as Record<string, unknown>;
   if (typeof record.message === "string") {
-    return [{ path, label: fieldLabel(path), message: record.message }];
+    return [{ path, label: fieldLabel(path, t), message: record.message }];
   }
 
   return Object.entries(record).flatMap(([key, value]) => {
     if (key === "ref" || key === "types") return [];
-    return collectFormErrors(value, path ? `${path}.${key}` : key);
+    return collectFormErrors(value, t, path ? `${path}.${key}` : key);
   });
 }
 
-function collectApiErrors(error: ApiError | undefined): FormErrorDetail[] {
+function collectApiErrors(error: ApiError | undefined, t: (key: string, options?: Record<string, unknown>) => string): FormErrorDetail[] {
   if (!error || !error.data || typeof error.data !== "object") return [];
   const details = (error.data as { details?: unknown }).details;
   if (!Array.isArray(details)) return [];
@@ -209,7 +170,11 @@ function collectApiErrors(error: ApiError | undefined): FormErrorDetail[] {
       : typeof item.path === "string"
         ? item.path
         : "";
-    return [{ path, label: fieldLabel(path), message: item.message }];
+    return [{
+      path,
+      label: fieldLabel(path, t),
+      message: localizeValidationMessage(item.message),
+    }];
   });
 }
 
@@ -222,11 +187,13 @@ function SectionHeader({
   open,
   onToggle,
   optional,
+  optionalLabel,
 }: {
   title: string;
   open: boolean;
   onToggle: () => void;
   optional?: boolean;
+  optionalLabel?: string;
 }) {
   return (
     <button
@@ -236,7 +203,7 @@ function SectionHeader({
     >
       <span>
         {title}
-        {optional && <span className="text-muted-foreground font-normal mr-2">(اختياري)</span>}
+        {optional && <span className="text-muted-foreground font-normal ms-2">({optionalLabel})</span>}
       </span>
       {open ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
     </button>
@@ -254,7 +221,8 @@ export function InlineNewRecord({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const { t, i18n } = useTranslation("guidance");
+  const { t, i18n } = useTranslation("quickEntry");
+  const optionLabel = (value: string) => t(`options.${value}`, { defaultValue: value });
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -275,7 +243,7 @@ export function InlineNewRecord({
     appSettings?.defaultTreatingDoctor ?? DEFAULT_TREATING_DOCTOR;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       fileNumber: "",
       fullName: "",
@@ -363,8 +331,8 @@ export function InlineNewRecord({
 
   // Scroll to first invalid field when client-side validation fails
   const onInvalid = (errors: FieldErrors<FormValues>) => {
-    const details = collectFormErrors(errors);
-    setServerError("تعذر حفظ السجل. راجع الحقول المحددة أدناه.");
+    const details = collectFormErrors(errors, t);
+    setServerError(t("errors.reviewFields"));
     setValidationErrors(details);
     setTimeout(() => {
       const firstInvalid = document.querySelector<HTMLElement>(
@@ -383,12 +351,13 @@ export function InlineNewRecord({
     if (values.mobileNumber) {
       const mobileRes = normalizeMobile(values.mobileNumber);
       if (!mobileRes.ok) {
-        form.setError("mobileNumber", { message: mobileRes.message });
-        setServerError("تعذر حفظ السجل. يوجد خطأ في الحقل التالي:");
+        const message = localizeValidationMessage(mobileRes.message);
+        form.setError("mobileNumber", { message });
+        setServerError(t("errors.invalidField"));
         setValidationErrors([{
           path: "mobileNumber",
-          label: fieldLabel("mobileNumber"),
-          message: mobileRes.message,
+          label: fieldLabel("mobileNumber", t),
+          message,
         }]);
         return;
       }
@@ -396,12 +365,12 @@ export function InlineNewRecord({
 
     // Followup date required when section is included
     if (values.includeFollowup && !values.followupScheduledAt) {
-      form.setError("followupScheduledAt", { message: "موعد المتابعة مطلوب" });
-      setServerError("تعذر حفظ السجل. يوجد حقل مطلوب لم يتم تعبئته:");
+      form.setError("followupScheduledAt", { message: t("validation.followupRequired") });
+      setServerError(t("errors.requiredField"));
       setValidationErrors([{
         path: "followupScheduledAt",
-        label: fieldLabel("followupScheduledAt"),
-        message: "موعد المتابعة مطلوب",
+        label: fieldLabel("followupScheduledAt", t),
+        message: t("validation.followupRequired"),
       }]);
       setFollowupOpen(true);
       setTimeout(() => {
@@ -419,9 +388,9 @@ export function InlineNewRecord({
     );
     if (missingSideIndex >= 0) {
       const path = `boneGraftProcedures.${missingSideIndex}.procedureSide` as `boneGraftProcedures.${number}.procedureSide`;
-      form.setError(path, { message: "جهة الإجراء مطلوبة لهذه الفئة." });
-      setServerError("تعذر حفظ السجل. حدد جهة الإجراء الجراحي المساند.");
-      setValidationErrors([{ path, label: `الإجراء المساند ${missingSideIndex + 1}: الجهة`, message: "الجهة مطلوبة." }]);
+      form.setError(path, { message: t("validation.procedureSideRequired") });
+      setServerError(t("errors.procedureSideRequired"));
+      setValidationErrors([{ path, label: t("errors.procedureSideField", { number: missingSideIndex + 1 }), message: t("validation.sideRequired") }]);
       return;
     }
 
@@ -510,31 +479,31 @@ export function InlineNewRecord({
           : baseTreatmentAmount;
         const installmentCount = Number(values.installmentCount);
         if (!scheduledAmount || scheduledAmount <= 0) {
-          setServerError("تعذر حفظ السجل. أدخل مبلغ العلاج أو مبلغ التقسيط.");
+          setServerError(t("errors.enterTreatmentOrInstallment"));
           setValidationErrors([{
             path: "installmentTotalAmount",
-            label: fieldLabel("installmentTotalAmount"),
-            message: "مبلغ التقسيط مطلوب عند تفعيل التقسيط.",
+            label: fieldLabel("installmentTotalAmount", t),
+            message: t("validation.installmentAmountRequired"),
           }]);
           setFinanceOpen(true);
           return;
         }
         if (!Number.isInteger(installmentCount) || installmentCount < 1 || installmentCount > 60) {
-          setServerError("تعذر حفظ السجل. عدد الدفعات يجب أن يكون بين 1 و60.");
+          setServerError(t("errors.installmentCountRange"));
           setValidationErrors([{
             path: "installmentCount",
-            label: fieldLabel("installmentCount"),
-            message: "عدد الدفعات يجب أن يكون بين 1 و60.",
+            label: fieldLabel("installmentCount", t),
+            message: t("validation.installmentCountRange"),
           }]);
           setFinanceOpen(true);
           return;
         }
         if (!baseTreatmentAmount || scheduledAmount > baseTreatmentAmount) {
-          setServerError("تعذر حفظ السجل. مبلغ التقسيط لا يمكن أن يتجاوز مبلغ العلاج.");
+          setServerError(t("errors.installmentExceedsTreatment"));
           setValidationErrors([{
             path: "installmentTotalAmount",
-            label: fieldLabel("installmentTotalAmount"),
-            message: "مبلغ التقسيط لا يمكن أن يتجاوز مبلغ العلاج الأساسي.",
+            label: fieldLabel("installmentTotalAmount", t),
+            message: t("validation.installmentExceedsTreatment"),
           }]);
           setFinanceOpen(true);
           return;
@@ -588,35 +557,41 @@ export function InlineNewRecord({
 
     quickEntry.mutate(input, {
       onSuccess: () => {
-        toast({ title: "تم حفظ السجل بنجاح" });
+        toast({ title: t("toast.saved") });
         onSuccess();
       },
       onError: (err) => {
         const apiErr = err instanceof ApiError ? err : undefined;
-          const apiDetails = collectApiErrors(apiErr);
+          const apiDetails = collectApiErrors(apiErr, t);
         if (apiErr?.code === "DUPLICATE_ACTIVE" || apiErr?.code === "DUPLICATE_ARCHIVED") {
           setDuplicateInfo({
             patientId: (apiErr.data as { patientId?: string } | undefined)?.patientId,
             code: apiErr.code,
           });
-            setServerError("تعذر حفظ السجل. رقم الملف مستخدم مسبقًا:");
+            setServerError(t("errors.duplicateFile"));
             setValidationErrors([{
               path: "fileNumber",
-              label: fieldLabel("fileNumber"),
-              message: apiErr.message,
+              label: fieldLabel("fileNumber", t),
+              message: localizeValidationMessage(apiErr.message),
             }]);
           } else if (apiDetails.length > 0) {
-            setServerError("تعذر حفظ السجل. راجع الحقول المحددة أدناه:");
+            setServerError(t("errors.reviewFields"));
             setValidationErrors(apiDetails);
           } else if (apiErr?.code === "INVALID_MOBILE") {
-            setServerError("تعذر حفظ السجل. يوجد خطأ في الحقل التالي:");
+            setServerError(t("errors.invalidField"));
             setValidationErrors([{
               path: "mobileNumber",
-              label: fieldLabel("mobileNumber"),
-              message: apiErr.message,
+              label: fieldLabel("mobileNumber", t),
+              message: localizeValidationMessage(apiErr.message),
             }]);
         } else {
-          setServerError(apiErr?.message ?? err.message ?? "حدث خطأ أثناء الحفظ.");
+          setServerError(
+            apiErr
+              ? localizeErrorMessage(apiErr)
+              : err instanceof Error
+                ? localizeErrorMessage(err)
+                : t("errors.saveFailed"),
+          );
             setValidationErrors([]);
         }
       },
@@ -640,9 +615,10 @@ export function InlineNewRecord({
   return (
     <div className="p-4 md:p-6 bg-card border-b border-border" dir={i18n.dir()}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold">{t("dashboard.addRecord")}</h3>
+        <h3 className="text-base font-semibold">{t("title")}</h3>
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
           <X className="h-4 w-4" />
+          <span className="sr-only">{t("actions.close")}</span>
         </Button>
       </div>
 
@@ -650,7 +626,7 @@ export function InlineNewRecord({
         <div ref={errorBannerRef} className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
           {serverError && <p className="font-medium">{serverError}</p>}
           {validationErrors.length > 0 && (
-            <ul className="mt-2 space-y-1 list-disc pr-5">
+            <ul className="mt-2 space-y-1 list-disc pe-5">
               {validationErrors.map((error, index) => (
                 <li key={`${error.path}-${index}`}>
                   <strong>{error.label}:</strong> {error.message}
@@ -661,10 +637,10 @@ export function InlineNewRecord({
           {duplicateInfo?.patientId && (
             <button
               type="button"
-              className="mr-2 underline hover:no-underline"
+              className="me-2 underline hover:no-underline"
               onClick={() => setLocation(`/patients/${duplicateInfo.patientId}`)}
             >
-              فتح الملف
+              {t("actions.openFile")}
             </button>
           )}
         </div>
@@ -672,21 +648,20 @@ export function InlineNewRecord({
 
       <form id="qe-form" onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-4">
 
-        {/* Section 1: بيانات المريض */}
         <div className="space-y-3">
-          <SectionHeader title="١. بيانات المريض" open={true} onToggle={() => {}} />
+          <SectionHeader title={t("sections.patient")} open={true} onToggle={() => {}} />
           <div className="px-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="qe-fileNumber">
-                رقم الملف <span className="text-destructive">*</span>
+                {t("fields.fileNumber")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="qe-fileNumber"
                 {...form.register("fileNumber")}
-                placeholder="مثال: 1001"
+                placeholder={t("placeholders.fileNumber")}
                 dir="ltr"
                 aria-invalid={!!form.formState.errors.fileNumber}
-                className={`text-right ${form.formState.errors.fileNumber ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                className={`text-start ${form.formState.errors.fileNumber ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 data-testid="qe-fileNumber"
               />
               {form.formState.errors.fileNumber && (
@@ -695,12 +670,12 @@ export function InlineNewRecord({
             </div>
             <div className="space-y-1">
               <Label htmlFor="qe-fullName">
-                اسم المريض <span className="text-destructive">*</span>
+                {t("fields.fullName")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="qe-fullName"
                 {...form.register("fullName")}
-                placeholder="الاسم الكامل"
+                placeholder={t("placeholders.fullName")}
                 aria-invalid={!!form.formState.errors.fullName}
                 className={form.formState.errors.fullName ? "border-destructive focus-visible:ring-destructive" : ""}
                 data-testid="qe-fullName"
@@ -710,26 +685,26 @@ export function InlineNewRecord({
               )}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="qe-mobile">رقم الجوال (اختياري)</Label>
+              <Label htmlFor="qe-mobile">{t("fields.mobileNumber")} ({t("optional")})</Label>
               <Input
                 id="qe-mobile"
                 {...form.register("mobileNumber")}
                 placeholder="05XXXXXXXX"
                 dir="ltr"
                 aria-invalid={!!form.formState.errors.mobileNumber}
-                className={`text-right ${form.formState.errors.mobileNumber ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                className={`text-start ${form.formState.errors.mobileNumber ? "border-destructive focus-visible:ring-destructive" : ""}`}
               />
               {form.formState.errors.mobileNumber && (
                 <p className="text-xs text-destructive">{form.formState.errors.mobileNumber.message}</p>
               )}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="qe-age">العمر (اختياري)</Label>
+              <Label htmlFor="qe-age">{t("fields.age")} ({t("optional")})</Label>
               <Input
                 id="qe-age"
                 {...form.register("age")}
                 type="number"
-                placeholder="العمر"
+                placeholder={t("placeholders.age")}
                 min={0}
                 max={130}
               />
@@ -741,10 +716,11 @@ export function InlineNewRecord({
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <SectionHeader
-              title="٢. حالة الزراعة والزرعات"
+              title={t("sections.case")}
               open={caseOpen}
               onToggle={() => setCaseOpen((v) => !v)}
               optional
+              optionalLabel={t("optional")}
             />
             <div className="flex items-center gap-2 shrink-0">
               <Checkbox
@@ -752,32 +728,32 @@ export function InlineNewRecord({
                 checked={includeCase}
                 onCheckedChange={(v) => form.setValue("includeCase", !!v)}
               />
-              <Label htmlFor="qe-includeCase" className="text-sm cursor-pointer">تضمين</Label>
+              <Label htmlFor="qe-includeCase" className="text-sm cursor-pointer">{t("actions.include")}</Label>
             </div>
           </div>
           {!includeCase && (
             <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-              ⚠ المريض المضاف بدون حالة لن يظهر في الجدول التشغيلي؛ يمكن الوصول إليه عبر قسم المرضى.
+              {t("notices.patientWithoutCase")}
             </p>
           )}
           {includeCase && caseOpen && (
             <div className="px-1 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label>تاريخ العملية</Label>
+                  <Label>{t("fields.procedureDate")}</Label>
                   <OperationalDatePicker
                     value={form.watch("procedureDate") ?? ""}
                     onChange={(value) => form.setValue("procedureDate", value, { shouldDirty: true, shouldValidate: true })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>الطبيب المعالج</Label>
+                  <Label>{t("fields.treatingDoctor")}</Label>
                   <Input {...form.register("treatingDoctor")} placeholder={defaultDoctor} />
                 </div>
                 <div className="space-y-1">
-                  <Label>حالة الحالة</Label>
+                  <Label>{t("fields.caseStatus")}</Label>
                   <Select
-                    dir="rtl"
+                    dir={i18n.dir()}
                     value={form.watch("caseStatus")}
                     onValueChange={(v) => form.setValue("caseStatus", v)}
                   >
@@ -786,14 +762,14 @@ export function InlineNewRecord({
                     </SelectTrigger>
                     <SelectContent>
                       {CASE_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                        <SelectItem key={s} value={s}>{optionLabel(s)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label>مدة التركيب (Pros)</Label>
-                  <Input {...form.register("prosValue")} placeholder="مثال: 3M" />
+                  <Label>{t("fields.prosValue")}</Label>
+                  <Input {...form.register("prosValue")} placeholder={t("placeholders.prosValue")} />
                 </div>
                 <ExpectedProstheticDateField
                   procedureDate={form.watch("procedureDate") ?? ""}
@@ -808,21 +784,21 @@ export function InlineNewRecord({
                   idPrefix="quick-entry-expected-prosthetic"
                 />
                 <div className="space-y-1 sm:col-span-2">
-                  <Label>ملاحظة</Label>
-                  <Textarea {...form.register("generalNote")} rows={2} className="resize-none" placeholder="ملاحظات عامة..." />
+                  <Label>{t("fields.generalNote")}</Label>
+                  <Textarea {...form.register("generalNote")} rows={2} className="resize-none" placeholder={t("placeholders.generalNote")} />
                 </div>
               </div>
 
               <div className="border-t border-border/60 pt-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-muted-foreground">
-                    الزرعات ({implantFields.length})
+                    {t("sections.implants", { count: implantFields.length })}
                   </p>
                 </div>
                 {implantFields.map((field, index) => (
                   <div key={field.id} className="border border-border rounded-xl p-3 space-y-3 relative">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">زرعة {index + 1}</p>
+                      <p className="text-sm font-medium">{t("implant.number", { number: index + 1 })}</p>
                       <Button
                         type="button"
                         variant="ghost"
@@ -831,38 +807,39 @@ export function InlineNewRecord({
                         className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
+                        <span className="sr-only">{t("actions.removeImplant", { number: index + 1 })}</span>
                       </Button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-xs">الموقع (FDI) <span className="text-destructive">*</span></Label>
+                        <Label className="text-xs">{t("fields.site")} <span className="text-destructive">*</span></Label>
                         <Select
                           dir="ltr"
                           value={form.watch(`implants.${index}.site`)}
                           onValueChange={(v) => form.setValue(`implants.${index}.site`, v)}
                         >
                           <SelectTrigger
-                            className={`text-right h-8 text-sm ${form.formState.errors.implants?.[index]?.site ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                            className={`text-start h-8 text-sm ${form.formState.errors.implants?.[index]?.site ? "border-destructive focus-visible:ring-destructive" : ""}`}
                             aria-invalid={!!form.formState.errors.implants?.[index]?.site}
                           >
-                            <SelectValue placeholder="اختر" />
+                            <SelectValue placeholder={t("actions.choose")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
+                            <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{t("jaws.upper")}</div>
                             {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                              <SelectItem key={s} value={s}>{optionLabel(s)}</SelectItem>
                             ))}
-                            <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك السفلي</div>
+                            <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{t("jaws.lower")}</div>
                             {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                              <SelectItem key={s} value={s}>{optionLabel(s)}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">النظام (System)</Label>
+                        <Label className="text-xs">{t("fields.system")}</Label>
                         <Select
-                          dir="rtl"
+                          dir={i18n.dir()}
                           value={form.watch(`implants.${index}.system`) || "__none__"}
                           onValueChange={(v) => form.setValue(`implants.${index}.system`, v === "__none__" ? "" : v)}
                         >
@@ -878,7 +855,7 @@ export function InlineNewRecord({
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">القطر (Diameter)</Label>
+                        <Label className="text-xs">{t("fields.diameter")}</Label>
                         <Input
                           className="h-8 text-sm"
                           type="number"
@@ -888,7 +865,7 @@ export function InlineNewRecord({
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">الطول (Length)</Label>
+                        <Label className="text-xs">{t("fields.length")}</Label>
                         <Input
                           className="h-8 text-sm"
                           type="number"
@@ -900,7 +877,7 @@ export function InlineNewRecord({
                       <div className="space-y-1">
                         <Label className="text-xs">Q</Label>
                         <Select
-                          dir="rtl"
+                          dir={i18n.dir()}
                           value={form.watch(`implants.${index}.qValue`) || "__none__"}
                           onValueChange={(v) => form.setValue(`implants.${index}.qValue`, v === "__none__" ? "" : v)}
                         >
@@ -918,7 +895,7 @@ export function InlineNewRecord({
                       <div className="space-y-1">
                         <Label className="text-xs">Former</Label>
                         <Select
-                          dir="rtl"
+                          dir={i18n.dir()}
                           value={form.watch(`implants.${index}.formerValue`) || "__none__"}
                           onValueChange={(v) => form.setValue(`implants.${index}.formerValue`, v === "__none__" ? "" : v)}
                         >
@@ -936,7 +913,7 @@ export function InlineNewRecord({
                       <div className="space-y-1">
                         <Label className="text-xs">Graft</Label>
                         <Select
-                          dir="rtl"
+                          dir={i18n.dir()}
                           value={form.watch(`implants.${index}.graftValue`) || "__none__"}
                           onValueChange={(v) => form.setValue(`implants.${index}.graftValue`, v === "__none__" ? "" : v)}
                         >
@@ -952,9 +929,9 @@ export function InlineNewRecord({
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">الحالة</Label>
+                        <Label className="text-xs">{t("fields.implantStatus")}</Label>
                         <Select
-                          dir="rtl"
+                          dir={i18n.dir()}
                           value={form.watch(`implants.${index}.implantStatus`)}
                           onValueChange={(v) => form.setValue(`implants.${index}.implantStatus`, v)}
                         >
@@ -963,7 +940,7 @@ export function InlineNewRecord({
                           </SelectTrigger>
                           <SelectContent>
                             {IMPLANT_STATUSES.map((s) => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                              <SelectItem key={s} value={s}>{optionLabel(s)}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -979,34 +956,34 @@ export function InlineNewRecord({
                   data-testid="qe-add-implant"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  إضافة زرعة
+                  {t("actions.addImplant")}
                 </Button>
               </div>
               <div className="border-t border-border/60 pt-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-muted-foreground">
-                    الإجراءات الجراحية المساندة ({boneGraftProcedureFields.length})
+                    {t("adjunct.heading", { count: boneGraftProcedureFields.length })}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">لا تؤثر في المبالغ أو الدفعات</p>
+                  <p className="text-[11px] text-muted-foreground">{t("adjunct.noFinancialImpact")}</p>
                 </div>
                 {boneGraftProcedureFields.map((field, index) => (
                   <div key={field.id} className="rounded-xl border border-border p-3 space-y-2">
-                    <div className="flex items-center justify-between"><p className="text-sm font-medium">إجراء {index + 1}</p><Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeBoneGraftProcedure(index)}><Trash2 className="h-3.5 w-3.5" /></Button></div>
+                    <div className="flex items-center justify-between"><p className="text-sm font-medium">{t("adjunct.procedureNumber", { number: index + 1 })}</p><Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeBoneGraftProcedure(index)} aria-label={t("actions.removeAdjunctProcedure", { number: index + 1 })}><Trash2 className="h-3.5 w-3.5" /></Button></div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <div className="space-y-1"><Label className="text-xs">تاريخ الإجراء</Label><OperationalDatePicker value={form.watch(`boneGraftProcedures.${index}.procedureDate`) || today} onChange={(value) => form.setValue(`boneGraftProcedures.${index}.procedureDate`, value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">فئة الإجراء *</Label><Select value={form.watch(`boneGraftProcedures.${index}.procedureCategory`) || ""} onValueChange={(value) => { form.setValue(`boneGraftProcedures.${index}.procedureCategory`, value as typeof ADJUNCT_PROCEDURE_CATEGORIES[number]); form.setValue(`boneGraftProcedures.${index}.procedureSide`, ""); form.setValue(`boneGraftProcedures.${index}.liftType`, ""); }}><SelectTrigger className="h-9"><SelectValue placeholder="اختر الفئة" /></SelectTrigger><SelectContent>{ADJUNCT_PROCEDURE_CATEGORIES.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent></Select></div>
-                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) !== "زراعة عظم" && <div className="space-y-1"><Label className="text-xs">الجهة *</Label><Select value={form.watch(`boneGraftProcedures.${index}.procedureSide`) || ""} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.procedureSide`, value)}><SelectTrigger className="h-9"><SelectValue placeholder="اختر الجهة" /></SelectTrigger><SelectContent>{PROCEDURE_SIDES.map((side) => <SelectItem key={side} value={side}>{side}</SelectItem>)}</SelectContent></Select></div>}
-                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) === "رفع الجيب الفكي" && <div className="space-y-1"><Label className="text-xs">نوع الرفع</Label><Select value={form.watch(`boneGraftProcedures.${index}.liftType`) || "__none__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.liftType`, value === "__none__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__none__">غير محدد</SelectItem>{SINUS_LIFT_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
-                      <div className="space-y-1"><Label className="text-xs">وصف الإجراء *</Label><Input {...form.register(`boneGraftProcedures.${index}.procedureType`)} placeholder="الوصف السريري للإجراء" /></div>
-                      <div className="space-y-1"><Label className="text-xs">الزرعة المرتبطة</Label><Select value={form.watch(`boneGraftProcedures.${index}.implantIndex`) || "__case__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.implantIndex`, value === "__case__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__case__">إجراء للحالة كاملة</SelectItem>{implantFields.map((implant, implantIndex) => <SelectItem key={implant.id} value={String(implantIndex)}>زرعة {implantIndex + 1}{form.watch(`implants.${implantIndex}.site`) ? ` — السن ${form.watch(`implants.${implantIndex}.site`)}` : ""}</SelectItem>)}</SelectContent></Select></div>
-                      <div className="space-y-1"><Label className="text-xs">الموضع</Label><Input {...form.register(`boneGraftProcedures.${index}.site`)} placeholder="مثال: المنطقة الخلفية" /></div>
-                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) === "زراعة عظم" && <><div className="space-y-1"><Label className="text-xs">المادة</Label><Input {...form.register(`boneGraftProcedures.${index}.material`)} placeholder="مثال: Bio-Oss / عظم ذاتي" /></div><div className="space-y-1"><Label className="text-xs">الغشاء</Label><Input {...form.register(`boneGraftProcedures.${index}.membrane`)} placeholder="مثال: غشاء كولاجين" /></div><div className="space-y-1"><Label className="text-xs">الكمية</Label><Input {...form.register(`boneGraftProcedures.${index}.quantity`)} /></div><div className="space-y-1"><Label className="text-xs">المقاس</Label><Input {...form.register(`boneGraftProcedures.${index}.size`)} /></div></>}
-                      <div className="space-y-1"><Label className="text-xs">حالة الإجراء</Label><Input {...form.register(`boneGraftProcedures.${index}.procedureStatus`)} placeholder="مثال: تم / تحت المتابعة" /></div>
-                      <div className="space-y-1 sm:col-span-2"><Label className="text-xs">ملاحظة</Label><Input {...form.register(`boneGraftProcedures.${index}.note`)} /></div>
+                      <div className="space-y-1"><Label className="text-xs">{t("adjunct.date")}</Label><OperationalDatePicker value={form.watch(`boneGraftProcedures.${index}.procedureDate`) || today} onChange={(value) => form.setValue(`boneGraftProcedures.${index}.procedureDate`, value)} /></div>
+                      <div className="space-y-1"><Label className="text-xs">{t("adjunct.category")} *</Label><Select dir={i18n.dir()} value={form.watch(`boneGraftProcedures.${index}.procedureCategory`) || ""} onValueChange={(value) => { form.setValue(`boneGraftProcedures.${index}.procedureCategory`, value as typeof ADJUNCT_PROCEDURE_CATEGORIES[number]); form.setValue(`boneGraftProcedures.${index}.procedureSide`, ""); form.setValue(`boneGraftProcedures.${index}.liftType`, ""); }}><SelectTrigger className="h-9"><SelectValue placeholder={t("adjunct.chooseCategory")} /></SelectTrigger><SelectContent>{ADJUNCT_PROCEDURE_CATEGORIES.map((category) => <SelectItem key={category} value={category}>{optionLabel(category)}</SelectItem>)}</SelectContent></Select></div>
+                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) !== "زراعة عظم" && <div className="space-y-1"><Label className="text-xs">{t("adjunct.side")} *</Label><Select dir={i18n.dir()} value={form.watch(`boneGraftProcedures.${index}.procedureSide`) || ""} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.procedureSide`, value)}><SelectTrigger className="h-9"><SelectValue placeholder={t("adjunct.chooseSide")} /></SelectTrigger><SelectContent>{PROCEDURE_SIDES.map((side) => <SelectItem key={side} value={side}>{optionLabel(side)}</SelectItem>)}</SelectContent></Select></div>}
+                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) === "رفع الجيب الفكي" && <div className="space-y-1"><Label className="text-xs">{t("adjunct.liftType")}</Label><Select dir={i18n.dir()} value={form.watch(`boneGraftProcedures.${index}.liftType`) || "__none__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.liftType`, value === "__none__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__none__">{t("unspecified")}</SelectItem>{SINUS_LIFT_TYPES.map((type) => <SelectItem key={type} value={type}>{optionLabel(type)}</SelectItem>)}</SelectContent></Select></div>}
+                      <div className="space-y-1"><Label className="text-xs">{t("adjunct.description")} *</Label><Input {...form.register(`boneGraftProcedures.${index}.procedureType`)} placeholder={t("adjunct.descriptionPlaceholder")} /></div>
+                      <div className="space-y-1"><Label className="text-xs">{t("adjunct.relatedImplant")}</Label><Select dir={i18n.dir()} value={form.watch(`boneGraftProcedures.${index}.implantIndex`) || "__case__"} onValueChange={(value) => form.setValue(`boneGraftProcedures.${index}.implantIndex`, value === "__case__" ? "" : value)}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__case__">{t("adjunct.caseLevel")}</SelectItem>{implantFields.map((implant, implantIndex) => <SelectItem key={implant.id} value={String(implantIndex)}>{t("implant.number", { number: implantIndex + 1 })}{form.watch(`implants.${implantIndex}.site`) ? ` — ${t("adjunct.tooth", { site: form.watch(`implants.${implantIndex}.site`) })}` : ""}</SelectItem>)}</SelectContent></Select></div>
+                      <div className="space-y-1"><Label className="text-xs">{t("adjunct.site")}</Label><Input {...form.register(`boneGraftProcedures.${index}.site`)} placeholder={t("adjunct.sitePlaceholder")} /></div>
+                      {form.watch(`boneGraftProcedures.${index}.procedureCategory`) === "زراعة عظم" && <><div className="space-y-1"><Label className="text-xs">{t("adjunct.material")}</Label><Input {...form.register(`boneGraftProcedures.${index}.material`)} placeholder={t("adjunct.materialPlaceholder")} /></div><div className="space-y-1"><Label className="text-xs">{t("adjunct.membrane")}</Label><Input {...form.register(`boneGraftProcedures.${index}.membrane`)} placeholder={t("adjunct.membranePlaceholder")} /></div><div className="space-y-1"><Label className="text-xs">{t("adjunct.quantity")}</Label><Input {...form.register(`boneGraftProcedures.${index}.quantity`)} /></div><div className="space-y-1"><Label className="text-xs">{t("adjunct.size")}</Label><Input {...form.register(`boneGraftProcedures.${index}.size`)} /></div></>}
+                      <div className="space-y-1"><Label className="text-xs">{t("adjunct.status")}</Label><Input {...form.register(`boneGraftProcedures.${index}.procedureStatus`)} placeholder={t("adjunct.statusPlaceholder")} /></div>
+                      <div className="space-y-1 sm:col-span-2"><Label className="text-xs">{t("adjunct.note")}</Label><Input {...form.register(`boneGraftProcedures.${index}.note`)} /></div>
                     </div>
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="sm" onClick={() => appendBoneGraftProcedure({ procedureDate: today, procedureCategory: "زراعة عظم", procedureType: "", implantIndex: "", procedureSide: "", liftType: "", site: "", material: "", membrane: "", quantity: "", size: "", procedureStatus: "مخطط", note: "" })} data-testid="qe-add-bone-graft-procedure"><Plus className="h-3.5 w-3.5" />إضافة إجراء مساند</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => appendBoneGraftProcedure({ procedureDate: today, procedureCategory: "زراعة عظم", procedureType: "", implantIndex: "", procedureSide: "", liftType: "", site: "", material: "", membrane: "", quantity: "", size: "", procedureStatus: "مخطط", note: "" })} data-testid="qe-add-bone-graft-procedure"><Plus className="h-3.5 w-3.5" />{t("actions.addAdjunctProcedure")}</Button>
               </div>
             </div>
           )}
@@ -1022,10 +999,11 @@ export function InlineNewRecord({
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <SectionHeader
-                title="٣. المالية"
+                title={t("sections.finance")}
                 open={financeOpen}
                 onToggle={() => setFinanceOpen((v) => !v)}
                 optional
+              optionalLabel={t("optional")}
               />
               {canRecordPayments && (
                 <div className="flex items-center gap-2 shrink-0">
@@ -1037,7 +1015,7 @@ export function InlineNewRecord({
                       if (v) setFinanceOpen(true);
                     }}
                   />
-                  <Label htmlFor="qe-includePayment" className="text-sm cursor-pointer">تضمين دفعة</Label>
+                  <Label htmlFor="qe-includePayment" className="text-sm cursor-pointer">{t("actions.include")}</Label>
                 </div>
               )}
             </div>
@@ -1045,7 +1023,7 @@ export function InlineNewRecord({
               <div className="px-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Base treatment amount — canViewFinancials */}
                 <div className="space-y-1">
-                  <Label>مبلغ العلاج الأساسي (ر.س)</Label>
+                  <Label>{t("fields.baseTreatmentAmount")} ({t("currency")})</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -1066,7 +1044,7 @@ export function InlineNewRecord({
                         if (value) setFinanceOpen(true);
                       }}
                     />
-                    <span>تقسيط المبلغ</span>
+                    <span>{t("installments.enable")}</span>
                   </Label>
                   <p className="text-xs text-muted-foreground">
                     سيتم إنشاء جدول استحقاقات دون تغيير إجمالي الحالة أو الدفعات الفعلية.
@@ -1076,18 +1054,18 @@ export function InlineNewRecord({
                   <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/[0.03] p-3 space-y-3">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div className="space-y-1">
-                        <Label>مبلغ التقسيط (ر.س)</Label>
+                        <Label>{t("fields.installmentTotalAmount")} ({t("currency")})</Label>
                         <Input
                           type="number"
                           step="0.01"
                           min={0.01}
-                          placeholder="يستخدم مبلغ العلاج تلقائيًا"
+                          placeholder={t("placeholders.installmentAmount")}
                           {...form.register("installmentTotalAmount")}
                           data-testid="qe-installment-total"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label>عدد الدفعات</Label>
+                        <Label>{t("fields.installmentCount")}</Label>
                         <Input
                           type="number"
                           min={1}
@@ -1098,7 +1076,7 @@ export function InlineNewRecord({
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label>أول استحقاق</Label>
+                        <Label>{t("fields.installmentFirstDueDate")}</Label>
                         <OperationalDatePicker
                           value={installmentFirstDueDate || today}
                           onChange={(value) =>
@@ -1119,7 +1097,7 @@ export function InlineNewRecord({
                         <div className="grid grid-cols-1 gap-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
                           {installmentPreview.slice(0, 6).map((item, index) => (
                             <div key={`${item.date}-${index}`} className="flex justify-between gap-2">
-                              <span>دفعة {index + 1}</span>
+                              <span>{t("installments.payment", { number: index + 1 })}</span>
                               <span className="font-medium tabular-nums">
                                 {formatMoney(item.amount)} — {item.date}
                               </span>
@@ -1142,7 +1120,7 @@ export function InlineNewRecord({
                 {/* Payment fields — canRecordPayments only */}
                 {canRecordPayments && includePayment && (
                 <div className="space-y-1">
-                  <Label>مبلغ الدفعة الأولى (ر.س)</Label>
+                  <Label>{t("fields.paymentAmount")} ({t("currency")})</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -1156,16 +1134,16 @@ export function InlineNewRecord({
                 {canRecordPayments && includePayment && (
                 <>
                   <div className="space-y-1">
-                    <Label>تاريخ الدفعة</Label>
+                    <Label>{t("fields.paymentDate")}</Label>
                     <OperationalDatePicker
                       value={form.watch("paymentDate") ?? ""}
                       onChange={(value) => form.setValue("paymentDate", value, { shouldDirty: true, shouldValidate: true })}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label>وصف الدفعة</Label>
+                    <Label>{t("fields.paymentLabel")}</Label>
                     <Select
-                      dir="rtl"
+                      dir={i18n.dir()}
                       value={form.watch("paymentLabel") || "دفعة أولى"}
                       onValueChange={(v) => form.setValue("paymentLabel", v)}
                     >
@@ -1180,9 +1158,9 @@ export function InlineNewRecord({
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label>طريقة الدفع</Label>
+                    <Label>{t("fields.paymentMethod")}</Label>
                     <Select
-                      dir="rtl"
+                      dir={i18n.dir()}
                       value={form.watch("paymentMethod") || "نقدي"}
                       onValueChange={(v) => form.setValue("paymentMethod", v)}
                     >
@@ -1208,10 +1186,11 @@ export function InlineNewRecord({
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <SectionHeader
-                title="٤. المتابعة"
+                title={t("sections.followup")}
                 open={followupOpen}
                 onToggle={() => setFollowupOpen((v) => !v)}
                 optional
+              optionalLabel={t("optional")}
               />
               <div className="flex items-center gap-2 shrink-0">
                 <Checkbox
@@ -1222,15 +1201,15 @@ export function InlineNewRecord({
                     if (v) setFollowupOpen(true);
                   }}
                 />
-                <Label htmlFor="qe-includeFollowup" className="text-sm cursor-pointer">تضمين</Label>
+                <Label htmlFor="qe-includeFollowup" className="text-sm cursor-pointer">{t("actions.include")}</Label>
               </div>
             </div>
             {includeFollowup && followupOpen && (
               <div className="px-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label>نوع المتابعة</Label>
+                  <Label>{t("fields.followupType")}</Label>
                   <Select
-                    dir="rtl"
+                    dir={i18n.dir()}
                     value={form.watch("followupType") || "متابعة بعد العملية"}
                     onValueChange={(v) => form.setValue("followupType", v)}
                   >
@@ -1257,17 +1236,17 @@ export function InlineNewRecord({
                   </p>
                 )}
                 <div className="space-y-1">
-                  <Label>المسؤول</Label>
+                  <Label>{t("fields.followupAssignedUserId")}</Label>
                   <Select
-                    dir="rtl"
+                    dir={i18n.dir()}
                     value={form.watch("followupAssignedUserId") || "__none__"}
                     onValueChange={(v) => form.setValue("followupAssignedUserId", v)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="غير محدد" />
+                      <SelectValue placeholder={t("unspecified")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">غير محدد</SelectItem>
+                      <SelectItem value="__none__">{t("unspecified")}</SelectItem>
                       {(assignableUsers ?? []).map((u) => (
                         <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>
                       ))}
@@ -1275,12 +1254,12 @@ export function InlineNewRecord({
                   </Select>
                 </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <Label>ملاحظة</Label>
+                  <Label>{t("fields.followupNote")}</Label>
                   <Textarea
                     {...form.register("followupNote")}
                     rows={2}
                     className="resize-none"
-                    placeholder="ملاحظات المتابعة..."
+                    placeholder={t("placeholders.followupNote")}
                   />
                 </div>
               </div>
@@ -1301,12 +1280,12 @@ export function InlineNewRecord({
             ) : (
               <>
                 <Plus className="h-4 w-4" />
-                حفظ السجل
+                {t("actions.save")}
               </>
             )}
           </Button>
           <Button type="button" variant="outline" onClick={onClose} disabled={quickEntry.isPending}>
-            إلغاء
+            {t("actions.cancel")}
           </Button>
         </div>
       </form>

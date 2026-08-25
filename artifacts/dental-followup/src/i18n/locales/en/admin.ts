@@ -1,5 +1,7 @@
 const admin = {
-  settings: { title: "Settings", tabs: { users: "Users", lookups: "Lists", audit: "Activity log", export: "Export data" } },
+  settings: { title: "Settings", tabs: { users: "Users", lookups: "Lists", audit: "Activity log", export: "Export data" }, saveSuccess: "Settings saved successfully.", saveFailed: "Could not save settings", logoFormatUnsupportedTitle: "Unsupported logo format", logoFormatUnsupportedDescription: "Choose a PNG, JPEG, or WebP image.", logoTooLargeTitle: "Logo file is too large", logoTooLargeDescription: "The maximum size is 500 KB." },
+  templates: { operationFailed: "Could not complete the operation", saveSuccess: "Template saved.", unknownPlaceholders: "Unknown placeholders: {{unknown}} — only these placeholders are supported: {{supported}}" },
+  import: { operationFailed: "Could not complete the operation", fileTooLargeTitle: "File is too large", fileTooLargeDescription: "The maximum size is 4 MB.", completedTitle: "Import complete.", completedDescription: "Imported {{imported}} records, skipped {{skipped}}, and failed {{failed}}." },
   users: {
     title: "User management", newUser: "New user", fullName: "Full name", username: "Username", email: "Recovery email", role: "Role", status: "Status", viewFinancials: "View financial data", recordPayments: "Record payments", lastLogin: "Last login",
     active: "Active", suspended: "Suspended", yes: "Yes", no: "No", edit: "Edit", deactivate: "Deactivate", activate: "Activate", resetPassword: "Reset password",

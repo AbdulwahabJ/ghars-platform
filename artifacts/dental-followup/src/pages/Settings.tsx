@@ -30,7 +30,7 @@ export default function Settings() {
           <h1 className="text-2xl font-bold" data-testid="text-settings-title">
              {t("settings.title")}
           </h1>
-          <Tabs defaultValue="users" dir="rtl">
+          <Tabs defaultValue="users">
             <TabsList className="flex flex-wrap h-auto justify-start gap-1">
               {TABS.map((tab) => (
                 <TabsTrigger

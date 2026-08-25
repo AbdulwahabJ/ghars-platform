@@ -45,6 +45,8 @@ import {
   type ReportFilterState,
 } from "./ReportFiltersBar";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -70,6 +72,7 @@ interface ProstheticEventContext {
 
 const PAGE_SIZE = 10;
 const SHOW_PROSTHETIC_EVENT_LOG = false;
+const dashboardText = (key: string) => i18n.t(`guidance:dashboard.${key}`);
 const NORMAL_IMPLANT_STATUS_PROGRESSION: readonly ImplantStatus[] = [
   "مزروعة",
   "مرحلة الالتئام",
@@ -320,11 +323,8 @@ function ImplantStatusStepper({
         },
         onError: (error) => {
           toast({
-            title: "تعذر تحديث حالة الزرعة.",
-            description:
-              error instanceof Error
-                ? error.message
-                : "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
+            title: t("dashboard.updateImplantStatusFailed"),
+            description: localizeErrorMessage(error),
             variant: "destructive",
           });
         },
@@ -334,9 +334,8 @@ function ImplantStatusStepper({
 
   const explainProtectedPreviousStep = () => {
     toast({
-      title: "لا يمكن الرجوع من حالة تركيب موثقة.",
-      description:
-        "صحّح أو أرشف سجل التركيب أولًا من مسار التوثيق، ثم عدّل الحالة من محرر الزرعة.",
+      title: t("dashboard.protectedStatusTitle"),
+      description: t("dashboard.protectedStatusDescription"),
       variant: "destructive",
     });
   };
@@ -367,7 +366,7 @@ function ImplantStatusStepper({
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent dir="rtl">المرحلة السابقة</TooltipContent>
+        <TooltipContent>المرحلة السابقة</TooltipContent>
       </Tooltip>
 
       <Badge
@@ -393,7 +392,7 @@ function ImplantStatusStepper({
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent dir="rtl">المرحلة التالية</TooltipContent>
+        <TooltipContent>المرحلة التالية</TooltipContent>
       </Tooltip>
 
     </div>
@@ -429,7 +428,7 @@ function InlinePatientEdit({
       },
       {
         onSuccess: () => { toast({ title: "تم تحديث بيانات المريض" }); onDone(); },
-        onError: () => { toast({ title: "فشل التحديث", variant: "destructive" }); },
+        onError: (error) => { toast({ title: dashboardText("updateFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
   };
@@ -501,7 +500,7 @@ function InlineCaseEdit({
       },
       {
         onSuccess: () => { toast({ title: "تم تحديث الحالة" }); onDone(); },
-        onError: () => { toast({ title: "فشل التحديث", variant: "destructive" }); },
+        onError: (error) => { toast({ title: dashboardText("updateFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
   };
@@ -511,7 +510,7 @@ function InlineCaseEdit({
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">حالة الحالة</Label>
-          <Select dir="rtl" value={caseStatus} onValueChange={setCaseStatus}>
+          <Select value={caseStatus} onValueChange={setCaseStatus}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {CASE_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -609,7 +608,7 @@ function InlineImplantEdit({
       },
       {
         onSuccess: () => { toast({ title: "تم تحديث الزرعة" }); onDone(); },
-        onError: () => { toast({ title: "فشل التحديث", variant: "destructive" }); },
+        onError: (error) => { toast({ title: dashboardText("updateFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
   };
@@ -620,7 +619,7 @@ function InlineImplantEdit({
         <div className="space-y-1">
           <Label className="text-xs">الموقع (FDI)</Label>
           <Select dir="ltr" value={site} onValueChange={(value) => setSite(value as typeof FDI_SITES[number])}>
-            <SelectTrigger className="h-7 text-xs text-right"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-7 text-xs text-start"><SelectValue /></SelectTrigger>
             <SelectContent>
               <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
               {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => (
@@ -635,7 +634,7 @@ function InlineImplantEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">النظام</Label>
-          <Select dir="rtl" value={system || "__none__"} onValueChange={(v) => setSystem(v === "__none__" ? "" : v)}>
+          <Select value={system || "__none__"} onValueChange={(v) => setSystem(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">—</SelectItem>
@@ -653,7 +652,7 @@ function InlineImplantEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Q</Label>
-          <Select dir="rtl" value={qValue || "__none__"} onValueChange={(v) => setQValue(v === "__none__" ? "" : v)}>
+          <Select value={qValue || "__none__"} onValueChange={(v) => setQValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">—</SelectItem>
@@ -663,7 +662,7 @@ function InlineImplantEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Former</Label>
-          <Select dir="rtl" value={formerValue || "__none__"} onValueChange={(v) => setFormerValue(v === "__none__" ? "" : v)}>
+          <Select value={formerValue || "__none__"} onValueChange={(v) => setFormerValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">—</SelectItem>
@@ -673,7 +672,7 @@ function InlineImplantEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Graft</Label>
-          <Select dir="rtl" value={graftValue || "__none__"} onValueChange={(v) => setGraftValue(v === "__none__" ? "" : v)}>
+          <Select value={graftValue || "__none__"} onValueChange={(v) => setGraftValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">—</SelectItem>
@@ -683,7 +682,7 @@ function InlineImplantEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">الحالة</Label>
-          <Select dir="rtl" value={implantStatus} onValueChange={(v) => handleStatusChange(v as ImplantStatus)}>
+          <Select value={implantStatus} onValueChange={(v) => handleStatusChange(v as ImplantStatus)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -722,7 +721,7 @@ function CaseSelector({
   return (
     <div className="space-y-1">
       <Label className="text-xs">الحالة *</Label>
-      <Select dir="rtl" value={selected} onValueChange={onSelect}>
+      <Select value={selected} onValueChange={onSelect}>
         <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="اختر الحالة" /></SelectTrigger>
         <SelectContent>
           {cases.map((c) => (
@@ -791,7 +790,7 @@ function InlineAddImplant({
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
-        onError: (error) => { toast({ title: "فشل الحفظ", description: error instanceof Error ? error.message : undefined, variant: "destructive" }); },
+        onError: (error) => { toast({ title: dashboardText("saveFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
   };
@@ -805,7 +804,7 @@ function InlineAddImplant({
         <div className="space-y-1">
           <Label className="text-xs">الموقع (FDI) *</Label>
           <Select dir="ltr" value={site} onValueChange={(value) => setSite(value as typeof FDI_SITES[number])}>
-            <SelectTrigger className="h-8 text-sm text-right"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectTrigger className="h-8 text-sm text-start"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <div className="px-2 py-1 text-xs text-muted-foreground font-medium">الفك العلوي</div>
               {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -817,7 +816,7 @@ function InlineAddImplant({
         {/* System */}
         <div className="space-y-1">
           <Label className="text-xs">النظام</Label>
-          <Select dir="rtl" value={system || "__none__"} onValueChange={(v) => setSystem(v === "__none__" ? "" : v)}>
+          <Select value={system || "__none__"} onValueChange={(v) => setSystem(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">—</SelectItem>
@@ -838,7 +837,7 @@ function InlineAddImplant({
         {/* Q */}
         <div className="space-y-1">
           <Label className="text-xs">Q</Label>
-          <Select dir="rtl" value={qValue || "__none__"} onValueChange={(v) => setQValue(v === "__none__" ? "" : v)}>
+          <Select value={qValue || "__none__"} onValueChange={(v) => setQValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">—</SelectItem>
@@ -849,7 +848,7 @@ function InlineAddImplant({
         {/* Former */}
         <div className="space-y-1">
           <Label className="text-xs">Former</Label>
-          <Select dir="rtl" value={formerValue || "__none__"} onValueChange={(v) => setFormerValue(v === "__none__" ? "" : v)}>
+          <Select value={formerValue || "__none__"} onValueChange={(v) => setFormerValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">—</SelectItem>
@@ -860,7 +859,7 @@ function InlineAddImplant({
         {/* Graft */}
         <div className="space-y-1">
           <Label className="text-xs">Graft</Label>
-          <Select dir="rtl" value={graftValue || "__none__"} onValueChange={(v) => setGraftValue(v === "__none__" ? "" : v)}>
+          <Select value={graftValue || "__none__"} onValueChange={(v) => setGraftValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">—</SelectItem>
@@ -871,7 +870,7 @@ function InlineAddImplant({
         {/* Implant Status */}
         <div className="space-y-1">
           <Label className="text-xs">حالة الزرعة</Label>
-          <Select dir="rtl" value={implantStatus} onValueChange={(value) => setImplantStatus(value as ImplantStatus)}>
+          <Select value={implantStatus} onValueChange={(value) => setImplantStatus(value as ImplantStatus)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -951,7 +950,7 @@ function InlineRecordPayment({
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
-        onError: (error) => { toast({ title: "فشل الحفظ", description: error instanceof Error ? error.message : undefined, variant: "destructive" }); },
+        onError: (error) => { toast({ title: dashboardText("saveFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
   };
@@ -967,7 +966,7 @@ function InlineRecordPayment({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">وصف الدفعة</Label>
-          <Select dir="rtl" value={paymentLabel} onValueChange={(value) => setPaymentLabel(value as typeof PAYMENT_LABELS[number])}>
+          <Select value={paymentLabel} onValueChange={(value) => setPaymentLabel(value as typeof PAYMENT_LABELS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
@@ -976,7 +975,7 @@ function InlineRecordPayment({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">طريقة الدفع</Label>
-          <Select dir="rtl" value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as typeof PAYMENT_METHODS[number])}>
+          <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as typeof PAYMENT_METHODS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
@@ -1057,7 +1056,7 @@ function InlineAddFollowup({
           void qc.invalidateQueries({ queryKey: ["operational-report"] });
           onDone();
         },
-        onError: (error) => { toast({ title: "فشل الحفظ", description: error instanceof Error ? error.message : undefined, variant: "destructive" }); },
+        onError: (error) => { toast({ title: dashboardText("saveFailed"), description: localizeErrorMessage(error), variant: "destructive" }); },
       },
     );
   };
@@ -1069,7 +1068,7 @@ function InlineAddFollowup({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">نوع المتابعة *</Label>
-          <Select dir="rtl" value={followupType} onValueChange={(value) => setFollowupType(value as FollowupType)}>
+          <Select value={followupType} onValueChange={(value) => setFollowupType(value as FollowupType)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {FOLLOWUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -1195,8 +1194,8 @@ function InlineFollowupEdit({
         },
         onError: (error) => {
           toast({
-            title: "تعذر تحديث المتابعة",
-            description: error instanceof Error ? error.message : undefined,
+            title: dashboardText("updateFollowupFailed"),
+            description: localizeErrorMessage(error),
             variant: "destructive",
           });
         },
@@ -1209,7 +1208,7 @@ function InlineFollowupEdit({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">نوع المتابعة</Label>
-          <Select dir="rtl" value={followupType} onValueChange={(value) => setFollowupType(value as FollowupType)}>
+          <Select value={followupType} onValueChange={(value) => setFollowupType(value as FollowupType)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {FOLLOWUP_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
@@ -1223,7 +1222,7 @@ function InlineFollowupEdit({
         {assignableUsers && assignableUsers.length > 0 && (
           <div className="space-y-1">
             <Label className="text-xs">المسؤول</Label>
-            <Select dir="rtl" value={assignedUserId || "__none__"} onValueChange={(value) => setAssignedUserId(value === "__none__" ? "" : value)}>
+            <Select value={assignedUserId || "__none__"} onValueChange={(value) => setAssignedUserId(value === "__none__" ? "" : value)}>
               <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">—</SelectItem>
@@ -1314,8 +1313,8 @@ function InlinePaymentEdit({
         },
         onError: (error) => {
           toast({
-            title: "تعذر تحديث الدفعة",
-            description: error instanceof Error ? error.message : undefined,
+            title: dashboardText("updatePaymentFailed"),
+            description: localizeErrorMessage(error),
             variant: "destructive",
           });
         },
@@ -1337,14 +1336,14 @@ function InlinePaymentEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">وصف الدفعة</Label>
-          <Select dir="rtl" value={paymentLabel} onValueChange={(v) => setPaymentLabel(v as typeof PAYMENT_LABELS[number])}>
+          <Select value={paymentLabel} onValueChange={(v) => setPaymentLabel(v as typeof PAYMENT_LABELS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">طريقة الدفع</Label>
-          <Select dir="rtl" value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as typeof PAYMENT_METHODS[number])}>
+          <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as typeof PAYMENT_METHODS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
           </Select>
@@ -1413,8 +1412,8 @@ function CasePaymentsSection({
         },
         onError: (error) => {
           toast({
-            title: "تعذر إلغاء الدفعة",
-            description: error instanceof Error ? error.message : undefined,
+            title: dashboardText("voidPaymentFailed"),
+            description: localizeErrorMessage(error),
             variant: "destructive",
           });
         },
@@ -1642,7 +1641,7 @@ function OperationalInstallmentRow({
   const submitPayment = () => {
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0 || value > installment.outstanding) {
-      setError("أدخل مبلغًا لا يتجاوز المتبقي من القسط.");
+      setError(dashboardText("installmentAmountInvalid"));
       return;
     }
     createPayment.mutate(
@@ -1665,8 +1664,8 @@ function OperationalInstallmentRow({
         },
         onError: (err) => {
           toast({
-            title: "تعذر تسجيل دفع القسط",
-            description: err instanceof Error ? err.message : undefined,
+            title: dashboardText("saveFailed"),
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -1813,8 +1812,8 @@ function PatientExpandedRow({
         },
         onError: (error) => {
           toast({
-            title: "تعذر حذف الزرعة",
-            description: error instanceof Error ? error.message : undefined,
+            title: dashboardText("archiveImplantFailed"),
+            description: localizeErrorMessage(error),
             variant: "destructive",
           });
         },
@@ -1832,8 +1831,8 @@ function PatientExpandedRow({
         },
         onError: (error) => {
           toast({
-            title: "تعذر أرشفة سجل التركيب",
-            description: error instanceof Error ? error.message : undefined,
+            title: dashboardText("archiveProstheticFailed"),
+            description: localizeErrorMessage(error),
             variant: "destructive",
           });
         },
@@ -1851,8 +1850,8 @@ function PatientExpandedRow({
         },
         onError: (error) =>
           toast({
-            title: "تعذر أرشفة سجل الإجراءات الجراحية المساندة",
-            description: error instanceof Error ? error.message : undefined,
+            title: dashboardText("archiveAdjunctProcedureFailed"),
+            description: localizeErrorMessage(error),
             variant: "destructive",
           }),
       },
@@ -1870,8 +1869,8 @@ function PatientExpandedRow({
       },
       onError: (error) => {
         toast({
-          title: "تعذر حذف الصف",
-          description: error instanceof Error ? error.message : undefined,
+          title: dashboardText("archivePatientFailed"),
+          description: localizeErrorMessage(error),
           variant: "destructive",
         });
       },
@@ -2450,7 +2449,7 @@ function PatientExpandedRow({
                               <span>{procedure.procedureType}</span>
                               <span className="font-medium">{formatSaudiDate(procedure.procedureDate)}</span>
                               <Badge variant="secondary">{procedure.procedureStatus}</Badge>
-                              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] mr-auto" onClick={() => setBoneGraftContext({ caseItem: c, procedure })}><Pencil className="h-3 w-3" />تعديل</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] me-auto" onClick={() => setBoneGraftContext({ caseItem: c, procedure })}><Pencil className="h-3 w-3" />تعديل</Button>
                               {canArchiveProstheticEvents && <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-destructive hover:text-destructive" onClick={() => setConfirmArchiveBoneGraftProcedureId(procedure.id)}><Archive className="h-3 w-3" />أرشفة</Button>}
                             </div>
                             {(procedure.procedureSide || procedure.liftType || procedure.material || procedure.membrane || procedure.note) && <p className="text-muted-foreground">{[procedure.procedureSide && `الجهة: ${procedure.procedureSide}`, procedure.liftType && `نوع الرفع: ${procedure.liftType}`, procedure.material && `المادة: ${procedure.material}`, procedure.membrane && `الغشاء: ${procedure.membrane}`, procedure.note].filter(Boolean).join(" — ")}</p>}
@@ -2516,7 +2515,7 @@ function PatientExpandedRow({
           </Button>
 
           {/* Secondary — navigate only */}
-          <Button asChild size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground gap-1 mr-auto">
+          <Button asChild size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground gap-1 me-auto">
             <Link href={`/patients/${group.patientId}`}>
               <ExternalLink className="h-3 w-3" />
               الملف الكامل ↗
@@ -2648,7 +2647,7 @@ function PatientSummaryRow({
               )}
             </div>
           </div>
-          <span className="text-muted-foreground mr-auto shrink-0">
+          <span className="text-muted-foreground me-auto shrink-0">
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </span>
         </div>
@@ -2703,7 +2702,7 @@ function PatientCard({
   return (
     <div className="border border-border rounded-xl overflow-hidden">
       <button
-        className={`w-full text-right p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors ${expanded ? "bg-muted/30" : "bg-card"}`}
+        className={`w-full text-start p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors ${expanded ? "bg-muted/30" : "bg-card"}`}
         onClick={onToggle}
         data-testid={`report-card-${group.patientId}`}
       >
@@ -2907,18 +2906,18 @@ export function OperationalTable({
       <CardContent className="p-0">
         <div className="px-4 pb-3 print:hidden">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchValue}
               onChange={(event) => handleSearchChange(event.target.value)}
               placeholder={t("dashboard.searchOperational")}
               aria-label={t("dashboard.searchOperationalLabel")}
               data-testid="input-operational-search"
-              className="h-10 w-full pr-10 pl-10"
+              className="h-10 w-full pe-10 ps-10"
             />
             {searchValue && (
               isFetching ? (
-                <Loader2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                <Loader2 className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
               ) : (
                 <Button
                   type="button"
@@ -2927,7 +2926,7 @@ export function OperationalTable({
                   onClick={() => onSearchChange("")}
                   aria-label="مسح البحث"
                   data-testid="button-clear-operational-search"
-                  className="absolute left-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
+                  className="absolute start-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -2941,7 +2940,7 @@ export function OperationalTable({
           </div>
         ) : isError ? (
           <p className="text-sm text-destructive py-6 text-center px-6">
-            تعذر تحميل التقرير التشغيلي. حاول تحديث الصفحة.
+            {t("dashboard.reportLoadError")}
           </p>
         ) : (
           <>
@@ -2967,7 +2966,7 @@ export function OperationalTable({
               <>
                 {/* Desktop table (hidden on mobile) */}
                 <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-right text-sm">
+                  <table className="w-full text-start text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
                         <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.patient")}</th>

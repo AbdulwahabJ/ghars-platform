@@ -29,6 +29,7 @@ import { useCreateCharge } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 const NO_IMPLANT = "__none__";
 
@@ -42,7 +43,7 @@ export function ChargeFormDialog(props: ChargeFormDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg text-right max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-lg text-start max-h-[90vh] overflow-y-auto">
         <ChargeForm {...props} />
       </DialogContent>
     </Dialog>
@@ -92,7 +93,7 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
         onError: (err) => {
           toast({
             title: t("financeForms.chargeAddFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -102,7 +103,7 @@ function ChargeForm({ onOpenChange, caseItem }: ChargeFormDialogProps) {
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{t("financeForms.addAdditionalCharge")}</DialogTitle>
         <DialogDescription>
           {t("financeForms.chargeDescription")}

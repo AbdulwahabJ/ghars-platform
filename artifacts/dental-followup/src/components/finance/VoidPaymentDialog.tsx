@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface VoidPaymentDialogProps {
   open: boolean;
@@ -30,7 +31,7 @@ export function VoidPaymentDialog(props: VoidPaymentDialogProps) {
   const { open, onOpenChange, payment } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
+      <DialogContent className="sm:max-w-md text-start">
         {payment ? <VoidPaymentForm {...props} payment={payment} /> : null}
       </DialogContent>
     </Dialog>
@@ -63,7 +64,7 @@ function VoidPaymentForm({
         onError: (err) => {
           toast({
             title: t("financeForms.voidFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -73,7 +74,7 @@ function VoidPaymentForm({
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{t("financeForms.voidPayment")}</DialogTitle>
         <DialogDescription>
           {t("financeForms.voidDescription", { amount: formatMoney(payment.amount), date: formatSaudiDate(payment.paymentDate) })}

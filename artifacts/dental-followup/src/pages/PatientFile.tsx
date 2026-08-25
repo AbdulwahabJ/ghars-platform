@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import {
   Archive,
   AlertCircle,
-  ArrowRight,
+  ArrowLeft,
   Loader2,
 } from "lucide-react";
 import { Shell } from "@/components/layout/Shell";
@@ -29,6 +29,7 @@ import { FollowupsTab } from "@/components/followups/FollowupsTab";
 import { SummaryTab } from "@/components/summary/SummaryTab";
 import { formatSaudiDate } from "@/lib/datetime";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 type PatientTab = "summary" | "procedures";
 
@@ -56,7 +57,7 @@ export default function PatientFile() {
         setShowArchiveConfirm(false);
       },
       onError: (error: Error) =>
-        toast({ variant: "destructive", title: t("patient.archiveFailed"), description: error.message }),
+        toast({ variant: "destructive", title: t("patient.archiveFailed"), description: localizeErrorMessage(error) }),
     });
   };
 
@@ -65,7 +66,7 @@ export default function PatientFile() {
     restorePatient.mutate(id, {
       onSuccess: () => toast({ title: t("patient.restoreSuccess") }),
       onError: (error: Error) =>
-        toast({ variant: "destructive", title: t("patient.restoreFailed"), description: error.message }),
+        toast({ variant: "destructive", title: t("patient.restoreFailed"), description: localizeErrorMessage(error) }),
     });
   };
 
@@ -100,7 +101,7 @@ export default function PatientFile() {
       <main className="animate-in fade-in duration-500 pb-20" id="tour-patient-workspace">
         <div className="mb-5 flex items-center justify-between gap-3 print:hidden">
           <Button variant="ghost" onClick={() => setLocation("/patients")} className="-ms-4 gap-2 text-muted-foreground hover:text-foreground">
-            <ArrowRight className="h-4 w-4" />
+             <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
              {t("patient.back")}
           </Button>
         </div>

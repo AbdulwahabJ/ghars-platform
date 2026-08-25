@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { ExpectedProstheticDateField } from "./ExpectedProstheticDateField";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 const NONE = "__none__";
 const CUSTOM = "__custom__";
@@ -52,7 +53,7 @@ export function CaseFormDialog(props: CaseFormDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl text-right max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-2xl text-start max-h-[90vh] overflow-y-auto">
         {/* The form mounts fresh on every open, so state initializers run each time. */}
         <CaseForm {...props} />
       </DialogContent>
@@ -153,7 +154,7 @@ function CaseForm({
       toast({
         variant: "destructive",
         title: t("patient.error"),
-        description: err.message || t("implant.caseSaveFailed"),
+        description: localizeErrorMessage(err),
       });
 
     if (isEdit && caseData) {
@@ -211,7 +212,7 @@ function CaseForm({
             <SelectTrigger id="case-status" className="h-[46px] rounded-[10px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent dir="rtl">
+            <SelectContent>
               {CASE_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
                   {s}
@@ -244,7 +245,7 @@ function CaseForm({
               <SelectTrigger id="case-pros" className="h-[46px] rounded-[10px]">
                <SelectValue placeholder={t("implant.choose")} />
               </SelectTrigger>
-              <SelectContent dir="rtl">
+              <SelectContent>
                  <SelectItem value={NONE}>{t("implant.none")}</SelectItem>
                 {PROS_SUGGESTED_VALUES.map((v) => (
                   <SelectItem key={v} value={v}>
@@ -307,7 +308,7 @@ function CaseForm({
                   <SelectTrigger id="case-source" className="h-[46px] rounded-[10px]">
                      <SelectValue placeholder={t("implant.sourceCasePlaceholder")} />
                   </SelectTrigger>
-                  <SelectContent dir="rtl">
+                  <SelectContent>
                      <SelectItem value={NONE}>{t("implant.noLink")}</SelectItem>
                     {sourceOptions.map((c) => (
                       <SelectItem key={c.id} value={c.id}>

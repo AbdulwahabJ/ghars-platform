@@ -1,5 +1,7 @@
 const admin = {
-  settings: { title: "الإعدادات", tabs: { users: "المستخدمون", lookups: "القوائم", audit: "سجل النشاط", export: "تصدير البيانات" } },
+  settings: { title: "الإعدادات", tabs: { users: "المستخدمون", lookups: "القوائم", audit: "سجل النشاط", export: "تصدير البيانات" }, saveSuccess: "تم حفظ الإعدادات بنجاح.", saveFailed: "تعذر حفظ الإعدادات", logoFormatUnsupportedTitle: "صيغة الشعار غير مدعومة", logoFormatUnsupportedDescription: "الرجاء اختيار صورة PNG أو JPEG أو WebP.", logoTooLargeTitle: "حجم الشعار كبير جدًا", logoTooLargeDescription: "الحد الأقصى 500 كيلوبايت." },
+  templates: { operationFailed: "تعذر تنفيذ العملية", saveSuccess: "تم حفظ القالب.", unknownPlaceholders: "متغيرات غير معروفة: {{unknown}} — المتغيرات المدعومة فقط: {{supported}}" },
+  import: { operationFailed: "تعذر تنفيذ العملية", fileTooLargeTitle: "الملف كبير جدًا", fileTooLargeDescription: "الحد الأقصى 4 ميغابايت.", completedTitle: "اكتمل الاستيراد.", completedDescription: "تم استيراد {{imported}} سجلًا، وتخطي {{skipped}}، وفشل {{failed}}." },
   users: {
     title: "إدارة المستخدمين", newUser: "مستخدم جديد", fullName: "الاسم الكامل", username: "اسم المستخدم", email: "البريد الإلكتروني", role: "الدور", status: "الحالة", viewFinancials: "عرض المالية", recordPayments: "تسجيل دفعات", lastLogin: "آخر دخول",
     active: "نشط", suspended: "موقوف", yes: "نعم", no: "لا", edit: "تعديل", deactivate: "إيقاف", activate: "تفعيل", resetPassword: "إعادة تعيين كلمة المرور",

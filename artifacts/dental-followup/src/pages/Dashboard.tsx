@@ -159,7 +159,7 @@ export default function Dashboard() {
         {/* Section A: Greeting & Search */}
         <section className="bg-primary/5 rounded-3xl p-8 md:p-12 relative border border-primary/10 print:hidden">
           <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-bl-full" />
+            <div className="absolute top-0 end-0 w-64 h-64 bg-primary/5 rounded-bl-full" />
           </div>
           
           <div className="relative z-10 grid gap-8 md:min-h-[350px] md:grid-cols-[minmax(0,1fr)_minmax(220px,36%)] md:items-center md:gap-10">
@@ -172,7 +172,7 @@ export default function Dashboard() {
 
               <div className="mt-10 w-full max-w-3xl relative z-20" id="tour-global-search" ref={searchContainerRef}>
                 <div className="relative">
-                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Search className="absolute end-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -213,7 +213,7 @@ export default function Dashboard() {
                             aria-selected={index === highlightIndex}
                             onClick={() => handlePatientSelect(patient.id)}
                             onMouseEnter={() => setHighlightIndex(index)}
-                            className={`w-full text-right px-4 py-3 transition-colors flex items-center justify-between gap-3 border-b border-border/50 last:border-0 ${
+                            className={`w-full text-start px-4 py-3 transition-colors flex items-center justify-between gap-3 border-b border-border/50 last:border-0 ${
                               index === highlightIndex ? "bg-muted" : "hover:bg-muted"
                             }`}
                           >

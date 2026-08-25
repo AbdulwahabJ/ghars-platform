@@ -16,6 +16,7 @@ import { FieldLabel } from "@/components/implants/FieldLabel";
 import { useRecordCommunicationResult } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface CommunicationResultDialogProps {
   open: boolean;
@@ -28,7 +29,7 @@ export function CommunicationResultDialog(props: CommunicationResultDialogProps)
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
+      <DialogContent className="sm:max-w-md text-start">
         {props.communicationId ? <CommunicationResultForm {...props} /> : null}
       </DialogContent>
     </Dialog>
@@ -70,7 +71,7 @@ export function CommunicationResultForm({
         onError: (err) => {
           toast({
             title: t("followupForms.communicationResultFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -80,7 +81,7 @@ export function CommunicationResultForm({
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{t("followupForms.communicationResultTitle")}</DialogTitle>
         <DialogDescription>
           {t("followupForms.communicationResultDescription")}
@@ -93,7 +94,6 @@ export function CommunicationResultForm({
             setResult(v);
             setError(null);
           }}
-          dir="rtl"
           className="space-y-1"
         >
           {COMMUNICATION_RESULTS.map((r) => (

@@ -33,6 +33,7 @@ import { formatSaudiDate } from "@/lib/datetime";
 import { CommunicationResultForm } from "./CommunicationResultDialog";
 import { toRiyadhTimeValue } from "./followup-utils";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface WhatsAppDialogProps {
   open: boolean;
@@ -46,7 +47,7 @@ export function WhatsAppDialog(props: WhatsAppDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg text-right max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-lg text-start max-h-[90vh] overflow-y-auto">
         <WhatsAppForm {...props} />
       </DialogContent>
     </Dialog>
@@ -114,7 +115,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
         onError: (err) => {
           toast({
             title: t("followupForms.communicationCreateFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -139,7 +140,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{t("followupForms.whatsappTitle")}</DialogTitle>
         <DialogDescription>
           {t("followupForms.whatsappDescription")}
@@ -163,7 +164,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <FieldLabel label={t("followupForms.templateOptional")} />
-            <Select value={templateId} onValueChange={applyTemplate} dir="rtl">
+            <Select value={templateId} onValueChange={applyTemplate}>
               <SelectTrigger data-testid="select-whatsapp-template">
                 <SelectValue placeholder={t("followupForms.noTemplate")} />
               </SelectTrigger>
@@ -179,7 +180,7 @@ function WhatsAppForm({ onOpenChange, patient, followup }: WhatsAppDialogProps) 
           </div>
           <div className="space-y-2">
             <FieldLabel label={t("followupForms.communicationReason")} />
-            <Select value={reason} onValueChange={setReason} dir="rtl">
+            <Select value={reason} onValueChange={setReason}>
               <SelectTrigger data-testid="select-whatsapp-reason">
                 <SelectValue />
               </SelectTrigger>

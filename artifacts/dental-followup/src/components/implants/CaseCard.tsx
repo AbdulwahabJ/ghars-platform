@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDate } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 const FAILURE_STATUSES = ["زرعة فاشلة", "يحتاج إعادة زراعة"];
 const SUCCESS_STATUSES = ["تم التركيب", "مكتمل", "تمت إعادة الزراعة"];
@@ -131,7 +132,7 @@ export function CaseCard({
           toast({
             variant: "destructive",
             title: t("patient.error"),
-            description: err.message || t("implant.caseSaveFailed"),
+            description: localizeErrorMessage(err),
           }),
       },
     );
@@ -146,7 +147,7 @@ export function CaseCard({
           toast({
             variant: "destructive",
             title: t("patient.error"),
-            description: err.message || t("implant.caseSaveFailed"),
+            description: localizeErrorMessage(err),
           }),
       },
     );
@@ -165,7 +166,7 @@ export function CaseCard({
           toast({
             variant: "destructive",
             title: t("implant.prostheticRecordArchiveFailed"),
-            description: err.message,
+            description: localizeErrorMessage(err),
           }),
       },
     );
@@ -184,7 +185,7 @@ export function CaseCard({
           toast({
             variant: "destructive",
             title: t("implant.procedureArchiveFailed"),
-            description: error.message,
+            description: localizeErrorMessage(error),
           }),
       },
     );
@@ -252,7 +253,7 @@ export function CaseCard({
                     className="btn-outline h-9"
                     onClick={() => setProstheticEventOpen(true)}
                   >
-                    <CalendarCheck2 className="h-3.5 w-3.5 ml-1.5" />
+                    <CalendarCheck2 className="h-3.5 w-3.5 ms-1.5" />
                      {t("implant.documentProsthetic")}
                   </Button>
                   <Button
@@ -261,7 +262,7 @@ export function CaseCard({
                     className="btn-outline h-9"
                     onClick={() => setEditOpen(true)}
                   >
-                    <Pencil className="h-3.5 w-3.5 ml-1.5" />
+                    <Pencil className="h-3.5 w-3.5 ms-1.5" />
                      {t("implant.edit")}
                   </Button>
                   {canArchive && (
@@ -271,7 +272,7 @@ export function CaseCard({
                       className="h-9 text-destructive border-destructive hover:bg-destructive/10"
                       onClick={() => setShowArchiveConfirm(true)}
                     >
-                      <Archive className="h-3.5 w-3.5 ml-1.5" />
+                      <Archive className="h-3.5 w-3.5 ms-1.5" />
                      {t("implant.archive")}
                     </Button>
                   )}
@@ -285,9 +286,9 @@ export function CaseCard({
                     disabled={restoreCase.isPending}
                   >
                     {restoreCase.isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin ml-1.5" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin ms-1.5" />
                     ) : (
-                      <RefreshCw className="h-3.5 w-3.5 ml-1.5" />
+                      <RefreshCw className="h-3.5 w-3.5 ms-1.5" />
                     )}
                      {t("implant.restore")}
                   </Button>
@@ -377,10 +378,10 @@ export function CaseCard({
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
+                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 me-auto"
                             onClick={() => setProstheticEventToArchive(event)}
                           >
-                            <Archive className="h-3.5 w-3.5 ml-1" />
+                            <Archive className="h-3.5 w-3.5 ms-1" />
                              {t("implant.archiveRecord")}
                           </Button>
                         )}
@@ -414,7 +415,7 @@ export function CaseCard({
               </Badge>
               {!isReadOnly && (
                 <Button size="sm" variant="outline" onClick={() => setBoneGraftProcedureDialog("new")}>
-                  <Plus className="h-3.5 w-3.5 ml-1.5" />
+                  <Plus className="h-3.5 w-3.5 ms-1.5" />
                    {t("implant.addProcedure")}
                 </Button>
               )}
@@ -431,8 +432,8 @@ export function CaseCard({
                     <span className="font-semibold">{formatSaudiDate(item.procedureDate)}</span>
                     <Badge variant="secondary">{item.procedureStatus}</Badge>
                      {implant && <span className="text-muted-foreground">{t("implant.tooth", { site: implant.site })}</span>}
-                     {!isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 mr-auto" onClick={() => setBoneGraftProcedureDialog(item)}><Pencil className="h-3.5 w-3.5 ml-1" />{t("implant.edit")}</Button>}
-                     {canArchive && !isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setBoneGraftProcedureToArchive(item)}><Archive className="h-3.5 w-3.5 ml-1" />{t("implant.archive")}</Button>}
+                     {!isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 me-auto" onClick={() => setBoneGraftProcedureDialog(item)}><Pencil className="h-3.5 w-3.5 ms-1" />{t("implant.edit")}</Button>}
+                     {canArchive && !isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setBoneGraftProcedureToArchive(item)}><Archive className="h-3.5 w-3.5 ms-1" />{t("implant.archive")}</Button>}
                   </div>
                    {(item.procedureSide || item.liftType || item.material || item.membrane || item.site || item.note) && <p className="mt-1.5 text-muted-foreground">{[item.procedureSide && `${t("implant.procedureSide")}: ${item.procedureSide}`, item.liftType && `${t("implant.graftProcedureType")}: ${item.liftType}`, item.site && `${t("implant.procedureSite")}: ${item.site}`, item.material && `${t("implant.material")}: ${item.material}`, item.membrane && `${t("implant.membrane")}: ${item.membrane}`, item.note].filter(Boolean).join(" — ")}</p>}
                 </div>;
@@ -537,8 +538,8 @@ export function CaseCard({
         />
       )}
       <Dialog open={Boolean(boneGraftProcedureToArchive)} onOpenChange={(open) => !open && setBoneGraftProcedureToArchive(null)}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
-           <DialogHeader><DialogTitle className="text-destructive">{t("implant.procedureArchiveTitle")}</DialogTitle><DialogDescription className="text-right">{t("implant.procedureArchiveDescription")}</DialogDescription></DialogHeader>
+        <DialogContent className="sm:max-w-md text-start">
+           <DialogHeader><DialogTitle className="text-destructive">{t("implant.procedureArchiveTitle")}</DialogTitle><DialogDescription className="text-start">{t("implant.procedureArchiveDescription")}</DialogDescription></DialogHeader>
            <DialogFooter className="flex-row gap-3 sm:justify-start"><Button variant="destructive" onClick={handleArchiveBoneGraftProcedure} disabled={archiveBoneGraftProcedure.isPending}>{archiveBoneGraftProcedure.isPending ? t("implant.archivingRecord") : t("implant.archiveRecord")}</Button><Button variant="outline" onClick={() => setBoneGraftProcedureToArchive(null)}>{t("implant.cancel")}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
@@ -546,7 +547,7 @@ export function CaseCard({
         open={Boolean(prostheticEventToArchive)}
         onOpenChange={(open) => !open && setProstheticEventToArchive(null)}
       >
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+        <DialogContent className="sm:max-w-md text-start">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-destructive">
                {t("implant.archiveRecordTitle")}
@@ -575,7 +576,7 @@ export function CaseCard({
       </Dialog>
 
       <Dialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
-        <DialogContent className="sm:max-w-md text-right" dir="rtl">
+        <DialogContent className="sm:max-w-md text-start">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-destructive">
                {t("implant.archiveCaseTitle")}

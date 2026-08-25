@@ -12,6 +12,7 @@ import {
 import { useFollowupOutcome } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface CancelFollowupDialogProps {
   open: boolean;
@@ -24,7 +25,7 @@ export function CancelFollowupDialog(props: CancelFollowupDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
+      <DialogContent className="sm:max-w-md text-start">
         {props.followup ? <CancelFollowupForm {...props} /> : null}
       </DialogContent>
     </Dialog>
@@ -54,7 +55,7 @@ function CancelFollowupForm({
         onError: (error) => {
           toast({
             title: t("followupForms.cancelFailed"),
-            description: error instanceof Error ? error.message : undefined,
+            description: localizeErrorMessage(error),
             variant: "destructive",
           });
         },
@@ -64,7 +65,7 @@ function CancelFollowupForm({
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle className="text-destructive">{t("followupForms.cancelTitle")}</DialogTitle>
         <DialogDescription>
           {t("followupForms.cancelDescription")}

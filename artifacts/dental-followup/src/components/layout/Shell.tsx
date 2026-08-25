@@ -5,6 +5,7 @@ import { Header } from "./Header";
 import { GuidedTour } from "../GuidedTour";
 import { Loader2 } from "lucide-react";
 import { PageBackgroundDecorations } from "./PageBackground";
+import { useLocale } from "@/i18n/LocaleProvider";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ interface ShellProps {
 
 export function Shell({ children, decorated = false }: ShellProps) {
   const { user, preferences, isLoading, isError, setupStatus } = useAuth();
+  const { direction } = useLocale();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function Shell({ children, decorated = false }: ShellProps) {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-background" dir="rtl">
+    <div className="min-h-[100dvh] flex flex-col bg-background" dir={direction}>
       <Header user={user} />
       <main className="relative isolate flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8">
         {decorated && <PageBackgroundDecorations />}

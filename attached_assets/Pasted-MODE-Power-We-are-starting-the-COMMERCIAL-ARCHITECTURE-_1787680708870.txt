@@ -1,0 +1,3178 @@
+MODE: Power
+
+We are starting the COMMERCIAL ARCHITECTURE and PRODUCTION-READINESS phase for:
+
+غرس | Ghars
+
+Ghars is an existing dental implant management application.
+
+The current product already includes its clinical/operational workflows and Arabic/English localization.
+
+The goal of this task is to convert the existing application into a stable, secure, production-ready MULTI-TENANT commercial product capable of serving multiple independent customers safely.
+
+==================================================
+0. VERY IMPORTANT — DO NOT RUSH
+==================================================
+
+This is NOT a small feature.
+
+Treat this as a major architecture and security phase.
+
+Do NOT implement scattered frontend conditions.
+
+Do NOT implement multi-tenancy partially.
+
+Do NOT claim the product is commercially ready unless all required isolation/security tests pass.
+
+Implementation order:
+
+1. Audit existing architecture
+2. Multi-tenant foundation
+3. Existing-data migration
+4. Tenant isolation
+5. Customer registration
+6. Email verification
+7. 3-day trial
+8. Commercial access enforcement
+9. Manual activation workflow
+10. Platform Super Admin
+11. Error monitoring / health
+12. Production hardening
+13. Cross-tenant tests
+14. Full regression verification
+
+Do NOT publish.
+
+==================================================
+1. EXISTING LOCALIZATION — PRESERVE IT
+==================================================
+
+Ghars already has centralized Arabic/English localization.
+
+Languages:
+
+ar
+en
+
+Arabic is default.
+
+Existing localization includes:
+
+- i18n architecture
+- RTL/LTR
+- localized dialogs
+- localized validation
+- localized API errors
+- localized dates
+- localized currency
+- language preference
+
+DO NOT create another localization system.
+
+Every NEW screen, dialog, error, validation message, email, Platform Admin page, trial screen, signup screen, status, and button added in this task MUST use the existing i18n architecture.
+
+No hardcoded visible Arabic-only or English-only text.
+
+==================================================
+2. COMMERCIAL MODEL — SOURCE OF TRUTH
+==================================================
+
+Ghars has ONE product.
+
+There are:
+
+NO Basic / Pro / Enterprise plans.
+
+NO monthly subscriptions.
+
+NO annual subscriptions.
+
+NO recurring billing.
+
+NO online payment gateway.
+
+NO checkout.
+
+NO credit-card processing.
+
+NO automatic payment confirmation.
+
+NO renewal date.
+
+NO subscription expiration after purchase.
+
+Commercial lifecycle:
+
+Customer Registration
+→ Email Verification
+→ 3-Day / 72-Hour Free Trial
+→ Customer uses the REAL Ghars system
+→ Trial expires
+→ Tenant operational access is locked
+→ Customer contacts Ghars Support
+→ Payment is handled manually outside Ghars
+→ Ghars staff verifies the bank transfer externally
+→ Platform Super Admin manually activates the tenant
+→ Tenant receives permanent access
+
+Permanent activation has no recurring expiration.
+
+==================================================
+3. TRIAL BELONGS TO TENANT — CRITICAL
+==================================================
+
+The free trial belongs to the TENANT / ORGANIZATION.
+
+It does NOT belong separately to individual users.
+
+Example:
+
+Tenant trial starts:
+
+August 25 at 10:00
+
+Trial ends:
+
+August 28 at 10:00
+
+If Tenant Admin creates another employee user on August 27:
+
+that user does NOT receive another 72 hours.
+
+The new user belongs to the SAME tenant.
+
+They lose operational access at the SAME tenant trial expiration:
+
+August 28 at 10:00.
+
+Do NOT create per-user trial dates.
+
+==================================================
+4. USERS DURING THE FREE TRIAL
+==================================================
+
+The trial customer uses REAL Ghars user accounts.
+
+The first person who registers becomes:
+
+Tenant Owner / Tenant Admin
+
+They can log in and use the real Ghars application during the trial.
+
+They may also create additional organization users through the existing User Management functionality.
+
+Those users:
+
+- belong to the same tenant
+- use existing roles/permissions
+- can log in normally
+- use the same organization data
+- inherit the same tenant commercial state
+- inherit the same trial expiration
+
+The trial must allow the customer to genuinely test Ghars with their team.
+
+==================================================
+5. DO NOT DISABLE USERS WHEN TRIAL EXPIRES
+==================================================
+
+Trial expiration must NOT disable user accounts individually.
+
+Keep:
+
+user lifecycle
+
+separate from:
+
+tenant commercial lifecycle.
+
+Example:
+
+user.status = active
+
+tenant.status = expired
+
+The user's credentials remain valid.
+
+The backend denies operational system access because the TENANT is expired.
+
+When Platform Super Admin activates the tenant:
+
+the SAME users immediately regain access.
+
+Do not recreate accounts.
+
+==================================================
+6. USER STATUS VS TENANT STATUS
+==================================================
+
+Keep these concepts separate.
+
+User status follows the existing user architecture, for example:
+
+active
+disabled
+archived
+
+Tenant commercial status should conceptually support:
+
+pending_verification
+trialing
+expired
+active
+suspended
+
+Use equivalent names if a cleaner existing architecture already exists.
+
+Do not overload user status with tenant billing/commercial meaning.
+
+==================================================
+7. FIRST — AUDIT THE EXISTING SYSTEM
+==================================================
+
+Before applying database changes, inspect the entire existing architecture.
+
+Audit:
+
+users
+sessions
+authentication
+roles
+effectivePermissions
+user_preferences
+audit_logs
+
+patients
+implant_cases
+implants
+
+payments
+case_charges
+case_discounts
+installments if implemented
+
+followups
+communications
+prosthetic_events
+adjunct surgical procedures
+
+settings
+lists
+reports
+statistics
+exports
+search
+uploads
+
+password reset
+email infrastructure
+
+frontend routing
+React Query architecture
+
+Drizzle schema
+migration journal
+
+existing indexes
+existing unique constraints
+
+Identify every table/entity that belongs to a customer organization.
+
+Create an internal tenant-ownership map BEFORE changing the schema.
+
+Do not guess.
+
+==================================================
+8. CANONICAL TENANT ENTITY
+==================================================
+
+Create one canonical:
+
+tenants
+
+or equivalent organization entity.
+
+Conceptual fields:
+
+id
+
+reference_code
+
+name
+
+slug optional
+
+status
+
+trial_started_at nullable
+
+trial_ends_at nullable
+
+activated_at nullable
+
+suspended_at nullable
+
+created_at
+
+updated_at
+
+Optionally:
+
+owner_user_id
+
+ONLY if it fits cleanly without creating unnecessary circular relationships.
+
+==================================================
+9. CUSTOMER REFERENCE CODE
+==================================================
+
+Create a human-readable support-safe tenant reference.
+
+Example format:
+
+GH-000142
+
+Requirements:
+
+unique
+
+not secret
+
+safe to display
+
+easy for support staff to search
+
+The expired-trial screen may show this reference.
+
+Do not expose internal database IDs unnecessarily.
+
+==================================================
+10. EXISTING DATA MIGRATION — PRESERVE EVERYTHING
+==================================================
+
+The project already contains existing development data.
+
+DO NOT delete or reset it.
+
+Migration strategy:
+
+1. Create tenants table.
+2. Create one default/internal tenant for all existing Ghars data.
+3. Add tenant_id initially nullable where required.
+4. Backfill all existing customer-owned records into the default tenant.
+5. Validate every customer-owned record has tenant ownership.
+6. Add correct foreign keys/indexes.
+7. Add NOT NULL requirements where safe.
+8. Validate relationships again.
+
+Do NOT:
+
+truncate tables
+drop clinical records
+reset database
+reseed development patient data
+
+Use versioned Drizzle migrations.
+
+Respect the existing migration journal.
+
+Test migrations on an isolated database first.
+
+==================================================
+11. TENANT OWNERSHIP — COMPLETE SCHEMA AUDIT
+==================================================
+
+Make every appropriate customer-owned entity tenant-aware.
+
+Likely includes:
+
+users
+
+patients
+
+implant_cases
+
+implants
+
+payments
+
+case_charges
+
+case_discounts
+
+followups
+
+communications
+
+prosthetic_events
+
+adjunct surgical procedures
+
+installment-related records if implemented
+
+tenant user preferences where appropriate
+
+customer-created lists/settings
+
+customer audit activity
+
+uploads/file metadata
+
+and any additional tenant-owned entities discovered during audit.
+
+Do NOT stop at this list.
+
+Audit the entire schema.
+
+==================================================
+12. CENTRAL SERVER TENANT CONTEXT
+==================================================
+
+Create a centralized authenticated tenant context.
+
+For normal customer requests:
+
+session
+→ authenticated user
+→ user's tenant_id
+→ tenant
+
+The backend determines the tenant.
+
+The frontend must NOT decide which tenant it belongs to.
+
+==================================================
+13. NEVER TRUST FRONTEND TENANT ID
+==================================================
+
+Customer API authorization MUST NEVER trust tenant identity from:
+
+request body
+
+query parameter
+
+URL parameter
+
+localStorage
+
+sessionStorage
+
+hidden field
+
+frontend state
+
+Examples of unsafe patterns:
+
+?tenantId=123
+
+body.tenantId
+
+X-Tenant-ID controlled by ordinary frontend
+
+Do NOT use these for customer authorization.
+
+The authenticated server-side account/session is authoritative.
+
+==================================================
+14. CENTRAL TENANT QUERY PATTERN
+==================================================
+
+Do not scatter unreliable tenant checks throughout random controllers.
+
+Create a clear reusable pattern for tenant-scoped database access.
+
+Every tenant-scoped:
+
+SELECT
+
+INSERT
+
+UPDATE
+
+ARCHIVE
+
+DELETE
+
+SEARCH
+
+REPORT
+
+STATISTIC
+
+EXPORT
+
+must include authenticated tenant ownership.
+
+==================================================
+15. STRICT CUSTOMER VISIBILITY — RELEASE BLOCKER
+==================================================
+
+Normal Ghars customer users MUST NEVER:
+
+see
+discover
+browse
+search
+access
+
+other Ghars customers.
+
+This applies to:
+
+Tenant Owner
+
+Tenant Admin
+
+Doctors
+
+Reception
+
+Finance
+
+all other customer roles.
+
+A customer user should feel like Ghars is entirely their own organization system.
+
+They should not even see a customer selector.
+
+==================================================
+16. NO TENANT SWITCHER
+==================================================
+
+Do NOT show normal customer users:
+
+tenant selector
+
+organization selector
+
+other tenant names
+
+customer directory
+
+other customer statistics
+
+other organization IDs
+
+There is no normal tenant switching.
+
+For the current commercial model:
+
+one normal user account belongs to exactly ONE customer tenant.
+
+==================================================
+17. PLATFORM ADMIN IS THE ONLY CROSS-TENANT ROLE
+==================================================
+
+Only:
+
+platform_super_admin
+
+may access multiple customer organizations at the platform-management level.
+
+Tenant Admin is NOT Platform Admin.
+
+Tenant Admin can manage only their own organization.
+
+==================================================
+18. PLATFORM ADMIN ROUTE PROTECTION
+==================================================
+
+Normal customer users must not have Platform Admin links.
+
+But hiding navigation is NOT enough.
+
+If a customer manually enters:
+
+/platform-admin
+
+or directly calls Platform Admin APIs:
+
+return safe localized:
+
+403 / Forbidden
+
+No Platform data should be loaded.
+
+==================================================
+19. DIRECT OBJECT ACCESS PROTECTION
+==================================================
+
+Protect against IDOR/direct-ID guessing.
+
+Example:
+
+Tenant A knows a Tenant B patient UUID.
+
+Tenant A requests:
+
+/api/patients/{tenantBPatientId}
+
+Tenant A must receive no Tenant B data.
+
+Apply this to:
+
+patients
+
+implant cases
+
+implants
+
+adjunct procedures
+
+prosthetic events
+
+follow-ups
+
+communications
+
+payments
+
+charges
+
+discounts
+
+installments
+
+users
+
+files
+
+reports
+
+exports
+
+==================================================
+20. SAFE FOREIGN RECORD RESPONSE
+==================================================
+
+For cross-tenant direct IDs:
+
+use the application's safe convention such as:
+
+404
+
+or:
+
+403
+
+But never reveal:
+
+"This record belongs to another customer."
+
+Do not leak whether the foreign record exists.
+
+==================================================
+21. SEARCH ISOLATION — RELEASE BLOCKER
+==================================================
+
+Audit EVERY search endpoint.
+
+Tenant A must never discover Tenant B data by searching:
+
+exact patient name
+
+phone
+
+case information
+
+user data where relevant
+
+implant-related information
+
+global search
+
+autocomplete
+
+filters
+
+Search isolation is mandatory.
+
+==================================================
+22. PATIENT ISOLATION
+==================================================
+
+Patient:
+
+list
+search
+create
+read
+edit
+archive
+phone lookup
+
+must be tenant-scoped.
+
+Patient in Tenant A must never appear to Tenant B.
+
+==================================================
+23. USER MANAGEMENT ISOLATION
+==================================================
+
+Tenant Admin A can only:
+
+list Tenant A users
+
+create Tenant A users
+
+edit permitted Tenant A users
+
+disable/archive Tenant A users
+
+Tenant Admin A MUST NOT:
+
+see Tenant B users
+
+search Tenant B users
+
+edit Tenant B users
+
+create users inside Tenant B
+
+supply arbitrary tenant_id
+
+assign platform_super_admin
+
+==================================================
+24. ROLE SAFETY
+==================================================
+
+Customer user-management endpoints must enforce an allowlist of customer roles.
+
+Normal Tenant Admin must NEVER create or assign:
+
+platform_super_admin
+
+even through a crafted API request.
+
+==================================================
+25. LAST ACTIVE TENANT ADMIN PROTECTION
+==================================================
+
+Protect customers from accidentally removing their last usable Admin.
+
+If the existing system allows disabling/deleting the final active Tenant Admin:
+
+add a backend guard.
+
+Localized example:
+
+Arabic:
+لا يمكن تعطيل آخر مدير نشط للمنشأة.
+
+English:
+The last active organization administrator cannot be disabled.
+
+==================================================
+26. DASHBOARD ISOLATION
+==================================================
+
+All Dashboard data and KPIs must be tenant-scoped.
+
+Preserve existing KPI definitions.
+
+Only add tenant filtering.
+
+Do NOT rewrite:
+
+ملخص العمل
+
+or its existing business calculations.
+
+==================================================
+27. OPERATIONAL TABLE ISOLATION
+==================================================
+
+Tenant-scope all Operational Table data:
+
+rows
+
+search
+
+filters
+
+expanded rows
+
+implant status summary
+
+follow-up data
+
+financial summary
+
+adjunct procedures
+
+==================================================
+28. STATISTICS ISOLATION — RELEASE BLOCKER
+==================================================
+
+All existing Statistics calculations must operate ONLY on the authenticated tenant.
+
+Create known Tenant B records and verify Tenant A Statistics do not change.
+
+Test:
+
+patients
+
+cases
+
+implants
+
+implant systems
+
+prosthetics
+
+follow-ups
+
+communications
+
+finance
+
+doctor activity
+
+==================================================
+29. FINANCE ISOLATION
+==================================================
+
+Tenant-scope:
+
+payments
+
+charges
+
+discounts
+
+installments
+
+financial summaries
+
+financial reports
+
+financial statistics
+
+Never mix financial data between customers.
+
+==================================================
+30. EXPORT ISOLATION — RELEASE BLOCKER
+==================================================
+
+Existing Export Data must export ONLY authenticated tenant data.
+
+Explicitly test:
+
+Tenant A export
+
+contains ZERO Tenant B records.
+
+Inspect the generated exported data, not only the API response status.
+
+==================================================
+31. SETTINGS/LISTS ISOLATION
+==================================================
+
+Tenant-managed Settings and Lists must belong to that tenant.
+
+Changing a catalog/list value in Tenant A must NOT change Tenant B.
+
+Platform Settings are separate and global.
+
+==================================================
+32. AUDIT LOG ISOLATION
+==================================================
+
+Customer Audit Log must be tenant-scoped.
+
+Tenant A cannot see Tenant B audit events.
+
+Platform-level administrative events should remain distinguishable from customer business audit.
+
+==================================================
+33. FILE / UPLOAD ISOLATION
+==================================================
+
+Audit uploads and file access.
+
+If files are private/customer-owned:
+
+Tenant A must not retrieve Tenant B files by guessing:
+
+URL
+file ID
+filename
+
+Protect metadata and retrieval server-side.
+
+==================================================
+34. UNIQUE CONSTRAINT AUDIT
+==================================================
+
+Review database uniqueness rules.
+
+Fields that only need to be unique inside one tenant should use composite uniqueness.
+
+Conceptually:
+
+UNIQUE(tenant_id, value)
+
+Do not accidentally require different customers to share customer-local uniqueness.
+
+==================================================
+35. DATABASE INDEXES
+==================================================
+
+Multi-tenancy means tenant_id will be heavily queried.
+
+Add appropriate indexes based on actual query patterns.
+
+Examples:
+
+tenant_id
+
+tenant_id + status
+
+tenant_id + date
+
+tenant-scoped foreign keys
+
+Do not add unnecessary excessive indexes.
+
+==================================================
+36. CUSTOMER PUBLIC REGISTRATION
+==================================================
+
+Create public registration route:
+
+/signup
+
+Professional bilingual form.
+
+Fields:
+
+Full Name / اسم المسؤول
+
+Organization Name / اسم المنشأة
+
+Email / البريد الإلكتروني
+
+Phone / رقم الجوال
+
+Password / كلمة المرور
+
+Confirm Password / تأكيد كلمة المرور
+
+City optional.
+
+Use existing password policy.
+
+Use existing localization architecture.
+
+==================================================
+37. REGISTRATION TRANSACTION
+==================================================
+
+Tenant creation + owner user creation must be atomic.
+
+Do not allow:
+
+tenant without owner
+
+or:
+
+owner without tenant
+
+if part of registration fails.
+
+Use DB transaction.
+
+==================================================
+38. EMAIL VERIFICATION
+==================================================
+
+Require verification of the owner email before trial starts.
+
+Flow:
+
+Registration
+
+→ verification email sent
+
+→ email verified
+
+→ tenant becomes trialing
+
+→ 72-hour trial starts
+
+→ user enters Ghars
+
+Do not consume trial time while waiting for email verification.
+
+==================================================
+39. EMAIL VERIFICATION SECURITY
+==================================================
+
+Reuse secure architecture from password reset where possible.
+
+Verification token must be:
+
+cryptographically random
+
+single-use
+
+expiring
+
+stored only as a hash
+
+never logged raw
+
+never stored raw in DB
+
+==================================================
+40. PENDING VERIFICATION
+==================================================
+
+Before verification:
+
+tenant.status = pending_verification
+
+or equivalent.
+
+Operational application access is not available yet.
+
+Provide safe resend verification flow with rate limiting.
+
+==================================================
+41. TRIAL START
+==================================================
+
+After successful email verification:
+
+trial_started_at = current server timestamp
+
+trial_ends_at = trial_started_at + 72 hours
+
+tenant.status = trialing
+
+The server is authoritative.
+
+Do not use browser time.
+
+==================================================
+42. DEFAULT TRIAL DURATION
+==================================================
+
+Default:
+
+72 hours
+
+Do NOT hardcode "3 days" independently throughout code.
+
+Create one Platform-level configuration:
+
+default_trial_hours
+
+Default value:
+
+72
+
+Changing the default should affect FUTURE tenants only.
+
+Existing tenant trial end dates remain unchanged unless Platform Admin explicitly extends them.
+
+==================================================
+43. TRIAL ACCESS MIDDLEWARE
+==================================================
+
+Create centralized server middleware conceptually:
+
+requireTenantOperationalAccess
+
+Allow operational API access only when:
+
+tenant.status == active
+
+OR
+
+tenant.status == trialing
+AND
+serverNow < trial_ends_at
+
+Block when:
+
+pending_verification
+
+expired
+
+suspended
+
+==================================================
+44. AUTHENTICATION VS COMMERCIAL ACCESS
+==================================================
+
+Distinguish:
+
+authenticated user
+
+from:
+
+tenant allowed to use Ghars.
+
+An expired user may remain authenticated.
+
+This allows them to:
+
+view trial-expired page
+
+view their tenant reference
+
+contact support
+
+check activation status
+
+logout
+
+without accessing operational clinical data.
+
+==================================================
+45. ALLOWED EXPIRED-TENANT API SURFACE
+==================================================
+
+Expired tenants may access ONLY a small explicit allowlist required for:
+
+current session identity
+
+tenant commercial status
+
+support contact info
+
+activation request
+
+activation status check
+
+logout
+
+localization/bootstrap where required
+
+Patient/finance/statistics operational APIs remain blocked.
+
+==================================================
+46. EXPIRATION WHILE USER IS LOGGED IN
+==================================================
+
+If trial expires while the app is already open:
+
+backend must immediately start denying operational API calls.
+
+Use structured code:
+
+TENANT_TRIAL_EXPIRED
+
+The frontend global API layer detects it and redirects cleanly to:
+
+/trial-expired
+
+Do not generate dozens of unrelated error toasts.
+
+==================================================
+47. TENANT STATUS QUERY
+==================================================
+
+Create one canonical tenant-commercial-status API/query.
+
+Frontend must not independently derive commercial state across multiple pages.
+
+It should provide safe values such as:
+
+status
+
+trialEndsAt
+
+time remaining where appropriate
+
+customer reference
+
+==================================================
+48. STATUS REFRESH
+==================================================
+
+Use a reasonable lightweight status refresh so an open app eventually recognizes:
+
+trial expiration
+
+activation
+
+suspension
+
+reactivation
+
+Do NOT aggressively poll.
+
+==================================================
+49. TRIAL INDICATOR
+==================================================
+
+While tenant is trialing, display one subtle indicator.
+
+Arabic example:
+
+الفترة التجريبية — متبقي يومان
+
+English:
+
+Free Trial — 2 days remaining
+
+Keep it clean.
+
+Do not add banners everywhere.
+
+==================================================
+50. TRIAL EXPIRED SCREEN
+==================================================
+
+Create a premium Ghars-branded bilingual screen.
+
+Arabic content concept:
+
+انتهت تجربتك المجانية
+
+لقد انتهت فترة تجربة غرس المجانية.
+
+للاستمرار في استخدام النظام، يرجى التواصل مع الدعم الفني لإتمام عملية الشراء وتفعيل النسخة.
+
+Display:
+
+اسم المنشأة
+
+رقم العميل
+
+Primary action:
+
+تواصل مع الدعم الفني
+
+Secondary:
+
+تحقق من حالة التفعيل
+
+Also:
+
+تسجيل الخروج
+
+English version must be professionally localized.
+
+==================================================
+51. NO DATA DELETION AFTER TRIAL
+==================================================
+
+Trial expiration is ACCESS LOCK only.
+
+NEVER:
+
+delete patients
+
+archive cases
+
+delete users
+
+delete finance
+
+delete follow-ups
+
+reset organization
+
+clear demo/trial data
+
+The customer's data remains intact.
+
+==================================================
+52. SUPPORT CONTACT CONFIGURATION
+==================================================
+
+Support contact information comes from Platform Settings.
+
+Canonical configuration should support:
+
+support_whatsapp
+
+support_phone
+
+support_email
+
+Do not hardcode support details across components.
+
+==================================================
+53. WHATSAPP SUPPORT CTA
+==================================================
+
+If support WhatsApp is configured:
+
+"Contact Support"
+
+may open WhatsApp.
+
+Prefilled Arabic message concept:
+
+السلام عليكم،
+انتهت الفترة التجريبية لمنشأتي في غرس وأرغب في شراء وتفعيل النظام.
+
+اسم المنشأة: {tenantName}
+رقم العميل: {tenantReference}
+
+English equivalent should be localized.
+
+Never include patient/clinical information.
+
+==================================================
+54. ACTIVATION REQUESTS
+==================================================
+
+Create canonical:
+
+activation_requests
+
+if no equivalent exists.
+
+Conceptual fields:
+
+id
+
+tenant_id
+
+status
+
+customer_message nullable
+
+created_at
+
+updated_at
+
+Suggested statuses:
+
+new
+
+contacted
+
+awaiting_payment
+
+payment_received
+
+activated
+
+closed
+
+This is NOT a payment gateway.
+
+It is administrative tracking.
+
+==================================================
+55. DUPLICATE ACTIVATION REQUEST PROTECTION
+==================================================
+
+Do not create multiple identical open activation requests from repeated button clicks.
+
+If an open activation request exists:
+
+reuse/update/display that state.
+
+==================================================
+56. MANUAL PAYMENT MODEL
+==================================================
+
+Payment happens OUTSIDE Ghars.
+
+There must be NO:
+
+Stripe
+
+Moyasar
+
+HyperPay
+
+Tap
+
+PayTabs
+
+Mada checkout
+
+Apple Pay
+
+credit card form
+
+payment webhook
+
+automatic bank reconciliation
+
+Ghars staff manually verifies payment externally.
+
+==================================================
+57. PERMANENT ACTIVATION
+==================================================
+
+Platform Super Admin sees:
+
+Activate License
+تفعيل النسخة
+
+Require confirmation.
+
+After explicit confirmation:
+
+tenant.status = active
+
+activated_at = server timestamp
+
+suspended_at = null
+
+No expiration date.
+
+No billing cycle.
+
+No recurring payment.
+
+==================================================
+58. PAYMENT-RECEIVED STATUS DOES NOT AUTO-ACTIVATE
+==================================================
+
+Changing activation request to:
+
+payment_received
+
+must NOT automatically activate.
+
+Activation remains a separate protected explicit action.
+
+==================================================
+59. CUSTOMER ACCESS RESTORATION
+==================================================
+
+After activation:
+
+same tenant
+
+same owner
+
+same users
+
+same patients
+
+same clinical records
+
+same finance
+
+all remain intact.
+
+The expired screen's:
+
+Check Activation Status
+
+must refetch canonical tenant state.
+
+If active:
+
+redirect into the real application.
+
+No account recreation.
+
+==================================================
+60. SUSPENSION
+==================================================
+
+Platform Super Admin may suspend any tenant.
+
+Set:
+
+status = suspended
+
+suspended_at = server timestamp
+
+Operational access becomes blocked.
+
+Show localized screen:
+
+تم تعليق الوصول إلى النظام
+
+يرجى التواصل مع الدعم الفني.
+
+Do not delete data.
+
+==================================================
+61. REACTIVATION
+==================================================
+
+Platform Super Admin can reactivate suspended tenants.
+
+If customer had already purchased permanent access:
+
+reactivation returns them to:
+
+active
+
+Do NOT restart a free trial.
+
+==================================================
+62. TRIAL EXTENSION
+==================================================
+
+Platform Super Admin can extend a trial.
+
+Provide:
+
++1 day
+
++3 days
+
++7 days
+
+Custom expiration
+
+Use server timestamps.
+
+Audit every extension.
+
+==================================================
+63. CUSTOMER CANNOT MODIFY COMMERCIAL STATUS
+==================================================
+
+Tenant Owner/Admin must never:
+
+activate their tenant
+
+extend trial
+
+suspend tenant
+
+reactivate tenant
+
+change tenant commercial status
+
+Enforce this on the SERVER.
+
+==================================================
+64. PLATFORM SUPER ADMIN — SEPARATE SECURITY DOMAIN
+==================================================
+
+Create a distinct platform-level administrator:
+
+platform_super_admin
+
+This represents the Ghars product owner/operator.
+
+It must not be a normal customer role.
+
+Customer Admin and Platform Admin are separate.
+
+==================================================
+65. PLATFORM ADMIN CREATION
+==================================================
+
+Platform Super Admin must NOT be creatable through:
+
+public signup
+
+customer User Management
+
+normal role editor
+
+Use a controlled secure bootstrap mechanism.
+
+Credentials come from environment/Replit Secrets.
+
+Never hardcode Platform Admin passwords.
+
+==================================================
+66. PLATFORM ADMIN AUTHORIZATION
+==================================================
+
+Create centralized server authorization:
+
+requirePlatformAdmin
+
+Every Platform Admin API must enforce it.
+
+Frontend hiding is not security.
+
+==================================================
+67. PLATFORM ADMIN CONTROL CENTER
+==================================================
+
+Create a dedicated Platform Admin application:
+
+/platform-admin
+
+This must be a real control center for managing Ghars commercially and operationally.
+
+Use the existing Ghars Design System.
+
+Support Arabic and English.
+
+Do not place it inside normal customer Settings.
+
+==================================================
+68. PLATFORM ADMIN NAVIGATION
+==================================================
+
+Create these sections:
+
+Overview
+
+Customers
+
+Trials
+
+Activation Requests
+
+Platform Administrators if needed
+
+System Health
+
+Errors
+
+Platform Audit Log
+
+Platform Settings
+
+The goal is that Ghars management should not need database access for normal commercial administration.
+
+==================================================
+69. PLATFORM ADMIN OVERVIEW
+==================================================
+
+Show useful platform metrics:
+
+Total Customers
+
+Active Customers
+
+Trial Customers
+
+Expired Trials
+
+Trials Expiring Soon
+
+Suspended Customers
+
+New Customers Today
+
+New Customers This Month
+
+Open Activation Requests
+
+Recent Activations
+
+Recent Errors
+
+Use real canonical platform data.
+
+==================================================
+70. PLATFORM ADMIN CUSTOMER TABLE
+==================================================
+
+Create a searchable/filterable Customers page.
+
+Useful columns:
+
+Customer Reference
+
+Organization
+
+Owner
+
+Email
+
+Phone
+
+Status
+
+Trial Start
+
+Trial End
+
+Activated At
+
+Number of Users
+
+Last Activity
+
+Created At
+
+Actions
+
+Filters:
+
+status
+
+trial state
+
+created date
+
+search
+
+==================================================
+71. CUSTOMER DETAIL PAGE
+==================================================
+
+Platform Admin customer detail should show:
+
+Organization information
+
+Customer reference
+
+Owner information
+
+Contact information
+
+Commercial status
+
+Trial start/end
+
+Activation date
+
+Suspension state
+
+Number of users
+
+Safe usage summary
+
+Last login/activity
+
+Activation requests
+
+Errors related to tenant
+
+Commercial/admin audit history
+
+==================================================
+72. PRIVACY — PLATFORM ADMIN
+==================================================
+
+Platform Admin should NOT display patient-level clinical information by default.
+
+Do not automatically expose:
+
+patient names
+
+clinical notes
+
+patient procedures
+
+patient payment detail
+
+medical files
+
+The Platform Control Center is for:
+
+commercial management
+
+account support
+
+system health
+
+not routine clinical browsing.
+
+==================================================
+73. PLATFORM ADMIN CUSTOMER USERS
+==================================================
+
+Platform Admin may see safe account-level customer user information:
+
+name
+
+email
+
+role
+
+active/disabled status
+
+last login
+
+Do NOT show:
+
+password
+
+password hash
+
+reset tokens
+
+session tokens
+
+==================================================
+74. PASSWORDS ARE NEVER VIEWABLE
+==================================================
+
+No administrator can read a user's password.
+
+There must never be:
+
+Show Password
+
+Reveal Password
+
+Recover Password Value
+
+Support uses the existing Password Reset flow.
+
+==================================================
+75. LAST LOGIN
+==================================================
+
+If not already available, track:
+
+last_login_at
+
+Update on successful login.
+
+Useful for customer support.
+
+Do not introduce excessive behavior tracking.
+
+==================================================
+76. TENANT LAST ACTIVITY
+==================================================
+
+Provide a reasonable tenant-level:
+
+last_activity_at
+
+Use existing audit/session activity or a throttled approach.
+
+Do not write to DB on every mouse click/page render.
+
+==================================================
+77. ACTIVATION REQUESTS ADMIN PAGE
+==================================================
+
+Show:
+
+Tenant
+
+Customer Reference
+
+Owner
+
+Contact
+
+Tenant Status
+
+Trial End
+
+Request Date
+
+Request Status
+
+Notes
+
+Actions:
+
+Mark Contacted
+
+Awaiting Payment
+
+Payment Received
+
+Activate License
+
+Close Request
+
+==================================================
+78. PLATFORM SETTINGS
+==================================================
+
+Create Platform-only settings for:
+
+Support WhatsApp
+
+Support Phone
+
+Support Email
+
+Default Trial Hours
+
+other minimal product-level support configuration if truly needed
+
+Do not mix Platform Settings with customer Settings.
+
+==================================================
+79. PLATFORM SETTING SECURITY
+==================================================
+
+Normal public/customer users must never modify Platform Settings.
+
+Server-side Platform Admin authorization required.
+
+Publicly safe support contact values may be read where needed.
+
+Sensitive credentials remain environment variables.
+
+==================================================
+80. PLATFORM AUDIT LOG
+==================================================
+
+Audit platform-sensitive actions.
+
+At minimum:
+
+customer registered
+
+email verified
+
+trial started
+
+trial extended
+
+activation request changed
+
+tenant activated
+
+tenant suspended
+
+tenant reactivated
+
+Platform Settings changed
+
+Platform Admin action
+
+Record:
+
+actor
+
+target tenant where relevant
+
+action
+
+timestamp
+
+safe metadata
+
+==================================================
+81. PLATFORM ADMIN FULL CONTROL — CORRECT DEFINITION
+==================================================
+
+Platform Super Admin should have complete control over the COMMERCIAL/PLATFORM layer:
+
+customers
+
+trials
+
+activations
+
+suspensions
+
+activation requests
+
+support settings
+
+customer account-level users
+
+system errors
+
+health
+
+platform audit
+
+platform administrators where appropriate
+
+But "full control" does NOT mean:
+
+reading passwords
+
+silently editing clinical data
+
+bypassing audit
+
+secret impersonation
+
+deleting customer records without safeguards
+
+Keep all sensitive actions explicit and auditable.
+
+==================================================
+82. NO SILENT CUSTOMER IMPERSONATION
+==================================================
+
+Do NOT create hidden:
+
+Login as Customer
+
+or invisible impersonation.
+
+If support impersonation is ever added later it must be:
+
+explicit
+
+time-limited
+
+visible
+
+fully audited
+
+Not part of this task.
+
+==================================================
+83. ERROR MONITORING
+==================================================
+
+Create centralized production error visibility.
+
+Capture appropriate:
+
+unhandled backend exceptions
+
+5xx responses
+
+important email delivery failures
+
+critical frontend Error Boundary reports
+
+background failures where applicable
+
+==================================================
+84. ERROR RECORD STRUCTURE
+==================================================
+
+Conceptually include:
+
+id
+
+reference_code
+
+occurred_at
+
+tenant_id nullable
+
+user_id nullable
+
+route
+
+HTTP method
+
+error type/code
+
+safe message
+
+application version/environment
+
+resolved_at nullable
+
+resolution_note nullable
+
+Do not store sensitive request bodies.
+
+==================================================
+85. ERROR REFERENCE CODE
+==================================================
+
+Generate a safe support reference such as:
+
+GH-ERR-A82F3C
+
+When unexpected error occurs show localized customer message:
+
+Arabic:
+
+حدث خطأ غير متوقع.
+رقم المرجع: GH-ERR-A82F3C
+
+English equivalent.
+
+This lets support search the incident.
+
+==================================================
+86. ERROR PRIVACY
+==================================================
+
+NEVER record:
+
+passwords
+
+password hashes
+
+reset raw tokens
+
+verification raw tokens
+
+cookies
+
+session IDs
+
+authorization headers
+
+secret environment variables
+
+medical notes
+
+full patient records
+
+sensitive payment information
+
+==================================================
+87. PLATFORM ERRORS PAGE
+==================================================
+
+Platform Admin can:
+
+search by reference
+
+filter by tenant
+
+filter by date
+
+filter by error type
+
+filter open/resolved
+
+view safe diagnostics
+
+mark resolved
+
+add resolution note
+
+==================================================
+88. FRONTEND GLOBAL ERROR BOUNDARY
+==================================================
+
+Create/reuse a global Error Boundary.
+
+Users must never see:
+
+React stack traces
+
+raw SQL
+
+Express stack traces
+
+internal server errors
+
+Use localized Ghars error UI.
+
+==================================================
+89. SYSTEM HEALTH
+==================================================
+
+Create Platform Admin:
+
+System Health
+
+Show only reliably measurable checks such as:
+
+Application/API health
+
+Database connectivity
+
+Email provider status/check
+
+Recent error count
+
+Application version
+
+Environment
+
+Migration/schema status if reliably available
+
+Do not claim to monitor infrastructure that Ghars cannot actually observe.
+
+==================================================
+90. HEALTH ENDPOINT
+==================================================
+
+Create a safe deployment health endpoint.
+
+Public health response:
+
+minimal information only.
+
+Detailed health diagnostics:
+
+Platform Admin only.
+
+Never expose DB credentials or secrets.
+
+==================================================
+91. SESSION STORAGE PRODUCTION AUDIT
+==================================================
+
+Inspect current session store.
+
+If production currently uses:
+
+MemoryStore
+
+or any development-only volatile session implementation:
+
+replace it with a durable production-compatible session store.
+
+Multi-customer production must not depend on volatile process memory.
+
+Preserve existing login/session semantics.
+
+==================================================
+92. COOKIE SECURITY
+==================================================
+
+Verify production configuration for:
+
+HttpOnly
+
+Secure in production
+
+SameSite
+
+session expiration
+
+trust proxy where required
+
+CSRF
+
+Do not weaken existing security.
+
+==================================================
+93. PUBLIC/AUTH RATE LIMITING
+==================================================
+
+Apply sensible server-side rate limiting to:
+
+Login
+
+Signup
+
+Verification resend
+
+Forgot Password
+
+Password Reset
+
+Activation Request
+
+Do not aggressively rate-limit normal authenticated clinical application APIs.
+
+==================================================
+94. TRIAL ABUSE BASIC PROTECTION
+==================================================
+
+Protect against obvious repeated free-trial abuse.
+
+At minimum:
+
+verified email
+
+email uniqueness according to account model
+
+normalized phone tracking
+
+rate limiting
+
+signup audit
+
+Do not build invasive device fingerprinting.
+
+==================================================
+95. ONE OWNER → ONE TRIAL TENANT
+==================================================
+
+For the current commercial model:
+
+a normal owner account cannot create unlimited new 72-hour trial organizations.
+
+One owner registration should create one trial tenant.
+
+Do not implement normal multi-organization switching now.
+
+If needed later, it should be designed explicitly.
+
+==================================================
+96. EMAILS
+==================================================
+
+Reuse existing email infrastructure.
+
+Create/localize relevant commercial emails:
+
+Email Verification
+
+Trial Started confirmation if useful
+
+Trial Expired notification where scheduling infrastructure supports it safely
+
+Permanent Activation confirmation
+
+Suspension notice where appropriate
+
+Do not send excessive email.
+
+==================================================
+97. ACTIVATION CONFIRMATION EMAIL
+==================================================
+
+When permanent activation succeeds:
+
+send email according to owner's preferred locale.
+
+Arabic concept:
+
+تم تفعيل نسخة غرس لمنشأتك بنجاح.
+
+يمكنك الآن تسجيل الدخول والاستمرار باستخدام بياناتك السابقة.
+
+English equivalent.
+
+Do not include passwords.
+
+==================================================
+98. TRIAL EXPIRATION EMAIL
+==================================================
+
+If reliable scheduling infrastructure already exists:
+
+send a localized expiration notification.
+
+If there is no reliable scheduler:
+
+do NOT build an unreliable fake cron system.
+
+Server-side access enforcement is the source of truth.
+
+Report scheduling limitation if applicable.
+
+==================================================
+99. EMPTY NEW TENANT EXPERIENCE
+==================================================
+
+New organizations initially contain no clinical data.
+
+Ensure existing Ghars screens handle this professionally.
+
+Dashboard:
+
+0 values / proper empty state
+
+Operational Table:
+
+helpful empty state
+
+Patients:
+
+Add Patient CTA where permitted
+
+Statistics:
+
+no NaN
+
+no broken charts
+
+no undefined
+
+Do not auto-create fake clinical records.
+
+==================================================
+100. INITIAL TENANT DEFAULTS
+==================================================
+
+Create only required safe defaults for new organizations.
+
+Do NOT accidentally copy clinic-specific development settings.
+
+Initialize required:
+
+roles
+
+permissions
+
+lists/catalog defaults
+
+preferences
+
+using the existing product architecture.
+
+==================================================
+101. CUSTOMER ONBOARDING
+==================================================
+
+After email verification and trial start show simple localized onboarding:
+
+Arabic:
+
+مرحباً بك في غرس
+
+بدأت تجربتك المجانية لمدة 3 أيام.
+
+English equivalent.
+
+Then enter the actual application.
+
+Do NOT build a complicated onboarding wizard.
+
+==================================================
+102. TRIAL USER SCENARIO — REQUIRED BEHAVIOR
+==================================================
+
+Explicit required scenario:
+
+1. Owner registers.
+2. Verifies email.
+3. Tenant trial starts at T0.
+4. trial_ends_at = T0 + 72 hours.
+5. Owner enters Ghars as Tenant Admin.
+6. Owner creates Doctor User.
+7. Owner creates Reception User.
+8. Both can login and use allowed functionality.
+9. All users share the SAME tenant trial expiration.
+10. No user receives additional trial days.
+11. Trial expires.
+12. ALL users lose operational access.
+13. Accounts remain active.
+14. Data remains intact.
+15. Platform Super Admin activates tenant.
+16. ALL existing active tenant users regain access.
+
+Implement and test exactly this scenario.
+
+==================================================
+103. FILE STORAGE PRODUCTION AUDIT
+==================================================
+
+Inspect current avatar/upload/file storage.
+
+If production files rely on ephemeral runtime filesystem:
+
+report this as a production blocker.
+
+Where supported, migrate/use durable storage.
+
+Do NOT lose current files.
+
+==================================================
+104. DATABASE BACKUPS
+==================================================
+
+Application code alone does not guarantee backups.
+
+Verify whether the production database provider has managed backups configured if this can be determined from the environment.
+
+Otherwise report clearly:
+
+Managed production database backups must be enabled before commercial launch.
+
+Do not pretend backup readiness exists when it does not.
+
+==================================================
+105. ENVIRONMENT SEPARATION
+==================================================
+
+Prepare/document separate:
+
+development
+
+test
+
+production
+
+configuration.
+
+Automated write tests must never run against production.
+
+==================================================
+106. REQUIRED PRODUCTION SECRETS
+==================================================
+
+Audit exact required variables.
+
+Likely includes:
+
+DATABASE_URL
+
+SESSION_SECRET
+
+APP_URL
+
+email provider credentials
+
+Platform Admin bootstrap configuration
+
+storage configuration if needed
+
+Use existing variable names where possible.
+
+Never commit secrets.
+
+==================================================
+107. PLATFORM ADMIN BOOTSTRAP
+==================================================
+
+Provide a secure one-time/bootstrap method for creating initial Platform Super Admin.
+
+Credentials come from environment variables/Replit Secrets.
+
+Do not print password into source code.
+
+Do not allow public registration for Platform Admin.
+
+==================================================
+108. TENANT A / TENANT B AUTOMATED TEST FIXTURES
+==================================================
+
+Create isolated test organizations:
+
+Tenant Alpha
+
+Tenant Beta
+
+Each must have:
+
+Tenant Admin
+
+normal user
+
+patient
+
+implant case
+
+implant
+
+adjunct procedure where appropriate
+
+follow-up
+
+payment
+
+customer-specific list/setting if applicable
+
+==================================================
+109. DIRECT CROSS-TENANT ATTACK TEST
+==================================================
+
+Authenticate as Tenant Alpha.
+
+Use exact known Tenant Beta IDs.
+
+Attempt:
+
+patient read
+
+patient update
+
+case read
+
+implant read/update
+
+follow-up read/update
+
+payment read
+
+user read/update
+
+file access if applicable
+
+Expected:
+
+ZERO Tenant Beta data.
+
+==================================================
+110. SEARCH LEAK TEST
+==================================================
+
+Authenticate as Tenant Alpha.
+
+Search for exact Tenant Beta:
+
+patient name
+
+patient phone
+
+user data where relevant
+
+case values
+
+Expected:
+
+No Tenant Beta business records exposed.
+
+==================================================
+111. DASHBOARD LEAK TEST
+==================================================
+
+Record Tenant Alpha Dashboard KPIs.
+
+Create additional known activity in Tenant Beta.
+
+Re-query Tenant Alpha Dashboard.
+
+Expected:
+
+Tenant Alpha metrics unchanged.
+
+==================================================
+112. STATISTICS LEAK TEST
+==================================================
+
+Create significant Tenant Beta activity.
+
+Query Tenant Alpha Statistics.
+
+Expected:
+
+No Tenant Beta impact on:
+
+patients
+
+cases
+
+implants
+
+prosthetics
+
+follow-ups
+
+finance
+
+communications
+
+doctor activity
+
+==================================================
+113. EXPORT LEAK TEST
+==================================================
+
+Export Tenant Alpha data.
+
+Inspect resulting export.
+
+Expected:
+
+ONLY Tenant Alpha data.
+
+ZERO Tenant Beta data.
+
+==================================================
+114. SETTINGS LEAK TEST
+==================================================
+
+Change a tenant-managed list/configuration value in Tenant Alpha.
+
+Expected:
+
+Tenant Beta remains unchanged.
+
+==================================================
+115. AUDIT LEAK TEST
+==================================================
+
+Create Tenant Beta audit activity.
+
+Tenant Alpha Customer Admin must not see it.
+
+==================================================
+116. MULTI-USER TRIAL TEST
+==================================================
+
+Use controlled time.
+
+1. Start Tenant Alpha trial.
+2. Create User B midway through trial.
+3. Confirm User B uses SAME trial_ends_at.
+4. Advance time to exact trial end.
+5. Owner blocked operationally.
+6. User B blocked operationally.
+7. Both can still reach expired/support flow.
+8. Activate tenant from Platform Admin.
+9. Both regain access.
+
+==================================================
+117. TRIAL ENFORCEMENT TEST
+==================================================
+
+Use controlled/fake server time.
+
+Do NOT wait real 72 hours.
+
+Test:
+
+pending verification
+→ no operational access
+
+verified / before expiration
+→ access
+
+exactly at expiration
+→ blocked
+
+after expiration
+→ blocked
+
+trial extension
+→ restored
+
+permanent activation
+→ active with no recurring expiration
+
+suspension
+→ blocked
+
+reactivation
+→ restored
+
+==================================================
+118. PLATFORM ADMIN SECURITY TEST
+==================================================
+
+Authenticate as Tenant Admin.
+
+Attempt every Platform Admin endpoint.
+
+Expected:
+
+403
+
+Specifically test:
+
+customer list
+
+tenant activation
+
+trial extension
+
+suspension
+
+Platform Settings
+
+errors
+
+health details
+
+activation requests across tenants
+
+==================================================
+119. CUSTOMER ROLE ESCALATION TEST
+==================================================
+
+Tenant Admin submits crafted request attempting to assign:
+
+platform_super_admin
+
+Expected:
+
+rejected server-side.
+
+==================================================
+120. ERROR MONITORING TEST
+==================================================
+
+Trigger one safe controlled test exception.
+
+Verify:
+
+localized friendly user message
+
+reference code generated
+
+Platform Admin finds reference
+
+correct tenant context
+
+no clinical/sensitive request payload recorded
+
+==================================================
+121. REGRESSION TEST EXISTING GHARS
+==================================================
+
+Within one valid active/trial tenant verify existing workflows remain functional:
+
+Authentication
+
+Localization Arabic
+
+Localization English
+
+Patients
+
+Operational Table
+
+Patient Medical File
+
+Patient Procedures
+
+Implants
+
+Adjunct Surgical Procedures
+
+Prosthetic workflow
+
+Follow-ups
+
+Communications
+
+Finance
+
+Payments
+
+Statistics
+
+Settings
+
+User Management
+
+Audit Log
+
+Export
+
+Password Recovery
+
+Do not change existing clinical business meaning.
+
+==================================================
+122. DO NOT MODIFY CLINICAL BUSINESS LOGIC
+==================================================
+
+Multi-tenancy wraps the existing application.
+
+Do NOT redefine:
+
+implant statuses
+
+Task #18 prosthetic synchronization
+
+follow-up behavior
+
+finance formulas
+
+adjunct surgical procedure meaning
+
+Dashboard KPI definitions
+
+Statistics formulas
+
+archive rules
+
+permissions
+
+unless changes are strictly required for tenant filtering/security.
+
+==================================================
+123. NO LANDING PAGE YET
+==================================================
+
+Do NOT build the public Landing Page in this task.
+
+Landing Page will be built after Commercial Architecture is stable.
+
+==================================================
+124. NO DEMO DATA YET
+==================================================
+
+Do NOT create marketing/demo clinical data in this task.
+
+Demo Tenant + realistic Demo Data will be created AFTER multi-tenancy is verified.
+
+==================================================
+125. NO SUBSCRIPTIONS
+==================================================
+
+Do NOT implement:
+
+plans
+
+pricing tiers
+
+subscription tables
+
+monthly billing
+
+annual billing
+
+renewal
+
+upgrade/downgrade
+
+recurring commercial lifecycle
+
+==================================================
+126. NO PAYMENT GATEWAY
+==================================================
+
+Do NOT install or prepare payment-provider SDKs.
+
+No payment gateway "for future use" in this task.
+
+Manual activation is intentional.
+
+==================================================
+127. RELEASE BLOCKERS
+==================================================
+
+The product MUST NOT be described as commercially ready if any of these fail:
+
+Tenant isolation
+
+Direct ID isolation
+
+Search isolation
+
+Statistics isolation
+
+Export isolation
+
+User Management isolation
+
+Platform Admin authorization
+
+Trial server-side enforcement
+
+Multi-user trial behavior
+
+Migration safety
+
+Authentication
+
+Production session persistence
+
+Production build
+
+==================================================
+128. REQUIRED RELEASE REPORT FLAGS
+==================================================
+
+Final report must explicitly show:
+
+TENANT ISOLATION:
+PASS / FAIL
+
+SEARCH ISOLATION:
+PASS / FAIL
+
+EXPORT ISOLATION:
+PASS / FAIL
+
+STATISTICS ISOLATION:
+PASS / FAIL
+
+PLATFORM ADMIN SECURITY:
+PASS / FAIL
+
+TRIAL ENFORCEMENT:
+PASS / FAIL
+
+MULTI-USER TRIAL:
+PASS / FAIL
+
+PRODUCTION SESSION STORE:
+PASS / FAIL
+
+PRODUCTION BUILD:
+PASS / FAIL
+
+If any item is FAIL:
+
+state clearly that commercial release is BLOCKED.
+
+==================================================
+129. TECHNICAL VERIFICATION
+==================================================
+
+Run:
+
+frontend TypeScript
+
+backend/shared TypeScript
+
+lint
+
+existing API tests
+
+new multi-tenant tests
+
+direct-ID isolation tests
+
+search isolation tests
+
+statistics isolation tests
+
+export isolation tests
+
+trial tests
+
+multi-user trial tests
+
+Platform Admin permission tests
+
+registration tests
+
+email verification tests
+
+localization completeness tests
+
+password reset regression tests
+
+production build
+
+==================================================
+130. MIGRATION VERIFICATION
+==================================================
+
+Report:
+
+migration files created
+
+backfill counts
+
+whether any orphan tenant-owned record was detected
+
+whether all required tenant_id constraints were successfully applied
+
+whether indexes were created
+
+whether existing development data remained intact
+
+==================================================
+131. DO NOT PUBLISH
+==================================================
+
+DO NOT PUBLISH.
+
+DO NOT DEPLOY.
+
+DO NOT modify production data.
+
+Use isolated test data for all destructive/security tests.
+
+Create a stable checkpoint only after the full phase is verified.
+
+==================================================
+132. FINAL REPORT
+==================================================
+
+At completion provide a structured report containing:
+
+1. Architecture audit findings
+
+2. Tenant schema implemented
+
+3. Exact tenant statuses
+
+4. User lifecycle vs tenant lifecycle architecture
+
+5. How first Tenant Admin is created
+
+6. Email verification flow
+
+7. Exact moment trial begins
+
+8. Exact trial duration
+
+9. How additional users behave during trial
+
+10. Tables made tenant-aware
+
+11. Existing-data migration strategy/result
+
+12. Tenant context implementation
+
+13. Query isolation architecture
+
+14. Direct-ID isolation results
+
+15. Search isolation results
+
+16. Dashboard isolation results
+
+17. Statistics isolation results
+
+18. Finance isolation results
+
+19. Export isolation results
+
+20. User Management isolation results
+
+21. Settings isolation results
+
+22. Audit isolation results
+
+23. File isolation status
+
+24. Trial middleware
+
+25. Trial-expiration behavior
+
+26. Expiration-during-session behavior
+
+27. Trial indicator
+
+28. Trial extension
+
+29. Activation request architecture
+
+30. Manual commercial workflow
+
+31. Permanent activation behavior
+
+32. Suspension/reactivation behavior
+
+33. Platform Super Admin architecture
+
+34. Platform Admin routes
+
+35. Platform Admin Overview
+
+36. Customer Management
+
+37. Customer Detail
+
+38. Activation Requests management
+
+39. Platform Settings
+
+40. Platform Audit
+
+41. Error-monitoring architecture
+
+42. Error reference-code behavior
+
+43. System Health
+
+44. Session-store production status
+
+45. Cookie/CSRF security status
+
+46. Rate limiting
+
+47. Registration abuse controls
+
+48. Email infrastructure status
+
+49. Production file-storage status
+
+50. Database-backup requirement/status
+
+51. Environment separation
+
+52. Required production Secrets
+
+53. Database migrations created
+
+54. Existing automated tests result
+
+55. New security tests result
+
+56. Localization regression result
+
+57. Existing Ghars workflow regression result
+
+58. Production build result
+
+59. Remaining production blockers
+
+60. Exact checkpoint commit hash
+
+Then display these explicit final flags:
+
+TENANT ISOLATION: PASS / FAIL
+SEARCH ISOLATION: PASS / FAIL
+EXPORT ISOLATION: PASS / FAIL
+STATISTICS ISOLATION: PASS / FAIL
+PLATFORM ADMIN SECURITY: PASS / FAIL
+TRIAL ENFORCEMENT: PASS / FAIL
+MULTI-USER TRIAL: PASS / FAIL
+PRODUCTION SESSION STORE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+If ANY release-blocking flag is FAIL:
+
+DO NOT call Ghars production-ready.
+
+Create a stable checkpoint and STOP.
+
+DO NOT PUBLISH.

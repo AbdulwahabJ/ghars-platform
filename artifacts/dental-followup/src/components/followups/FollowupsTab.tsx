@@ -398,7 +398,7 @@ function FollowupItem({
         ) : null}
       </div>
       {!isArchived ? (
-        <DropdownMenu dir="rtl">
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"

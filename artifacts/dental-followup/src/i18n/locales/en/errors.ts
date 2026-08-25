@@ -5,6 +5,7 @@ const errors = {
   EMAIL_NOT_CONFIGURED: "Email service is not configured. Please contact an administrator.",
   RESET_TOKEN_INVALID: "This reset link is invalid or expired.",
   VALIDATION_FAILED: "Please review the information you entered.",
+  VALIDATION_ERROR: "Please review the information you entered.",
   EMAIL_ALREADY_USED: "This email address is already used by another account.",
   USERNAME_ALREADY_USED: "This username is already in use.",
   UNAUTHORIZED: "Your session has ended. Please sign in again.",

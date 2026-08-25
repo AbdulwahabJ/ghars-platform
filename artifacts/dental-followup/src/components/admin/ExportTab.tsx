@@ -28,7 +28,7 @@ export function ExportTab() {
                 href={dataExportUrl(entity)}
                 data-testid={`link-export-${entity}`}
               >
-                <Download className="h-4 w-4 ml-2" />
+                <Download className="h-4 w-4 ms-2" />
                 <span>{t(`export.entities.${entity}`)}</span>
               </a>
             </Button>

@@ -47,7 +47,7 @@ function ListCard({
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate notranslate">
                     {item.patientName}
-                    <span className="text-muted-foreground font-normal mr-2" dir="ltr">
+                    <span className="text-muted-foreground font-normal me-2" dir="ltr">
                       {item.fileNumber}
                     </span>
                   </p>

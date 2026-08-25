@@ -17,6 +17,7 @@ import { FieldLabel } from "@/components/implants/FieldLabel";
 import { useFollowupOutcome } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface OutcomeDialogProps {
   open: boolean;
@@ -32,7 +33,7 @@ export function OutcomeDialog(props: OutcomeDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
+      <DialogContent className="sm:max-w-md text-start">
         {props.followup ? <OutcomeForm {...props} /> : null}
       </DialogContent>
     </Dialog>
@@ -75,7 +76,7 @@ function OutcomeForm({
         onError: (err) => {
           toast({
             title: t("followupForms.outcomeFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -85,12 +86,12 @@ function OutcomeForm({
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{title ?? t("followupForms.outcomeTitle")}</DialogTitle>
         <DialogDescription>{followup!.followupType}</DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-2">
-        <RadioGroup value={status} onValueChange={(v) => { setStatus(v); setError(null); }} dir="rtl" className="space-y-1">
+        <RadioGroup value={status} onValueChange={(v) => { setStatus(v); setError(null); }} className="space-y-1">
             {FOLLOWUP_OUTCOME_STATUSES.filter((s) => s !== "ملغاة").map((s) => (
             <div key={s} className="flex items-center gap-2">
               <RadioGroupItem value={s} id={`outcome-${s}`} data-testid={`radio-outcome-${s}`} />

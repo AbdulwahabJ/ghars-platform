@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminLookups, useAdminLookupMutations } from "@/hooks/use-admin";
-import { ApiError } from "@/lib/api";
+import { localizeErrorMessage } from "@/lib/localize-error";
 import { useTranslation } from "react-i18next";
 
 export function LookupsTab() {
@@ -55,7 +55,7 @@ export function LookupsTab() {
     toast({
       variant: "destructive",
       title: t("lookup.operationFailed"),
-      description: err instanceof ApiError ? err.message : t("lookup.unexpectedError"),
+      description: localizeErrorMessage(err),
     });
 
   const addOption = () => {
@@ -118,7 +118,6 @@ export function LookupsTab() {
           <div className="space-y-2 w-full sm:w-64">
             <span className="text-sm font-medium">{t("lookup.category")}</span>
             <Select
-              dir="rtl"
               value={category}
               onValueChange={(v) => setCategory(v as AdminLookupCategory)}
             >
@@ -147,7 +146,7 @@ export function LookupsTab() {
               disabled={create.isPending}
               data-testid="button-add-lookup"
             >
-              <Plus className="h-4 w-4 ml-1" />
+              <Plus className="h-4 w-4 ms-1" />
               <span>{t("lookup.add")}</span>
             </Button>
           </div>
@@ -156,10 +155,10 @@ export function LookupsTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-right w-24">{t("lookup.order")}</TableHead>
-              <TableHead className="text-right">{t("lookup.value")}</TableHead>
-              <TableHead className="text-right">{t("lookup.status")}</TableHead>
-              <TableHead className="text-right">{t("lookup.actions")}</TableHead>
+              <TableHead className="text-start w-24">{t("lookup.order")}</TableHead>
+              <TableHead className="text-start">{t("lookup.value")}</TableHead>
+              <TableHead className="text-start">{t("lookup.status")}</TableHead>
+              <TableHead className="text-start">{t("lookup.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -33,7 +33,7 @@ import { useAdminUsers, useAdminUserMutations } from "@/hooks/use-admin";
 import { useAuth } from "@/hooks/use-auth";
 import { ME_QUERY_KEY } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
-import { ApiError } from "@/lib/api";
+import { localizeErrorMessage } from "@/lib/localize-error";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import { UserAvatar, AvatarUploader } from "@/components/ui/user-avatar";
 import { useTranslation } from "react-i18next";
@@ -90,11 +90,11 @@ export function UsersTab() {
     toast({
       variant: "destructive",
       title: t("users.operationFailed"),
-      description: err instanceof ApiError ? err.message : t("users.unexpectedError"),
+      description: localizeErrorMessage(err),
     });
 
   const avatarError = (msg: string) =>
-    toast({ variant: "destructive", title: t("users.avatar"), description: msg });
+    toast({ variant: "destructive", title: t("users.avatar"), description: localizeErrorMessage(new Error(msg)) });
 
   const submitCreate = () => {
     create.mutate(
@@ -188,7 +188,7 @@ export function UsersTab() {
           onClick={() => setCreateOpen(true)}
           data-testid="button-create-user"
         >
-          <Plus className="h-4 w-4 ml-1" />
+          <Plus className="h-4 w-4 ms-1" />
           <span>{t("users.newUser")}</span>
         </Button>
       </CardHeader>
@@ -197,15 +197,15 @@ export function UsersTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">{t("users.fullName")}</TableHead>
-                <TableHead className="text-right">{t("users.username")}</TableHead>
-                <TableHead className="text-right">{t("users.email")}</TableHead>
-                <TableHead className="text-right">{t("users.role")}</TableHead>
-                <TableHead className="text-right">{t("users.status")}</TableHead>
-                <TableHead className="text-right">{t("users.viewFinancials")}</TableHead>
-                <TableHead className="text-right">{t("users.recordPayments")}</TableHead>
-                <TableHead className="text-right">{t("users.lastLogin")}</TableHead>
-                <TableHead className="text-right">{t("common:labels.actions")}</TableHead>
+                <TableHead className="text-start">{t("users.fullName")}</TableHead>
+                <TableHead className="text-start">{t("users.username")}</TableHead>
+                <TableHead className="text-start">{t("users.email")}</TableHead>
+                <TableHead className="text-start">{t("users.role")}</TableHead>
+                <TableHead className="text-start">{t("users.status")}</TableHead>
+                <TableHead className="text-start">{t("users.viewFinancials")}</TableHead>
+                <TableHead className="text-start">{t("users.recordPayments")}</TableHead>
+                <TableHead className="text-start">{t("users.lastLogin")}</TableHead>
+                <TableHead className="text-start">{t("common:labels.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -221,10 +221,10 @@ export function UsersTab() {
                       <span>{u.fullName}</span>
                     </div>
                   </TableCell>
-                  <TableCell dir="ltr" className="text-right">
+                  <TableCell dir="ltr" className="text-start">
                     {u.username}
                   </TableCell>
-                  <TableCell dir="ltr" className="text-right">
+                  <TableCell dir="ltr" className="text-start">
                     {u.email ?? "—"}
                   </TableCell>
                   <TableCell>{t(`common:roles.${u.role.toLowerCase()}`)}</TableCell>
@@ -316,7 +316,7 @@ export function UsersTab() {
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent dir="rtl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("users.createTitle")}</DialogTitle>
           </DialogHeader>
@@ -364,7 +364,6 @@ export function UsersTab() {
             <div className="space-y-2">
               <Label>{t("users.role")}</Label>
               <Select
-                dir="rtl"
                 value={form.role}
                 onValueChange={(v) => setForm({ ...form, role: v as UserRole })}
               >
@@ -406,7 +405,7 @@ export function UsersTab() {
               data-testid="button-submit-create-user"
             >
               {create.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                <Loader2 className="h-4 w-4 animate-spin ms-1" />
               )}
               <span>{t("users.create")}</span>
             </Button>
@@ -419,7 +418,7 @@ export function UsersTab() {
         open={!!editUser}
         onOpenChange={(open) => !open && setEditUser(null)}
       >
-        <DialogContent dir="rtl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("users.editTitle", { name: editUser?.fullName })}</DialogTitle>
           </DialogHeader>
@@ -466,7 +465,6 @@ export function UsersTab() {
               <div className="space-y-2">
                 <Label>{t("users.role")}</Label>
                 <Select
-                  dir="rtl"
                   value={editForm.role}
                   onValueChange={(v) =>
                     setEditForm({ ...editForm, role: v as UserRole })
@@ -502,7 +500,7 @@ export function UsersTab() {
               data-testid="button-submit-edit-user"
             >
               {update.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                <Loader2 className="h-4 w-4 animate-spin ms-1" />
               )}
               <span>{t("users.saveChanges")}</span>
             </Button>
@@ -520,7 +518,7 @@ export function UsersTab() {
           }
         }}
       >
-        <DialogContent dir="rtl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {t("users.resetTitle", { name: resetUser?.fullName })}
@@ -547,7 +545,7 @@ export function UsersTab() {
               data-testid="button-submit-reset-password"
             >
               {resetPassword.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                <Loader2 className="h-4 w-4 animate-spin ms-1" />
               )}
               <span>{t("users.reset")}</span>
             </Button>
@@ -574,7 +572,7 @@ function PermissionSelects({
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="space-y-2">
         <Label>{t("users.viewFinancials")}</Label>
-        <Select dir="rtl" value={view} onValueChange={onView}>
+        <Select value={view} onValueChange={onView}>
           <SelectTrigger data-testid="select-perm-view">
             <SelectValue />
           </SelectTrigger>
@@ -587,7 +585,7 @@ function PermissionSelects({
       </div>
       <div className="space-y-2">
         <Label>{t("users.recordPayments")}</Label>
-        <Select dir="rtl" value={pay} onValueChange={onPay}>
+        <Select value={pay} onValueChange={onPay}>
           <SelectTrigger data-testid="select-perm-pay">
             <SelectValue />
           </SelectTrigger>

@@ -28,6 +28,7 @@ import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePic
 import { useCreatePayment } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { todayIso } from "@/lib/money";
+import { localizeErrorMessage } from "@/lib/localize-error";
 import { useTranslation } from "react-i18next";
 
 interface PaymentFormDialogProps {
@@ -40,7 +41,7 @@ export function PaymentFormDialog(props: PaymentFormDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg text-right max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-lg text-start max-h-[90vh] overflow-y-auto">
         <PaymentForm {...props} />
       </DialogContent>
     </Dialog>
@@ -65,11 +66,11 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
   const submit = () => {
     const value = Number(amount);
     if (amount.trim() === "" || Number.isNaN(value) || value <= 0) {
-      setError("أدخل مبلغًا أكبر من صفر.");
+      setError(t("financeForms.positiveAmount"));
       return;
     }
     if (!paymentDate) {
-      setError("تاريخ الدفعة مطلوب.");
+      setError(t("financeForms.paymentDateRequired"));
       return;
     }
     const data: PaymentInput = {
@@ -85,13 +86,13 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
       { caseId, data },
       {
         onSuccess: () => {
-          toast({ title: "تم تسجيل الدفعة بنجاح." });
+          toast({ title: t("financeForms.paymentRecorded") });
           onOpenChange(false);
         },
         onError: (err) => {
           toast({
-            title: "تعذر تسجيل الدفعة",
-            description: err instanceof Error ? err.message : undefined,
+            title: t("financeForms.paymentRecordFailed"),
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -101,7 +102,7 @@ function PaymentForm({ onOpenChange, caseId }: PaymentFormDialogProps) {
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{t("financeForms.recordPayment")}</DialogTitle>
         <DialogDescription>
           الدفعات لا تُحذف — يمكن إلغاؤها فقط مع ذكر السبب.

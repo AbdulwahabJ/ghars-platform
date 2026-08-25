@@ -41,24 +41,25 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
-// Extend the reset schema to ensure passwords match on the client side
-const resetFormSchema = completePasswordResetInputSchema
-  .extend({
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-  message: "كلمة المرور غير متطابقة",
-  path: ["confirmPassword"]
-  });
-
-type ResetFormInput = z.infer<typeof resetFormSchema>;
+type ResetFormInput = CompletePasswordResetInput & {
+  confirmPassword: string;
+};
 
 export default function Login() {
   const [location, setLocation] = useLocation();
   const { login, user, setupStatus, isLoading } = useAuth();
   const { t } = useTranslation("auth");
   const { direction } = useLocale();
+  const resetFormSchema = completePasswordResetInputSchema
+    .extend({
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t("reset.passwordMismatch"),
+      path: ["confirmPassword"],
+    });
   
   // Extract token from search params if we're on the reset route
   const searchParams = new URLSearchParams(window.location.search);
@@ -140,7 +141,7 @@ export default function Login() {
               {login.isError && (
                 <Alert variant="destructive">
                   <AlertDescription className="font-medium text-sm">
-                    {login.error?.message || t("common:errors.generic")}
+                    {localizeErrorMessage(login.error)}
                   </AlertDescription>
                 </Alert>
               )}
@@ -226,7 +227,7 @@ export default function Login() {
                   />
 
                    <Button type="submit" className="mt-2 h-[56px] w-full rounded-[7px] bg-brand-navy text-white text-[16px] hover:bg-[#132850]" disabled={login.isPending}>
-                    {login.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {login.isPending ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
                      {login.isPending ? t("login.signingIn") : t("login.submit")}
                   </Button>
                 </form>
@@ -280,7 +281,7 @@ export default function Login() {
               {forgotSuccessMsg ? (
                 <Alert className="border-primary/20 bg-primary/5">
                   <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                  <AlertDescription className="font-medium text-primary ml-2 text-sm leading-relaxed">
+                  <AlertDescription className="font-medium text-primary ms-2 text-sm leading-relaxed">
                     {forgotSuccessMsg}
                   </AlertDescription>
                 </Alert>
@@ -289,7 +290,7 @@ export default function Login() {
                   {forgotMutation.isError && (
                     <Alert variant="destructive">
                       <AlertDescription className="font-medium text-sm">
-                        {forgotMutation.error?.message || t("common:errors.generic")}
+                        {localizeErrorMessage(forgotMutation.error)}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -308,7 +309,7 @@ export default function Login() {
                                {...field}
                                dir="ltr"
                                autoComplete="username"
-                               className="h-[52px] rounded-[7px] border-slate-300 text-right shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
+                               className="h-[52px] rounded-[7px] border-slate-300 text-start shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
                              />
                             </FormControl>
                             <FormMessage />
@@ -317,7 +318,7 @@ export default function Login() {
                       />
 
                        <Button type="submit" className="mt-2 h-[50px] w-full rounded-[7px] bg-brand-navy text-white hover:bg-[#132850]" disabled={forgotMutation.isPending}>
-                        {forgotMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {forgotMutation.isPending ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
                          {t("recovery.submit")}
                       </Button>
                     </form>
@@ -338,7 +339,7 @@ export default function Login() {
                 <div className="space-y-6">
                   <Alert className="border-primary/20 bg-primary/5">
                     <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                    <AlertDescription className="font-medium text-primary ml-2 text-sm leading-relaxed">
+                    <AlertDescription className="font-medium text-primary ms-2 text-sm leading-relaxed">
                       {t("reset.success")}
                     </AlertDescription>
                   </Alert>
@@ -351,7 +352,7 @@ export default function Login() {
                   {resetMutation.isError && (
                     <Alert variant="destructive">
                       <AlertDescription className="font-medium text-sm">
-                        {resetMutation.error?.message || t("common:errors.generic")}
+                        {localizeErrorMessage(resetMutation.error)}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -401,7 +402,7 @@ export default function Login() {
                       />
 
                        <Button type="submit" className="mt-2 h-[50px] w-full rounded-[7px] bg-brand-navy text-white hover:bg-[#132850]" disabled={resetMutation.isPending}>
-                        {resetMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {resetMutation.isPending ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
                          {t("reset.submit")}
                       </Button>
                     </form>
@@ -415,9 +416,9 @@ export default function Login() {
       </div>
 
       {/* Left Side Visually (Second element in RTL) -> Identity panel */}
-      <div className="hidden md:flex md:w-[50%] bg-[#f4f7fa] flex-col items-center justify-center p-12 relative overflow-hidden order-1 md:order-2 border-r border-slate-200">
-        <div className="absolute left-0 top-0 h-[42%] w-[58%] bg-hex-pattern opacity-80 pointer-events-none" />
-        <div className="absolute bottom-0 right-0 h-[44%] w-[62%] bg-hex-pattern opacity-80 pointer-events-none" />
+      <div className="hidden md:flex md:w-[50%] bg-[#f4f7fa] flex-col items-center justify-center p-12 relative overflow-hidden order-1 md:order-2 border-e border-slate-200">
+        <div className="absolute start-0 top-0 h-[42%] w-[58%] bg-hex-pattern opacity-80 pointer-events-none" />
+        <div className="absolute bottom-0 end-0 h-[44%] w-[62%] bg-hex-pattern opacity-80 pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center">
           <img src={gharsSymbol} alt={t("login.symbolAlt")} className="h-[140px] w-[140px] object-contain" />

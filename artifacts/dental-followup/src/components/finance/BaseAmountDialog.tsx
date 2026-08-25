@@ -14,6 +14,7 @@ import { FieldLabel } from "@/components/implants/FieldLabel";
 import { useUpdateBaseAmount } from "@/hooks/use-finance";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface BaseAmountDialogProps {
   open: boolean;
@@ -26,7 +27,7 @@ export function BaseAmountDialog(props: BaseAmountDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
+      <DialogContent className="sm:max-w-md text-start">
         <BaseAmountForm {...props} />
       </DialogContent>
     </Dialog>
@@ -56,7 +57,7 @@ function BaseAmountForm({ onOpenChange, caseId, current }: BaseAmountDialogProps
         onError: (err) => {
           toast({
             title: t("financeForms.baseUpdateFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -66,7 +67,7 @@ function BaseAmountForm({ onOpenChange, caseId, current }: BaseAmountDialogProps
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{t("financeForms.baseTreatment")}</DialogTitle>
         <DialogDescription>
           {t("financeForms.baseAmountDescription")}

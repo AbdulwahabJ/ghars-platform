@@ -89,7 +89,6 @@ export function SearchableCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        dir="rtl"
         align="start"
         className="p-0 w-[--radix-popover-trigger-width] min-w-[200px]"
       >
@@ -109,7 +108,7 @@ export function SearchableCombobox({
                   value={`__custom__${trimmed}`}
                   onSelect={() => select(trimmed)}
                 >
-                  <Check className="ml-2 h-4 w-4 opacity-0" />
+                  <Check className="ms-2 h-4 w-4 opacity-0" />
                    {t("implant.useValue", { value: trimmed })}
                 </CommandItem>
               )}
@@ -121,7 +120,7 @@ export function SearchableCombobox({
                 >
                   <Check
                     className={cn(
-                      "ml-2 h-4 w-4",
+                      "ms-2 h-4 w-4",
                       value === option ? "opacity-100" : "opacity-0",
                     )}
                   />

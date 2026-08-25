@@ -270,7 +270,7 @@ export default function Finance() {
               />
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger data-testid="select-filter-method">
-                  <SelectValue placeholder="طريقة الدفع" />
+                  <SelectValue placeholder={t("finance.paymentMethodPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL}>{t("finance.allPaymentMethods")}</SelectItem>
@@ -283,7 +283,7 @@ export default function Finance() {
               </Select>
               <Select value={paymentStatus} onValueChange={setPaymentStatus}>
                 <SelectTrigger data-testid="select-filter-status">
-                  <SelectValue placeholder="حالة الدفع" />
+                  <SelectValue placeholder={t("finance.paymentStatusPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL}>{t("finance.allPaymentStatuses")}</SelectItem>
@@ -296,7 +296,7 @@ export default function Finance() {
               </Select>
               <Select value={implantSystem} onValueChange={setImplantSystem}>
                 <SelectTrigger data-testid="select-filter-system">
-                  <SelectValue placeholder="نظام الزرعة" />
+                  <SelectValue placeholder={t("finance.implantSystemPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL}>{t("finance.allSystems")}</SelectItem>
@@ -357,7 +357,7 @@ export default function Finance() {
                         <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
                         <YAxis tick={{ fontSize: 11 }} width={70} />
                         <Tooltip
-                          formatter={(value) => [formatMoney(Number(value)), "المبلغ"]}
+                          formatter={(value) => [formatMoney(Number(value)), t("finance.amount")]}
                         />
                         <Bar dataKey="amount" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
                       </BarChart>
@@ -393,7 +393,7 @@ export default function Finance() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(value) => [formatMoney(Number(value)), "المبلغ"]}
+                          formatter={(value) => [formatMoney(Number(value)), t("finance.amount")]}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -419,14 +419,14 @@ export default function Finance() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-right">التاريخ</TableHead>
-                          <TableHead className="text-right">المريض</TableHead>
-                          <TableHead className="text-right">رقم الملف</TableHead>
-                          <TableHead className="text-right">رقم الحالة</TableHead>
-                          <TableHead className="text-right">وصف الدفعة</TableHead>
-                          <TableHead className="text-right">المبلغ</TableHead>
-                          <TableHead className="text-right">طريقة الدفع</TableHead>
-                          <TableHead className="text-right">المستخدم</TableHead>
+                          <TableHead className="text-start">{t("finance.date")}</TableHead>
+                          <TableHead className="text-start">{t("finance.patient")}</TableHead>
+                          <TableHead className="text-start">{t("finance.fileNumber")}</TableHead>
+                          <TableHead className="text-start">{t("finance.caseNumber")}</TableHead>
+                          <TableHead className="text-start">{t("finance.paymentDescription")}</TableHead>
+                          <TableHead className="text-start">{t("finance.amount")}</TableHead>
+                          <TableHead className="text-start">{t("finance.paymentMethod")}</TableHead>
+                          <TableHead className="text-start">{t("finance.user")}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>

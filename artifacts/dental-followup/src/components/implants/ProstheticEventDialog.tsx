@@ -27,6 +27,7 @@ import { FieldLabel } from "./FieldLabel";
 import { useCreateProstheticEvent } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 const CASE_LEVEL = "__case_level__";
 
@@ -54,7 +55,7 @@ export function ProstheticEventDialog({
 }: ProstheticEventDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
+      <DialogContent className="sm:max-w-md text-start">
         <ProstheticEventForm
           patientId={patientId}
           caseItem={caseItem}
@@ -117,7 +118,7 @@ function ProstheticEventForm({
           toast({
             variant: "destructive",
              title: t("implant.prostheticFailed"),
-            description: error.message,
+            description: localizeErrorMessage(error),
           }),
       },
     );
@@ -125,9 +126,9 @@ function ProstheticEventForm({
 
   return (
     <>
-      <DialogHeader className="text-right">
+      <DialogHeader className="text-start">
          <DialogTitle>{t("implant.prostheticTitle")}</DialogTitle>
-        <DialogDescription className="text-right leading-relaxed">
+        <DialogDescription className="text-start leading-relaxed">
            {t("implant.prostheticDescription")}
         </DialogDescription>
       </DialogHeader>
@@ -141,7 +142,7 @@ function ProstheticEventForm({
             disabled={lockInitialEventType}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent dir="rtl">
+            <SelectContent>
               {PROSTHETIC_EVENT_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}
@@ -162,7 +163,7 @@ function ProstheticEventForm({
             disabled={Boolean(initialImplantId)}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent dir="rtl">
+            <SelectContent>
                <SelectItem value={CASE_LEVEL}>{t("implant.caseLevelProsthetic")}</SelectItem>
               {activeImplants.map((implant: Implant) => (
                 <SelectItem key={implant.id} value={implant.id}>

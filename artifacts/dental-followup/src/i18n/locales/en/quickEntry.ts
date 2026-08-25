@@ -1,0 +1,62 @@
+const quickEntry = {
+  title: "Add new record",
+  optional: "optional",
+  actions: {
+    close: "Close", cancel: "Cancel", choose: "Choose", openFile: "Open file", include: "Include", addImplant: "Add implant", addAdjunctProcedure: "Add adjunct procedure",
+    removeImplant: "Remove implant {{number}}", removeAdjunctProcedure: "Remove adjunct procedure {{number}}", save: "Save record", saving: "Saving...",
+  },
+  sections: {
+    patient: "1. Patient information", case: "2. Implant case and implants", implants: "Implants ({{count}})",
+    finance: "3. Finance", followup: "4. Follow-up",
+  },
+  fields: {
+    general: "General information", fileNumber: "File number", fullName: "Patient name", mobileNumber: "Mobile number",
+    age: "Age", procedureDate: "Procedure date", treatingDoctor: "Treating doctor", caseStatus: "Case status",
+    prosValue: "Prosthetic duration", expectedProstheticDate: "Expected prosthetic date", generalNote: "Case note",
+    baseTreatmentAmount: "Base treatment amount", installmentTotalAmount: "Installment amount", installmentCount: "Number of installments",
+    installmentFirstDueDate: "First due date", paymentAmount: "Initial payment amount", paymentDate: "Payment date",
+    paymentLabel: "Payment description", paymentMethod: "Payment method", followupType: "Follow-up type",
+    followupScheduledAt: "Follow-up appointment (date and time)", followupAssignedUserId: "Follow-up owner",
+    followupNote: "Follow-up note", site: "Implant site (FDI)", system: "Implant system",
+    diameter: "Implant diameter", length: "Implant length", qValue: "Q value", formerValue: "Former value",
+    graftValue: "Graft value", implantStatus: "Implant status", implantNote: "Implant note",
+  },
+  placeholders: {
+    fileNumber: "Example: 1001", fullName: "Full name", age: "Age", prosValue: "Example: 3M",
+    generalNote: "General notes...", installmentAmount: "Uses the treatment amount automatically", followupNote: "Follow-up notes...",
+  },
+  implant: { number: "Implant {{number}}" },
+  notices: { patientWithoutCase: "⚠ A patient added without a case will not appear in the operational schedule; they can be accessed from Patients." },
+  currency: "SAR", unspecified: "Unspecified",
+  installments: { enable: "Enable installments", payment: "Payment {{number}}" },
+  jaws: { upper: "Upper jaw", lower: "Lower jaw" },
+  adjunct: {
+    noFinancialImpact: "Does not affect amounts or payments", procedureNumber: "Procedure {{number}}", heading: "Adjunct surgical procedures ({{count}})",
+    date: "Procedure date", category: "Procedure category", chooseCategory: "Choose a category", side: "Side", chooseSide: "Choose a side",
+    liftType: "Lift type", description: "Procedure description", descriptionPlaceholder: "Clinical procedure description", relatedImplant: "Related implant",
+    caseLevel: "Procedure for the entire case", tooth: "Tooth {{site}}", site: "Site", sitePlaceholder: "Example: posterior region",
+    material: "Material", materialPlaceholder: "Example: Bio-Oss / autogenous bone", membrane: "Membrane", membranePlaceholder: "Example: collagen membrane",
+    quantity: "Quantity", size: "Size", status: "Procedure status", statusPlaceholder: "Example: completed / under follow-up", note: "Note",
+  },
+  options: {
+    "حالة جديدة": "New case", "قيد العلاج": "In treatment", "مكتملة": "Completed", "ملغاة": "Cancelled", "مؤجلة": "Postponed", "مؤرشفة": "Archived",
+    "مزروعة": "Implanted", "في مرحلة الالتئام": "Healing", "جاهزة للتركيب": "Ready for prosthesis", "تم تركيب مؤقت": "Temporary prosthesis placed", "تم التركيب": "Final prosthesis placed", "فاشلة": "Failed", "تحتاج إعادة": "Needs redo", "تمت إعادة الزراعة": "Reimplanted",
+    "زراعة عظم": "Bone graft", "رفع الجيب الفكي": "Sinus lift", "إبعاد / نقل العصب السنخي السفلي": "Inferior alveolar nerve repositioning",
+    "يمين": "Right", "يسار": "Left", "مغلق": "Closed", "مفتوح": "Open",
+  },
+  validation: {
+    fileNumberRequired: "File number is required", fullNameRequired: "Patient name is required", siteRequired: "Site is required",
+    followupRequired: "A follow-up appointment is required", procedureSideRequired: "Procedure side is required for this category.",
+    sideRequired: "Side is required.", installmentAmountRequired: "An installment amount is required when installments are enabled.",
+    installmentCountRange: "The number of installments must be between 1 and 60.", installmentExceedsTreatment: "The installment amount cannot exceed the base treatment amount.",
+  },
+  errors: {
+    reviewFields: "Could not save the record. Review the highlighted fields below.", invalidField: "Could not save the record. The following field has an error:",
+    requiredField: "Could not save the record. A required field is missing:", procedureSideRequired: "Could not save the record. Choose the adjunct procedure side.",
+    procedureSideField: "Adjunct procedure {{number}}: side", enterTreatmentOrInstallment: "Could not save the record. Enter a treatment or installment amount.",
+    installmentCountRange: "Could not save the record. The number of installments must be between 1 and 60.", installmentExceedsTreatment: "Could not save the record. The installment amount cannot exceed the treatment amount.",
+    duplicateFile: "Could not save the record. This file number is already in use:", implantField: "Implant {{number}}: {{field}}", saveFailed: "An error occurred while saving.",
+  },
+  toast: { saved: "Record saved successfully" },
+} as const;
+export default quickEntry;

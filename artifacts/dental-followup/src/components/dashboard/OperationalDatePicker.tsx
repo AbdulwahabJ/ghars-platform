@@ -76,7 +76,7 @@ function formatPlainDate(value: string, language: string): string {
 export function OperationalDatePicker({
   value,
   onChange,
-  placeholder = "اختر التاريخ",
+  placeholder,
   className,
   id,
   "aria-invalid": ariaInvalid,
@@ -101,7 +101,7 @@ export function OperationalDatePicker({
             className,
           )}
         >
-          <span className="truncate">{value ? formatPlainDate(value, i18n.language) : placeholder}</span>
+          <span className="truncate">{value ? formatPlainDate(value, i18n.language) : (placeholder ?? t("dashboard.chooseDate"))}</span>
           <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
@@ -195,7 +195,7 @@ interface TimePickerProps {
 export function OperationalTimePicker({
   value,
   onChange,
-  placeholder = "اختر الوقت",
+  placeholder,
   className,
   id,
   "aria-invalid": ariaInvalid,
@@ -229,7 +229,7 @@ export function OperationalTimePicker({
           )}
         >
           <span className="truncate">
-            {value ? `${pad(hour12(current.hour))}:${pad(current.minute)} ${current.period === "ص" ? t("dashboard.am") : t("dashboard.pm")}` : placeholder}
+            {value ? `${pad(hour12(current.hour))}:${pad(current.minute)} ${current.period === "ص" ? t("dashboard.am") : t("dashboard.pm")}` : (placeholder ?? t("dashboard.chooseTime"))}
           </span>
           <Clock3 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         </Button>

@@ -31,7 +31,9 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useImportPreview, useImportCommit } from "@/hooks/use-admin";
-import { ApiError, importTemplateUrl } from "@/lib/api";
+import { importTemplateUrl } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
@@ -39,6 +41,7 @@ export function ImportTab() {
   const preview = useImportPreview();
   const commit = useImportCommit();
   const { toast } = useToast();
+  const { t } = useTranslation("admin");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [type, setType] = useState<ImportType>("patients");
@@ -53,8 +56,8 @@ export function ImportTab() {
   const fail = (err: unknown) =>
     toast({
       variant: "destructive",
-      title: "تعذر تنفيذ العملية",
-      description: err instanceof ApiError ? err.message : "حدث خطأ غير متوقع.",
+      title: t("import.operationFailed"),
+      description: localizeErrorMessage(err),
     });
 
   const onPickFile = (file: File | undefined) => {
@@ -62,8 +65,8 @@ export function ImportTab() {
     if (file.size > MAX_FILE_BYTES) {
       toast({
         variant: "destructive",
-        title: "الملف كبير جدًا",
-        description: "الحد الأقصى 4 ميغابايت.",
+        title: t("import.fileTooLargeTitle"),
+        description: t("import.fileTooLargeDescription"),
       });
       return;
     }
@@ -95,8 +98,8 @@ export function ImportTab() {
           setCommitResult(result);
           setPreviewResult(null);
           toast({
-            title: "اكتمل الاستيراد.",
-            description: `تم استيراد ${result.imported} سجلًا، وتخطي ${result.skipped}، وفشل ${result.failed}.`,
+            title: t("import.completedTitle"),
+            description: t("import.completedDescription", result),
           });
         },
         onError: fail,
@@ -131,7 +134,6 @@ export function ImportTab() {
           <div className="space-y-2">
             <Label>نوع البيانات</Label>
             <Select
-              dir="rtl"
               value={type}
               onValueChange={(v) => {
                 setType(v as ImportType);
@@ -153,7 +155,6 @@ export function ImportTab() {
           <div className="space-y-2">
             <Label>التعامل مع المكرر</Label>
             <Select
-              dir="rtl"
               value={mode}
               onValueChange={(v) => {
                 setMode(v as ImportMode);
@@ -177,7 +178,7 @@ export function ImportTab() {
             <Label>قالب جاهز</Label>
             <Button variant="outline" className="w-full" asChild>
               <a href={importTemplateUrl(type)} data-testid="link-import-template">
-                <Download className="h-4 w-4 ml-1" />
+                <Download className="h-4 w-4 ms-1" />
                 <span>تنزيل قالب {IMPORT_TYPE_LABELS[type]}</span>
               </a>
             </Button>
@@ -194,7 +195,7 @@ export function ImportTab() {
             data-testid="input-import-file"
           />
           <Button variant="outline" onClick={() => fileRef.current?.click()}>
-            <FileUp className="h-4 w-4 ml-1" />
+            <FileUp className="h-4 w-4 ms-1" />
             <span>اختيار ملف CSV</span>
           </Button>
           {fileName && (
@@ -208,7 +209,7 @@ export function ImportTab() {
             data-testid="button-import-preview"
           >
             {preview.isPending && (
-              <Loader2 className="h-4 w-4 animate-spin ml-1" />
+              <Loader2 className="h-4 w-4 animate-spin ms-1" />
             )}
             <span>معاينة (بدون حفظ)</span>
           </Button>
@@ -238,7 +239,7 @@ export function ImportTab() {
                 data-testid="button-import-commit"
               >
                 {commit.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                  <Loader2 className="h-4 w-4 animate-spin ms-1" />
                 )}
                 <span>تأكيد الاستيراد ({previewResult.validRows} سجل)</span>
               </Button>
@@ -283,10 +284,10 @@ function RowsTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="text-right w-16">الصف</TableHead>
-            <TableHead className="text-right w-24">الحالة</TableHead>
-            <TableHead className="text-right">الملخص</TableHead>
-            <TableHead className="text-right">الأخطاء</TableHead>
+            <TableHead className="text-start w-16">الصف</TableHead>
+            <TableHead className="text-start w-24">الحالة</TableHead>
+            <TableHead className="text-start">الملخص</TableHead>
+            <TableHead className="text-start">الأخطاء</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

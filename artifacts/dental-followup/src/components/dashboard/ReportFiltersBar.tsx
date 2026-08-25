@@ -65,7 +65,7 @@ export function ReportFiltersBar({
             <SelectContent>
               {REPORT_PERIODS.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.label}
+                  {t(`periods.${p.id}`)}
                 </SelectItem>
               ))}
             </SelectContent>

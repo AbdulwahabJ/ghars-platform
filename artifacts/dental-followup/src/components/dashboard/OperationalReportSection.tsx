@@ -93,7 +93,7 @@ export function OperationalReportSection({
                   <TableHead className="text-start">{t("dashboard.implants")}</TableHead>
                   <TableHead className="text-start">{t("dashboard.systems")}</TableHead>
                   <TableHead className="text-start">{t("dashboard.nextFollowup")}</TableHead>
-                  <TableHead className="text-right print:hidden"> </TableHead>
+                  <TableHead className="text-start print:hidden"> </TableHead>
                   {showFinance && (
                     <>
                        <TableHead className="text-start">{t("dashboard.remaining")}</TableHead>

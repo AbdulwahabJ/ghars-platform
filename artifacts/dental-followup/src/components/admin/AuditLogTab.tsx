@@ -114,7 +114,7 @@ export function AuditLogTab() {
         <CardTitle>{t("audit.title")}</CardTitle>
         <Button variant="outline" asChild>
           <a href={auditExportUrl(filters)} data-testid="link-audit-export">
-            <Download className="h-4 w-4 ml-1" />
+            <Download className="h-4 w-4 ms-1" />
             <span>{t("audit.exportCsv")}</span>
           </a>
         </Button>
@@ -148,7 +148,6 @@ export function AuditLogTab() {
           <div className="space-y-1">
             <Label>{t("audit.user")}</Label>
             <Select
-              dir="rtl"
               value={userId}
               onValueChange={(v) => {
                 setUserId(v);
@@ -171,7 +170,6 @@ export function AuditLogTab() {
           <div className="space-y-1">
             <Label>{t("audit.action")}</Label>
             <Select
-              dir="rtl"
               value={action}
               onValueChange={(v) => {
                 setAction(v);
@@ -194,7 +192,6 @@ export function AuditLogTab() {
           <div className="space-y-1">
             <Label>{t("audit.entityType")}</Label>
             <Select
-              dir="rtl"
               value={entityType}
               onValueChange={(v) => {
                 setEntityType(v);
@@ -239,10 +236,10 @@ export function AuditLogTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">{t("audit.time")}</TableHead>
-                    <TableHead className="text-right">{t("audit.user")}</TableHead>
-                    <TableHead className="text-right">{t("audit.action")}</TableHead>
-                    <TableHead className="text-right">{t("audit.description")}</TableHead>
+                    <TableHead className="text-start">{t("audit.time")}</TableHead>
+                    <TableHead className="text-start">{t("audit.user")}</TableHead>
+                    <TableHead className="text-start">{t("audit.action")}</TableHead>
+                    <TableHead className="text-start">{t("audit.description")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -262,7 +259,7 @@ export function AuditLogTab() {
                         {formatSaudiDateTime(item.createdAt)}
                       </TableCell>
                       <TableCell>{item.userName ?? "—"}</TableCell>
-                      <TableCell dir="ltr" className="text-right">
+                      <TableCell dir="ltr" className="text-start">
                         {item.action}
                       </TableCell>
                       <TableCell>{item.summary ?? "—"}</TableCell>

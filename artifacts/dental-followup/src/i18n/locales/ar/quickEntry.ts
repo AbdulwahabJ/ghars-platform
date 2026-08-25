@@ -1,0 +1,62 @@
+const quickEntry = {
+  title: "إضافة سجل جديد",
+  optional: "اختياري",
+  actions: {
+    close: "إغلاق", cancel: "إلغاء", choose: "اختر", openFile: "فتح الملف", include: "تضمين", addImplant: "إضافة زرعة", addAdjunctProcedure: "إضافة إجراء مساند",
+    removeImplant: "إزالة الزرعة {{number}}", removeAdjunctProcedure: "إزالة الإجراء المساند {{number}}", save: "حفظ السجل", saving: "جارٍ الحفظ...",
+  },
+  sections: {
+    patient: "١. بيانات المريض", case: "٢. حالة الزراعة والزرعات", implants: "الزرعات ({{count}})",
+    finance: "٣. المالية", followup: "٤. المتابعة",
+  },
+  fields: {
+    general: "البيانات العامة", fileNumber: "رقم الملف", fullName: "اسم المريض", mobileNumber: "رقم الجوال",
+    age: "العمر", procedureDate: "تاريخ العملية", treatingDoctor: "الطبيب المعالج", caseStatus: "حالة الحالة",
+    prosValue: "مدة التركيب", expectedProstheticDate: "تاريخ التركيب المتوقع", generalNote: "ملاحظة الحالة",
+    baseTreatmentAmount: "مبلغ العلاج الأساسي", installmentTotalAmount: "مبلغ التقسيط", installmentCount: "عدد الدفعات",
+    installmentFirstDueDate: "أول استحقاق", paymentAmount: "مبلغ الدفعة الأولى", paymentDate: "تاريخ الدفعة",
+    paymentLabel: "وصف الدفعة", paymentMethod: "طريقة الدفع", followupType: "نوع المتابعة",
+    followupScheduledAt: "موعد المتابعة (التاريخ والوقت)", followupAssignedUserId: "مسؤول المتابعة",
+    followupNote: "ملاحظة المتابعة", site: "موقع الزرعة (FDI)", system: "نظام الزرعة",
+    diameter: "قطر الزرعة", length: "طول الزرعة", qValue: "قيمة Q", formerValue: "قيمة Former",
+    graftValue: "قيمة Graft", implantStatus: "حالة الزرعة", implantNote: "ملاحظة الزرعة",
+  },
+  placeholders: {
+    fileNumber: "مثال: 1001", fullName: "الاسم الكامل", age: "العمر", prosValue: "مثال: 3M",
+    generalNote: "ملاحظات عامة...", installmentAmount: "يستخدم مبلغ العلاج تلقائيًا", followupNote: "ملاحظات المتابعة...",
+  },
+  implant: { number: "زرعة {{number}}" },
+  notices: { patientWithoutCase: "⚠ المريض المضاف بدون حالة لن يظهر في الجدول التشغيلي؛ يمكن الوصول إليه عبر قسم المرضى." },
+  currency: "ر.س", unspecified: "غير محدد",
+  installments: { enable: "تقسيط المبلغ", payment: "دفعة {{number}}" },
+  jaws: { upper: "الفك العلوي", lower: "الفك السفلي" },
+  adjunct: {
+    noFinancialImpact: "لا تؤثر في المبالغ أو الدفعات", procedureNumber: "إجراء {{number}}", heading: "الإجراءات الجراحية المساندة ({{count}})",
+    date: "تاريخ الإجراء", category: "فئة الإجراء", chooseCategory: "اختر الفئة", side: "الجهة", chooseSide: "اختر الجهة",
+    liftType: "نوع الرفع", description: "وصف الإجراء", descriptionPlaceholder: "الوصف السريري للإجراء", relatedImplant: "الزرعة المرتبطة",
+    caseLevel: "إجراء للحالة كاملة", tooth: "السن {{site}}", site: "الموضع", sitePlaceholder: "مثال: المنطقة الخلفية",
+    material: "المادة", materialPlaceholder: "مثال: Bio-Oss / عظم ذاتي", membrane: "الغشاء", membranePlaceholder: "مثال: غشاء كولاجين",
+    quantity: "الكمية", size: "المقاس", status: "حالة الإجراء", statusPlaceholder: "مثال: تم / تحت المتابعة", note: "ملاحظة",
+  },
+  options: {
+    "حالة جديدة": "حالة جديدة", "قيد العلاج": "قيد العلاج", "مكتملة": "مكتملة", "ملغاة": "ملغاة", "مؤجلة": "مؤجلة", "مؤرشفة": "مؤرشفة",
+    "مزروعة": "مزروعة", "في مرحلة الالتئام": "في مرحلة الالتئام", "جاهزة للتركيب": "جاهزة للتركيب", "تم تركيب مؤقت": "تم تركيب مؤقت", "تم التركيب": "تم التركيب", "فاشلة": "فاشلة", "تحتاج إعادة": "تحتاج إعادة", "تمت إعادة الزراعة": "تمت إعادة الزراعة",
+    "زراعة عظم": "زراعة عظم", "رفع الجيب الفكي": "رفع الجيب الفكي", "إبعاد / نقل العصب السنخي السفلي": "إبعاد / نقل العصب السنخي السفلي",
+    "يمين": "يمين", "يسار": "يسار", "مغلق": "مغلق", "مفتوح": "مفتوح",
+  },
+  validation: {
+    fileNumberRequired: "رقم الملف مطلوب", fullNameRequired: "اسم المريض مطلوب", siteRequired: "الموقع مطلوب",
+    followupRequired: "موعد المتابعة مطلوب", procedureSideRequired: "جهة الإجراء مطلوبة لهذه الفئة.",
+    sideRequired: "الجهة مطلوبة.", installmentAmountRequired: "مبلغ التقسيط مطلوب عند تفعيل التقسيط.",
+    installmentCountRange: "عدد الدفعات يجب أن يكون بين 1 و60.", installmentExceedsTreatment: "مبلغ التقسيط لا يمكن أن يتجاوز مبلغ العلاج الأساسي.",
+  },
+  errors: {
+    reviewFields: "تعذر حفظ السجل. راجع الحقول المحددة أدناه.", invalidField: "تعذر حفظ السجل. يوجد خطأ في الحقل التالي:",
+    requiredField: "تعذر حفظ السجل. يوجد حقل مطلوب لم يتم تعبئته:", procedureSideRequired: "تعذر حفظ السجل. حدد جهة الإجراء الجراحي المساند.",
+    procedureSideField: "الإجراء المساند {{number}}: الجهة", enterTreatmentOrInstallment: "تعذر حفظ السجل. أدخل مبلغ العلاج أو مبلغ التقسيط.",
+    installmentCountRange: "تعذر حفظ السجل. عدد الدفعات يجب أن يكون بين 1 و60.", installmentExceedsTreatment: "تعذر حفظ السجل. مبلغ التقسيط لا يمكن أن يتجاوز مبلغ العلاج.",
+    duplicateFile: "تعذر حفظ السجل. رقم الملف مستخدم مسبقًا:", implantField: "الزرعة {{number}}: {{field}}", saveFailed: "حدث خطأ أثناء الحفظ.",
+  },
+  toast: { saved: "تم حفظ السجل بنجاح" },
+} as const;
+export default quickEntry;

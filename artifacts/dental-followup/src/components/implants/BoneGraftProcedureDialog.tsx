@@ -20,6 +20,7 @@ import { FieldLabel } from "./FieldLabel";
 import { useCreateBoneGraftProcedure, useImplantOptions, useUpdateBoneGraftProcedure } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 const CASE_LEVEL = "__case_level__";
 
@@ -82,7 +83,7 @@ export function BoneGraftProcedureDialog({
          toast({ title: isEditing ? t("implant.adjunctSaved") : t("implant.adjunctCreated") });
         onSuccess?.(); onOpenChange(false);
       },
-       onError: (error: Error) => toast({ variant: "destructive", title: isEditing ? t("implant.adjunctUpdateFailed") : t("implant.adjunctSaveFailed"), description: error.message }),
+       onError: (error: Error) => toast({ variant: "destructive", title: isEditing ? t("implant.adjunctUpdateFailed") : t("implant.adjunctSaveFailed"), description: localizeErrorMessage(error) }),
     };
     if (isEditing) updateProcedure.mutate({ id: procedure!.id, patientId, data }, callbacks);
     else createProcedure.mutate({ caseId: caseItem.id, patientId, data }, callbacks);
@@ -90,17 +91,17 @@ export function BoneGraftProcedureDialog({
   const isPending = createProcedure.isPending || updateProcedure.isPending;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg text-right" dir="rtl">
-        <DialogHeader className="text-right">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg text-start">
+        <DialogHeader className="text-start">
            <DialogTitle>{isEditing ? t("implant.adjunctEdit") : t("implant.adjunctAdd")}</DialogTitle>
-           <DialogDescription className="text-right">{t("implant.adjunctFormDescription")}</DialogDescription>
+           <DialogDescription className="text-start">{t("implant.adjunctFormDescription")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 py-2 sm:grid-cols-2">
            <div className="space-y-1.5"><FieldLabel label={t("implant.procedureDate")} /><OperationalDatePicker value={procedureDate} onChange={setProcedureDate} /></div>
-           <div className="space-y-1.5"><FieldLabel label={`${t("implant.procedureCategory")} *`} /><Select value={procedureCategory} onValueChange={(value) => changeCategory(value as BoneGraftProcedureInput["procedureCategory"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent dir="rtl">{ADJUNCT_PROCEDURE_CATEGORIES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
-           {needsSide && <div className="space-y-1.5"><FieldLabel label={`${t("implant.procedureSide")} *`} /><Select value={procedureSide} onValueChange={setProcedureSide}><SelectTrigger><SelectValue placeholder={t("implant.choose")} /></SelectTrigger><SelectContent dir="rtl">{PROCEDURE_SIDES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>}
-           {procedureCategory === "رفع الجيب الفكي" && <div className="space-y-1.5"><FieldLabel label={`${t("implant.graftProcedureType")} (${t("implant.optional")})`} /><Select value={liftType || "__none__"} onValueChange={(value) => setLiftType(value === "__none__" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent dir="rtl"><SelectItem value="__none__">{t("implant.unspecified")}</SelectItem>{SINUS_LIFT_TYPES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>}
-           <div className="space-y-1.5"><FieldLabel label={t("implant.relatedImplant")} /><Select value={implantId} onValueChange={setImplantId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent dir="rtl"><SelectItem value={CASE_LEVEL}>{t("implant.caseLevelProcedure")}</SelectItem>{activeImplants.map((implant: Implant) => <SelectItem key={implant.id} value={implant.id}>{t("implant.tooth", { site: implant.site })}{implant.system ? ` — ${implant.system}` : ""}</SelectItem>)}</SelectContent></Select></div>
+           <div className="space-y-1.5"><FieldLabel label={`${t("implant.procedureCategory")} *`} /><Select value={procedureCategory} onValueChange={(value) => changeCategory(value as BoneGraftProcedureInput["procedureCategory"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ADJUNCT_PROCEDURE_CATEGORIES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+           {needsSide && <div className="space-y-1.5"><FieldLabel label={`${t("implant.procedureSide")} *`} /><Select value={procedureSide} onValueChange={setProcedureSide}><SelectTrigger><SelectValue placeholder={t("implant.choose")} /></SelectTrigger><SelectContent>{PROCEDURE_SIDES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>}
+           {procedureCategory === "رفع الجيب الفكي" && <div className="space-y-1.5"><FieldLabel label={`${t("implant.graftProcedureType")} (${t("implant.optional")})`} /><Select value={liftType || "__none__"} onValueChange={(value) => setLiftType(value === "__none__" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__none__">{t("implant.unspecified")}</SelectItem>{SINUS_LIFT_TYPES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>}
+           <div className="space-y-1.5"><FieldLabel label={t("implant.relatedImplant")} /><Select value={implantId} onValueChange={setImplantId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value={CASE_LEVEL}>{t("implant.caseLevelProcedure")}</SelectItem>{activeImplants.map((implant: Implant) => <SelectItem key={implant.id} value={implant.id}>{t("implant.tooth", { site: implant.site })}{implant.system ? ` — ${implant.system}` : ""}</SelectItem>)}</SelectContent></Select></div>
            <div className="space-y-1.5"><FieldLabel label={`${t("implant.procedureDescription")} *`} /><Input value={procedureType} onChange={(event) => setProcedureType(event.target.value)} placeholder={t("implant.clinicalDescription")} /></div>
            <div className="space-y-1.5"><FieldLabel label={`${t("implant.procedureSite")} (${t("implant.optional")})`} /><Input value={site} onChange={(event) => setSite(event.target.value)} /></div>
            {isBoneGraft && <><div className="space-y-1.5"><FieldLabel label={`${t("implant.material")} (${t("implant.optional")})`} /><Input value={material} onChange={(event) => setMaterial(event.target.value)} /></div><div className="space-y-1.5"><FieldLabel label={`${t("implant.membrane")} (${t("implant.optional")})`} /><Input value={membrane} onChange={(event) => setMembrane(event.target.value)} /></div><div className="space-y-1.5"><FieldLabel label={`${t("implant.quantity")} (${t("implant.optional")})`} /><Input value={quantity} onChange={(event) => setQuantity(event.target.value)} /></div><div className="space-y-1.5"><FieldLabel label={`SIZE (${t("implant.optional")})`} /><Input value={size} onChange={(event) => setSize(event.target.value)} /></div></>}

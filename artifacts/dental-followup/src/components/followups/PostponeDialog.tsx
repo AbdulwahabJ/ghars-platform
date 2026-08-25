@@ -17,6 +17,7 @@ import { usePostponeFollowup } from "@/hooks/use-followups";
 import { useToast } from "@/hooks/use-toast";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 interface PostponeDialogProps {
   open: boolean;
@@ -29,7 +30,7 @@ export function PostponeDialog(props: PostponeDialogProps) {
   const { open, onOpenChange } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-right" dir="rtl">
+      <DialogContent className="sm:max-w-md text-start">
         {props.followup ? <PostponeForm {...props} /> : null}
       </DialogContent>
     </Dialog>
@@ -62,7 +63,7 @@ function PostponeForm({ onOpenChange, patientId, followup }: PostponeDialogProps
         onError: (err) => {
           toast({
             title: t("followupForms.postponeFailed"),
-            description: err instanceof Error ? err.message : undefined,
+            description: localizeErrorMessage(err),
             variant: "destructive",
           });
         },
@@ -72,7 +73,7 @@ function PostponeForm({ onOpenChange, patientId, followup }: PostponeDialogProps
 
   return (
     <>
-      <DialogHeader className="text-right sm:text-right">
+      <DialogHeader className="text-start sm:text-start">
         <DialogTitle>{t("followupForms.postponeTitle")}</DialogTitle>
         <DialogDescription>
           {t("followupForms.postponeDescription")}

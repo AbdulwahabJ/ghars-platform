@@ -101,8 +101,7 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
                   </PopoverTrigger>
                   <PopoverContent
                     align="end"
-                    dir="rtl"
-                    className="w-64 space-y-3 text-right"
+                    className="w-64 space-y-3 text-start"
                   >
                     <SystemNamesList
                       label={t("kpi.systemsToday")}
@@ -117,14 +116,14 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 divide-x divide-x-reverse divide-border/50">
+            <div className="grid grid-cols-2 gap-3 divide-x  divide-border/50">
               <div className="flex flex-col justify-end">
                 <span className="text-[11px] text-muted-foreground mb-1 font-medium">{t("kpi.today")}</span>
                 <span className="text-xl font-bold tabular-nums text-foreground leading-none notranslate">
                   {c.today}
                 </span>
               </div>
-              <div className="flex flex-col justify-end pr-3">
+              <div className="flex flex-col justify-end pe-3">
                 <span className="text-[11px] text-muted-foreground mb-1 font-medium">{t("kpi.thisMonth")}</span>
                 <span className="text-xl font-bold tabular-nums text-primary leading-none notranslate">
                   {c.month}
