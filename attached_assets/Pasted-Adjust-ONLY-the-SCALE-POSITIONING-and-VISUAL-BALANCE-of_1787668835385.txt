@@ -1,0 +1,336 @@
+Adjust ONLY the SCALE, POSITIONING, and VISUAL BALANCE of the current Ghars Login Page.
+
+IMPORTANT:
+The current design direction is approved.
+DO NOT redesign it.
+DO NOT change the layout concept.
+DO NOT change colors, typography system, authentication logic, or page structure.
+
+The problem is that both sides currently look too small relative to the available screen size and there is too much empty space.
+
+==================================================
+1. LEFT BRAND PANEL — MAKE IT LARGER
+==================================================
+
+Keep the current left panel exactly as designed.
+
+However, increase the visual size of the Ghars brand composition significantly.
+
+The entire brand block should remain vertically and horizontally centered inside the LEFT half.
+
+Increase approximately:
+
+- Ghars symbol/logo: +35% to +50%
+- Arabic "غرس": +25% to +35%
+- English "Ghars": +20% to +30%
+- tagline: +10% to +20%
+
+The complete brand composition should feel intentional and prominent, not like a small logo floating in a huge empty panel.
+
+Target desktop visual size:
+
+Logo symbol approximately:
+110–140px wide
+
+Arabic/English wordmark block:
+approximately 220–280px wide depending on the real asset proportions.
+
+Do NOT stretch the actual logo asset.
+
+Preserve its aspect ratio.
+
+==================================================
+2. CENTER THE LEFT CONTENT PERFECTLY
+==================================================
+
+The entire branding composition should be centered relative to the LEFT viewport panel itself.
+
+Not approximately centered.
+
+Use proper flex/grid alignment such as:
+
+display: flex
+align-items: center
+justify-content: center
+
+The brand group should remain centered vertically even on:
+
+1366x768
+1440x900
+1600x900
+1920x1080
+
+Do not position it using arbitrary top margins.
+
+==================================================
+3. RIGHT LOGIN AREA — INCREASE SCALE
+==================================================
+
+The Login form currently appears too small relative to the right half.
+
+Increase the overall form width and typography proportionally.
+
+Recommended desktop form max-width:
+
+480–540px
+
+Do NOT exceed this excessively.
+
+The form should feel comfortable and premium, not oversized.
+
+Increase:
+
+- login heading
+- subtitle
+- field labels
+- input height
+- login button height
+- spacing between sections
+
+without changing the visual style.
+
+==================================================
+4. RIGHT FORM CENTERING
+==================================================
+
+The main Login form must be vertically centered within the RIGHT panel.
+
+The full form group includes:
+
+تسجيل الدخول
+مرحباً بك في منصة غرس
+اسم المستخدم
+كلمة المرور
+نسيت كلمة المرور؟
+تسجيل الدخول button
+separator
+support button
+security message
+
+Treat this as ONE visual group.
+
+Center the group vertically within the usable viewport.
+
+Do NOT position the form too high.
+
+Do NOT center each individual field independently.
+
+==================================================
+5. LANGUAGE SELECTOR
+==================================================
+
+Keep the language selector at the top-right area.
+
+It should NOT affect the vertical centering of the Login form.
+
+The form should remain visually centered independently of the language selector.
+
+==================================================
+6. INPUT SIZE
+==================================================
+
+Increase input size slightly.
+
+Recommended desktop:
+
+height:
+52–56px
+
+Border radius:
+keep existing style.
+
+Font:
+slightly larger but still professional.
+
+Input width:
+100% of form container.
+
+Do not use tiny inputs inside a wide screen.
+
+==================================================
+7. LOGIN BUTTON
+==================================================
+
+Increase the Login button height to approximately:
+
+54–58px
+
+Keep:
+
+background:
+#0D1B3D
+
+text:
+white
+
+The button should feel visually strong and proportional to the form.
+
+==================================================
+8. HEADING SIZE
+==================================================
+
+Increase:
+
+تسجيل الدخول
+
+to approximately:
+
+36–42px desktop
+
+depending on viewport.
+
+Use Cairo 700.
+
+Subtitle:
+
+16–18px
+
+Do not make it extremely large.
+
+==================================================
+9. SPACING
+==================================================
+
+Improve vertical rhythm.
+
+Recommended approximate spacing:
+
+Heading → subtitle:
+8–12px
+
+Subtitle → first field:
+32–40px
+
+Between input groups:
+20–24px
+
+Password → forgot-password:
+8–12px
+
+Forgot password → Login button:
+24–28px
+
+Login button → separator:
+28–32px
+
+Separator → Support button:
+20–24px
+
+Support → security message:
+28–34px
+
+Avoid excessive empty gaps inside the form.
+
+==================================================
+10. DESKTOP PANEL BALANCE
+==================================================
+
+Keep the current 50/50 split unless existing implementation is slightly different.
+
+Both halves should feel visually balanced.
+
+LEFT:
+larger central Ghars branding.
+
+RIGHT:
+larger centered Login form.
+
+The screen should NOT feel like:
+
+two tiny elements floating in two huge empty boxes.
+
+==================================================
+11. BACKGROUND PATTERN
+==================================================
+
+Keep the existing subtle hexagon pattern.
+
+Do not increase opacity much.
+
+It can remain slightly more visible around the outer edges.
+
+Do NOT place busy hexagons behind the main logo.
+
+The logo must remain visually clean.
+
+==================================================
+12. RESPONSIVE SCALE
+==================================================
+
+Desktop:
+use the larger scale described above.
+
+Laptop 1366x768:
+slightly reduce logo/form sizes if required, but preserve centered composition.
+
+Tablet:
+reduce proportionally.
+
+Mobile:
+use the existing single-column responsive behavior.
+
+Do not apply desktop scaling blindly to mobile.
+
+==================================================
+13. DO NOT CHANGE
+==================================================
+
+Do NOT change:
+
+- split-screen concept
+- colors
+- Ghars logo
+- hexagon design
+- authentication logic
+- forgot password functionality
+- support functionality
+- language functionality
+- field order
+- RTL
+- backend
+- database
+
+This is ONLY a visual proportion and alignment refinement.
+
+==================================================
+14. VISUAL TARGET
+==================================================
+
+The final desktop page should feel like:
+
+LEFT HALF:
+a large, confident Ghars identity centered in the panel.
+
+RIGHT HALF:
+a clear, comfortably sized Login experience centered in the panel.
+
+Both sides should occupy more meaningful visual space.
+
+There should still be whitespace, but it should feel deliberate — not empty.
+
+==================================================
+15. VERIFY
+==================================================
+
+Verify visually at:
+
+1920x1080
+1600x900
+1440x900
+1366x768
+
+Check:
+
+- left logo is noticeably larger
+- left brand block perfectly centered
+- right form is noticeably larger
+- right form visually centered
+- no excessive empty space
+- language selector remains top-right
+- no clipping
+- no overflow
+- RTL remains correct
+- Login functionality unchanged
+
+Do not publish.
+Create a checkpoint and stop.

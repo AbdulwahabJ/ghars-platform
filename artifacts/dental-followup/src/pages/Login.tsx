@@ -115,7 +115,7 @@ export default function Login() {
     <div className="min-h-[100dvh] flex flex-col md:flex-row bg-white" dir="rtl">
       
       {/* Right Side Visually (First element in RTL) -> Form */}
-      <div className="flex-1 flex flex-col items-center justify-start p-6 pt-28 sm:p-12 sm:pt-28 relative z-10 bg-white order-2 md:order-1">
+      <div className="flex-1 flex flex-col items-center justify-start p-6 pt-28 sm:p-12 sm:pt-28 md:justify-center md:pt-12 relative z-10 bg-white order-2 md:order-1">
         <button
           type="button"
           dir="ltr"
@@ -132,13 +132,13 @@ export default function Login() {
           <img src={gharsLogo} alt="غرس" className="h-20 w-auto object-contain mb-4" />
         </div>
 
-        <div className="w-full max-w-[376px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="w-full max-w-[500px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
           {!isResetRoute && view === "login" && (
             <>
-              <div className="space-y-3 text-center md:text-right">
-                <h1 className="text-3xl font-brand-arabic font-bold tracking-tight text-foreground">تسجيل الدخول</h1>
-                <p className="text-muted-foreground font-brand-arabic text-sm">مرحباً بك في منصة غرس</p>
+              <div className="space-y-2 text-center md:text-right">
+                <h1 className="text-4xl font-brand-arabic font-bold tracking-tight text-foreground md:text-[40px]">تسجيل الدخول</h1>
+                <p className="text-muted-foreground font-brand-arabic text-base md:text-[17px]">مرحباً بك في منصة غرس</p>
               </div>
 
               {login.isError && (
@@ -150,13 +150,13 @@ export default function Login() {
               )}
 
               <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit((d) => login.mutate(d))} className="space-y-7">
+                <form onSubmit={loginForm.handleSubmit((d) => login.mutate(d))} className="space-y-6">
                   <FormField
                     control={loginForm.control}
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>اسم المستخدم</FormLabel>
+                         <FormLabel className="text-[15px]">اسم المستخدم</FormLabel>
                          <FormControl>
                            <div className="relative">
                              <UserRound
@@ -168,7 +168,7 @@ export default function Login() {
                                {...field}
                                dir="ltr"
                                autoComplete="username"
-                               className="h-[52px] rounded-[7px] border-slate-300 pr-12 text-right text-[15px] shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
+                               className="h-[56px] rounded-[7px] border-slate-300 pr-12 text-right text-[16px] shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
                              />
                            </div>
                          </FormControl>
@@ -183,7 +183,7 @@ export default function Login() {
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center justify-between">
-                          <FormLabel>كلمة المرور</FormLabel>
+                           <FormLabel className="text-[15px]">كلمة المرور</FormLabel>
                           <button 
                             type="button" 
                             onClick={() => {
@@ -208,7 +208,7 @@ export default function Login() {
                                {...field}
                                dir="ltr"
                                autoComplete="current-password"
-                               className="h-[52px] rounded-[7px] border-slate-300 pl-12 pr-12 text-right text-[15px] shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
+                               className="h-[56px] rounded-[7px] border-slate-300 pl-12 pr-12 text-right text-[16px] shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
                              />
                              <button
                                type="button"
@@ -229,7 +229,7 @@ export default function Login() {
                     )}
                   />
 
-                   <Button type="submit" className="mt-2 h-[50px] w-full rounded-[7px] bg-brand-navy text-white hover:bg-[#132850]" disabled={login.isPending}>
+                   <Button type="submit" className="mt-2 h-[56px] w-full rounded-[7px] bg-brand-navy text-white text-[16px] hover:bg-[#132850]" disabled={login.isPending}>
                     {login.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     تسجيل الدخول
                   </Button>
@@ -245,7 +245,7 @@ export default function Login() {
                  <button
                    type="button"
                    onClick={() => setSupportMessage(true)}
-                   className="flex h-[45px] w-full items-center justify-center gap-2 rounded-[7px] border border-[#67b8b4] bg-white text-sm font-medium text-brand-navy transition-colors hover:bg-[#f2fbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67b8b4]/40"
+                   className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-[#67b8b4] bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-[#f2fbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67b8b4]/40"
                  >
                    <Headset className="h-[18px] w-[18px] text-[#5ca8a5]" aria-hidden="true" />
                    تواصل مع الدعم الفني
@@ -421,22 +421,22 @@ export default function Login() {
       </div>
 
       {/* Left Side Visually (Second element in RTL) -> Identity panel */}
-      <div className="hidden md:flex md:w-[50%] bg-[#f4f7fa] flex-col items-center justify-start pt-56 p-12 relative overflow-hidden order-1 md:order-2 border-r border-slate-200">
+      <div className="hidden md:flex md:w-[50%] bg-[#f4f7fa] flex-col items-center justify-center p-12 relative overflow-hidden order-1 md:order-2 border-r border-slate-200">
         <div className="absolute left-0 top-0 h-[42%] w-[58%] bg-hex-pattern opacity-80 pointer-events-none" />
         <div className="absolute bottom-0 right-0 h-[44%] w-[62%] bg-hex-pattern opacity-80 pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center">
-          <img src={gharsSymbol} alt="رمز غرس" className="h-[112px] w-[112px] object-contain" />
+          <img src={gharsSymbol} alt="رمز غرس" className="h-[140px] w-[140px] object-contain" />
           <div className="mt-2 space-y-0">
-            <p className="font-brand-arabic text-[48px] font-bold leading-[1.15] text-brand-navy">غرس</p>
-            <p className="font-brand-latin text-[46px] font-semibold leading-[1.05] text-brand-navy">Ghars</p>
+            <p className="font-brand-arabic text-[62px] font-bold leading-[1.15] text-brand-navy">غرس</p>
+            <p className="font-brand-latin text-[56px] font-semibold leading-[1.05] text-brand-navy">Ghars</p>
           </div>
           <div className="mt-7 flex items-center gap-3 text-brand-navy">
             <span className="h-px w-6 bg-brand-navy/60" />
-            <p className="font-brand-arabic text-[15px] font-medium">منصة ذكية لإدارة زراعة الأسنان</p>
+            <p className="font-brand-arabic text-[17px] font-medium">منصة ذكية لإدارة زراعة الأسنان</p>
             <span className="h-px w-6 bg-brand-navy/60" />
           </div>
-          <p className="mt-2 font-brand-arabic text-[15px] tracking-[0.18em] text-[#5a769b]">تقنية . دقة . ثقة</p>
+          <p className="mt-2 font-brand-arabic text-[16px] tracking-[0.18em] text-[#5a769b]">تقنية . دقة . ثقة</p>
         </div>
       </div>
       
