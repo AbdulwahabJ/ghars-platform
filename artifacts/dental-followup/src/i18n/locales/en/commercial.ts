@@ -235,6 +235,12 @@ export default {
     city: "City",
     registrationDate: "Registration Date",
     trialPeriod: "Trial Period",
+    activationStatus: "Activation Status",
+    permanentlyActivated: "Permanently Activated",
+    activatedAt: "Activated At",
+    activationType: "Activation Type",
+    permanent: "Permanent",
+    previousTrialPeriod: "Previous Trial Period",
     lifecycleActions: "Lifecycle Actions",
     requestRejected: "Request rejected. Please contact support.",
     actions: {

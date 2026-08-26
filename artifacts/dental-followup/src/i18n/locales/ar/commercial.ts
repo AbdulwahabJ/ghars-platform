@@ -233,6 +233,12 @@ export default {
     city: "المدينة",
     registrationDate: "تاريخ التسجيل",
     trialPeriod: "الفترة التجريبية",
+    activationStatus: "حالة التفعيل",
+    permanentlyActivated: "مفعّل بشكل دائم",
+    activatedAt: "تاريخ التفعيل",
+    activationType: "نوع التفعيل",
+    permanent: "دائم",
+    previousTrialPeriod: "الفترة التجريبية السابقة",
     lifecycleActions: "إجراءات الحساب",
     requestRejected: "تم رفض الطلب. يرجى التواصل مع الدعم.",
     actions: {

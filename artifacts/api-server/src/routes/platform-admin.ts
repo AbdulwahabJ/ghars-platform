@@ -754,6 +754,13 @@ router.post("/platform-admin/tenants/:tenantId/extend-trial", async (req, res) =
     res.status(404).json({ error: "العميل غير موجود.", code: "TENANT_NOT_FOUND" });
     return;
   }
+  if (tenant.status === "ACTIVE") {
+    res.status(409).json({
+      error: "الحساب مفعّل بشكل دائم ولا يحتاج إلى تمديد فترة تجريبية.",
+      code: "ACTIVE_TENANT_PERMANENT",
+    });
+    return;
+  }
   const base = tenant.trialEndsAt && tenant.trialEndsAt > new Date() ? tenant.trialEndsAt : new Date();
   const [updated] = await db.update(tenantsTable).set({
     status: "TRIAL",

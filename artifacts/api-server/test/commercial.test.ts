@@ -83,4 +83,52 @@ describe("commercial lifecycle", () => {
     expect((await platform.post(`/api/platform-admin/tenants/${tenant.rows[0].id}/suspend`)).status).toBe(200);
     expect((await platform.post(`/api/platform-admin/tenants/${tenant.rows[0].id}/extend-trial`).send({ days: 3 })).status).toBe(200);
   });
+
+  it("treats activated tenants as permanent, keeps them operational after trial dates pass, and reactivates them as active", async () => {
+    await freshAdminSession(app, pool);
+    expect((await agentFor(app).post("/api/auth/register").send(registration)).status).toBe(201);
+
+    const customer = agentFor(app);
+    expect((await customer.post("/api/auth/login").send({
+      username: registration.username,
+      password: registration.password,
+    })).status).toBe(200);
+
+    const platform = agentFor(app);
+    await platform.post("/api/auth/login").send({
+      username: "platform-admin",
+      password: "Passw0rd1234",
+    });
+
+    const tenant = await pool.query<{ id: string }>(
+      "SELECT id FROM tenants WHERE reference_code <> 'internal'",
+    );
+    const tenantId = tenant.rows[0].id;
+
+    const activated = await platform.post(`/api/platform-admin/tenants/${tenantId}/activate`);
+    expect(activated.status).toBe(200);
+    expect(activated.body.tenant.status).toBe("ACTIVE");
+    expect(activated.body.tenant.activatedAt).toEqual(expect.any(String));
+
+    await pool.query(
+      "UPDATE tenants SET trial_ends_at = now() - interval '1 day' WHERE id = $1",
+      [tenantId],
+    );
+    expect((await customer.get("/api/patients")).status).toBe(200);
+    expect(
+      (await platform.post(`/api/platform-admin/tenants/${tenantId}/extend-trial`).send({ days: 3 })).body.code,
+    ).toBe("ACTIVE_TENANT_PERMANENT");
+
+    expect((await platform.post(`/api/platform-admin/tenants/${tenantId}/suspend`)).status).toBe(200);
+    expect((await customer.get("/api/patients")).body.code).toBe("TENANT_SUSPENDED");
+
+    const reactivated = await platform.post(`/api/platform-admin/tenants/${tenantId}/reactivate`);
+    expect(reactivated.status).toBe(200);
+    expect(reactivated.body.tenant.status).toBe("ACTIVE");
+    expect((await customer.get("/api/patients")).status).toBe(200);
+
+    const trials = await platform.get("/api/platform-admin/trials?view=active");
+    expect(trials.status).toBe(200);
+    expect(trials.body.items.some((item: { id: string }) => item.id === tenantId)).toBe(false);
+  });
 });

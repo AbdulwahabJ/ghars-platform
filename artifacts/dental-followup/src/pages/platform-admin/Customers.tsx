@@ -192,6 +192,7 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
   }
 
   const tenant = detailData.tenant;
+  const isActiveTenant = tenant.status === "ACTIVE";
 
   const handleExtend = () => {
     extendTrialMutation.mutate({ id, input: { days: parseInt(extendDays) } }, {
@@ -274,14 +275,39 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.registrationDate", "Registration Date")}</label>
                 <div className="text-[15px] font-medium notranslate">{formatSaudiDateTime(tenant.createdAt)}</div>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.trialPeriod", "Trial Period")}</label>
-                <div className="text-[15px] font-medium">
-                  {tenant.trialStartedAt ? (
-                    <span className="notranslate">{formatSaudiDate(tenant.trialStartedAt)} → {tenant.trialEndsAt ? formatSaudiDate(tenant.trialEndsAt) : '—'}</span>
-                  ) : '—'}
+              {isActiveTenant ? (
+                <>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.activationStatus", "Activation Status")}</label>
+                    <div className="text-[15px] font-medium text-emerald-700">{t("platformAdmin.permanentlyActivated", "Permanently Activated")}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.activatedAt", "Activated At")}</label>
+                    <div className="text-[15px] font-medium notranslate">{tenant.activatedAt ? formatSaudiDateTime(tenant.activatedAt) : "—"}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.activationType", "Activation Type")}</label>
+                    <div className="text-[15px] font-medium">{t("platformAdmin.permanent", "Permanent")}</div>
+                  </div>
+                  {tenant.trialStartedAt && (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.previousTrialPeriod", "Previous Trial Period")}</label>
+                      <div className="text-[15px] font-medium">
+                        <span className="notranslate">{formatSaudiDate(tenant.trialStartedAt)} → {tenant.trialEndsAt ? formatSaudiDate(tenant.trialEndsAt) : "—"}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.trialPeriod", "Trial Period")}</label>
+                  <div className="text-[15px] font-medium">
+                    {tenant.trialStartedAt ? (
+                      <span className="notranslate">{formatSaudiDate(tenant.trialStartedAt)} → {tenant.trialEndsAt ? formatSaudiDate(tenant.trialEndsAt) : "—"}</span>
+                    ) : "—"}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -424,14 +450,16 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 </Button>
               ) : null}
 
-              <Button
-                variant="outline"
-                className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50"
-                onClick={() => setExtendDialogOpen(true)}
-              >
-                <Calendar className="me-2 h-4 w-4" />
-                {t("platformAdmin.actions.extendTrial", "Extend Trial")}
-              </Button>
+              {!isActiveTenant && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() => setExtendDialogOpen(true)}
+                >
+                  <Calendar className="me-2 h-4 w-4" />
+                  {t("platformAdmin.actions.extendTrial", "Extend Trial")}
+                </Button>
+              )}
             </div>
           </div>
         </div>
