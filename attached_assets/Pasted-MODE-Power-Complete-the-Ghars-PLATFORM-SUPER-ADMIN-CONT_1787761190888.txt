@@ -1,0 +1,1243 @@
+MODE: Power
+
+Complete the Ghars PLATFORM SUPER ADMIN CONTROL CENTER.
+
+IMPORTANT:
+
+The current /platform-admin implementation is only partially complete.
+
+Currently it mainly contains:
+
+- Customer list/search/filter
+- Customer detail
+- Activate tenant
+- Suspend tenant
+- Extend trial
+- Customer users
+- Activation requests inside customer detail
+
+This is NOT enough.
+
+The approved requirement is a COMPLETE separate Platform Administration application for the Ghars product owner/operator.
+
+DO NOT rebuild the commercial architecture.
+
+DO NOT change the existing tenant isolation model.
+
+DO NOT redesign the customer Ghars application.
+
+REUSE all existing backend services, tenant lifecycle, activation logic, audit architecture, password reset logic, localization, and existing customer-detail implementation.
+
+This task is to COMPLETE the Platform Admin UI and any missing platform-level supporting APIs.
+
+==================================================
+1. PLATFORM ADMIN MUST BE A REAL CONTROL CENTER
+==================================================
+
+Route:
+
+/platform-admin
+
+must become a complete administration workspace.
+
+Create a persistent Platform Admin navigation structure.
+
+Required sections:
+
+1. Overview
+2. Customers
+3. Trials
+4. Activation Requests
+5. System Errors
+6. System Health
+7. Platform Audit Log
+8. Platform Settings
+
+Optional only if genuinely useful:
+
+9. Platform Administrators
+
+Do NOT add irrelevant modules.
+
+==================================================
+2. PLATFORM ADMIN NAVIGATION
+==================================================
+
+Use the existing Ghars Design System.
+
+Arabic + English localization is REQUIRED.
+
+Arabic default.
+
+Recommended Arabic navigation:
+
+الرئيسية
+العملاء
+التجارب
+طلبات التفعيل
+أخطاء النظام
+صحة النظام
+سجل المنصة
+إعدادات المنصة
+
+The Platform Admin navigation must be visibly different from the normal customer application navigation.
+
+Do NOT show:
+
+Patients
+Implants
+Finance
+Statistics
+Operational Table
+
+inside Platform Admin.
+
+Platform Admin manages the PRODUCT PLATFORM, not patient workflows.
+
+==================================================
+3. OVERVIEW DASHBOARD
+==================================================
+
+Create a proper Platform Admin home/dashboard.
+
+This should be the FIRST page after Platform Super Admin login.
+
+Show canonical metrics such as:
+
+إجمالي العملاء
+Total Customers
+
+العملاء النشطون
+Active Customers
+
+الفترة التجريبية
+Trial Customers
+
+تجارب تنتهي قريبًا
+Trials Expiring Soon
+
+تجارب منتهية
+Expired Trials
+
+الحسابات الموقوفة
+Suspended Customers
+
+عملاء جدد اليوم
+New Customers Today
+
+عملاء جدد هذا الشهر
+New Customers This Month
+
+طلبات تفعيل مفتوحة
+Open Activation Requests
+
+أخطاء مفتوحة
+Open System Errors
+
+تفعيلات حديثة
+Recent Activations
+
+Use REAL canonical platform data.
+
+Do NOT hardcode numbers.
+
+==================================================
+4. OVERVIEW VISUAL STRUCTURE
+==================================================
+
+Create a professional operations dashboard.
+
+Suggested structure:
+
+Top:
+Platform title + current environment/status
+
+First row:
+important KPI cards
+
+Second area:
+Customer registrations over time
+
+Tenant status distribution
+
+Third area:
+Trials expiring soon
+
+Open activation requests
+
+Recent errors
+
+Recent platform activity
+
+Do not overload the page with charts.
+
+Prioritize actionable platform information.
+
+==================================================
+5. CUSTOMERS PAGE
+==================================================
+
+Move/reuse the CURRENT customer list as:
+
+Platform Admin → Customers
+
+Do NOT discard the working customer table.
+
+Improve it where needed.
+
+Columns should include:
+
+Customer Reference
+Organization
+Owner
+Phone
+Status
+Trial End
+Activation Date
+Users
+Last Activity
+Registration Date
+Actions
+
+Search:
+
+organization
+customer reference
+owner
+phone
+username where safe/useful
+
+Filters:
+
+All
+Trial
+Active
+Expired
+Suspended
+
+==================================================
+6. CUSTOMER DETAIL — PRESERVE AND EXPAND
+==================================================
+
+Keep the existing customer detail page.
+
+It already includes useful functionality.
+
+Ensure it clearly contains:
+
+Organization Information
+
+Customer Reference
+
+Owner
+
+Phone
+
+City if available
+
+Status
+
+Registration Date
+
+Trial Start
+
+Trial End
+
+Activation Date
+
+Last Activity
+
+Number of Users
+
+==================================================
+7. CUSTOMER COMMERCIAL ACTIONS
+==================================================
+
+Existing actions must remain:
+
+Activate License
+تفعيل النسخة
+
+Suspend
+تعليق الحساب
+
+Reactivate
+إعادة التفعيل
+
+Extend Trial
+تمديد التجربة
+
+Actions must:
+
+- require confirmation
+- execute server-side
+- be audited
+- refresh UI immediately
+
+==================================================
+8. CUSTOMER USERS
+==================================================
+
+Inside customer detail show organization users.
+
+Columns:
+
+Name
+Username
+Role
+Status
+Last Login
+Actions
+
+Platform Admin may reset the password ONLY for:
+
+Tenant Owner
+Tenant Admin
+
+according to the approved authentication architecture.
+
+Do NOT show passwords.
+
+Do NOT expose password hashes.
+
+Do NOT allow Platform Admin to retrieve old passwords.
+
+==================================================
+9. TRIALS PAGE
+==================================================
+
+Create a dedicated:
+
+التجارب
+Trials
+
+page.
+
+This page should help Ghars staff manage ALL trials.
+
+Provide tabs/filters such as:
+
+Active Trials
+Expiring Soon
+Expired
+Extended
+
+Show:
+
+Organization
+Customer Reference
+Owner
+Phone
+Trial Start
+Trial End
+Time Remaining
+Status
+Created Date
+
+Actions:
+
+View Customer
+Extend Trial
+
+and where appropriate:
+
+Activate
+
+==================================================
+10. EXPIRING SOON
+==================================================
+
+Clearly identify trials ending soon.
+
+Recommended thresholds:
+
+within 24 hours
+within 3 days where relevant
+
+Since the current default trial itself is 72 hours, prioritize:
+
+less than 24 hours remaining.
+
+Do not create fake notifications.
+
+Calculate from canonical server timestamps.
+
+==================================================
+11. ACTIVATION REQUESTS — GLOBAL PAGE
+==================================================
+
+Activation requests must NOT exist only inside individual Customer Detail.
+
+Create a dedicated global page:
+
+طلبات التفعيل
+Activation Requests
+
+Show ALL customer activation requests.
+
+Columns:
+
+Organization
+Customer Reference
+Owner
+Phone
+Tenant Status
+Trial End
+Request Date
+Request Status
+Notes
+Actions
+
+==================================================
+12. ACTIVATION REQUEST WORKFLOW
+==================================================
+
+Supported workflow:
+
+New
+Contacted
+Awaiting Payment
+Payment Received
+Activated
+Closed
+
+Localized Arabic labels.
+
+Platform Admin can update the workflow status.
+
+Actions:
+
+تم التواصل
+بانتظار التحويل
+تم استلام التحويل
+تفعيل النسخة
+إغلاق الطلب
+
+IMPORTANT:
+
+Payment Received MUST NOT automatically activate the tenant.
+
+Permanent activation remains a separate explicit action.
+
+==================================================
+13. ACTIVATION REQUEST FILTERING
+==================================================
+
+Provide:
+
+status filter
+date filter
+search
+
+Make new/open requests visually obvious.
+
+Do not require opening each customer individually to discover requests.
+
+==================================================
+14. SYSTEM ERRORS PAGE
+==================================================
+
+Create:
+
+أخطاء النظام
+System Errors
+
+This is a core Platform Admin feature.
+
+It should show centralized production/application errors.
+
+Columns:
+
+Reference
+Date/Time
+Customer/Tenant
+User where safely available
+Route
+Method
+Error Type
+Status
+Actions
+
+==================================================
+15. ERROR DETAILS
+==================================================
+
+Opening an error should show safe diagnostic information:
+
+Reference Code
+
+Occurred At
+
+Tenant
+
+User ID / username where safe
+
+Route
+
+HTTP Method
+
+Application Error Code
+
+Safe Message
+
+Environment
+
+Application Version
+
+Resolved/Open
+
+Resolution Note
+
+Do NOT expose:
+
+passwords
+tokens
+cookies
+Authorization header
+patient notes
+medical payloads
+environment secrets
+
+==================================================
+16. ERROR MANAGEMENT
+==================================================
+
+Platform Admin may:
+
+Mark Resolved
+
+Reopen if needed
+
+Add internal resolution note
+
+Search by:
+
+GH-ERR reference code
+
+Filter by:
+
+Tenant
+Date
+Open/Resolved
+Error Type
+
+==================================================
+17. CUSTOMER ERROR VISIBILITY
+==================================================
+
+Inside Customer Detail add a small section:
+
+Recent System Errors
+
+showing only safe errors associated with that tenant.
+
+This helps support diagnose:
+
+"the system is not working for this customer"
+
+without exposing clinical information.
+
+==================================================
+18. SYSTEM HEALTH PAGE
+==================================================
+
+Create:
+
+صحة النظام
+System Health
+
+This must display REAL measurable status.
+
+At minimum where technically available:
+
+Application/API
+Database
+Session Store
+Email subsystem if enabled
+File/storage subsystem
+Recent Error Rate
+Environment
+Application Version
+Database Migration/Schema Status
+
+Use:
+
+Healthy
+Warning
+Unavailable
+
+only from real checks.
+
+DO NOT hardcode green statuses.
+
+==================================================
+19. SYSTEM HEALTH SUMMARY
+==================================================
+
+At top show:
+
+Overall Platform Status
+
+Example:
+
+جميع الأنظمة تعمل بشكل طبيعي
+
+ONLY when all actual critical checks pass.
+
+If a dependency is unavailable:
+
+show exactly which component is affected.
+
+==================================================
+20. PLATFORM AUDIT LOG
+==================================================
+
+Create:
+
+سجل المنصة
+Platform Audit Log
+
+This is separate from normal customer activity logs.
+
+Show platform administrative actions such as:
+
+Customer Registered
+
+Trial Started
+
+Trial Extended
+
+Activation Request Updated
+
+Tenant Activated
+
+Tenant Suspended
+
+Tenant Reactivated
+
+Tenant Admin Password Reset
+
+Platform Setting Changed
+
+Platform Admin action
+
+==================================================
+21. AUDIT LOG INFORMATION
+==================================================
+
+Show:
+
+Date/Time
+Actor
+Action
+Target Tenant
+Reference
+Safe Metadata
+
+Filters:
+
+actor
+action
+tenant
+date
+
+Do NOT log passwords or secrets.
+
+==================================================
+22. PLATFORM SETTINGS
+==================================================
+
+Create:
+
+إعدادات المنصة
+Platform Settings
+
+This is visible ONLY to Platform Super Admin.
+
+Required editable configuration:
+
+Support WhatsApp
+
+Support Phone
+
+Default Trial Hours
+
+Optional:
+
+Support Email
+if the field already exists, but email is not required for the current commercial release.
+
+Do NOT reintroduce email verification.
+
+==================================================
+23. DEFAULT TRIAL HOURS
+==================================================
+
+Show:
+
+مدة التجربة الافتراضية
+
+Current default:
+
+72 hours
+
+Changing this affects NEW tenants only.
+
+Do NOT retroactively change existing tenant trial_end timestamps.
+
+Add clear helper text explaining this.
+
+==================================================
+24. SUPPORT CONFIGURATION
+==================================================
+
+Expired/Suspended customer screens must use Platform Settings values.
+
+Do NOT hardcode:
+
+WhatsApp
+phone
+
+across customer components.
+
+==================================================
+25. PLATFORM ADMIN PROFILE / SECURITY
+==================================================
+
+Provide an appropriate Platform Admin account area.
+
+At minimum:
+
+Username
+Change Own Password
+Logout
+
+Do NOT associate Platform Admin with a tenant.
+
+Do NOT show clinic switching.
+
+==================================================
+26. NO CLINIC SWITCHER
+==================================================
+
+Platform Admin account should NOT become a customer/clinic user.
+
+Customer accounts must NOT have clinic switching.
+
+The only cross-customer view is:
+
+Platform Admin Control Center.
+
+Preserve this security rule.
+
+==================================================
+27. NO CLINICAL DATA IN PLATFORM ADMIN
+==================================================
+
+CRITICAL:
+
+Do NOT build Platform Admin pages that routinely show:
+
+Patient Names
+
+Medical Files
+
+Implant Clinical Details
+
+Patient Notes
+
+Patient Payments
+
+Platform Admin should see safe tenant/account/usage metadata.
+
+This is a commercial/support platform console.
+
+Not a clinical surveillance interface.
+
+==================================================
+28. CUSTOMER USAGE SUMMARY
+==================================================
+
+For Customer Detail, safe high-level usage counts are useful.
+
+Examples:
+
+Number of Users
+
+Number of Patients
+
+Number of Implant Cases
+
+Last Activity
+
+These may be shown as COUNTS.
+
+Do not show patient identities.
+
+Use efficient aggregate queries.
+
+Avoid N+1 queries.
+
+==================================================
+29. PLATFORM ADMIN UX
+==================================================
+
+The current implementation looks like a single customer-management page.
+
+Upgrade it into a polished admin product.
+
+Use:
+
+- clear page titles
+- consistent cards
+- meaningful KPI hierarchy
+- useful tables
+- filters
+- badges
+- empty states
+- confirmations
+- responsive design
+
+Do NOT radically redesign Ghars branding.
+
+Use existing:
+
+Deep Navy
+#0D1B3D
+
+Cairo
+Montserrat
+current localization
+current component system
+
+==================================================
+30. DESKTOP LAYOUT
+==================================================
+
+Platform Admin should use available screen space better than the current sparse layout.
+
+Recommended:
+
+desktop max width around 1400–1600px
+
+depending on existing application layout.
+
+Tables should have appropriate width.
+
+Avoid a tiny table floating inside a huge empty canvas.
+
+==================================================
+31. RESPONSIVE
+==================================================
+
+Verify:
+
+1920px
+1600px
+1366px
+tablet
+390px mobile
+
+No horizontal overflow.
+
+For mobile, convert large tables into responsive patterns using the project's existing approach.
+
+==================================================
+32. LOCALIZATION
+==================================================
+
+Everything added must support:
+
+Arabic RTL
+English LTR
+
+Use the EXISTING i18n architecture.
+
+Localize:
+
+navigation
+headings
+filters
+statuses
+tables
+dialogs
+toasts
+errors
+health
+audit
+settings
+
+No raw values such as:
+
+PENDING
+
+TRIALING
+
+ACTIVE
+
+should appear to the Arabic user.
+
+Use localized labels.
+
+==================================================
+33. EXISTING "PENDING" ISSUE
+==================================================
+
+The current screenshot displays:
+
+PENDING
+
+inside the Arabic Activation Request interface.
+
+Fix this.
+
+All commercial statuses must use the centralized canonical translation layer.
+
+For example:
+
+pending/new
+→ appropriate Arabic label
+
+Do not translate the stored canonical value.
+
+Translate presentation only.
+
+==================================================
+34. CURRENT "Internal" TENANT
+==================================================
+
+The existing internal tenant may remain for preserved legacy development data.
+
+Do not treat the internal tenant as a normal commercial customer if it is intentionally an internal migration tenant.
+
+Add an internal/system marker if architecture already supports this cleanly.
+
+At minimum, make its purpose clear in Platform Admin.
+
+Do NOT delete its data.
+
+==================================================
+35. PLATFORM ADMIN OVERVIEW FOR INTERNAL TENANT
+==================================================
+
+If the internal tenant should not count in commercial KPIs:
+
+exclude it from commercial customer metrics using an explicit safe system/internal flag.
+
+Do NOT exclude it merely by checking its name == "Internal".
+
+Use a proper field or architecture if needed.
+
+==================================================
+36. SECURITY
+==================================================
+
+Every Platform Admin API must use the existing:
+
+platform_super_admin
+
+server-side authorization.
+
+Tenant Admin must receive:
+
+403
+
+for all platform routes/APIs.
+
+Do not rely on frontend navigation hiding.
+
+==================================================
+37. REUSE EXISTING BACKEND
+==================================================
+
+Before creating endpoints, inspect what already exists from the Commercial Architecture implementation.
+
+Reuse existing:
+
+tenant list
+tenant detail
+activation
+suspension
+extension
+activation requests
+password resets
+audit
+
+Do NOT create duplicate business logic.
+
+Add only missing aggregate/list/health/error APIs.
+
+==================================================
+38. REACT QUERY
+==================================================
+
+Use the existing React Query architecture.
+
+After:
+
+Activate
+Suspend
+Reactivate
+Extend Trial
+Update Activation Request
+Resolve Error
+Change Platform Settings
+
+invalidate/refetch appropriate canonical queries.
+
+Do not require browser refresh.
+
+==================================================
+39. PLATFORM ADMIN TEST DATA
+==================================================
+
+Do NOT seed marketing Demo Data yet.
+
+For automated tests use isolated test tenants only.
+
+Do not modify existing development clinical records.
+
+==================================================
+40. TEST OVERVIEW METRICS
+==================================================
+
+Create controlled tenants with different states and verify:
+
+Total
+Active
+Trial
+Expired
+Suspended
+Activation Requests
+
+counts are correct.
+
+==================================================
+41. TEST PLATFORM AUTHORIZATION
+==================================================
+
+Tenant Admin:
+
+GET /platform-admin APIs
+→ 403
+
+Doctor:
+→ 403
+
+Normal employee:
+→ 403
+
+Platform Super Admin:
+→ allowed.
+
+==================================================
+42. TEST ACTIONS
+==================================================
+
+Verify:
+
+Extend Trial
+Activate
+Suspend
+Reactivate
+Activation Request status updates
+Tenant Admin password reset
+Platform Settings update
+Error resolution
+
+All must be audited.
+
+==================================================
+43. TEST LOCALIZATION
+==================================================
+
+Verify all Platform Admin pages in:
+
+Arabic
+English
+
+Specifically ensure canonical backend values such as:
+
+pending
+trialing
+active
+expired
+suspended
+
+are translated correctly.
+
+No translation keys displayed.
+
+==================================================
+44. TEST CUSTOMER PRIVACY
+==================================================
+
+Verify Platform Admin aggregate pages do NOT accidentally return full patient/clinical payloads.
+
+Platform APIs should return only the data needed by Platform Admin.
+
+==================================================
+45. FINAL REQUIRED PLATFORM PAGES
+==================================================
+
+Before completion verify these routes/pages exist and work:
+
+/platform-admin
+→ Overview
+
+/platform-admin/customers
+→ Customers
+
+/platform-admin/customers/:id
+→ Customer Detail
+
+/platform-admin/trials
+→ Trials
+
+/platform-admin/activation-requests
+→ Activation Requests
+
+/platform-admin/errors
+→ System Errors
+
+/platform-admin/health
+→ System Health
+
+/platform-admin/audit
+→ Platform Audit Log
+
+/platform-admin/settings
+→ Platform Settings
+
+Exact routing may follow the current router convention, but all sections must be directly navigable.
+
+==================================================
+46. DO NOT IMPLEMENT
+==================================================
+
+Do NOT implement:
+
+Landing Page
+
+Demo Marketing Data
+
+Payment Gateway
+
+Subscriptions
+
+Pricing Plans
+
+Email Verification
+
+Email Password Recovery
+
+Customer clinic switcher
+
+Clinical Platform Admin browsing
+
+==================================================
+47. TECHNICAL VERIFICATION
+==================================================
+
+Run:
+
+Frontend TypeScript
+
+Backend/shared TypeScript
+
+Lint
+
+Existing API tests
+
+Platform Admin API tests
+
+Platform authorization tests
+
+Commercial lifecycle tests
+
+Localization completeness tests
+
+Production build
+
+==================================================
+48. BROWSER VERIFICATION
+==================================================
+
+Login as Platform Super Admin.
+
+Verify visually and functionally:
+
+Overview
+
+Customers
+
+Customer Detail
+
+Trials
+
+Activation Requests
+
+Errors
+
+Health
+
+Audit
+
+Settings
+
+Arabic
+
+English
+
+Desktop
+
+Mobile
+
+No console errors.
+
+==================================================
+49. FINAL REPORT
+==================================================
+
+Report:
+
+1. Platform Admin navigation created.
+2. Overview metrics implemented.
+3. Customers page.
+4. Customer detail improvements.
+5. Trials page.
+6. Activation Requests page.
+7. Errors page.
+8. System Health page.
+9. Platform Audit page.
+10. Platform Settings page.
+11. Support settings behavior.
+12. Password reset behavior.
+13. Internal tenant treatment.
+14. Customer privacy safeguards.
+15. Platform authorization results.
+16. Arabic/English verification.
+17. Responsive verification.
+18. API tests.
+19. TypeScript/lint result.
+20. Production build result.
+21. Any remaining Platform Admin gaps.
+22. Exact checkpoint commit hash.
+
+Final explicit result:
+
+PLATFORM ADMIN COMPLETENESS: PASS / FAIL
+
+PLATFORM ADMIN SECURITY: PASS / FAIL
+
+PLATFORM ADMIN LOCALIZATION: PASS / FAIL
+
+PLATFORM ADMIN RESPONSIVE: PASS / FAIL
+
+If PLATFORM ADMIN COMPLETENESS is FAIL:
+
+do NOT mark this phase complete.
+
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.
