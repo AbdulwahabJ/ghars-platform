@@ -1,0 +1,726 @@
+MODE: Power
+
+Perform the FINAL COMMERCIAL RELEASE HARDENING for Ghars.
+
+The major multi-tenant/trial/platform architecture has already been implemented.
+
+DO NOT rebuild it.
+
+DO NOT redesign existing product pages.
+
+This task is ONLY to close the remaining commercial-release gaps and verify the architecture against the approved Ghars commercial model.
+
+==================================================
+1. CRITICAL — REMOVE NORMAL CUSTOMER TENANT SWITCHING
+==================================================
+
+The current implementation report says:
+
+"multi-membership accounts can switch clinics"
+
+This is NOT the approved Ghars commercial model.
+
+For the current Ghars product:
+
+A normal customer user must belong to exactly ONE customer tenant.
+
+This applies to:
+
+- Tenant Owner
+- Tenant Admin
+- Doctor
+- Reception
+- Finance
+- any normal customer role
+
+Normal customer users must NOT have:
+
+- clinic switcher
+- tenant switcher
+- organization switcher
+- multi-customer membership
+- visibility of other Ghars customers
+
+Only:
+
+platform_super_admin
+
+may operate across multiple customer tenants through:
+
+/platform-admin
+
+==================================================
+2. REMOVE CUSTOMER MULTI-MEMBERSHIP
+==================================================
+
+Inspect the recently implemented tenant-membership architecture carefully.
+
+Do NOT destroy the security improvements.
+
+Keep tenant-scoped:
+
+- role
+- permissions
+- financial access
+- user status
+
+if that architecture is useful internally.
+
+However, enforce the current commercial rule:
+
+ONE normal customer account
+→ ONE tenant membership
+
+Platform Super Admin is separate.
+
+If the membership table is already structurally useful, it may remain internally, but normal customer users must not have multiple customer memberships.
+
+Add appropriate server-side constraints/business validation.
+
+==================================================
+3. REMOVE CLINIC SWITCHER FROM CUSTOMER UI
+==================================================
+
+Remove the clinic/tenant switcher from the normal authenticated Ghars application.
+
+A customer should enter Ghars and immediately operate inside their own organization.
+
+They should not see evidence of other customers.
+
+Do not leave a hidden or disabled tenant selector.
+
+==================================================
+4. CROSS-TENANT MEMBERSHIP ATTACK TEST
+==================================================
+
+Explicitly test:
+
+Tenant Admin A attempts to:
+
+- create membership in Tenant B
+- assign existing User A to Tenant B
+- switch session to Tenant B
+- provide Tenant B ID through API
+- access any tenant-switch endpoint
+
+Expected:
+
+REJECTED.
+
+Platform Super Admin remains able to manage customer tenants through the Platform Admin architecture.
+
+==================================================
+5. PRODUCTION EMAIL — REQUIRED
+==================================================
+
+Customer signup currently safely refuses registration when no email provider is configured.
+
+That is correct fail-safe behavior, but production signup cannot launch until email delivery is configured.
+
+Complete production email support using the existing email architecture.
+
+The existing report mentions:
+
+RESEND_FROM
+
+If Resend is the already selected provider, finish that integration rather than introducing another provider.
+
+Use Replit Secrets / environment variables.
+
+Never hardcode credentials.
+
+==================================================
+6. EMAIL ENVIRONMENT CONFIGURATION
+==================================================
+
+Audit and document the exact required production email variables.
+
+Expected examples, according to the existing implementation:
+
+RESEND_API_KEY
+RESEND_FROM
+APP_URL
+
+Use the ACTUAL names already implemented.
+
+Do not create duplicate configuration names unnecessarily.
+
+==================================================
+7. EMAIL VERIFICATION URL
+==================================================
+
+Verification emails must use the actual production APP_URL.
+
+Do not generate:
+
+localhost
+
+development URLs
+
+Replit preview URLs
+
+in production verification emails.
+
+==================================================
+8. VERIFY EMAIL FLOWS
+==================================================
+
+Test in an isolated environment:
+
+A. New customer registration
+
+B. Verification email delivered
+
+C. Verification link works
+
+D. Token is single-use
+
+E. Expired verification token rejected
+
+F. Trial starts ONLY after successful verification
+
+G. Password reset email delivered
+
+H. Password reset URL works
+
+I. Arabic email renders correctly
+
+J. English email renders correctly
+
+K. No raw token appears in database/logs
+
+==================================================
+9. SUPPORT CONFIGURATION
+==================================================
+
+Confirm Platform Admin has canonical Platform Settings for:
+
+- Support WhatsApp
+- Support Phone
+- Support Email
+- Default Trial Hours
+
+Expired/suspended/customer-support screens must read these values from the canonical platform configuration.
+
+Do not hardcode support details across components.
+
+==================================================
+10. PLATFORM ADMIN COMPLETENESS
+==================================================
+
+Verify /platform-admin contains the required commercial control center.
+
+At minimum:
+
+Overview
+
+Customers
+
+Trials
+
+Activation Requests
+
+Errors
+
+System Health
+
+Platform Audit
+
+Platform Settings
+
+If any of these are missing, implement them now using the existing Ghars design system.
+
+Do NOT add unrelated modules.
+
+==================================================
+11. PLATFORM ADMIN CUSTOMER CONTROL
+==================================================
+
+From a customer detail page Platform Super Admin must be able to:
+
+- view tenant/account information
+- view owner/contact information
+- see trial start/end
+- see current commercial status
+- extend trial
+- permanently activate
+- suspend
+- reactivate
+- review activation requests
+- see number of users
+- see last activity/login
+- see relevant system errors
+
+All sensitive actions require confirmation and audit.
+
+==================================================
+12. PLATFORM ADMIN PRIVACY
+==================================================
+
+Platform Admin customer overview must NOT routinely expose:
+
+- patient names
+- medical records
+- clinical notes
+- patient-level financial information
+
+Commercial/support metadata only by default.
+
+==================================================
+13. SYSTEM ERRORS
+==================================================
+
+Confirm centralized production error monitoring actually exists.
+
+Platform Admin must have:
+
+أخطاء النظام / System Errors
+
+with:
+
+- error reference
+- time
+- affected tenant where applicable
+- safe user/account context
+- route
+- method
+- safe error type/message
+- resolved/open state
+- resolution note
+
+Never log:
+
+- passwords
+- tokens
+- sessions
+- Authorization headers
+- clinical notes
+- full patient payloads
+- environment secrets
+
+==================================================
+14. USER-FACING ERROR REFERENCE
+==================================================
+
+Unexpected failures should produce a safe support reference such as:
+
+GH-ERR-XXXXXX
+
+User sees a localized friendly error.
+
+Platform Admin can search the same reference.
+
+No raw stack trace is exposed to the customer.
+
+==================================================
+15. SYSTEM HEALTH
+==================================================
+
+Confirm Platform Admin has a useful System Health page.
+
+Check only things that can actually be measured:
+
+- application/API
+- database connectivity
+- email provider
+- recent errors
+- application version
+- environment
+- migration/schema status where reliable
+
+Do not invent green health indicators.
+
+==================================================
+16. PRODUCTION SESSION STORE — RELEASE BLOCKER
+==================================================
+
+Inspect the actual production session implementation.
+
+Confirm that Ghars does NOT use Express development MemoryStore or another volatile process-only store in production.
+
+If it does:
+
+replace it with a durable production-compatible session store consistent with the current stack.
+
+Preserve current server-side sessions.
+
+Report explicitly:
+
+PRODUCTION SESSION STORE: PASS / FAIL
+
+==================================================
+17. SESSION / COOKIE SECURITY
+==================================================
+
+Verify production configuration for:
+
+- HttpOnly
+- Secure in production
+- SameSite
+- CSRF
+- session expiry
+- trust proxy where required
+- session fixation protection around authentication where applicable
+
+Do not weaken current authentication.
+
+==================================================
+18. RATE LIMITING
+==================================================
+
+Confirm sensible server-side protection exists for:
+
+- Login
+- Register
+- Verification resend
+- Forgot Password
+- Reset Password
+- Activation Request
+
+Do not rate-limit normal clinical workflows aggressively.
+
+==================================================
+19. FILE STORAGE — PRODUCTION CHECK
+==================================================
+
+Inspect avatars/uploads/files.
+
+Determine whether customer files are stored in:
+
+durable persistent storage
+
+or
+
+ephemeral runtime/local filesystem.
+
+If storage is ephemeral:
+
+report:
+
+FILE STORAGE: BLOCKED
+
+and implement durable storage only if the existing Replit/deployment environment already provides an appropriate supported mechanism.
+
+Do not silently claim production readiness with ephemeral storage.
+
+Do not lose existing files.
+
+==================================================
+20. FILE TENANT ISOLATION
+==================================================
+
+If private files exist:
+
+Tenant A must never access Tenant B files through:
+
+- file ID
+- URL guessing
+- filename
+- API request
+
+Verify server-side authorization.
+
+==================================================
+21. DATABASE BACKUP READINESS
+==================================================
+
+Determine what can actually be verified about production database backups.
+
+If managed backups are not configured/observable from this project:
+
+report clearly:
+
+PRODUCTION DATABASE BACKUPS REQUIRE EXTERNAL PROVIDER CONFIGURATION.
+
+Do NOT pretend application code provides backups.
+
+==================================================
+22. PRODUCTION ENVIRONMENT
+==================================================
+
+Audit separation of:
+
+development
+test
+production
+
+Confirm automated tests cannot accidentally use production database.
+
+Document all required production Secrets/environment variables.
+
+==================================================
+23. TENANT ISOLATION FINAL AUDIT
+==================================================
+
+Re-run tenant isolation after all recent architecture changes.
+
+Use:
+
+Tenant Alpha
+Tenant Beta
+
+Verify isolation for:
+
+- Patients
+- Cases
+- Implants
+- Procedures
+- Prosthetics
+- Follow-ups
+- Communications
+- Payments
+- Charges
+- Discounts
+- Users
+- Lists/Settings
+- Audit
+- Dashboard
+- Statistics
+- Search
+- Export
+- Files where applicable
+
+==================================================
+24. SEARCH ISOLATION
+==================================================
+
+Authenticate as Tenant Alpha.
+
+Search for exact known Tenant Beta:
+
+- patient name
+- phone
+- case values
+- user information where searchable
+
+Expected:
+
+ZERO Tenant Beta business records.
+
+==================================================
+25. EXPORT ISOLATION
+==================================================
+
+Generate a real Tenant Alpha export.
+
+Inspect its contents.
+
+Expected:
+
+ZERO Tenant Beta records.
+
+==================================================
+26. STATISTICS ISOLATION
+==================================================
+
+Create additional activity in Tenant Beta.
+
+Confirm Tenant Alpha:
+
+- Dashboard
+- Statistics
+- Finance metrics
+- Follow-up metrics
+- Doctor activity
+
+remain unchanged.
+
+==================================================
+27. PLATFORM ADMIN SECURITY
+==================================================
+
+Authenticate as a normal Tenant Admin.
+
+Attempt:
+
+/platform-admin
+
+and every Platform Admin API.
+
+Expected:
+
+403.
+
+Attempt to assign:
+
+platform_super_admin
+
+through normal customer User Management.
+
+Expected:
+
+rejected server-side.
+
+==================================================
+28. TRIAL MODEL RECHECK
+==================================================
+
+Verify:
+
+Trial belongs to tenant.
+
+It does NOT belong to individual users.
+
+Scenario:
+
+Tenant trial starts at T0.
+
+Tenant Admin creates another user at T0 + 48 hours.
+
+New user has access only until:
+
+T0 + 72 hours.
+
+At expiration:
+
+both users lose operational access.
+
+Accounts stay valid.
+
+Data stays intact.
+
+Platform Admin permanent activation restores access for both.
+
+==================================================
+29. ACTIVATION FLOW RECHECK
+==================================================
+
+Required commercial flow:
+
+Trial expires
+→ customer contacts support
+→ payment handled outside Ghars
+→ Ghars staff verifies transfer
+→ Platform Super Admin explicitly selects Activate License
+→ tenant becomes permanently active
+
+NO payment gateway.
+
+NO recurring subscription.
+
+NO automated activation based only on activation-request status.
+
+==================================================
+30. PRODUCTION BUILD
+==================================================
+
+Run:
+
+- full TypeScript
+- lint
+- existing API tests
+- multi-tenant tests
+- customer membership/isolation tests
+- search isolation
+- export isolation
+- statistics isolation
+- Platform Admin permission tests
+- trial tests
+- email verification tests
+- password reset tests
+- localization completeness tests
+- production build
+
+==================================================
+31. DO NOT IMPLEMENT YET
+==================================================
+
+DO NOT create Demo Marketing Data yet.
+
+DO NOT build the Landing Page yet.
+
+DO NOT add pricing plans.
+
+DO NOT add payment gateway.
+
+This is the FINAL hardening pass before Demo Data.
+
+==================================================
+32. RELEASE FLAGS
+==================================================
+
+The final report MUST explicitly provide:
+
+TENANT ISOLATION: PASS / FAIL
+
+NORMAL USER SINGLE-TENANT RULE: PASS / FAIL
+
+SEARCH ISOLATION: PASS / FAIL
+
+EXPORT ISOLATION: PASS / FAIL
+
+STATISTICS ISOLATION: PASS / FAIL
+
+FILE ISOLATION: PASS / FAIL / NOT APPLICABLE
+
+PLATFORM ADMIN SECURITY: PASS / FAIL
+
+TRIAL ENFORCEMENT: PASS / FAIL
+
+MULTI-USER TRIAL: PASS / FAIL
+
+EMAIL VERIFICATION PRODUCTION CONFIG: PASS / BLOCKED
+
+PASSWORD RESET EMAIL: PASS / BLOCKED
+
+PLATFORM ADMIN COMPLETENESS: PASS / FAIL
+
+ERROR MONITORING: PASS / FAIL
+
+SYSTEM HEALTH: PASS / FAIL
+
+PRODUCTION SESSION STORE: PASS / FAIL
+
+COOKIE / CSRF SECURITY: PASS / FAIL
+
+RATE LIMITING: PASS / FAIL
+
+PRODUCTION FILE STORAGE: PASS / BLOCKED / NOT APPLICABLE
+
+DATABASE BACKUP READINESS: PASS / EXTERNAL ACTION REQUIRED
+
+PRODUCTION BUILD: PASS / FAIL
+
+If any security/release-critical item is FAIL:
+
+do NOT describe Ghars as ready for commercial release.
+
+==================================================
+33. FINAL REPORT
+==================================================
+
+Report:
+
+1. Why multi-membership/clinic switching previously existed.
+2. How normal customer users are now restricted to one tenant.
+3. Whether the membership schema was retained internally.
+4. Email provider implementation.
+5. Exact required email Secrets.
+6. Verification email test result.
+7. Password reset email result.
+8. Platform Settings configuration.
+9. Platform Admin sections completed.
+10. Error monitoring architecture.
+11. System Health checks.
+12. Production session-store implementation.
+13. Cookie/CSRF findings.
+14. Rate-limiting findings.
+15. File-storage findings.
+16. Backup findings.
+17. Tenant isolation test result.
+18. Search isolation test result.
+19. Export isolation test result.
+20. Statistics isolation test result.
+21. Trial/multi-user trial result.
+22. Platform Admin authorization result.
+23. Full test count/result.
+24. TypeScript result.
+25. Production build result.
+26. Remaining production blockers.
+27. Exact checkpoint commit hash.
+
+Then print the complete RELEASE FLAGS section.
+
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.
