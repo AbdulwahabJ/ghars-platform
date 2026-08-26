@@ -4,13 +4,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCommercialStatus, useCreateActivationRequest } from "@/hooks/use-commercial";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { LogOut, Loader2, Mail, Phone, AlertCircle, Building2, ShieldAlert } from "lucide-react";
+import { LogOut, Loader2, Mail, Phone, MessageCircle, AlertCircle, Building2, ShieldAlert } from "lucide-react";
 import gharsSymbol from "@/assets/ghars-symbol-transparent.png";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { formatSaudiDateTime } from "@/lib/datetime";
+import { buildSupportWhatsappLink } from "@/lib/support";
 
 export default function AccessStatus() {
   const [, setLocation] = useLocation();
@@ -46,6 +47,18 @@ export default function AccessStatus() {
     tenant.trialEndsAt && 
     !isNaN(new Date(tenant.trialEndsAt).getTime()) &&
     new Date(tenant.trialEndsAt).getTime() <= Date.now()
+  );
+  const supportMessageKey = isSuspended
+    ? "status.supportMessages.suspended"
+    : isTrialExpired
+      ? "status.supportMessages.trialExpired"
+      : "status.supportMessages.activation";
+  const supportWhatsappHref = buildSupportWhatsappLink(
+    support.whatsapp,
+    t(supportMessageKey, {
+      tenantName: tenant.name,
+      tenantReference: currentTenant?.referenceCode ?? "",
+    }),
   );
 
   return (
@@ -178,8 +191,20 @@ export default function AccessStatus() {
                     <Mail className="h-4 w-4" /> <span dir="ltr">{support.email}</span>
                   </a>
                 )}
+                {supportWhatsappHref && support.whatsapp && (
+                  <a
+                    href={supportWhatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 hover:text-primary transition-colors"
+                    data-testid="link-support-whatsapp"
+                  >
+                    <MessageCircle className="h-4 w-4 text-[#25D366]" />
+                    <span dir="ltr">{support.whatsapp}</span>
+                  </a>
+                )}
                 {support.phone && (
-                  <a href={`tel:${support.phone}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                  <a href={`tel:${support.phone}`} className="flex items-center gap-2 hover:text-primary transition-colors" data-testid="link-support-phone">
                     <Phone className="h-4 w-4" /> <span dir="ltr">{support.phone}</span>
                   </a>
                 )}

@@ -19,6 +19,17 @@ const registration = {
 };
 
 describe("commercial lifecycle", () => {
+  it("exposes only support contacts publicly and keeps lifecycle routes authenticated", async () => {
+    const anonymous = agentFor(app);
+    const support = await anonymous.get("/api/commercial/support");
+    expect(support.status).toBe(200);
+    expect(Object.keys(support.body).sort()).toEqual(["email", "phone", "whatsapp"]);
+    expect((await anonymous.get("/api/commercial/status")).status).toBe(401);
+    expect(
+      (await anonymous.post("/api/commercial/activation-requests").send({ note: "please" })).status,
+    ).toBe(401);
+  });
+
   it("registers without email or Resend configuration", async () => {
     const res = await agentFor(app).post("/api/auth/register").send(registration);
     expect(res.status).toBe(201);

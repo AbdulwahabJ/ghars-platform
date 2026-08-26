@@ -11,6 +11,7 @@ import {
   CompletePasswordResetInput,
 } from "@workspace/shared";
 import { useAuth } from "@/hooks/use-auth";
+import { useSupportContacts } from "@/hooks/use-commercial";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ import {
   Headset,
   Loader2,
   LockKeyhole,
+  MessageCircle,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -40,6 +42,7 @@ import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { buildSupportWhatsappLink } from "@/lib/support";
 
 type ResetFormInput = CompletePasswordResetInput & {
   confirmPassword: string;
@@ -48,6 +51,7 @@ type ResetFormInput = CompletePasswordResetInput & {
 export default function Login() {
   const [location, setLocation] = useLocation();
   const { login, user, setupStatus, isLoading } = useAuth();
+  const { data: supportContacts } = useSupportContacts();
   const { t } = useTranslation(["auth", "common"]);
   const { direction } = useLocale();
   const resetFormSchema = completePasswordResetInputSchema
@@ -68,6 +72,10 @@ export default function Login() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [supportMessage, setSupportMessage] = useState(false);
+  const supportWhatsappHref = buildSupportWhatsappLink(
+    supportContacts?.whatsapp,
+    t("login.supportMessage"),
+  );
 
   useEffect(() => {
     if (!isLoading) {
@@ -232,14 +240,27 @@ export default function Login() {
                      {t("common:actions.register", "إنشاء حساب جديد")}
                    </button>
 
-                   <button
-                     type="button"
-                     onClick={() => setSupportMessage(true)}
-                     className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-[#67b8b4] bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-[#f2fbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67b8b4]/40"
-                   >
-                     <Headset className="h-[18px] w-[18px] text-[#5ca8a5]" aria-hidden="true" />
-                      {t("login.support")}
-                   </button>
+                    {supportWhatsappHref ? (
+                      <a
+                        href={supportWhatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-[#67b8b4] bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-[#f2fbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67b8b4]/40"
+                        data-testid="link-login-support-whatsapp"
+                      >
+                        <MessageCircle className="h-[18px] w-[18px] text-[#25D366]" aria-hidden="true" />
+                        {t("login.support")}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSupportMessage(true)}
+                        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-[#67b8b4] bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-[#f2fbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67b8b4]/40"
+                      >
+                        <Headset className="h-[18px] w-[18px] text-[#5ca8a5]" aria-hidden="true" />
+                        {t("login.support")}
+                      </button>
+                    )}
                  </div>
                  {supportMessage && (
                    <p className="text-center text-xs text-slate-500" role="status">

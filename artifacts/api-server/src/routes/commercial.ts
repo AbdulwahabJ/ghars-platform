@@ -7,7 +7,7 @@ import {
   createActivationRequestInputSchema,
 } from "@workspace/shared";
 import { parseOrRespond } from "../lib/validation";
-import { requireRole } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth";
 import { loadPlatformSettings } from "../lib/platform-settings";
 
 const router: IRouter = Router();
@@ -21,7 +21,16 @@ function requestDto(row: typeof tenantActivationRequestsTable.$inferSelect) {
   };
 }
 
-router.get("/commercial/status", async (req, res) => {
+router.get("/commercial/support", async (_req, res) => {
+  const platformSettings = await loadPlatformSettings();
+  res.json({
+    email: platformSettings.supportEmail,
+    phone: platformSettings.supportPhone,
+    whatsapp: platformSettings.supportWhatsapp,
+  });
+});
+
+router.get("/commercial/status", requireAuth, async (req, res) => {
   const tenant = req.currentTenant;
   if (!tenant) { res.status(403).json({ error: "لا توجد عيادة متاحة لهذا الحساب.", code: "TENANT_ACCESS_REQUIRED" }); return; }
   const [request] = tenant.isInternal
@@ -51,7 +60,7 @@ router.get("/commercial/status", async (req, res) => {
   });
 });
 
-router.post("/commercial/activation-requests", requireRole("ADMIN"), async (req, res) => {
+router.post("/commercial/activation-requests", requireAuth, requireRole("ADMIN"), async (req, res) => {
   const input = parseOrRespond(createActivationRequestInputSchema, req.body, res);
   if (!input) return;
   const tenant = req.currentTenant!;

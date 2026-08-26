@@ -30,7 +30,7 @@ router.use(healthRouter);
 router.use(authRouter);
 // These authenticated lifecycle surfaces must remain reachable for suspended,
 // expired-trial, and pending-verification customers.
-router.use(requireAuth, commercialRouter);
+router.use(commercialRouter);
 router.use("/platform-admin", requireAuth, requirePlatformAdmin);
 router.use(platformAdminRouter);
 router.use(preferencesRouter);

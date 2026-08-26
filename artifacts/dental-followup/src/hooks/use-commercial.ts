@@ -17,6 +17,14 @@ export function useCommercialStatus() {
   });
 }
 
+export function useSupportContacts() {
+  return useQuery({
+    queryKey: ["support-contacts"],
+    queryFn: () => api.getSupportContacts(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useRegister() {
   return useMutation({
     mutationFn: (input: PublicRegistrationInput) => api.register(input),

@@ -236,6 +236,10 @@ export const api = {
 
   // Commercial Lifecycle
   getCommercialStatus: () => request<CommercialStatus>("/commercial/status"),
+  getSupportContacts: () =>
+    request<Pick<CommercialStatus["support"], "email" | "phone" | "whatsapp">>(
+      "/commercial/support",
+    ),
   createActivationRequest: (input: CreateActivationRequestInput) =>
     request<ActivationRequestResponse>("/commercial/activation-requests", {
       method: "POST",

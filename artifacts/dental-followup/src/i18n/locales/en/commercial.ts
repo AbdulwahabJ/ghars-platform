@@ -40,6 +40,11 @@ export default {
   status: {
     title: "Account Status",
     support: "For support and assistance, please contact us via:",
+    supportMessages: {
+      activation: "Hello,\nI would like to contact Ghars support about activating my organization account.\n\nOrganization name: {{tenantName}}\nCustomer reference: {{tenantReference}}",
+      trialExpired: "Hello,\nMy Ghars trial has expired and I would like to purchase and activate the system.\n\nOrganization name: {{tenantName}}\nCustomer reference: {{tenantReference}}",
+      suspended: "Hello,\nI would like to contact Ghars support about my organization account suspension.\n\nOrganization name: {{tenantName}}\nCustomer reference: {{tenantReference}}",
+    },
     pendingVerification: {
       title: "Pending Email Verification",
       desc: "Please check your email and activate your account to start using Ghars.",
