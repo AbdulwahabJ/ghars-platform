@@ -9,6 +9,7 @@ import {
 import { implantCasesTable } from "./implant-cases";
 import { implantsTable } from "./implants";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * Canonical, dated clinical bone-graft records.
@@ -20,6 +21,9 @@ export const boneGraftProceduresTable = pgTable(
   "bone_graft_procedures",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
@@ -52,6 +56,7 @@ export const boneGraftProceduresTable = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
+    index("IDX_bone_graft_procedures_tenant_id").on(table.tenantId),
     index("IDX_bone_graft_procedures_case_date").on(
       table.implantCaseId,
       table.procedureDate,

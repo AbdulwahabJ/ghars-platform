@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { implantCasesTable } from "./implant-cases";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * A payment schedule is a planning record only. Actual collection remains in
@@ -21,6 +22,9 @@ export const installmentPlansTable = pgTable(
   "installment_plans",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
@@ -37,6 +41,7 @@ export const installmentPlansTable = pgTable(
       .defaultNow(),
   },
   (table) => [
+    index("IDX_installment_plans_tenant_id").on(table.tenantId),
     uniqueIndex("UQ_installment_plans_case_id").on(table.implantCaseId),
     check("CHK_installment_plans_total_positive", sql`${table.totalAmount} > 0`),
     check(
@@ -50,6 +55,9 @@ export const installmentsTable = pgTable(
   "installments",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     planId: uuid("plan_id")
       .notNull()
       .references(() => installmentPlansTable.id),
@@ -64,6 +72,7 @@ export const installmentsTable = pgTable(
       .defaultNow(),
   },
   (table) => [
+    index("IDX_installments_tenant_id").on(table.tenantId),
     index("IDX_installments_plan_id").on(table.planId),
     uniqueIndex("UQ_installments_plan_sequence").on(
       table.planId,

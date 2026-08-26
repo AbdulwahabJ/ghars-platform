@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import app from "../src/app";
 import {
   agentFor,
+  attachUserToInternalTenant,
   freshAdminSession,
   login,
   makePool,
@@ -30,6 +31,7 @@ beforeAll(async () => {
      VALUES ($1, $2, $3, 'ASSISTANT')`,
     ["event-assistant", bcrypt.hashSync("Assist0Pass12", 10), "مساعدة السجل"],
   );
+  await attachUserToInternalTenant(pool, "event-assistant", "ASSISTANT");
   assistant = agentFor(app);
   await login(assistant, "event-assistant", "Assist0Pass12");
 

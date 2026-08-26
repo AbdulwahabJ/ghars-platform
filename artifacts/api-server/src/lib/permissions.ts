@@ -1,4 +1,4 @@
-import type { User } from "@workspace/db";
+import type { TenantMembership, User } from "@workspace/db";
 import type { PublicUser, UserRole } from "@workspace/shared";
 
 /**
@@ -17,24 +17,37 @@ const ROLE_DEFAULTS: Record<
   ASSISTANT: { canViewFinancials: false, canRecordPayments: false },
 };
 
-export function effectivePermissions(user: User): {
+export function effectivePermissions(
+  membership: Pick<
+    TenantMembership,
+    "role" | "canViewFinancials" | "canRecordPayments"
+  >,
+): {
   canViewFinancials: boolean;
   canRecordPayments: boolean;
 } {
-  const defaults = ROLE_DEFAULTS[user.role];
+  const defaults = ROLE_DEFAULTS[membership.role];
   return {
-    canViewFinancials: user.canViewFinancials ?? defaults.canViewFinancials,
-    canRecordPayments: user.canRecordPayments ?? defaults.canRecordPayments,
+    canViewFinancials:
+      membership.canViewFinancials ?? defaults.canViewFinancials,
+    canRecordPayments:
+      membership.canRecordPayments ?? defaults.canRecordPayments,
   };
 }
 
-export function toPublicUser(user: User): PublicUser {
-  const perms = effectivePermissions(user);
+export function toPublicUser(
+  user: User,
+  membership: Pick<
+    TenantMembership,
+    "role" | "canViewFinancials" | "canRecordPayments"
+  >,
+): PublicUser {
+  const perms = effectivePermissions(membership);
   return {
     id: user.id,
     username: user.username,
     fullName: user.fullName,
-    role: user.role,
+    role: membership.role,
     canViewFinancials: perms.canViewFinancials,
     canRecordPayments: perms.canRecordPayments,
     avatarData: user.avatarData ?? null,

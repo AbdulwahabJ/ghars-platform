@@ -2,6 +2,7 @@ import { auditLogsTable, db } from "@workspace/db";
 import { logger } from "./logger";
 
 export interface AuditEntry {
+  tenantId: string | null;
   userId?: string | null;
   action: string;
   entityType?: string;
@@ -23,6 +24,7 @@ export async function writeAudit(
   dbi: DbOrTx = db,
 ): Promise<void> {
   const values = {
+    tenantId: entry.tenantId ?? null,
     userId: entry.userId ?? null,
     action: entry.action,
     entityType: entry.entityType ?? null,

@@ -12,6 +12,7 @@ import {
 import { implantCasesTable } from "./implant-cases";
 import { installmentsTable } from "./installment-plans";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * Payments — immutable financial records. Never physically deleted;
@@ -23,6 +24,9 @@ export const paymentsTable = pgTable(
   "payments",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
@@ -42,6 +46,7 @@ export const paymentsTable = pgTable(
     voidReason: text("void_reason"),
   },
   (table) => [
+    index("IDX_payments_tenant_id").on(table.tenantId),
     index("IDX_payments_case_id").on(table.implantCaseId),
     index("IDX_payments_payment_date").on(table.paymentDate),
     check("CHK_payments_amount_positive", sql`${table.amount} > 0`),

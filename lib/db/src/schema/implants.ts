@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { implantCasesTable } from "./implant-cases";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * Implants — one database record per implant (never multiple sites in one
@@ -23,6 +24,9 @@ export const implantsTable = pgTable(
   "implants",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
@@ -50,7 +54,10 @@ export const implantsTable = pgTable(
       .defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
-  (table) => [index("IDX_implants_case_id").on(table.implantCaseId)],
+  (table) => [
+    index("IDX_implants_tenant_id").on(table.tenantId),
+    index("IDX_implants_case_id").on(table.implantCaseId),
+  ],
 );
 
 export type ImplantRow = typeof implantsTable.$inferSelect;

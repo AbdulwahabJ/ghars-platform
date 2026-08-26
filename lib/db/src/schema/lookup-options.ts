@@ -4,9 +4,10 @@ import {
   pgTable,
   text,
   timestamp,
-  unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { tenantsTable } from "./tenants";
 
 /**
  * Generic Admin-manageable lookup values (charge types, Q suggestions,
@@ -17,6 +18,9 @@ export const lookupOptionsTable = pgTable(
   "lookup_options",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     category: text("category").notNull(),
     value: text("value").notNull(),
     isActive: boolean("is_active").notNull().default(true),
@@ -26,7 +30,11 @@ export const lookupOptionsTable = pgTable(
       .defaultNow(),
   },
   (table) => [
-    unique("UQ_lookup_options_category_value").on(table.category, table.value),
+    uniqueIndex("UQ_lookup_options_tenant_category_value").on(
+      table.tenantId,
+      table.category,
+      table.value,
+    ),
   ],
 );
 

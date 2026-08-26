@@ -32,6 +32,7 @@ const iso = (d: Date | null | undefined) => (d ? d.toISOString() : "");
  */
 async function buildExport(
   entity: ExportEntity,
+  tenantId: string,
 ): Promise<{ headers: string[]; rows: unknown[][] }> {
   switch (entity) {
     default:
@@ -40,6 +41,7 @@ async function buildExport(
       const rows = await db
         .select()
         .from(patientsTable)
+         .where(eq(patientsTable.tenantId, tenantId))
         .orderBy(asc(patientsTable.fileNumber));
       return {
         headers: [
@@ -74,6 +76,7 @@ async function buildExport(
           patientsTable,
           eq(patientsTable.id, implantCasesTable.patientId),
         )
+         .where(eq(implantCasesTable.tenantId, tenantId))
         .orderBy(asc(patientsTable.fileNumber), asc(implantCasesTable.createdAt));
       return {
         headers: [
@@ -126,6 +129,7 @@ async function buildExport(
           patientsTable,
           eq(patientsTable.id, implantCasesTable.patientId),
         )
+         .where(eq(implantsTable.tenantId, tenantId))
         .orderBy(asc(patientsTable.fileNumber), asc(implantsTable.createdAt));
       return {
         headers: [
@@ -185,6 +189,7 @@ async function buildExport(
         )
         .leftJoin(usersTable, eq(usersTable.id, paymentsTable.createdBy))
         .leftJoin(voidedByUser, eq(voidedByUser.id, paymentsTable.voidedBy))
+         .where(eq(paymentsTable.tenantId, tenantId))
         .orderBy(asc(patientsTable.fileNumber), asc(paymentsTable.paymentDate));
       return {
         headers: [
@@ -235,6 +240,7 @@ async function buildExport(
           patientsTable,
           eq(patientsTable.id, implantCasesTable.patientId),
         )
+         .where(eq(caseChargesTable.tenantId, tenantId))
         .orderBy(asc(patientsTable.fileNumber), asc(caseChargesTable.chargeDate));
       return {
         headers: [
@@ -273,6 +279,7 @@ async function buildExport(
           patientsTable,
           eq(patientsTable.id, implantCasesTable.patientId),
         )
+         .where(eq(caseDiscountsTable.tenantId, tenantId))
         .orderBy(
           asc(patientsTable.fileNumber),
           asc(caseDiscountsTable.createdAt),
@@ -317,6 +324,7 @@ async function buildExport(
           assignedUser,
           eq(assignedUser.id, followupsTable.assignedUserId),
         )
+         .where(eq(followupsTable.tenantId, tenantId))
         .orderBy(asc(patientsTable.fileNumber), asc(followupsTable.createdAt));
       return {
         headers: [
@@ -365,6 +373,7 @@ async function buildExport(
           eq(whatsappTemplatesTable.id, communicationsTable.templateId),
         )
         .leftJoin(usersTable, eq(usersTable.id, communicationsTable.userId))
+         .where(eq(communicationsTable.tenantId, tenantId))
         .orderBy(asc(communicationsTable.createdAt));
       return {
         headers: [
@@ -400,8 +409,10 @@ router.get("/admin/export/:entity.csv", async (req, res) => {
     res.status(400).json({ error: "نوع التصدير غير معروف.", code: "VALIDATION_ERROR" });
     return;
   }
-  const { headers, rows } = await buildExport(entity);
+  const tenantId = req.currentTenant!.id;
+  const { headers, rows } = await buildExport(entity, tenantId);
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "data_export",
     entityType: entity,

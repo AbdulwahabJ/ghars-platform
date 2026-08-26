@@ -1,12 +1,12 @@
 import { Router, type IRouter } from "express";
-import { applicationSettingsTable, db, usersTable } from "@workspace/db";
+import { applicationSettingsTable, db, tenantMembershipsTable, usersTable } from "@workspace/db";
 import {
   APP_SETTINGS_DEFAULTS,
   updateAppSettingsInputSchema,
   type AppSettings,
   type AppSettingsResponse,
 } from "@workspace/shared";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { writeAudit } from "../lib/audit";
 import { parseOrRespond } from "../lib/validation";
 import { requireAuth, requireRole } from "../middlewares/auth";
@@ -25,8 +25,11 @@ const SETTING_LABELS: Record<keyof AppSettings, string> = {
   clinicLogo: "شعار العيادة",
 };
 
-export async function loadAppSettings(): Promise<AppSettings> {
-  const rows = await db.select().from(applicationSettingsTable);
+export async function loadAppSettings(tenantId: string): Promise<AppSettings> {
+  const rows = await db
+    .select()
+    .from(applicationSettingsTable)
+    .where(eq(applicationSettingsTable.tenantId, tenantId));
   const map = new Map(rows.map((r) => [r.key, r.value]));
   const merged: Record<string, unknown> = { ...APP_SETTINGS_DEFAULTS };
   for (const key of Object.keys(APP_SETTINGS_DEFAULTS)) {
@@ -38,8 +41,8 @@ export async function loadAppSettings(): Promise<AppSettings> {
 }
 
 /* Any authenticated user needs clinic branding + form defaults. */
-router.get("/settings", requireAuth, async (_req, res) => {
-  const settings = await loadAppSettings();
+router.get("/settings", requireAuth, async (req, res) => {
+  const settings = await loadAppSettings(req.currentTenant!.id);
   const body: AppSettingsResponse = { settings };
   res.json(body);
 });
@@ -55,11 +58,19 @@ router.patch(
     // Referential check for the default follow-up assignee.
     if (input.defaultFollowupAssigneeUserId) {
       const [assignee] = await db
-        .select({ id: usersTable.id, isActive: usersTable.isActive })
+        .select({ id: usersTable.id })
         .from(usersTable)
-        .where(eq(usersTable.id, input.defaultFollowupAssigneeUserId))
+        .innerJoin(
+          tenantMembershipsTable,
+          and(
+            eq(tenantMembershipsTable.userId, usersTable.id),
+            eq(tenantMembershipsTable.tenantId, req.currentTenant!.id),
+            eq(tenantMembershipsTable.isActive, true),
+          ),
+        )
+        .where(and(eq(usersTable.id, input.defaultFollowupAssigneeUserId), eq(usersTable.isActive, true)))
         .limit(1);
-      if (!assignee || !assignee.isActive) {
+      if (!assignee) {
         res.status(422).json({
           error: "المستخدم المحدد كمسؤول افتراضي غير موجود أو غير نشط.",
           code: "INVALID_ASSIGNEE",
@@ -69,6 +80,7 @@ router.patch(
     }
 
     const user = req.currentUser!;
+    const tenantId = req.currentTenant!.id;
     const changedKeys = Object.keys(input) as (keyof AppSettings)[];
     await db.transaction(async (tx) => {
       for (const key of changedKeys) {
@@ -78,13 +90,14 @@ router.patch(
         await tx
           .insert(applicationSettingsTable)
           .values({
+            tenantId,
             key,
             value: jsonValue,
             updatedBy: user.id,
             updatedAt: new Date(),
           })
           .onConflictDoUpdate({
-            target: applicationSettingsTable.key,
+            target: [applicationSettingsTable.tenantId, applicationSettingsTable.key],
             set: {
               value: jsonValue,
               updatedBy: user.id,
@@ -94,6 +107,7 @@ router.patch(
       }
       await writeAudit(
         {
+          tenantId,
           userId: user.id,
           action: "settings_update",
           entityType: "settings",
@@ -107,7 +121,7 @@ router.patch(
       );
     });
 
-    const settings = await loadAppSettings();
+    const settings = await loadAppSettings(tenantId);
     const body: AppSettingsResponse = { settings };
     res.json(body);
   },

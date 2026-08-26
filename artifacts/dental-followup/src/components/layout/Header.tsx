@@ -9,7 +9,10 @@ import {
   Menu,
   Play,
   Info,
-  BookOpen
+  BookOpen,
+  Building2,
+  ShieldCheck,
+  CheckCircle2
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -24,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNotifications } from "@/hooks/use-followups";
 import { useAppSettings } from "@/hooks/use-settings";
-import { formatSaudiDateTime } from "@/lib/datetime";
+import { formatSaudiDateTime, formatSaudiDate } from "@/lib/datetime";
 import gharsSymbol from "@/assets/ghars-symbol.png";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useLocale } from "@/i18n/LocaleProvider";
@@ -36,16 +39,16 @@ interface HeaderProps {
 
 export function Header({ user }: HeaderProps) {
   const [location, setLocation] = useLocation();
-  const { logout } = useAuth();
+  const { logout, currentTenant, memberships, isPlatformAdmin, switchTenant } = useAuth();
   const { settings } = useAppSettings();
   const { data: notifications } = useNotifications();
-  const { t } = useTranslation("common");
+  const { t } = useTranslation(["common", "commercial"]);
   const { direction } = useLocale();
   const notificationItems = notifications?.items ?? [];
   const notificationCount = notifications?.totalCount ?? 0;
   const displaySystemName =
     settings.systemName === "نظام متابعة زراعة الأسنان – د. همام"
-      ? "غرس | Ghars"
+      ? (currentTenant?.name || "غرس | Ghars")
       : settings.systemName;
 
   const roleName =
@@ -191,18 +194,18 @@ export function Header({ user }: HeaderProps) {
                 </DropdownMenuTrigger>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{t("notifications.title")}</p>
+                <p>{t("common:notifications.title")}</p>
               </TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
               {notificationItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                   <Bell className="h-8 w-8 mb-2 opacity-20" />
-                  <p className="text-sm">{t("notifications.empty")}</p>
+                  <p className="text-sm">{t("common:notifications.empty")}</p>
                 </div>
               ) : (
                 <>
-                  <DropdownMenuLabel>{t("notifications.count", { count: notificationCount })}</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("common:notifications.count", { count: notificationCount })}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {notificationItems.map((item, idx) => (
                     <DropdownMenuItem
@@ -225,7 +228,7 @@ export function Header({ user }: HeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User Menu */}
+          {/* User Menu with Tenant Switcher */}
           <DropdownMenu dir={direction}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 px-2 hover:bg-muted">
@@ -240,15 +243,66 @@ export function Header({ user }: HeaderProps) {
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-64">
               <div className="px-2 py-1.5 sm:hidden">
                 <p className="text-sm font-medium leading-none text-foreground">{user.fullName}</p>
                 <p className="text-xs text-muted-foreground mt-1">{roleName}</p>
               </div>
               <DropdownMenuSeparator className="sm:hidden" />
+
+              {currentTenant && (
+                <div className="px-2 py-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    {t("commercial:header.tenant")}
+                  </div>
+                  <div className="bg-slate-50 p-2 rounded-md border border-slate-100 flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-brand-navy shrink-0" />
+                    <span className="text-sm font-medium truncate flex-1">{currentTenant.name}</span>
+                  </div>
+                  {currentTenant.status === 'TRIAL' && currentTenant.trialEndsAt && (
+                    <div className="mt-1.5 text-[11px] text-amber-600 font-medium">
+                      {t("commercial:header.trialEnds")} <span className="notranslate">{formatSaudiDate(currentTenant.trialEndsAt)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {memberships.length > 1 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{t("commercial:header.switchTenant")}</DropdownMenuLabel>
+                  {memberships.map((m) => (
+                    <DropdownMenuItem
+                      key={m.tenant.id}
+                      disabled={m.tenant.id === currentTenant?.id || switchTenant.isPending}
+                      className="cursor-pointer gap-2"
+                      onClick={() => switchTenant.mutate({ tenantId: m.tenant.id }, {
+                        onSuccess: () => {
+                          setLocation("/");
+                        }
+                      })}
+                    >
+                      {m.tenant.id === currentTenant?.id ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <div className="h-4 w-4" />}
+                      <span className="truncate flex-1">{m.tenant.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+
+              {isPlatformAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setLocation("/platform-admin")} className="cursor-pointer gap-2 text-emerald-600 focus:bg-emerald-50 focus:text-emerald-700">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>{t("commercial:header.platformAdmin")}</span>
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer gap-2 focus:bg-destructive/10 focus:text-destructive">
                 <LogOut className="h-4 w-4" />
-                <span>{t("actions.logout")}</span>
+                <span>{t("common:actions.logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

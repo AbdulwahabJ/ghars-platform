@@ -88,6 +88,23 @@ import type {
   UpdateUserInput,
   QuickEntryInput,
   QuickEntryResponse,
+  PublicRegistrationInput,
+  PublicRegistrationResponse,
+  EmailVerificationInput,
+  EmailVerificationResponse,
+  ResendVerificationInput,
+  ResendVerificationResponse,
+  SwitchTenantInput,
+  CommercialStatus,
+  CreateActivationRequestInput,
+  ActivationRequestResponse,
+  PlatformTenantListInput,
+  PlatformTenantListResponse,
+  PlatformTenantDetailResponse,
+  PlatformTenantActionResponse,
+  ExtendTrialInput,
+  ResolveActivationRequestInput,
+  ResolveActivationRequestResponse,
 } from "@workspace/shared";
 import i18n from "@/i18n";
 import { localizeApiErrorMessage } from "@/lib/localize-error";
@@ -172,6 +189,72 @@ export const api = {
     }),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
   me: () => request<MeResponse>("/auth/me"),
+  register: (input: PublicRegistrationInput) =>
+    request<PublicRegistrationResponse>("/auth/register", {
+      method: "POST",
+      json: input,
+    }),
+  verifyEmail: (input: EmailVerificationInput) =>
+    request<EmailVerificationResponse>("/auth/verify-email", {
+      method: "POST",
+      json: input,
+    }),
+  resendVerification: (input: ResendVerificationInput) =>
+    request<ResendVerificationResponse>("/auth/resend-verification", {
+      method: "POST",
+      json: input,
+    }),
+  switchTenant: (input: SwitchTenantInput) =>
+    request<MeResponse>("/auth/tenant", { method: "POST", json: input }),
+
+  // Commercial Lifecycle
+  getCommercialStatus: () => request<CommercialStatus>("/commercial/status"),
+  createActivationRequest: (input: CreateActivationRequestInput) =>
+    request<ActivationRequestResponse>("/commercial/activation-requests", {
+      method: "POST",
+      json: input,
+    }),
+
+  // Platform Admin
+  platformListTenants: (query: PlatformTenantListInput) => {
+    const params = new URLSearchParams();
+    if (query.status) params.set("status", query.status);
+    if (query.query) params.set("query", query.query);
+    if (query.page) params.set("page", String(query.page));
+    if (query.limit) params.set("limit", String(query.limit));
+    const qs = params.toString();
+    return request<PlatformTenantListResponse>(
+      `/platform-admin/tenants${qs ? `?${qs}` : ""}`
+    );
+  },
+  platformGetTenant: (id: string) =>
+    request<PlatformTenantDetailResponse>(`/platform-admin/tenants/${id}`),
+  platformActivateTenant: (id: string) =>
+    request<PlatformTenantActionResponse>(`/platform-admin/tenants/${id}/activate`, {
+      method: "POST",
+    }),
+  platformSuspendTenant: (id: string) =>
+    request<PlatformTenantActionResponse>(`/platform-admin/tenants/${id}/suspend`, {
+      method: "POST",
+    }),
+  platformReactivateTenant: (id: string) =>
+    request<PlatformTenantActionResponse>(`/platform-admin/tenants/${id}/reactivate`, {
+      method: "POST",
+    }),
+  platformExtendTrial: (id: string, input: ExtendTrialInput) =>
+    request<PlatformTenantActionResponse>(`/platform-admin/tenants/${id}/extend-trial`, {
+      method: "POST",
+      json: input,
+    }),
+  platformResolveActivationRequest: (
+    id: string,
+    action: "approve" | "reject",
+    input: ResolveActivationRequestInput
+  ) =>
+    request<ResolveActivationRequestResponse>(
+      `/platform-admin/activation-requests/${id}/${action}`,
+      { method: "POST", json: input }
+    ),
 
   // Preferences
   updatePreferences: (input: UpdatePreferencesInput) =>

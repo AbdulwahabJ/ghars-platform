@@ -4,6 +4,7 @@ import app from "../src/app";
 import { csvEscape } from "../src/lib/csv";
 import {
   agentFor,
+  attachUserToInternalTenant,
   freshAdminSession,
   login,
   makePool,
@@ -23,6 +24,7 @@ async function seedAssistant(username: string): Promise<TestAgent> {
      VALUES ($1, $2, $3, 'ASSISTANT')`,
     [username, bcrypt.hashSync(ASSISTANT_PASSWORD, 10), `مساعد ${username}`],
   );
+  await attachUserToInternalTenant(pool, username, "ASSISTANT");
   const agent = agentFor(app);
   await login(agent, username, ASSISTANT_PASSWORD);
   return agent;
@@ -194,7 +196,8 @@ describe("user management", () => {
     const relogin = await agentFor(app)
       .post("/api/auth/login")
       .send({ username: "leaving.user", password: "Leav1ngPass1234" });
-    expect(relogin.status).toBe(401);
+    expect(relogin.status).toBe(403);
+    expect(relogin.body.code).toBe("TENANT_ACCESS_REQUIRED");
     // Historical record still visible.
     const patient = await admin.get(`/api/patients/${patientId}`);
     expect(patient.status).toBe(200);

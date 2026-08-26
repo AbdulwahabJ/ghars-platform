@@ -50,7 +50,7 @@ type ResetFormInput = CompletePasswordResetInput & {
 export default function Login() {
   const [location, setLocation] = useLocation();
   const { login, user, setupStatus, isLoading } = useAuth();
-  const { t } = useTranslation("auth");
+  const { t } = useTranslation(["auth", "common"]);
   const { direction } = useLocale();
   const resetFormSchema = completePasswordResetInputSchema
     .extend({
@@ -60,11 +60,11 @@ export default function Login() {
       message: t("reset.passwordMismatch"),
       path: ["confirmPassword"],
     });
-  
+
   // Extract token from search params if we're on the reset route
   const searchParams = new URLSearchParams(window.location.search);
   const token = searchParams.get("token");
-  
+
   const isResetRoute = location === "/reset-password";
   const [view, setView] = useState<"login" | "forgot">("login");
   const [forgotSuccessMsg, setForgotSuccessMsg] = useState<string | null>(null);
@@ -117,20 +117,20 @@ export default function Login() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col md:flex-row bg-white" dir={direction}>
-      
+
       {/* Right Side Visually (First element in RTL) -> Form */}
       <div className="flex-1 flex flex-col items-center justify-start p-6 pt-28 sm:p-12 sm:pt-28 md:justify-center md:pt-12 relative z-10 bg-white order-2 md:order-1">
         <div className="absolute top-8 end-8">
           <LanguageSwitcher />
         </div>
-        
+
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="flex md:hidden flex-col items-center mb-10">
           <img src={gharsLogo} alt={t("login.logoAlt")} className="h-20 w-auto object-contain mb-4" />
         </div>
 
         <div className="w-full max-w-[500px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          
+
           {!isResetRoute && view === "login" && (
             <>
               <div className="space-y-2 text-center md:text-start">
@@ -181,8 +181,8 @@ export default function Login() {
                       <FormItem>
                         <div className="flex items-center justify-between">
                             <FormLabel className="text-[15px]">{t("login.password")}</FormLabel>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => {
                               setView("forgot");
                               forgotForm.reset();
@@ -239,14 +239,25 @@ export default function Login() {
                     <span>{t("login.or")}</span>
                    <span className="h-px flex-1 bg-slate-200" />
                  </div>
-                 <button
-                   type="button"
-                   onClick={() => setSupportMessage(true)}
-                   className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-[#67b8b4] bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-[#f2fbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67b8b4]/40"
-                 >
-                   <Headset className="h-[18px] w-[18px] text-[#5ca8a5]" aria-hidden="true" />
-                    {t("login.support")}
-                 </button>
+
+                 <div className="flex flex-col gap-3">
+                   <button
+                     type="button"
+                     onClick={() => setLocation("/register")}
+                     className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-brand-navy bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/40"
+                   >
+                     {t("common:actions.register", "إنشاء حساب جديد")}
+                   </button>
+
+                   <button
+                     type="button"
+                     onClick={() => setSupportMessage(true)}
+                     className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-[#67b8b4] bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-[#f2fbfa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67b8b4]/40"
+                   >
+                     <Headset className="h-[18px] w-[18px] text-[#5ca8a5]" aria-hidden="true" />
+                      {t("login.support")}
+                   </button>
+                 </div>
                  {supportMessage && (
                    <p className="text-center text-xs text-slate-500" role="status">
                       {t("login.supportSoon")}
@@ -267,8 +278,8 @@ export default function Login() {
           {!isResetRoute && view === "forgot" && (
             <>
               <div className="space-y-3 text-center md:text-start">
-                <button 
-                  onClick={() => setView("login")} 
+                <button
+                  onClick={() => setView("login")}
                   className="mb-6 flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                 >
                   <ArrowRight className="ms-1 h-4 w-4 rtl:rotate-180" />
@@ -434,7 +445,7 @@ export default function Login() {
           <p className="mt-2 font-brand-arabic text-[16px] tracking-[0.18em] text-[#5a769b]">تقنية . دقة . ثقة</p>
         </div>
       </div>
-      
+
     </div>
   );
 }

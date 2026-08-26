@@ -4,6 +4,15 @@ export const USER_ROLES = ["ADMIN", "DOCTOR", "ASSISTANT"] as const;
 export const userRoleSchema = z.enum(USER_ROLES);
 export type UserRole = z.infer<typeof userRoleSchema>;
 
+export const TENANT_STATUSES = [
+  "PENDING_VERIFICATION",
+  "TRIAL",
+  "ACTIVE",
+  "SUSPENDED",
+] as const;
+export const tenantStatusSchema = z.enum(TENANT_STATUSES);
+export type TenantStatus = z.infer<typeof tenantStatusSchema>;
+
 export const ONBOARDING_STATUSES = [
   "not_started",
   "completed",
@@ -39,11 +48,43 @@ export const preferencesSchema = z.object({
 });
 export type Preferences = z.infer<typeof preferencesSchema>;
 
+export const tenantSummarySchema = z.object({
+  id: z.string().uuid(),
+  referenceCode: z.string(),
+  name: z.string(),
+  locale: localeSchema,
+  status: tenantStatusSchema,
+  trialStartedAt: z.string().nullable(),
+  trialEndsAt: z.string().nullable(),
+  activatedAt: z.string().nullable(),
+  suspendedAt: z.string().nullable(),
+});
+export type TenantSummary = z.infer<typeof tenantSummarySchema>;
+
+export const tenantMembershipSummarySchema = z.object({
+  tenant: tenantSummarySchema,
+  role: userRoleSchema,
+  isActive: z.boolean(),
+  canViewFinancialsOverride: z.boolean().nullable(),
+  canRecordPaymentsOverride: z.boolean().nullable(),
+});
+export type TenantMembershipSummary = z.infer<
+  typeof tenantMembershipSummarySchema
+>;
+
 export const meResponseSchema = z.object({
   user: publicUserSchema,
   preferences: preferencesSchema,
+  currentTenant: tenantSummarySchema.nullable(),
+  memberships: z.array(tenantMembershipSummarySchema),
+  isPlatformAdmin: z.boolean(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
+
+export const switchTenantInputSchema = z.object({
+  tenantId: z.string().uuid(),
+});
+export type SwitchTenantInput = z.infer<typeof switchTenantInputSchema>;
 
 export const loginInputSchema = z.object({
   username: z.string().trim().min(1, "يرجى إدخال اسم المستخدم."),

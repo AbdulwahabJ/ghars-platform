@@ -39,11 +39,12 @@ const REDO_IMPLANT_STATUS = "تحتاج إعادة";
 const LIST_LIMIT = 8;
 
 function financeViewAllowed(req: {
-  currentUser?: { role: string } & Parameters<typeof effectivePermissions>[0];
+  currentMembership?: Parameters<typeof effectivePermissions>[0];
 }): boolean {
-  const user = req.currentUser;
-  if (!user) return false;
-  return user.role === "ADMIN" || effectivePermissions(user).canViewFinancials;
+  const membership = req.currentMembership;
+  if (!membership) return false;
+  return membership.role === "ADMIN" ||
+    effectivePermissions(membership).canViewFinancials;
 }
 
 /** Riyadh calendar date of "now" (fixed UTC+03, no DST). */
@@ -69,25 +70,26 @@ function escapeLike(value: string): string {
 /* ------------------------------------------------------------------ */
 
 router.get("/dashboard", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const today = riyadhToday();
   const monthStart = `${today.slice(0, 7)}-01`;
   const closed = CLOSED_FOLLOWUP_STATUSES as readonly string[];
 
   const kpiQuery = db.execute(sql`
     SELECT
-      (SELECT count(*) FROM patients WHERE archived_at IS NULL) AS "activePatients",
+       (SELECT count(*) FROM patients WHERE archived_at IS NULL AND tenant_id = ${tenantId}) AS "activePatients",
       (SELECT count(*) FROM implant_cases ic
         JOIN patients p ON p.id = ic.patient_id
-        WHERE ic.archived_at IS NULL AND p.archived_at IS NULL) AS "activeCases",
+        WHERE ic.archived_at IS NULL AND p.archived_at IS NULL AND ic.tenant_id = ${tenantId}) AS "activeCases",
       (SELECT count(*) FROM implants i
         JOIN implant_cases ic ON ic.id = i.implant_case_id
         JOIN patients p ON p.id = ic.patient_id
         WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-          AND p.archived_at IS NULL) AS "activeImplants",
+          AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}) AS "activeImplants",
       (SELECT count(*) FROM followups f
         JOIN implant_cases fc ON fc.id = f.implant_case_id
         JOIN patients p ON p.id = f.patient_id
-        WHERE p.archived_at IS NULL AND fc.archived_at IS NULL
+        WHERE p.archived_at IS NULL AND fc.archived_at IS NULL AND f.tenant_id = ${tenantId}
           AND f.followup_status = ${OPEN_FOLLOWUP_STATUS}
           AND f.scheduled_at IS NOT NULL
           AND (f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date = ${today}::date
@@ -95,26 +97,26 @@ router.get("/dashboard", async (req, res) => {
       (SELECT count(*) FROM followups f
         JOIN implant_cases fc ON fc.id = f.implant_case_id
         JOIN patients p ON p.id = f.patient_id
-        WHERE p.archived_at IS NULL AND fc.archived_at IS NULL
+        WHERE p.archived_at IS NULL AND fc.archived_at IS NULL AND f.tenant_id = ${tenantId}
           AND f.followup_status = ${OPEN_FOLLOWUP_STATUS}
           AND f.scheduled_at IS NOT NULL
           AND (f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date < ${today}::date
         ) AS "overdueFollowups",
       (SELECT count(*) FROM implant_cases ic
         JOIN patients p ON p.id = ic.patient_id
-        WHERE ic.archived_at IS NULL AND p.archived_at IS NULL
+        WHERE ic.archived_at IS NULL AND p.archived_at IS NULL AND ic.tenant_id = ${tenantId}
           AND ic.case_status = ${READY_CASE_STATUS}) AS "readyCases",
       (SELECT count(*) FROM implants i
         JOIN implant_cases ic ON ic.id = i.implant_case_id
         JOIN patients p ON p.id = ic.patient_id
         WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-          AND p.archived_at IS NULL
+          AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
           AND i.implant_status IN (${FAILED_IMPLANT_STATUS}, ${REDO_IMPLANT_STATUS})
         ) AS "failedOrRedoImplants",
       (SELECT count(*) FROM followups f
         JOIN implant_cases fc ON fc.id = f.implant_case_id
         JOIN patients p ON p.id = f.patient_id
-        WHERE p.archived_at IS NULL AND fc.archived_at IS NULL
+        WHERE p.archived_at IS NULL AND fc.archived_at IS NULL AND f.tenant_id = ${tenantId}
           AND f.requires_contact = true
           AND f.contact_due_at IS NOT NULL
           AND (f.contact_due_at AT TIME ZONE 'Asia/Riyadh')::date <= ${today}::date
@@ -134,7 +136,8 @@ router.get("/dashboard", async (req, res) => {
       JOIN implant_cases fc ON fc.id = f.implant_case_id
       JOIN patients p ON p.id = f.patient_id
       LEFT JOIN users u ON u.id = f.assigned_user_id
-      WHERE p.archived_at IS NULL AND fc.archived_at IS NULL ${extra}
+       WHERE p.archived_at IS NULL AND fc.archived_at IS NULL
+         AND f.tenant_id = ${tenantId} ${extra}
       ORDER BY ${order}
       LIMIT ${LIST_LIMIT}
     `);
@@ -146,21 +149,21 @@ router.get("/dashboard", async (req, res) => {
        JOIN implant_cases ic ON ic.id = i.implant_case_id
        JOIN patients p ON p.id = ic.patient_id
        WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
          AND ic.procedure_date = ${today}::date) AS "todayImplantedPatients",
       (SELECT count(*)
        FROM implants i
        JOIN implant_cases ic ON ic.id = i.implant_case_id
        JOIN patients p ON p.id = ic.patient_id
        WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
          AND ic.procedure_date = ${today}::date) AS "todayImplants",
       (SELECT count(DISTINCT NULLIF(btrim(i.system), ''))
        FROM implants i
        JOIN implant_cases ic ON ic.id = i.implant_case_id
        JOIN patients p ON p.id = ic.patient_id
        WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
          AND ic.procedure_date = ${today}::date) AS "todaySystemCount",
       (SELECT COALESCE(array_agg(DISTINCT i.system) FILTER (
           WHERE NULLIF(btrim(i.system), '') IS NOT NULL
@@ -169,7 +172,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN implant_cases ic ON ic.id = i.implant_case_id
        JOIN patients p ON p.id = ic.patient_id
        WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
          AND ic.procedure_date = ${today}::date) AS "todaySystemNames",
       (SELECT count(DISTINCT ic.patient_id)
        FROM prosthetic_events pe
@@ -177,7 +180,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN patients p ON p.id = ic.patient_id
        LEFT JOIN implants i ON i.id = pe.implant_id
        WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND pe.tenant_id = ${tenantId}
          AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
          AND pe.event_date = ${today}::date) AS "todayProstheticPatients",
       (SELECT count(*)
@@ -186,7 +189,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN patients p ON p.id = ic.patient_id
        LEFT JOIN implants i ON i.id = pe.implant_id
        WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND pe.tenant_id = ${tenantId}
          AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
          AND pe.event_date = ${today}::date) AS "todayCompletedProsthetics",
       (SELECT count(DISTINCT p.id)
@@ -194,7 +197,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN implant_cases ic ON ic.id = i.implant_case_id
        JOIN patients p ON p.id = ic.patient_id
        WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
          AND ic.procedure_date >= ${monthStart}::date
          AND ic.procedure_date <= ${today}::date) AS "monthImplantedPatients",
       (SELECT count(*)
@@ -202,7 +205,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN implant_cases ic ON ic.id = i.implant_case_id
        JOIN patients p ON p.id = ic.patient_id
        WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
          AND ic.procedure_date >= ${monthStart}::date
          AND ic.procedure_date <= ${today}::date) AS "monthImplants",
       (SELECT count(DISTINCT NULLIF(btrim(i.system), ''))
@@ -210,7 +213,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN implant_cases ic ON ic.id = i.implant_case_id
        JOIN patients p ON p.id = ic.patient_id
        WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
          AND ic.procedure_date >= ${monthStart}::date
          AND ic.procedure_date <= ${today}::date) AS "monthSystemCount",
       (SELECT COALESCE(array_agg(DISTINCT i.system) FILTER (
@@ -220,7 +223,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN implant_cases ic ON ic.id = i.implant_case_id
        JOIN patients p ON p.id = ic.patient_id
        WHERE i.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND i.tenant_id = ${tenantId}
          AND ic.procedure_date >= ${monthStart}::date
          AND ic.procedure_date <= ${today}::date) AS "monthSystemNames",
       (SELECT count(DISTINCT ic.patient_id)
@@ -229,7 +232,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN patients p ON p.id = ic.patient_id
        LEFT JOIN implants i ON i.id = pe.implant_id
        WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND pe.tenant_id = ${tenantId}
          AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
          AND pe.event_date >= ${monthStart}::date
          AND pe.event_date <= ${today}::date) AS "monthProstheticPatients",
@@ -239,7 +242,7 @@ router.get("/dashboard", async (req, res) => {
        JOIN patients p ON p.id = ic.patient_id
        LEFT JOIN implants i ON i.id = pe.implant_id
        WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
-         AND p.archived_at IS NULL
+         AND p.archived_at IS NULL AND pe.tenant_id = ${tenantId}
          AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
          AND pe.event_date >= ${monthStart}::date
          AND pe.event_date <= ${today}::date) AS "monthCompletedProsthetics"
@@ -267,7 +270,8 @@ router.get("/dashboard", async (req, res) => {
                ic.updated_at AS at, NULL AS "assignedUserName"
         FROM implant_cases ic
         JOIN patients p ON p.id = ic.patient_id
-        WHERE ic.archived_at IS NULL AND p.archived_at IS NULL
+         WHERE ic.archived_at IS NULL AND p.archived_at IS NULL
+           AND ic.tenant_id = ${tenantId}
           AND ic.case_status = ${READY_CASE_STATUS}
         ORDER BY ic.updated_at DESC
         LIMIT ${LIST_LIMIT}
@@ -284,9 +288,10 @@ router.get("/dashboard", async (req, res) => {
       ),
       db.execute(sql`
         SELECT a.action, a.summary, u.full_name AS "userName", a.created_at AS "createdAt"
-        FROM audit_logs a
+         FROM audit_logs a
         LEFT JOIN users u ON u.id = a.user_id
-        ORDER BY a.created_at DESC
+         WHERE a.tenant_id = ${tenantId}
+         ORDER BY a.created_at DESC
         LIMIT ${LIST_LIMIT}
       `),
     ]);
@@ -304,9 +309,10 @@ router.get("/dashboard", async (req, res) => {
         JOIN patients p ON p.id = ic.patient_id
         WHERE pay.voided_at IS NULL
           AND ic.archived_at IS NULL AND p.archived_at IS NULL
+           AND pay.tenant_id = ${tenantId}
           AND pay.payment_date >= ${monthStart} AND pay.payment_date <= ${today}
       `),
-      loadCaseFinancials({}),
+      loadCaseFinancials({}, tenantId),
     ]);
     const collectedCents = toCents(
       Number((collectedRows.rows[0] as { total: string }).total),
@@ -390,7 +396,7 @@ router.get("/dashboard", async (req, res) => {
  * value date (procedure date, falling back to the Riyadh creation date — the
  * same definition used by the finance module) falls inside [from, to].
  */
-function caseFilterFragment(filters: ReportFilters) {
+function caseFilterFragment(filters: ReportFilters, tenantId: string) {
   const search = filters.search ? toEnglishDigits(filters.search).trim() : "";
   const searchName = search ? normalizeArabicSearchText(search) : "";
   const searchDigits = search.replace(/\D/g, "");
@@ -423,7 +429,8 @@ function caseFilterFragment(filters: ReportFilters) {
       : sql``;
 
   return sql`
-    ic.archived_at IS NULL
+    ic.tenant_id = ${tenantId}
+    AND ic.archived_at IS NULL
     AND p.archived_at IS NULL
     AND COALESCE(ic.procedure_date::text,
         (ic.created_at AT TIME ZONE 'Asia/Riyadh')::date::text)
@@ -482,6 +489,7 @@ async function buildStatisticsHub(
   where: ReturnType<typeof sql>,
   grouping: "day" | "month",
   includeFinancials: boolean,
+  tenantId: string,
 ): Promise<StatisticsHub> {
   const followupBucketExpr = grouping === "day"
     ? sql`(f.scheduled_at AT TIME ZONE 'Asia/Riyadh')::date::text`
@@ -604,7 +612,7 @@ async function buildStatisticsHub(
              count(DISTINCT p.id) AS count
       FROM patients p
       JOIN implant_cases ic ON ic.patient_id = p.id
-      WHERE p.archived_at IS NULL
+       WHERE p.archived_at IS NULL AND p.tenant_id = ${tenantId}
         AND (p.created_at AT TIME ZONE 'Asia/Riyadh')::date
             BETWEEN ${filters.from} AND ${filters.to}
         AND ${where}
@@ -757,7 +765,7 @@ async function buildStatisticsHub(
       FROM communications c
       JOIN patients p ON p.id = c.patient_id
       LEFT JOIN implant_cases ic ON ic.id = c.implant_case_id
-      WHERE p.archived_at IS NULL
+       WHERE p.archived_at IS NULL AND c.tenant_id = ${tenantId}
         AND (ic.id IS NULL OR ${where})
         AND (c.created_at AT TIME ZONE 'Asia/Riyadh')::date
             BETWEEN ${filters.from} AND ${filters.to}
@@ -767,7 +775,7 @@ async function buildStatisticsHub(
       FROM communications c
       JOIN patients p ON p.id = c.patient_id
       LEFT JOIN implant_cases ic ON ic.id = c.implant_case_id
-      WHERE p.archived_at IS NULL
+       WHERE p.archived_at IS NULL AND c.tenant_id = ${tenantId}
         AND (ic.id IS NULL OR ${where})
         AND (c.created_at AT TIME ZONE 'Asia/Riyadh')::date
             BETWEEN ${filters.from} AND ${filters.to}
@@ -778,7 +786,7 @@ async function buildStatisticsHub(
       FROM communications c
       JOIN patients p ON p.id = c.patient_id
       LEFT JOIN implant_cases ic ON ic.id = c.implant_case_id
-      WHERE p.archived_at IS NULL
+       WHERE p.archived_at IS NULL AND c.tenant_id = ${tenantId}
         AND (ic.id IS NULL OR ${where})
         AND (c.created_at AT TIME ZONE 'Asia/Riyadh')::date
             BETWEEN ${filters.from} AND ${filters.to}
@@ -790,7 +798,7 @@ async function buildStatisticsHub(
       FROM communications c
       JOIN patients p ON p.id = c.patient_id
       LEFT JOIN implant_cases ic ON ic.id = c.implant_case_id
-      WHERE p.archived_at IS NULL
+       WHERE p.archived_at IS NULL AND c.tenant_id = ${tenantId}
         AND (ic.id IS NULL OR ${where})
         AND (c.created_at AT TIME ZONE 'Asia/Riyadh')::date
             BETWEEN ${filters.from} AND ${filters.to}
@@ -1015,7 +1023,8 @@ router.get("/statistics", async (req, res) => {
   const filters = parseOrRespond(reportFiltersSchema, req.query, res);
   if (!filters) return;
   const grouping = rangeGrouping(filters);
-  const where = caseFilterFragment(filters);
+  const tenantId = req.currentTenant!.id;
+  const where = caseFilterFragment(filters, tenantId);
   const bucketExpr =
     grouping === "day"
       ? sql`COALESCE(ic.procedure_date::text, (ic.created_at AT TIME ZONE 'Asia/Riyadh')::date::text)`
@@ -1101,9 +1110,10 @@ router.get("/statistics", async (req, res) => {
         SELECT DISTINCT ic.treating_doctor AS name
         FROM implant_cases ic JOIN patients p ON p.id = ic.patient_id
         WHERE ic.archived_at IS NULL AND p.archived_at IS NULL
+          AND ic.tenant_id = ${tenantId}
         ORDER BY 1
       `),
-      buildStatisticsHub(filters, where, grouping, financeViewAllowed(req)),
+      buildStatisticsHub(filters, where, grouping, financeViewAllowed(req), tenantId),
     ]);
 
   const bucketMap = new Map<string, { cases: number; implants: number }>();
@@ -1151,6 +1161,7 @@ router.get("/statistics", async (req, res) => {
 async function buildOperationalRows(
   filters: ReportFilters,
   includeFinance: boolean,
+  tenantId: string,
 ): Promise<OperationalRow[]> {
   const today = riyadhToday();
   const rows = await db.execute(sql`
@@ -1205,7 +1216,7 @@ async function buildOperationalRows(
         ) AS "isOverdue"
     FROM implant_cases ic
     JOIN patients p ON p.id = ic.patient_id
-    WHERE ${caseFilterFragment(filters)}
+    WHERE ${caseFilterFragment(filters, tenantId)}
     ORDER BY ic.created_at DESC, p.full_name ASC
   `);
 
@@ -1214,8 +1225,11 @@ async function buildOperationalRows(
     { finalCents: number; paidCents: number; status: string }
   >();
   if (includeFinance) {
-    for (const c of await loadCaseFinancials({})) {
-      financeByCase.set(c.id, c);
+    const rowsCaseIds = new Set(
+      (rows.rows as Array<Record<string, unknown>>).map((row) => String(row.caseId)),
+    );
+    for (const c of await loadCaseFinancials({}, tenantId)) {
+      if (rowsCaseIds.has(c.id)) financeByCase.set(c.id, c);
     }
   }
 
@@ -1260,7 +1274,7 @@ router.get("/reports/operational", async (req, res) => {
   const filters = parseOrRespond(reportFiltersSchema, req.query, res);
   if (!filters) return;
   const includeFinance = financeViewAllowed(req);
-  const rows = await buildOperationalRows(filters, includeFinance);
+  const rows = await buildOperationalRows(filters, includeFinance, req.currentTenant!.id);
   const response: OperationalReportResponse = {
     rows,
     financialsIncluded: includeFinance,
@@ -1275,7 +1289,7 @@ router.get("/reports/operational/export.csv", async (req, res) => {
   const filters = parseOrRespond(reportFiltersSchema, req.query, res);
   if (!filters) return;
   const includeFinance = financeViewAllowed(req);
-  const rows = await buildOperationalRows(filters, includeFinance);
+  const rows = await buildOperationalRows(filters, includeFinance, req.currentTenant!.id);
 
   const headers = [
     "المريض",
@@ -1325,6 +1339,7 @@ router.get("/reports/operational/export.csv", async (req, res) => {
   const csv = "\uFEFF" + [headers.join(","), ...lines].join("\r\n");
 
   await writeAudit({
+    tenantId: req.currentTenant!.id,
     userId: req.currentUser?.id,
     action: "report_export",
     entityType: "report",

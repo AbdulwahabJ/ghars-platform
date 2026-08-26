@@ -12,6 +12,7 @@ import {
 import { implantCasesTable } from "./implant-cases";
 import { implantsTable } from "./implants";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * Additional charges — separate transactions (never merged into the base
@@ -23,6 +24,9 @@ export const caseChargesTable = pgTable(
   "case_charges",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
@@ -38,6 +42,7 @@ export const caseChargesTable = pgTable(
       .defaultNow(),
   },
   (table) => [
+    index("IDX_case_charges_tenant_id").on(table.tenantId),
     index("IDX_case_charges_case_id").on(table.implantCaseId),
     check("CHK_case_charges_amount_non_negative", sql`${table.amount} >= 0`),
   ],

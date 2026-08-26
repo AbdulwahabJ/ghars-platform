@@ -69,34 +69,34 @@ function toDto(row: BoneGraftProcedureRow): BoneGraftProcedure {
   };
 }
 
-async function findCase(id: string) {
+async function findCase(id: string, tenantId: string) {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(implantCasesTable)
-    .where(eq(implantCasesTable.id, id))
+    .where(and(eq(implantCasesTable.id, id), eq(implantCasesTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
 
-async function findProcedure(id: string) {
+async function findProcedure(id: string, tenantId: string) {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(boneGraftProceduresTable)
-    .where(eq(boneGraftProceduresTable.id, id))
+    .where(and(eq(boneGraftProceduresTable.id, id), eq(boneGraftProceduresTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
 
-async function ensureWritableCase(caseId: string) {
-  const parentCase = await findCase(caseId);
+async function ensureWritableCase(caseId: string, tenantId: string) {
+  const parentCase = await findCase(caseId, tenantId);
   if (!parentCase) return { error: CASE_NOT_FOUND_BODY } as const;
   if (parentCase.archivedAt) return { error: CASE_ARCHIVED_BODY } as const;
   const [patient] = await db
     .select({ archivedAt: patientsTable.archivedAt })
     .from(patientsTable)
-    .where(eq(patientsTable.id, parentCase.patientId))
+    .where(and(eq(patientsTable.id, parentCase.patientId), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   if (patient?.archivedAt) return { error: PATIENT_ARCHIVED_BODY } as const;
   return { parentCase } as const;
@@ -105,6 +105,7 @@ async function ensureWritableCase(caseId: string) {
 async function validLinkedImplant(
   implantId: string | null,
   implantCaseId: string,
+  tenantId: string,
 ): Promise<boolean> {
   if (!implantId) return true;
   const [implant] = await db
@@ -114,6 +115,7 @@ async function validLinkedImplant(
       and(
         eq(implantsTable.id, implantId),
         eq(implantsTable.implantCaseId, implantCaseId),
+        eq(implantsTable.tenantId, tenantId),
         isNull(implantsTable.archivedAt),
       ),
     )
@@ -129,7 +131,8 @@ function invalidLinkedImplant(res: import("express").Response) {
 }
 
 router.post("/implant-cases/:caseId/bone-graft-procedures", async (req, res) => {
-  const writable = await ensureWritableCase(String(req.params.caseId));
+  const tenantId = req.currentTenant!.id;
+  const writable = await ensureWritableCase(String(req.params.caseId), tenantId);
   if ("error" in writable) {
     const error = writable.error!;
     res.status(error.code === CASE_NOT_FOUND ? 404 : 409).json(error);
@@ -137,7 +140,7 @@ router.post("/implant-cases/:caseId/bone-graft-procedures", async (req, res) => 
   }
   const input = parseOrRespond(boneGraftProcedureInputSchema, req.body, res);
   if (!input) return;
-  if (!(await validLinkedImplant(input.implantId, writable.parentCase.id))) {
+  if (!(await validLinkedImplant(input.implantId, writable.parentCase.id, tenantId))) {
     invalidLinkedImplant(res);
     return;
   }
@@ -145,6 +148,7 @@ router.post("/implant-cases/:caseId/bone-graft-procedures", async (req, res) => 
   const [row] = await db
     .insert(boneGraftProceduresTable)
     .values({
+        tenantId,
       implantCaseId: writable.parentCase.id,
       ...input,
       createdBy: req.currentUser!.id,
@@ -152,6 +156,7 @@ router.post("/implant-cases/:caseId/bone-graft-procedures", async (req, res) => 
     })
     .returning();
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "bone_graft_procedure_create",
     entityType: "bone_graft_procedure",
@@ -162,7 +167,8 @@ router.post("/implant-cases/:caseId/bone-graft-procedures", async (req, res) => 
 });
 
 router.patch("/bone-graft-procedures/:id", async (req, res) => {
-  const existing = await findProcedure(String(req.params.id));
+  const tenantId = req.currentTenant!.id;
+  const existing = await findProcedure(String(req.params.id), tenantId);
   if (!existing) {
     res.status(404).json(PROCEDURE_NOT_FOUND_BODY);
     return;
@@ -174,7 +180,7 @@ router.patch("/bone-graft-procedures/:id", async (req, res) => {
     });
     return;
   }
-  const writable = await ensureWritableCase(existing.implantCaseId);
+  const writable = await ensureWritableCase(existing.implantCaseId, tenantId);
   if ("error" in writable) {
     const error = writable.error!;
     res.status(error.code === CASE_NOT_FOUND ? 404 : 409).json(error);
@@ -192,7 +198,7 @@ router.patch("/bone-graft-procedures/:id", async (req, res) => {
     res.status(400).json({ error: mergedInput.error.issues[0]?.message ?? "بيانات الإجراء غير صحيحة." });
     return;
   }
-  if (!(await validLinkedImplant(implantId, existing.implantCaseId))) {
+  if (!(await validLinkedImplant(implantId, existing.implantCaseId, tenantId))) {
     invalidLinkedImplant(res);
     return;
   }
@@ -200,9 +206,10 @@ router.patch("/bone-graft-procedures/:id", async (req, res) => {
   const [row] = await db
     .update(boneGraftProceduresTable)
     .set({ ...updates, updatedBy: req.currentUser!.id, updatedAt: new Date() })
-    .where(eq(boneGraftProceduresTable.id, existing.id))
+    .where(and(eq(boneGraftProceduresTable.id, existing.id), eq(boneGraftProceduresTable.tenantId, tenantId)))
     .returning();
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "bone_graft_procedure_update",
     entityType: "bone_graft_procedure",
@@ -217,7 +224,8 @@ router.post(
   "/bone-graft-procedures/:id/archive",
   requireRole("ADMIN", "DOCTOR"),
   async (req, res) => {
-    const existing = await findProcedure(String(req.params.id));
+    const tenantId = req.currentTenant!.id;
+    const existing = await findProcedure(String(req.params.id), tenantId);
     if (!existing) {
       res.status(404).json(PROCEDURE_NOT_FOUND_BODY);
       return;
@@ -226,7 +234,7 @@ router.post(
       res.json({ procedure: toDto(existing) });
       return;
     }
-    const writable = await ensureWritableCase(existing.implantCaseId);
+    const writable = await ensureWritableCase(existing.implantCaseId, tenantId);
     if ("error" in writable) {
       const error = writable.error!;
       res.status(error.code === CASE_NOT_FOUND ? 404 : 409).json(error);
@@ -242,6 +250,7 @@ router.post(
       .where(
         and(
           eq(boneGraftProceduresTable.id, existing.id),
+          eq(boneGraftProceduresTable.tenantId, tenantId),
           isNull(boneGraftProceduresTable.archivedAt),
         ),
       )
@@ -251,6 +260,7 @@ router.post(
       return;
     }
     await writeAudit({
+      tenantId,
       userId: req.currentUser!.id,
       action: "bone_graft_procedure_archive",
       entityType: "bone_graft_procedure",

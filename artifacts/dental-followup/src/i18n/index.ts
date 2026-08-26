@@ -3,6 +3,7 @@ import { initReactI18next } from "react-i18next";
 
 import arCommon from "./locales/ar/common";
 import arAuth from "./locales/ar/auth";
+import arCommercial from "./locales/ar/commercial";
 import arErrors from "./locales/ar/errors";
 import arValidation from "./locales/ar/validation";
 import arOperations from "./locales/ar/operations";
@@ -14,6 +15,7 @@ import arStatistics from "./locales/ar/statistics";
 import arEnums from "./locales/ar/enums";
 import enCommon from "./locales/en/common";
 import enAuth from "./locales/en/auth";
+import enCommercial from "./locales/en/commercial";
 import enErrors from "./locales/en/errors";
 import enValidation from "./locales/en/validation";
 import enOperations from "./locales/en/operations";
@@ -39,6 +41,7 @@ export const resources = {
   ar: {
     common: arCommon,
     auth: arAuth,
+    commercial: arCommercial,
     errors: arErrors,
     validation: arValidation,
     operations: arOperations,
@@ -52,6 +55,7 @@ export const resources = {
   en: {
     common: enCommon,
     auth: enAuth,
+    commercial: enCommercial,
     errors: enErrors,
     validation: enValidation,
     operations: enOperations,
@@ -70,7 +74,7 @@ void i18n.use(initReactI18next).init({
   fallbackLng: DEFAULT_LOCALE,
   supportedLngs: SUPPORTED_LOCALES,
   defaultNS: "common",
-  ns: ["common", "auth", "errors", "validation", "operations", "clinical", "admin", "guidance", "quickEntry", "statistics", "enums"],
+  ns: ["common", "auth", "commercial", "errors", "validation", "operations", "clinical", "admin", "guidance", "quickEntry", "statistics", "enums"],
   interpolation: { escapeValue: false },
   returnNull: false,
   missingKeyHandler: (_lngs, _ns, key) => {

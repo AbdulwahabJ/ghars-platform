@@ -17,3 +17,4 @@
 - [i18n namespace registration](i18n-namespace-registration.md) — register plain locale resources centrally at startup; do not add bundles from component render paths.
 - [Locale direction ownership](locale-direction-ownership.md) — locale provider owns RTL/LTR; avoid feature-level forced directions so flex layouts and overlays flip together.
 - [Operational localization namespaces](operational-localization-namespaces.md) — dashboard workflow chrome belongs to operations; retain guidance only for legacy help and explicitly verify rendered keys.
+- [Tenant membership authority](tenant-membership-authority.md) — roles, overrides, activity, assignment, and sessions are tenant-membership concerns; global users are identity only.

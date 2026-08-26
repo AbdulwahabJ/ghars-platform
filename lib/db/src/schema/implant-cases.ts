@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { patientsTable } from "./patients";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * Implant cases. Money is numeric(12,2) — never floats.
@@ -23,6 +24,9 @@ export const implantCasesTable = pgTable(
   "implant_cases",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     patientId: uuid("patient_id")
       .notNull()
       .references(() => patientsTable.id),
@@ -56,6 +60,7 @@ export const implantCasesTable = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
+    index("IDX_implant_cases_tenant_id").on(table.tenantId),
     index("IDX_implant_cases_patient_id").on(table.patientId),
     check(
       "CHK_implant_cases_base_amount_non_negative",

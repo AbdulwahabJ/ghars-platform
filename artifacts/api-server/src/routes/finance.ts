@@ -12,6 +12,7 @@ import {
   patientsTable,
   paymentsTable,
   usersTable,
+  tenantMembershipsTable,
   type CaseChargeRow,
   type CaseDiscountRow,
   type ImplantCaseRow,
@@ -90,8 +91,8 @@ const FORBIDDEN_FINANCIAL_BODY = {
 
 /** Full financial access: ADMIN, or any user with the view permission. */
 function requireFinanceView(req: Request, res: Response, next: NextFunction) {
-  const user = req.currentUser!;
-  if (user.role === "ADMIN" || effectivePermissions(user).canViewFinancials) {
+  const membership = req.currentMembership!;
+  if (membership.role === "ADMIN" || effectivePermissions(membership).canViewFinancials) {
     next();
     return;
   }
@@ -104,9 +105,9 @@ function requireCaseFinanceRead(
   res: Response,
   next: NextFunction,
 ) {
-  const user = req.currentUser!;
-  const perms = effectivePermissions(user);
-  if (user.role === "ADMIN" || perms.canViewFinancials || perms.canRecordPayments) {
+  const membership = req.currentMembership!;
+  const perms = effectivePermissions(membership);
+  if (membership.role === "ADMIN" || perms.canViewFinancials || perms.canRecordPayments) {
     next();
     return;
   }
@@ -119,8 +120,8 @@ function requireRecordPayments(
   res: Response,
   next: NextFunction,
 ) {
-  const user = req.currentUser!;
-  if (user.role === "ADMIN" || effectivePermissions(user).canRecordPayments) {
+  const membership = req.currentMembership!;
+  if (membership.role === "ADMIN" || effectivePermissions(membership).canRecordPayments) {
     next();
     return;
   }
@@ -136,10 +137,11 @@ function requireRecordPayments(
  * ASSISTANT never gains this from the payment-recording permission.
  */
 function requireFinanceManage(req: Request, res: Response, next: NextFunction) {
-  const user = req.currentUser!;
+  const membership = req.currentMembership!;
   const allowed =
-    user.role === "ADMIN" ||
-    (user.role === "DOCTOR" && effectivePermissions(user).canViewFinancials);
+    membership.role === "ADMIN" ||
+    (membership.role === "DOCTOR" &&
+      effectivePermissions(membership).canViewFinancials);
   if (allowed) {
     next();
     return;
@@ -151,21 +153,21 @@ function requireFinanceManage(req: Request, res: Response, next: NextFunction) {
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-async function findCase(id: string): Promise<ImplantCaseRow | undefined> {
+async function findCase(id: string, tenantId: string): Promise<ImplantCaseRow | undefined> {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(implantCasesTable)
-    .where(eq(implantCasesTable.id, id))
+    .where(and(eq(implantCasesTable.id, id), eq(implantCasesTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
 
-async function isPatientArchived(patientId: string): Promise<boolean> {
+async function isPatientArchived(patientId: string, tenantId: string): Promise<boolean> {
   const [row] = await db
     .select({ archivedAt: patientsTable.archivedAt })
     .from(patientsTable)
-    .where(eq(patientsTable.id, patientId))
+    .where(and(eq(patientsTable.id, patientId), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   return Boolean(row?.archivedAt);
 }
@@ -173,9 +175,10 @@ async function isPatientArchived(patientId: string): Promise<boolean> {
 /** Blocks financial writes on archived cases or archived patient files. */
 async function guardWritableCase(
   caseId: string,
+  tenantId: string,
   res: Response,
 ): Promise<ImplantCaseRow | undefined> {
-  const row = await findCase(caseId);
+  const row = await findCase(caseId, tenantId);
   if (!row) {
     res.status(404).json(CASE_NOT_FOUND_BODY);
     return undefined;
@@ -184,7 +187,7 @@ async function guardWritableCase(
     res.status(409).json(CASE_ARCHIVED_BODY);
     return undefined;
   }
-  if (await isPatientArchived(row.patientId)) {
+  if (await isPatientArchived(row.patientId, tenantId)) {
     res.status(409).json(PATIENT_ARCHIVED_BODY);
     return undefined;
   }
@@ -192,13 +195,21 @@ async function guardWritableCase(
 }
 
 /** Batch-resolve user full names for DTO display fields. */
-async function userNames(ids: Array<string | null>): Promise<Map<string, string>> {
+async function userNames(ids: Array<string | null>, tenantId: string): Promise<Map<string, string>> {
   const unique = [...new Set(ids.filter((v): v is string => Boolean(v)))];
   if (!unique.length) return new Map();
   const rows = await db
     .select({ id: usersTable.id, fullName: usersTable.fullName })
     .from(usersTable)
-    .where(inArray(usersTable.id, unique));
+    .innerJoin(
+      tenantMembershipsTable,
+      and(
+        eq(tenantMembershipsTable.userId, usersTable.id),
+        eq(tenantMembershipsTable.tenantId, tenantId),
+        eq(tenantMembershipsTable.isActive, true),
+      ),
+    )
+    .where(and(inArray(usersTable.id, unique), eq(usersTable.isActive, true)));
   return new Map(rows.map((r) => [r.id, r.fullName]));
 }
 
@@ -360,7 +371,8 @@ router.get(
   "/implant-cases/:id/finance",
   requireCaseFinanceRead,
   async (req, res) => {
-    const caseRow = await findCase(String(req.params.id));
+    const tenantId = req.currentTenant!.id;
+    const caseRow = await findCase(String(req.params.id), tenantId);
     if (!caseRow) {
       res.status(404).json(CASE_NOT_FOUND_BODY);
       return;
@@ -370,26 +382,26 @@ router.get(
       db
         .select()
         .from(caseChargesTable)
-        .where(eq(caseChargesTable.implantCaseId, caseRow.id))
+        .where(and(eq(caseChargesTable.implantCaseId, caseRow.id), eq(caseChargesTable.tenantId, tenantId)))
         .orderBy(asc(caseChargesTable.chargeDate), asc(caseChargesTable.createdAt)),
       db
         .select()
         .from(caseDiscountsTable)
-        .where(eq(caseDiscountsTable.implantCaseId, caseRow.id))
+        .where(and(eq(caseDiscountsTable.implantCaseId, caseRow.id), eq(caseDiscountsTable.tenantId, tenantId)))
         .orderBy(asc(caseDiscountsTable.discountDate), asc(caseDiscountsTable.createdAt)),
       db
         .select()
         .from(paymentsTable)
-        .where(eq(paymentsTable.implantCaseId, caseRow.id))
+        .where(and(eq(paymentsTable.implantCaseId, caseRow.id), eq(paymentsTable.tenantId, tenantId)))
         .orderBy(asc(paymentsTable.paymentDate), asc(paymentsTable.createdAt)),
       db
         .select({ id: implantsTable.id, site: implantsTable.site })
         .from(implantsTable)
-        .where(eq(implantsTable.implantCaseId, caseRow.id)),
+        .where(and(eq(implantsTable.implantCaseId, caseRow.id), eq(implantsTable.tenantId, tenantId))),
       db
         .select()
         .from(installmentPlansTable)
-        .where(eq(installmentPlansTable.implantCaseId, caseRow.id))
+        .where(and(eq(installmentPlansTable.implantCaseId, caseRow.id), eq(installmentPlansTable.tenantId, tenantId)))
         .limit(1),
     ]);
     const plan = plans[0] ?? null;
@@ -397,7 +409,7 @@ router.get(
       ? await db
           .select()
           .from(installmentsTable)
-          .where(eq(installmentsTable.planId, plan.id))
+          .where(and(eq(installmentsTable.planId, plan.id), eq(installmentsTable.tenantId, tenantId)))
           .orderBy(asc(installmentsTable.sequence))
       : [];
 
@@ -405,7 +417,7 @@ router.get(
       ...charges.map((c) => c.createdBy),
       ...discounts.flatMap((d) => [d.createdBy, d.approvedBy]),
       ...payments.flatMap((p) => [p.createdBy, p.voidedBy]),
-    ]);
+    ], tenantId);
     const sites = new Map(implants.map((i) => [i.id, i.site]));
 
     const chargesTotal = charges.reduce((s, c) => s + toCents(money(c.amount)), 0);
@@ -442,7 +454,8 @@ router.put(
   "/implant-cases/:id/installment-plan",
   requireFinanceManage,
   async (req, res) => {
-    const caseRow = await guardWritableCase(String(req.params.id), res);
+    const tenantId = req.currentTenant!.id;
+    const caseRow = await guardWritableCase(String(req.params.id), tenantId, res);
     if (!caseRow) return;
     const input = parseOrRespond(installmentPlanInputSchema, req.body, res);
     if (!input) return;
@@ -451,15 +464,15 @@ router.put(
       db
         .select({ amount: caseChargesTable.amount })
         .from(caseChargesTable)
-        .where(eq(caseChargesTable.implantCaseId, caseRow.id)),
+        .where(and(eq(caseChargesTable.implantCaseId, caseRow.id), eq(caseChargesTable.tenantId, tenantId))),
       db
         .select({ amount: caseDiscountsTable.amount })
         .from(caseDiscountsTable)
-        .where(eq(caseDiscountsTable.implantCaseId, caseRow.id)),
+        .where(and(eq(caseDiscountsTable.implantCaseId, caseRow.id), eq(caseDiscountsTable.tenantId, tenantId))),
       db
         .select()
         .from(installmentPlansTable)
-        .where(eq(installmentPlansTable.implantCaseId, caseRow.id))
+        .where(and(eq(installmentPlansTable.implantCaseId, caseRow.id), eq(installmentPlansTable.tenantId, tenantId)))
         .limit(1),
     ]);
     const finalCents =
@@ -486,7 +499,7 @@ router.put(
       ? await db
           .select()
           .from(installmentsTable)
-          .where(eq(installmentsTable.planId, currentPlan.id))
+          .where(and(eq(installmentsTable.planId, currentPlan.id), eq(installmentsTable.tenantId, tenantId)))
           .orderBy(asc(installmentsTable.sequence))
       : [];
     const linkedPayments =
@@ -495,9 +508,12 @@ router.put(
             .select()
             .from(paymentsTable)
             .where(
-              inArray(
-                paymentsTable.installmentId,
-                existingInstallments.map((installment) => installment.id),
+              and(
+                inArray(
+                  paymentsTable.installmentId,
+                  existingInstallments.map((installment) => installment.id),
+                ),
+                eq(paymentsTable.tenantId, tenantId),
               ),
             )
         : [];
@@ -549,18 +565,19 @@ router.put(
           updatedBy: req.currentUser!.id,
           updatedAt: new Date(),
         })
-        .where(eq(installmentPlansTable.id, currentPlan.id))
+        .where(and(eq(installmentPlansTable.id, currentPlan.id), eq(installmentPlansTable.tenantId, tenantId)))
         .returning();
       if (existingInstallments.length === 0 || linkedPayments.length === 0) {
         if (existingInstallments.length) {
           await db
             .delete(installmentsTable)
-            .where(eq(installmentsTable.planId, plan.id));
+            .where(and(eq(installmentsTable.planId, plan.id), eq(installmentsTable.tenantId, tenantId)));
         }
         installments = await db
           .insert(installmentsTable)
           .values(
             amounts.map((amount, index) => ({
+              tenantId,
               planId: plan.id,
               sequence: index + 1,
               dueDate: dates[index],
@@ -578,7 +595,7 @@ router.put(
                 amount: amounts[index].toFixed(2),
                 updatedAt: new Date(),
               })
-              .where(eq(installmentsTable.id, installment.id))
+              .where(and(eq(installmentsTable.id, installment.id), eq(installmentsTable.tenantId, tenantId)))
               .returning()
               .then(([row]) => row),
           ),
@@ -588,6 +605,7 @@ router.put(
       [plan] = await db
         .insert(installmentPlansTable)
         .values({
+          tenantId,
           implantCaseId: caseRow.id,
           totalAmount: input.totalAmount.toFixed(2),
           installmentCount: input.installmentCount,
@@ -600,6 +618,7 @@ router.put(
         .insert(installmentsTable)
         .values(
           amounts.map((amount, index) => ({
+              tenantId,
             planId: plan.id,
             sequence: index + 1,
             dueDate: dates[index],
@@ -612,8 +631,9 @@ router.put(
     const allPayments = await db
       .select()
       .from(paymentsTable)
-      .where(eq(paymentsTable.implantCaseId, caseRow.id));
+      .where(and(eq(paymentsTable.implantCaseId, caseRow.id), eq(paymentsTable.tenantId, tenantId)));
     await writeAudit({
+      tenantId,
       userId: req.currentUser!.id,
       action: currentPlan ? "installment_plan_update" : "installment_plan_create",
       entityType: "installment_plan",
@@ -639,7 +659,8 @@ router.patch(
   "/implant-cases/:id/base-amount",
   requireFinanceManage,
   async (req, res) => {
-    const caseRow = await guardWritableCase(String(req.params.id), res);
+    const tenantId = req.currentTenant!.id;
+    const caseRow = await guardWritableCase(String(req.params.id), tenantId, res);
     if (!caseRow) return;
     const input = parseOrRespond(baseAmountInputSchema, req.body, res);
     if (!input) return;
@@ -652,9 +673,10 @@ router.patch(
         updatedBy: req.currentUser!.id,
         updatedAt: new Date(),
       })
-      .where(eq(implantCasesTable.id, caseRow.id));
+      .where(and(eq(implantCasesTable.id, caseRow.id), eq(implantCasesTable.tenantId, tenantId)));
 
     await writeAudit({
+      tenantId,
       userId: req.currentUser!.id,
       action: "case_base_amount_update",
       entityType: "implant_case",
@@ -674,7 +696,8 @@ router.post(
   "/implant-cases/:id/charges",
   requireFinanceManage,
   async (req, res) => {
-    const caseRow = await guardWritableCase(String(req.params.id), res);
+    const tenantId = req.currentTenant!.id;
+    const caseRow = await guardWritableCase(String(req.params.id), tenantId, res);
     if (!caseRow) return;
     const input = parseOrRespond(chargeInputSchema, req.body, res);
     if (!input) return;
@@ -683,7 +706,7 @@ router.post(
       const [implant] = await db
         .select({ id: implantsTable.id, implantCaseId: implantsTable.implantCaseId })
         .from(implantsTable)
-        .where(eq(implantsTable.id, input.implantId))
+        .where(and(eq(implantsTable.id, input.implantId), eq(implantsTable.tenantId, tenantId)))
         .limit(1);
       if (!implant || implant.implantCaseId !== caseRow.id) {
         res.status(400).json({
@@ -697,6 +720,7 @@ router.post(
     const [row] = await db
       .insert(caseChargesTable)
       .values({
+        tenantId,
         implantCaseId: caseRow.id,
         implantId: input.implantId,
         chargeType: input.chargeType,
@@ -709,20 +733,21 @@ router.post(
       .returning();
 
     await writeAudit({
+      tenantId,
       userId: req.currentUser!.id,
       action: "charge_create",
       entityType: "case_charge",
       entityId: row.id,
       summary: `إضافة رسم (${row.chargeType}) بمبلغ ${money(row.amount).toFixed(2)}`,
     });
-    const names = await userNames([row.createdBy]);
+    const names = await userNames([row.createdBy], tenantId);
     const sites = row.implantId
       ? new Map(
           (
             await db
               .select({ id: implantsTable.id, site: implantsTable.site })
               .from(implantsTable)
-              .where(eq(implantsTable.id, row.implantId))
+              .where(and(eq(implantsTable.id, row.implantId), eq(implantsTable.tenantId, tenantId)))
           ).map((i) => [i.id, i.site]),
         )
       : new Map<string, string>();
@@ -731,6 +756,7 @@ router.post(
 );
 
 router.delete("/charges/:id", requireFinanceManage, async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const id = String(req.params.id);
   if (!UUID_RE.test(id)) {
     res.status(404).json({ error: "الرسم غير موجود.", code: CHARGE_NOT_FOUND });
@@ -739,17 +765,18 @@ router.delete("/charges/:id", requireFinanceManage, async (req, res) => {
   const [existing] = await db
     .select()
     .from(caseChargesTable)
-    .where(eq(caseChargesTable.id, id))
+    .where(and(eq(caseChargesTable.id, id), eq(caseChargesTable.tenantId, tenantId)))
     .limit(1);
   if (!existing) {
     res.status(404).json({ error: "الرسم غير موجود.", code: CHARGE_NOT_FOUND });
     return;
   }
-  const caseRow = await guardWritableCase(existing.implantCaseId, res);
+  const caseRow = await guardWritableCase(existing.implantCaseId, tenantId, res);
   if (!caseRow) return;
 
-  await db.delete(caseChargesTable).where(eq(caseChargesTable.id, id));
+  await db.delete(caseChargesTable).where(and(eq(caseChargesTable.id, id), eq(caseChargesTable.tenantId, tenantId)));
   await writeAudit({
+    tenantId: req.currentTenant!.id,
     userId: req.currentUser!.id,
     action: "charge_delete",
     entityType: "case_charge",
@@ -768,7 +795,8 @@ router.post(
   "/implant-cases/:id/discounts",
   requireFinanceManage,
   async (req, res) => {
-    const caseRow = await guardWritableCase(String(req.params.id), res);
+    const tenantId = req.currentTenant!.id;
+    const caseRow = await guardWritableCase(String(req.params.id), tenantId, res);
     if (!caseRow) return;
     const input = parseOrRespond(discountInputSchema, req.body, res);
     if (!input) return;
@@ -776,6 +804,7 @@ router.post(
     const [row] = await db
       .insert(caseDiscountsTable)
       .values({
+        tenantId,
         implantCaseId: caseRow.id,
         amount: input.amount.toFixed(2),
         discountDate: input.discountDate,
@@ -786,6 +815,7 @@ router.post(
       .returning();
 
     await writeAudit({
+      tenantId,
       userId: req.currentUser!.id,
       action: "discount_create",
       entityType: "case_discount",
@@ -793,12 +823,13 @@ router.post(
       summary: `إضافة خصم بمبلغ ${money(row.amount).toFixed(2)}`,
       details: { reason: input.reason },
     });
-    const names = await userNames([row.createdBy, row.approvedBy]);
+    const names = await userNames([row.createdBy, row.approvedBy], tenantId);
     res.status(201).json({ discount: toDiscountDto(row, names) });
   },
 );
 
 router.delete("/discounts/:id", requireFinanceManage, async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const id = String(req.params.id);
   if (!UUID_RE.test(id)) {
     res.status(404).json({ error: "الخصم غير موجود.", code: DISCOUNT_NOT_FOUND });
@@ -807,17 +838,18 @@ router.delete("/discounts/:id", requireFinanceManage, async (req, res) => {
   const [existing] = await db
     .select()
     .from(caseDiscountsTable)
-    .where(eq(caseDiscountsTable.id, id))
+    .where(and(eq(caseDiscountsTable.id, id), eq(caseDiscountsTable.tenantId, tenantId)))
     .limit(1);
   if (!existing) {
     res.status(404).json({ error: "الخصم غير موجود.", code: DISCOUNT_NOT_FOUND });
     return;
   }
-  const caseRow = await guardWritableCase(existing.implantCaseId, res);
+  const caseRow = await guardWritableCase(existing.implantCaseId, tenantId, res);
   if (!caseRow) return;
 
-  await db.delete(caseDiscountsTable).where(eq(caseDiscountsTable.id, id));
+  await db.delete(caseDiscountsTable).where(and(eq(caseDiscountsTable.id, id), eq(caseDiscountsTable.tenantId, tenantId)));
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "discount_delete",
     entityType: "case_discount",
@@ -836,7 +868,8 @@ router.post(
   "/implant-cases/:id/payments",
   requireRecordPayments,
   async (req, res) => {
-    const caseRow = await guardWritableCase(String(req.params.id), res);
+    const tenantId = req.currentTenant!.id;
+    const caseRow = await guardWritableCase(String(req.params.id), tenantId, res);
     if (!caseRow) return;
     const input = parseOrRespond(paymentInputSchema, req.body, res);
     if (!input) return;
@@ -852,7 +885,7 @@ router.post(
           installmentPlansTable,
           eq(installmentsTable.planId, installmentPlansTable.id),
         )
-        .where(eq(installmentsTable.id, input.installmentId))
+        .where(and(eq(installmentsTable.id, input.installmentId), eq(installmentsTable.tenantId, tenantId), eq(installmentPlansTable.tenantId, tenantId)))
         .limit(1);
       if (!installment || installment.implantCaseId !== caseRow.id) {
         res.status(400).json({
@@ -868,6 +901,7 @@ router.post(
           and(
             eq(paymentsTable.installmentId, installment.id),
             isNull(paymentsTable.voidedAt),
+            eq(paymentsTable.tenantId, tenantId),
           ),
         );
       const alreadyPaid = linkedPayments.reduce(
@@ -886,6 +920,7 @@ router.post(
     const [row] = await db
       .insert(paymentsTable)
       .values({
+        tenantId,
         implantCaseId: caseRow.id,
         installmentId: input.installmentId,
         amount: input.amount.toFixed(2),
@@ -899,18 +934,20 @@ router.post(
       .returning();
 
     await writeAudit({
+      tenantId,
       userId: req.currentUser!.id,
       action: "payment_create",
       entityType: "payment",
       entityId: row.id,
       summary: `تسجيل دفعة (${row.paymentLabel}) بمبلغ ${money(row.amount).toFixed(2)} — ${row.paymentMethod}`,
     });
-    const names = await userNames([row.createdBy]);
+    const names = await userNames([row.createdBy], tenantId);
     res.status(201).json({ payment: toPaymentDto(row, names) });
   },
 );
 
 router.patch("/payments/:id", requireFinanceManage, async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const id = String(req.params.id);
   if (!UUID_RE.test(id)) {
     res.status(404).json({ error: "الدفعة غير موجودة.", code: PAYMENT_NOT_FOUND });
@@ -919,7 +956,7 @@ router.patch("/payments/:id", requireFinanceManage, async (req, res) => {
   const [existing] = await db
     .select()
     .from(paymentsTable)
-    .where(eq(paymentsTable.id, id))
+    .where(and(eq(paymentsTable.id, id), eq(paymentsTable.tenantId, tenantId)))
     .limit(1);
   if (!existing) {
     res.status(404).json({ error: "الدفعة غير موجودة.", code: PAYMENT_NOT_FOUND });
@@ -951,10 +988,11 @@ router.patch("/payments/:id", requireFinanceManage, async (req, res) => {
       ...(input.referenceNumber !== undefined && { referenceNumber: input.referenceNumber }),
       ...(input.note !== undefined && { note: input.note }),
     })
-    .where(eq(paymentsTable.id, id))
+    .where(and(eq(paymentsTable.id, id), eq(paymentsTable.tenantId, tenantId)))
     .returning();
 
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "payment_update",
     entityType: "payment",
@@ -962,11 +1000,12 @@ router.patch("/payments/:id", requireFinanceManage, async (req, res) => {
     summary: `تعديل دفعة — المبلغ السابق: ${previous.amount.toFixed(2)} ر.س، المبلغ الجديد: ${money(row.amount).toFixed(2)} ر.س`,
     details: { previous, next: input },
   });
-  const names = await userNames([row.createdBy, row.voidedBy]);
+  const names = await userNames([row.createdBy, row.voidedBy], tenantId);
   res.json({ payment: toPaymentDto(row, names) });
 });
 
 router.post("/payments/:id/void", requireFinanceManage, async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const id = String(req.params.id);
   if (!UUID_RE.test(id)) {
     res.status(404).json({ error: "الدفعة غير موجودة.", code: PAYMENT_NOT_FOUND });
@@ -975,7 +1014,7 @@ router.post("/payments/:id/void", requireFinanceManage, async (req, res) => {
   const [existing] = await db
     .select()
     .from(paymentsTable)
-    .where(eq(paymentsTable.id, id))
+    .where(and(eq(paymentsTable.id, id), eq(paymentsTable.tenantId, tenantId)))
     .limit(1);
   if (!existing) {
     res.status(404).json({ error: "الدفعة غير موجودة.", code: PAYMENT_NOT_FOUND });
@@ -998,7 +1037,7 @@ router.post("/payments/:id/void", requireFinanceManage, async (req, res) => {
       voidedBy: req.currentUser!.id,
       voidReason: input.reason,
     })
-    .where(and(eq(paymentsTable.id, id), isNull(paymentsTable.voidedAt)))
+    .where(and(eq(paymentsTable.id, id), eq(paymentsTable.tenantId, tenantId), isNull(paymentsTable.voidedAt)))
     .returning();
   if (!row) {
     res.status(409).json({
@@ -1009,6 +1048,7 @@ router.post("/payments/:id/void", requireFinanceManage, async (req, res) => {
   }
 
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "payment_void",
     entityType: "payment",
@@ -1016,7 +1056,7 @@ router.post("/payments/:id/void", requireFinanceManage, async (req, res) => {
     summary: `إلغاء دفعة بمبلغ ${money(row.amount).toFixed(2)} — السبب: ${input.reason}`,
     details: { reason: input.reason },
   });
-  const names = await userNames([row.createdBy, row.voidedBy]);
+  const names = await userNames([row.createdBy, row.voidedBy], tenantId);
   res.json({ payment: toPaymentDto(row, names) });
 });
 
@@ -1040,7 +1080,7 @@ export async function loadCaseFinancials(filters: {
   patientName?: string;
   fileNumber?: string;
   implantSystem?: string;
-}): Promise<Array<CaseFinRow & { finalCents: number; paidCents: number; status: string }>> {
+}, tenantId: string): Promise<Array<CaseFinRow & { finalCents: number; paidCents: number; status: string }>> {
   const rows = await db.execute(sql`
     SELECT
       ic.id,
@@ -1052,17 +1092,18 @@ export async function loadCaseFinancials(filters: {
       d.total::text AS discounts,
       p.total::text AS paid
     FROM implant_cases ic
-    JOIN patients pt ON pt.id = ic.patient_id
+     JOIN patients pt ON pt.id = ic.patient_id AND pt.tenant_id = ${tenantId}
     LEFT JOIN (
-      SELECT implant_case_id, SUM(amount) AS total FROM case_charges GROUP BY implant_case_id
+       SELECT implant_case_id, SUM(amount) AS total FROM case_charges WHERE tenant_id = ${tenantId} GROUP BY implant_case_id
     ) ch ON ch.implant_case_id = ic.id
     LEFT JOIN (
-      SELECT implant_case_id, SUM(amount) AS total FROM case_discounts GROUP BY implant_case_id
+       SELECT implant_case_id, SUM(amount) AS total FROM case_discounts WHERE tenant_id = ${tenantId} GROUP BY implant_case_id
     ) d ON d.implant_case_id = ic.id
     LEFT JOIN (
-      SELECT implant_case_id, SUM(amount) AS total FROM payments WHERE voided_at IS NULL GROUP BY implant_case_id
+       SELECT implant_case_id, SUM(amount) AS total FROM payments WHERE voided_at IS NULL AND tenant_id = ${tenantId} GROUP BY implant_case_id
     ) p ON p.implant_case_id = ic.id
-    WHERE ic.archived_at IS NULL
+     WHERE ic.tenant_id = ${tenantId}
+       AND ic.archived_at IS NULL
       AND pt.archived_at IS NULL
       ${filters.patientName ? sql`AND pt.full_name ILIKE ${"%" + filters.patientName + "%"}` : sql``}
       ${filters.fileNumber ? sql`AND pt.file_number = ${filters.fileNumber}` : sql``}
@@ -1070,7 +1111,7 @@ export async function loadCaseFinancials(filters: {
         filters.implantSystem
           ? sql`AND EXISTS (
               SELECT 1 FROM implants i
-              WHERE i.implant_case_id = ic.id
+               WHERE i.implant_case_id = ic.id AND i.tenant_id = ${tenantId}
                 AND i.archived_at IS NULL
                 AND i.system = ${filters.implantSystem}
             )`
@@ -1096,8 +1137,9 @@ export async function loadCaseFinancials(filters: {
 
 async function computeOverview(
   filters: ReturnType<typeof financeFiltersSchema.parse>,
+  tenantId: string,
 ): Promise<FinanceOverview> {
-  const caseFin = await loadCaseFinancials(filters);
+  const caseFin = await loadCaseFinancials(filters, tenantId);
   const statusFiltered = filters.paymentStatus
     ? caseFin.filter((c) => c.status === filters.paymentStatus)
     : caseFin;
@@ -1130,6 +1172,9 @@ async function computeOverview(
             gte(paymentsTable.paymentDate, filters.from),
             lte(paymentsTable.paymentDate, filters.to),
             inArray(paymentsTable.implantCaseId, [...caseIds]),
+            eq(paymentsTable.tenantId, tenantId),
+            eq(implantCasesTable.tenantId, tenantId),
+            eq(patientsTable.tenantId, tenantId),
             filters.paymentMethod
               ? eq(paymentsTable.paymentMethod, filters.paymentMethod)
               : undefined,
@@ -1138,7 +1183,7 @@ async function computeOverview(
         .orderBy(desc(paymentsTable.paymentDate), desc(paymentsTable.createdAt))
     : [];
 
-  const names = await userNames(paymentRows.map((p) => p.createdBy));
+  const names = await userNames(paymentRows.map((p) => p.createdBy), tenantId);
   const payments: FinancePaymentRow[] = paymentRows.map((p) => ({
     id: p.id,
     paymentDate: p.paymentDate,
@@ -1165,6 +1210,7 @@ async function computeOverview(
               gte(caseChargesTable.chargeDate, filters.from),
               lte(caseChargesTable.chargeDate, filters.to),
               inArray(caseChargesTable.implantCaseId, [...caseIds]),
+              eq(caseChargesTable.tenantId, tenantId),
             ),
           )
       : Promise.resolve([] as Array<{ amount: string }>),
@@ -1177,6 +1223,7 @@ async function computeOverview(
               gte(caseDiscountsTable.discountDate, filters.from),
               lte(caseDiscountsTable.discountDate, filters.to),
               inArray(caseDiscountsTable.implantCaseId, [...caseIds]),
+              eq(caseDiscountsTable.tenantId, tenantId),
             ),
           )
       : Promise.resolve([] as Array<{ amount: string }>),
@@ -1243,14 +1290,15 @@ async function computeOverview(
 router.get("/finance/overview", requireFinanceView, async (req, res) => {
   const filters = parseOrRespond(financeFiltersSchema, req.query, res);
   if (!filters) return;
-  res.json(await computeOverview(filters));
+  res.json(await computeOverview(filters, req.currentTenant!.id));
 });
 
 /** CSV export (UTF-8 BOM so Arabic opens correctly in Excel). */
 router.get("/finance/export.csv", requireFinanceView, async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const filters = parseOrRespond(financeFiltersSchema, req.query, res);
   if (!filters) return;
-  const overview = await computeOverview(filters);
+  const overview = await computeOverview(filters, tenantId);
 
   const esc = (v: string | number | null): string => {
     const s = v == null ? "" : String(v);
@@ -1281,6 +1329,7 @@ router.get("/finance/export.csv", requireFinanceView, async (req, res) => {
   const csv = "\uFEFF" + [header, ...lines].join("\r\n");
 
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "finance_export",
     entityType: "finance",

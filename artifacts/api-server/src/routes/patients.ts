@@ -78,11 +78,12 @@ function canonicalFileNumber(value: string): string {
 
 async function findByFileNumber(
   fileNumber: string,
+  tenantId: string,
 ): Promise<PatientRow | undefined> {
   const [row] = await db
     .select()
     .from(patientsTable)
-    .where(eq(patientsTable.fileNumber, fileNumber))
+    .where(and(eq(patientsTable.fileNumber, fileNumber), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
@@ -107,10 +108,11 @@ function resolveMobile(
 }
 
 router.get("/patients", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const query = parseOrRespond(patientListQuerySchema, req.query, res);
   if (!query) return;
 
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(patientsTable.tenantId, tenantId)];
   if (query.status === "active") {
     conditions.push(isNull(patientsTable.archivedAt));
   } else if (query.status === "archived") {
@@ -164,12 +166,13 @@ router.get("/patients", async (req, res) => {
 });
 
 router.get("/patients/check-file-number", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const fileNumber = canonicalFileNumber(String(req.query.fileNumber ?? ""));
   if (!fileNumber) {
     res.status(400).json({ error: "رقم الملف مطلوب.", code: "VALIDATION_ERROR" });
     return;
   }
-  const existing = await findByFileNumber(fileNumber);
+  const existing = await findByFileNumber(fileNumber, tenantId);
   if (!existing) {
     res.json({ status: "available" });
     return;
@@ -182,6 +185,7 @@ router.get("/patients/check-file-number", async (req, res) => {
 });
 
 router.post("/patients", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const input = parseOrRespond(patientInputSchema, req.body, res);
   if (!input) return;
 
@@ -189,7 +193,7 @@ router.post("/patients", async (req, res) => {
   const mobile = resolveMobile(input.mobileNumber, res);
   if (!mobile) return;
 
-  const existing = await findByFileNumber(fileNumber);
+  const existing = await findByFileNumber(fileNumber, tenantId);
   if (existing) {
     respondDuplicate(res, existing);
     return;
@@ -201,6 +205,7 @@ router.post("/patients", async (req, res) => {
     [created] = await db
       .insert(patientsTable)
       .values({
+        tenantId,
         fileNumber,
         fullName: input.fullName,
         fullNameNormalized: normalizeArabicSearchText(input.fullName),
@@ -216,7 +221,7 @@ router.post("/patients", async (req, res) => {
     // Concurrent create with the same file number: the pre-check above
     // cannot close this race; the unique constraint is the source of truth.
     if (isUniqueViolation(err)) {
-      const conflict = await findByFileNumber(fileNumber);
+      const conflict = await findByFileNumber(fileNumber, tenantId);
       if (conflict) {
         respondDuplicate(res, conflict);
         return;
@@ -230,6 +235,7 @@ router.post("/patients", async (req, res) => {
   }
 
   await writeAudit({
+    tenantId,
     userId: user.id,
     action: "patient_create",
     entityType: "patient",
@@ -241,6 +247,7 @@ router.post("/patients", async (req, res) => {
 });
 
 router.get("/patients/:id", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const id = String(req.params.id);
   if (!UUID_RE.test(id)) {
     res.status(404).json(NOT_FOUND);
@@ -249,7 +256,7 @@ router.get("/patients/:id", async (req, res) => {
   const [row] = await db
     .select()
     .from(patientsTable)
-    .where(eq(patientsTable.id, id))
+    .where(and(eq(patientsTable.id, id), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   if (!row) {
     res.status(404).json(NOT_FOUND);
@@ -259,6 +266,7 @@ router.get("/patients/:id", async (req, res) => {
 });
 
 router.patch("/patients/:id", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const id = String(req.params.id);
   if (!UUID_RE.test(id)) {
     res.status(404).json(NOT_FOUND);
@@ -270,7 +278,7 @@ router.patch("/patients/:id", async (req, res) => {
   const [existing] = await db
     .select()
     .from(patientsTable)
-    .where(eq(patientsTable.id, id))
+    .where(and(eq(patientsTable.id, id), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   if (!existing) {
     res.status(404).json(NOT_FOUND);
@@ -287,7 +295,7 @@ router.patch("/patients/:id", async (req, res) => {
         .select()
         .from(patientsTable)
         .where(
-          and(eq(patientsTable.fileNumber, fileNumber), ne(patientsTable.id, id)),
+          and(eq(patientsTable.fileNumber, fileNumber), ne(patientsTable.id, id), eq(patientsTable.tenantId, tenantId)),
         )
         .limit(1);
       if (conflict) {
@@ -342,11 +350,11 @@ router.patch("/patients/:id", async (req, res) => {
     [updated] = await db
       .update(patientsTable)
       .set(updates)
-      .where(eq(patientsTable.id, id))
+      .where(and(eq(patientsTable.id, id), eq(patientsTable.tenantId, tenantId)))
       .returning();
   } catch (err) {
     if (isUniqueViolation(err) && updates.fileNumber) {
-      const conflict = await findByFileNumber(updates.fileNumber);
+      const conflict = await findByFileNumber(updates.fileNumber, tenantId);
       if (conflict && conflict.id !== id) {
         respondDuplicate(res, conflict);
         return;
@@ -360,6 +368,7 @@ router.patch("/patients/:id", async (req, res) => {
   }
 
   await writeAudit({
+    tenantId,
     userId: user.id,
     action: "patient_update",
     entityType: "patient",
@@ -375,6 +384,7 @@ router.post(
   "/patients/:id/archive",
   requireRole("ADMIN"),
   async (req, res) => {
+    const tenantId = req.currentTenant!.id;
     const id = String(req.params.id);
     if (!UUID_RE.test(id)) {
       res.status(404).json(NOT_FOUND);
@@ -384,13 +394,13 @@ router.post(
     const [updated] = await db
       .update(patientsTable)
       .set({ archivedAt: new Date(), updatedBy: user.id, updatedAt: new Date() })
-      .where(and(eq(patientsTable.id, id), isNull(patientsTable.archivedAt)))
+      .where(and(eq(patientsTable.id, id), eq(patientsTable.tenantId, tenantId), isNull(patientsTable.archivedAt)))
       .returning();
     if (!updated) {
       const [row] = await db
         .select()
         .from(patientsTable)
-        .where(eq(patientsTable.id, id))
+        .where(and(eq(patientsTable.id, id), eq(patientsTable.tenantId, tenantId)))
         .limit(1);
       if (!row) {
         res.status(404).json(NOT_FOUND);
@@ -400,6 +410,7 @@ router.post(
       return;
     }
     await writeAudit({
+      tenantId,
       userId: user.id,
       action: "patient_archive",
       entityType: "patient",
@@ -414,6 +425,7 @@ router.post(
   "/patients/:id/restore",
   requireRole("ADMIN", "DOCTOR"),
   async (req, res) => {
+    const tenantId = req.currentTenant!.id;
     const id = String(req.params.id);
     if (!UUID_RE.test(id)) {
       res.status(404).json(NOT_FOUND);
@@ -423,13 +435,13 @@ router.post(
     const [updated] = await db
       .update(patientsTable)
       .set({ archivedAt: null, updatedBy: user.id, updatedAt: new Date() })
-      .where(and(eq(patientsTable.id, id), isNotNull(patientsTable.archivedAt)))
+      .where(and(eq(patientsTable.id, id), eq(patientsTable.tenantId, tenantId), isNotNull(patientsTable.archivedAt)))
       .returning();
     if (!updated) {
       const [row] = await db
         .select()
         .from(patientsTable)
-        .where(eq(patientsTable.id, id))
+        .where(and(eq(patientsTable.id, id), eq(patientsTable.tenantId, tenantId)))
         .limit(1);
       if (!row) {
         res.status(404).json(NOT_FOUND);
@@ -439,6 +451,7 @@ router.post(
       return;
     }
     await writeAudit({
+      tenantId,
       userId: user.id,
       action: "patient_restore",
       entityType: "patient",

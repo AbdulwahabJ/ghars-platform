@@ -6,6 +6,7 @@ import {
   implantsTable,
   patientsTable,
   paymentsTable,
+  tenantMembershipsTable,
   usersTable,
 } from "@workspace/db";
 import {
@@ -26,7 +27,7 @@ import {
   type ImportRowResult,
   type ImportType,
 } from "@workspace/shared";
-import { and, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { writeAudit } from "../lib/audit";
 import { parseCsv, sendCsv, toCsv } from "../lib/csv";
 import { parseOrRespond } from "../lib/validation";
@@ -237,6 +238,7 @@ interface PatientRef {
 
 async function loadPatientsByFileNumbers(
   fileNumbers: string[],
+  tenantId: string,
 ): Promise<Map<string, PatientRef>> {
   if (fileNumbers.length === 0) return new Map();
   const rows = await db
@@ -246,7 +248,7 @@ async function loadPatientsByFileNumbers(
       archivedAt: patientsTable.archivedAt,
     })
     .from(patientsTable)
-    .where(inArray(patientsTable.fileNumber, fileNumbers));
+    .where(and(inArray(patientsTable.fileNumber, fileNumbers), eq(patientsTable.tenantId, tenantId)));
   return new Map(
     rows.map((r) => [
       r.fileNumber,
@@ -264,6 +266,7 @@ interface CaseRef {
 
 async function loadCasesForPatients(
   patientIds: string[],
+  tenantId: string,
 ): Promise<CaseRef[]> {
   if (patientIds.length === 0) return [];
   const rows = await db
@@ -274,7 +277,7 @@ async function loadCasesForPatients(
       archivedAt: implantCasesTable.archivedAt,
     })
     .from(implantCasesTable)
-    .where(inArray(implantCasesTable.patientId, patientIds));
+    .where(and(inArray(implantCasesTable.patientId, patientIds), eq(implantCasesTable.tenantId, tenantId)));
   return rows.map((r) => ({
     id: r.id,
     patientId: r.patientId,
@@ -337,12 +340,13 @@ function resolveCase(
 async function analyzePatients(
   parsed: ParsedInput,
   actorId: string,
+  tenantId: string,
 ): Promise<AnalyzedRow[]> {
   const fileNumbers = parsed.records.map((r) =>
     canonicalFileNumber(r.get("رقم الملف")),
   );
   const existing = await loadPatientsByFileNumbers(
-    fileNumbers.filter(Boolean),
+    fileNumbers.filter(Boolean), tenantId,
   );
   const seenInFile = new Set<string>();
   return parsed.records.map((record) => {
@@ -409,6 +413,7 @@ async function analyzePatients(
       errors: [],
       insert: async (tx: Tx) => {
         await tx.insert(patientsTable).values({
+          tenantId,
           fileNumber,
           fullName,
           fullNameNormalized: normalizeArabicSearchText(fullName),
@@ -428,6 +433,7 @@ async function analyzePatients(
 async function analyzeCases(
   parsed: ParsedInput,
   actorId: string,
+  tenantId: string,
 ): Promise<AnalyzedRow[]> {
   const fileNumbers = [
     ...new Set(
@@ -436,9 +442,9 @@ async function analyzeCases(
         .filter(Boolean),
     ),
   ];
-  const patients = await loadPatientsByFileNumbers(fileNumbers);
+  const patients = await loadPatientsByFileNumbers(fileNumbers, tenantId);
   const cases = await loadCasesForPatients(
-    [...patients.values()].map((p) => p.id),
+    [...patients.values()].map((p) => p.id), tenantId,
   );
   const existingKeys = new Set(
     cases
@@ -510,6 +516,7 @@ async function analyzeCases(
       errors: [],
       insert: async (tx: Tx) => {
         await tx.insert(implantCasesTable).values({
+          tenantId,
           patientId: patient!.id,
           procedureDate,
           treatingDoctor,
@@ -527,7 +534,7 @@ async function analyzeCases(
   });
 }
 
-async function analyzeImplants(parsed: ParsedInput): Promise<AnalyzedRow[]> {
+async function analyzeImplants(parsed: ParsedInput, tenantId: string): Promise<AnalyzedRow[]> {
   const fileNumbers = [
     ...new Set(
       parsed.records
@@ -535,9 +542,9 @@ async function analyzeImplants(parsed: ParsedInput): Promise<AnalyzedRow[]> {
         .filter(Boolean),
     ),
   ];
-  const patients = await loadPatientsByFileNumbers(fileNumbers);
+  const patients = await loadPatientsByFileNumbers(fileNumbers, tenantId);
   const cases = await loadCasesForPatients(
-    [...patients.values()].map((p) => p.id),
+    [...patients.values()].map((p) => p.id), tenantId,
   );
   const caseIds = cases.map((c) => c.id);
   const existingSites =
@@ -551,6 +558,7 @@ async function analyzeImplants(parsed: ParsedInput): Promise<AnalyzedRow[]> {
           .where(
             and(
               inArray(implantsTable.implantCaseId, caseIds),
+              eq(implantsTable.tenantId, tenantId),
               isNull(implantsTable.archivedAt),
             ),
           )
@@ -630,6 +638,7 @@ async function analyzeImplants(parsed: ParsedInput): Promise<AnalyzedRow[]> {
       errors: [],
       insert: async (tx: Tx) => {
         await tx.insert(implantsTable).values({
+          tenantId,
           implantCaseId: caseRef.id,
           site,
           isCustomSite,
@@ -651,6 +660,7 @@ async function analyzeImplants(parsed: ParsedInput): Promise<AnalyzedRow[]> {
 async function analyzePayments(
   parsed: ParsedInput,
   actorId: string,
+  tenantId: string,
 ): Promise<AnalyzedRow[]> {
   const fileNumbers = [
     ...new Set(
@@ -659,9 +669,9 @@ async function analyzePayments(
         .filter(Boolean),
     ),
   ];
-  const patients = await loadPatientsByFileNumbers(fileNumbers);
+  const patients = await loadPatientsByFileNumbers(fileNumbers, tenantId);
   const cases = await loadCasesForPatients(
-    [...patients.values()].map((p) => p.id),
+    [...patients.values()].map((p) => p.id), tenantId,
   );
   // Duplicate detection: an identical payment (same case, date, amount,
   // label, and method) already in the DB — or earlier in the same file —
@@ -679,7 +689,7 @@ async function analyzePayments(
             paymentMethod: paymentsTable.paymentMethod,
           })
           .from(paymentsTable)
-          .where(inArray(paymentsTable.implantCaseId, caseIds));
+          .where(and(inArray(paymentsTable.implantCaseId, caseIds), eq(paymentsTable.tenantId, tenantId)));
   const paymentKey = (
     caseId: string,
     date: string | null,
@@ -760,6 +770,7 @@ async function analyzePayments(
       errors: [],
       insert: async (tx: Tx) => {
         await tx.insert(paymentsTable).values({
+          tenantId,
           implantCaseId: caseRef.id,
           amount: amount!.toFixed(2),
           paymentDate: paymentDate!,
@@ -777,6 +788,7 @@ async function analyzePayments(
 async function analyzeFollowups(
   parsed: ParsedInput,
   actorId: string,
+  tenantId: string,
 ): Promise<AnalyzedRow[]> {
   const fileNumbers = [
     ...new Set(
@@ -785,13 +797,22 @@ async function analyzeFollowups(
         .filter(Boolean),
     ),
   ];
-  const patients = await loadPatientsByFileNumbers(fileNumbers);
+  const patients = await loadPatientsByFileNumbers(fileNumbers, tenantId);
   const cases = await loadCasesForPatients(
-    [...patients.values()].map((p) => p.id),
+    [...patients.values()].map((p) => p.id), tenantId,
   );
   const allUsers = await db
     .select({ id: usersTable.id, username: usersTable.username })
-    .from(usersTable);
+    .from(usersTable)
+    .innerJoin(
+      tenantMembershipsTable,
+      and(
+        eq(tenantMembershipsTable.userId, usersTable.id),
+        eq(tenantMembershipsTable.tenantId, tenantId),
+        eq(tenantMembershipsTable.isActive, true),
+      ),
+    )
+    .where(eq(usersTable.isActive, true));
   const usersByUsername = new Map(allUsers.map((u) => [u.username, u.id]));
 
   // Duplicate detection: an identical followup (same case, type, and
@@ -808,7 +829,7 @@ async function analyzeFollowups(
             scheduledAt: followupsTable.scheduledAt,
           })
           .from(followupsTable)
-          .where(inArray(followupsTable.implantCaseId, caseIds));
+          .where(and(inArray(followupsTable.implantCaseId, caseIds), eq(followupsTable.tenantId, tenantId)));
   const followupKey = (caseId: string, type: string, at: Date | null) =>
     `${caseId}|${type}|${at ? at.getTime() : "none"}`;
   const existingFollowupKeys = new Set(
@@ -884,6 +905,7 @@ async function analyzeFollowups(
       errors: [],
       insert: async (tx: Tx) => {
         await tx.insert(followupsTable).values({
+          tenantId,
           implantCaseId: caseRef.id,
           patientId: patient.id,
           followupType,
@@ -902,20 +924,21 @@ async function analyze(
   type: ImportType,
   parsed: ParsedInput,
   actorId: string,
+  tenantId: string,
 ): Promise<AnalyzedRow[]> {
   switch (type) {
     default:
       throw new Error(`unknown import type: ${type as string}`);
     case "patients":
-      return analyzePatients(parsed, actorId);
+      return analyzePatients(parsed, actorId, tenantId);
     case "cases":
-      return analyzeCases(parsed, actorId);
+      return analyzeCases(parsed, actorId, tenantId);
     case "implants":
-      return analyzeImplants(parsed);
+      return analyzeImplants(parsed, tenantId);
     case "payments":
-      return analyzePayments(parsed, actorId);
+      return analyzePayments(parsed, actorId, tenantId);
     case "followups":
-      return analyzeFollowups(parsed, actorId);
+      return analyzeFollowups(parsed, actorId, tenantId);
   }
 }
 
@@ -966,6 +989,7 @@ router.post("/admin/import/preview", async (req, res) => {
     input.type,
     parsedResult.parsed,
     req.currentUser!.id,
+    req.currentTenant!.id,
   );
   const { rows, truncated } = toRowResults(analyzed);
   const body: ImportPreviewResponse = {
@@ -994,6 +1018,7 @@ router.post("/admin/import/commit", async (req, res) => {
     input.type,
     parsedResult.parsed,
     req.currentUser!.id,
+    req.currentTenant!.id,
   );
 
   const valid = analyzed.filter((r) => r.status === "valid");
@@ -1014,6 +1039,7 @@ router.post("/admin/import/commit", async (req, res) => {
       }
       await writeAudit(
         {
+          tenantId: req.currentTenant!.id,
           userId: user.id,
           action: "data_import",
           entityType: input.type,

@@ -7,6 +7,7 @@ import {
   followupsTable,
   implantCasesTable,
   patientsTable,
+  tenantMembershipsTable,
   usersTable,
   whatsappTemplatesTable,
   type CommunicationRow,
@@ -73,31 +74,31 @@ const FOLLOWUP_CLOSED_BODY = {
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-async function findPatient(id: string) {
+async function findPatient(id: string, tenantId: string) {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(patientsTable)
-    .where(eq(patientsTable.id, id))
+    .where(and(eq(patientsTable.id, id), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
 
-async function findCase(id: string): Promise<ImplantCaseRow | undefined> {
+async function findCase(id: string, tenantId: string): Promise<ImplantCaseRow | undefined> {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(implantCasesTable)
-    .where(eq(implantCasesTable.id, id))
+    .where(and(eq(implantCasesTable.id, id), eq(implantCasesTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
 
-async function isPatientArchived(patientId: string): Promise<boolean> {
+async function isPatientArchived(patientId: string, tenantId: string): Promise<boolean> {
   const [row] = await db
     .select({ archivedAt: patientsTable.archivedAt })
     .from(patientsTable)
-    .where(eq(patientsTable.id, patientId))
+    .where(and(eq(patientsTable.id, patientId), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   return Boolean(row?.archivedAt);
 }
@@ -105,9 +106,10 @@ async function isPatientArchived(patientId: string): Promise<boolean> {
 /** Blocks Phase 4 writes on archived cases or archived patient files. */
 async function guardWritableCase(
   caseId: string,
+  tenantId: string,
   res: Response,
 ): Promise<ImplantCaseRow | undefined> {
-  const row = await findCase(caseId);
+  const row = await findCase(caseId, tenantId);
   if (!row) {
     res.status(404).json(CASE_NOT_FOUND_BODY);
     return undefined;
@@ -116,33 +118,59 @@ async function guardWritableCase(
     res.status(409).json(CASE_ARCHIVED_BODY);
     return undefined;
   }
-  if (await isPatientArchived(row.patientId)) {
+  if (await isPatientArchived(row.patientId, tenantId)) {
     res.status(409).json(PATIENT_ARCHIVED_BODY);
     return undefined;
   }
   return row;
 }
 
-async function findFollowup(id: string): Promise<FollowupRow | undefined> {
+async function findFollowup(id: string, tenantId: string): Promise<FollowupRow | undefined> {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(followupsTable)
-    .where(eq(followupsTable.id, id))
+    .where(and(eq(followupsTable.id, id), eq(followupsTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
 
 async function userNames(
-  ids: Array<string | null>,
+  ids: Array<string | null>, tenantId: string,
 ): Promise<Map<string, string>> {
   const unique = [...new Set(ids.filter((v): v is string => Boolean(v)))];
   if (!unique.length) return new Map();
   const rows = await db
     .select({ id: usersTable.id, fullName: usersTable.fullName })
     .from(usersTable)
-    .where(inArray(usersTable.id, unique));
+    .innerJoin(
+      tenantMembershipsTable,
+      and(
+        eq(tenantMembershipsTable.userId, usersTable.id),
+        eq(tenantMembershipsTable.tenantId, tenantId),
+        eq(tenantMembershipsTable.isActive, true),
+      ),
+    )
+    .where(and(inArray(usersTable.id, unique), eq(usersTable.isActive, true)));
   return new Map(rows.map((r) => [r.id, r.fullName]));
+}
+
+/** An assignee must be an active identity with an active membership here. */
+async function isActiveTenantMember(userId: string, tenantId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .innerJoin(
+      tenantMembershipsTable,
+      and(
+        eq(tenantMembershipsTable.userId, usersTable.id),
+        eq(tenantMembershipsTable.tenantId, tenantId),
+        eq(tenantMembershipsTable.isActive, true),
+      ),
+    )
+    .where(and(eq(usersTable.id, userId), eq(usersTable.isActive, true)))
+    .limit(1);
+  return Boolean(row);
 }
 
 const iso = (v: Date | null): string | null => (v ? v.toISOString() : null);
@@ -179,14 +207,23 @@ const CLOSED = CLOSED_FOLLOWUP_STATUSES as readonly string[];
 /* Assignable users (id + name only, for the assigned-user selector)    */
 /* ------------------------------------------------------------------ */
 
-router.get("/users/assignable", requireAuth, async (_req, res) => {
+router.get("/users/assignable", requireAuth, async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const rows = await db
     .select({
       id: usersTable.id,
       fullName: usersTable.fullName,
-      role: usersTable.role,
+      role: tenantMembershipsTable.role,
     })
     .from(usersTable)
+    .innerJoin(
+      tenantMembershipsTable,
+      and(
+        eq(tenantMembershipsTable.userId, usersTable.id),
+        eq(tenantMembershipsTable.tenantId, tenantId),
+        eq(tenantMembershipsTable.isActive, true),
+      ),
+    )
     .where(eq(usersTable.isActive, true))
     .orderBy(asc(usersTable.fullName));
   res.json({ users: rows });
@@ -196,11 +233,11 @@ router.get("/users/assignable", requireAuth, async (_req, res) => {
 /* WhatsApp templates (read-only in Phase 4; management is Phase 6)     */
 /* ------------------------------------------------------------------ */
 
-router.get("/whatsapp-templates", async (_req, res) => {
+router.get("/whatsapp-templates", async (req, res) => {
   const rows = await db
     .select()
     .from(whatsappTemplatesTable)
-    .where(eq(whatsappTemplatesTable.isApproved, true))
+    .where(and(eq(whatsappTemplatesTable.isApproved, true), eq(whatsappTemplatesTable.tenantId, req.currentTenant!.id)))
     .orderBy(asc(whatsappTemplatesTable.sortOrder));
   res.json({
     templates: rows.map((r) => ({
@@ -217,7 +254,8 @@ router.get("/whatsapp-templates", async (_req, res) => {
 /* ------------------------------------------------------------------ */
 
 router.get("/patients/:id/followups", async (req, res) => {
-  const patient = await findPatient(req.params.id);
+  const tenantId = req.currentTenant!.id;
+  const patient = await findPatient(req.params.id, tenantId);
   if (!patient) {
     res.status(404).json(PATIENT_NOT_FOUND_BODY);
     return;
@@ -225,16 +263,17 @@ router.get("/patients/:id/followups", async (req, res) => {
   const rows = await db
     .select()
     .from(followupsTable)
-    .where(eq(followupsTable.patientId, patient.id))
+    .where(and(eq(followupsTable.patientId, patient.id), eq(followupsTable.tenantId, tenantId)))
     .orderBy(desc(followupsTable.scheduledAt), desc(followupsTable.createdAt));
   const names = await userNames(
-    rows.flatMap((r) => [r.assignedUserId, r.createdBy]),
+    rows.flatMap((r) => [r.assignedUserId, r.createdBy]), tenantId,
   );
   res.json({ followups: rows.map((r) => toFollowupDto(r, names)) });
 });
 
 router.post("/implant-cases/:id/followups", async (req, res) => {
-  const caseRow = await guardWritableCase(req.params.id, res);
+  const tenantId = req.currentTenant!.id;
+  const caseRow = await guardWritableCase(req.params.id, tenantId, res);
   if (!caseRow) return;
   const input = parseOrRespond(followupInputSchema, req.body, res);
   if (!input) return;
@@ -243,6 +282,7 @@ router.post("/implant-cases/:id/followups", async (req, res) => {
   const [created] = await db
     .insert(followupsTable)
     .values({
+      tenantId,
       implantCaseId: caseRow.id,
       patientId: caseRow.patientId,
       followupType: input.followupType,
@@ -262,6 +302,7 @@ router.post("/implant-cases/:id/followups", async (req, res) => {
     .returning();
 
   await writeAudit({
+    tenantId,
     userId,
     action: "followup_created",
     entityType: "followup",
@@ -270,12 +311,13 @@ router.post("/implant-cases/:id/followups", async (req, res) => {
     details: { patientId: caseRow.patientId, implantCaseId: caseRow.id },
   });
 
-  const names = await userNames([created.assignedUserId, created.createdBy]);
+  const names = await userNames([created.assignedUserId, created.createdBy], tenantId);
   res.status(201).json({ followup: toFollowupDto(created, names) });
 });
 
 router.patch("/followups/:id", async (req, res) => {
-  const row = await findFollowup(req.params.id);
+  const tenantId = req.currentTenant!.id;
+  const row = await findFollowup(req.params.id, tenantId);
   if (!row) {
     res.status(404).json(FOLLOWUP_NOT_FOUND_BODY);
     return;
@@ -284,10 +326,21 @@ router.patch("/followups/:id", async (req, res) => {
     res.status(409).json(FOLLOWUP_CLOSED_BODY);
     return;
   }
-  if (!(await guardWritableCase(row.implantCaseId, res))) return;
+  if (!(await guardWritableCase(row.implantCaseId, tenantId, res))) return;
   const input = parseOrRespond(followupUpdateSchema, req.body, res);
   if (!input) return;
   const userId = req.currentUser!.id;
+  if (
+    input.assignedUserId !== undefined &&
+    input.assignedUserId !== null &&
+    !(await isActiveTenantMember(input.assignedUserId, tenantId))
+  ) {
+    res.status(422).json({
+      error: "المستخدم المعيّن غير نشط أو لا ينتمي إلى هذه العيادة.",
+      code: "ASSIGNEE_NOT_AVAILABLE",
+    });
+    return;
+  }
 
   const [updated] = await db
     .update(followupsTable)
@@ -317,10 +370,11 @@ router.patch("/followups/:id", async (req, res) => {
         : {}),
       updatedAt: new Date(),
     })
-    .where(eq(followupsTable.id, row.id))
+    .where(and(eq(followupsTable.id, row.id), eq(followupsTable.tenantId, tenantId)))
     .returning();
 
   await writeAudit({
+    tenantId,
     userId,
     action: "followup_updated",
     entityType: "followup",
@@ -329,13 +383,14 @@ router.patch("/followups/:id", async (req, res) => {
     details: { patientId: row.patientId },
   });
 
-  const names = await userNames([updated.assignedUserId, updated.createdBy]);
+  const names = await userNames([updated.assignedUserId, updated.createdBy], tenantId);
   res.json({ followup: toFollowupDto(updated, names) });
 });
 
 /** Record an outcome: completed, no-show, no-response, needs re-contact, cancel. */
 router.post("/followups/:id/outcome", async (req, res) => {
-  const row = await findFollowup(req.params.id);
+  const tenantId = req.currentTenant!.id;
+  const row = await findFollowup(req.params.id, tenantId);
   if (!row) {
     res.status(404).json(FOLLOWUP_NOT_FOUND_BODY);
     return;
@@ -344,7 +399,7 @@ router.post("/followups/:id/outcome", async (req, res) => {
     res.status(409).json(FOLLOWUP_CLOSED_BODY);
     return;
   }
-  if (!(await guardWritableCase(row.implantCaseId, res))) return;
+  if (!(await guardWritableCase(row.implantCaseId, tenantId, res))) return;
   const input = parseOrRespond(followupOutcomeSchema, req.body, res);
   if (!input) return;
   const userId = req.currentUser!.id;
@@ -357,7 +412,7 @@ router.post("/followups/:id/outcome", async (req, res) => {
       note: input.note ?? row.note,
       updatedAt: new Date(),
     })
-    .where(eq(followupsTable.id, row.id))
+    .where(and(eq(followupsTable.id, row.id), eq(followupsTable.tenantId, tenantId)))
     .returning();
 
   const action =
@@ -367,6 +422,7 @@ router.post("/followups/:id/outcome", async (req, res) => {
         ? "followup_cancelled"
         : "followup_updated";
   await writeAudit({
+    tenantId,
     userId,
     action,
     entityType: "followup",
@@ -375,7 +431,7 @@ router.post("/followups/:id/outcome", async (req, res) => {
     details: { patientId: row.patientId },
   });
 
-  const names = await userNames([updated.assignedUserId, updated.createdBy]);
+  const names = await userNames([updated.assignedUserId, updated.createdBy], tenantId);
   res.json({ followup: toFollowupDto(updated, names) });
 });
 
@@ -384,7 +440,8 @@ router.post("/followups/:id/outcome", async (req, res) => {
  * a fresh scheduled follow-up on the new date, atomically.
  */
 router.post("/followups/:id/postpone", async (req, res) => {
-  const row = await findFollowup(req.params.id);
+  const tenantId = req.currentTenant!.id;
+  const row = await findFollowup(req.params.id, tenantId);
   if (!row) {
     res.status(404).json(FOLLOWUP_NOT_FOUND_BODY);
     return;
@@ -393,20 +450,31 @@ router.post("/followups/:id/postpone", async (req, res) => {
     res.status(409).json(FOLLOWUP_CLOSED_BODY);
     return;
   }
-  if (!(await guardWritableCase(row.implantCaseId, res))) return;
+  if (!(await guardWritableCase(row.implantCaseId, tenantId, res))) return;
   const input = parseOrRespond(followupPostponeSchema, req.body, res);
   if (!input) return;
   const userId = req.currentUser!.id;
+  if (
+    row.assignedUserId &&
+    !(await isActiveTenantMember(row.assignedUserId, tenantId))
+  ) {
+    res.status(422).json({
+      error: "المستخدم المعيّن غير نشط أو لا ينتمي إلى هذه العيادة.",
+      code: "ASSIGNEE_NOT_AVAILABLE",
+    });
+    return;
+  }
 
   const { closed, created } = await db.transaction(async (tx) => {
     const [closedRow] = await tx
       .update(followupsTable)
       .set({ followupStatus: "مؤجلة", updatedAt: new Date() })
-      .where(eq(followupsTable.id, row.id))
+      .where(and(eq(followupsTable.id, row.id), eq(followupsTable.tenantId, tenantId)))
       .returning();
     const [createdRow] = await tx
       .insert(followupsTable)
       .values({
+        tenantId,
         implantCaseId: row.implantCaseId,
         patientId: row.patientId,
         followupType: row.followupType,
@@ -422,6 +490,7 @@ router.post("/followups/:id/postpone", async (req, res) => {
       .returning();
     await writeAudit(
       {
+        tenantId,
         userId,
         action: "followup_postponed",
         entityType: "followup",
@@ -443,7 +512,7 @@ router.post("/followups/:id/postpone", async (req, res) => {
     closed.assignedUserId,
     closed.createdBy,
     created.createdBy,
-  ]);
+  ], tenantId);
   res.json({
     followup: toFollowupDto(closed, names),
     newFollowup: toFollowupDto(created, names),
@@ -479,6 +548,7 @@ function toCommunicationDto(
 
 async function templateNamesFor(
   ids: Array<string | null>,
+  tenantId: string,
 ): Promise<Map<string, string>> {
   const unique = [...new Set(ids.filter((v): v is string => Boolean(v)))];
   if (!unique.length) return new Map();
@@ -488,12 +558,13 @@ async function templateNamesFor(
       name: whatsappTemplatesTable.name,
     })
     .from(whatsappTemplatesTable)
-    .where(inArray(whatsappTemplatesTable.id, unique));
+    .where(and(inArray(whatsappTemplatesTable.id, unique), eq(whatsappTemplatesTable.tenantId, tenantId)));
   return new Map(rows.map((r) => [r.id, r.name]));
 }
 
 router.get("/patients/:id/communications", async (req, res) => {
-  const patient = await findPatient(req.params.id);
+  const tenantId = req.currentTenant!.id;
+  const patient = await findPatient(req.params.id, tenantId);
   if (!patient) {
     res.status(404).json(PATIENT_NOT_FOUND_BODY);
     return;
@@ -501,11 +572,11 @@ router.get("/patients/:id/communications", async (req, res) => {
   const rows = await db
     .select()
     .from(communicationsTable)
-    .where(eq(communicationsTable.patientId, patient.id))
+    .where(and(eq(communicationsTable.patientId, patient.id), eq(communicationsTable.tenantId, tenantId)))
     .orderBy(desc(communicationsTable.createdAt));
   const [names, templates] = await Promise.all([
-    userNames(rows.map((r) => r.userId)),
-    templateNamesFor(rows.map((r) => r.templateId)),
+    userNames(rows.map((r) => r.userId), tenantId),
+    templateNamesFor(rows.map((r) => r.templateId), tenantId),
   ]);
   res.json({
     communications: rows.map((r) => toCommunicationDto(r, names, templates)),
@@ -514,7 +585,8 @@ router.get("/patients/:id/communications", async (req, res) => {
 
 /** Log that a WhatsApp link was opened (the app never claims delivery/read). */
 router.post("/patients/:id/communications", async (req, res) => {
-  const patient = await findPatient(req.params.id);
+  const tenantId = req.currentTenant!.id;
+  const patient = await findPatient(req.params.id, tenantId);
   if (!patient) {
     res.status(404).json(PATIENT_NOT_FOUND_BODY);
     return;
@@ -526,7 +598,7 @@ router.post("/patients/:id/communications", async (req, res) => {
   const input = parseOrRespond(communicationInputSchema, req.body, res);
   if (!input) return;
   if (input.implantCaseId) {
-    const caseRow = await findCase(input.implantCaseId);
+    const caseRow = await findCase(input.implantCaseId, tenantId);
     if (!caseRow || caseRow.patientId !== patient.id) {
       res.status(400).json({
         error: "حالة الزراعة لا تتبع هذا المريض.",
@@ -544,6 +616,7 @@ router.post("/patients/:id/communications", async (req, res) => {
   const [created] = await db
     .insert(communicationsTable)
     .values({
+      tenantId,
       patientId: patient.id,
       implantCaseId: input.implantCaseId,
       templateId: input.templateId,
@@ -556,6 +629,7 @@ router.post("/patients/:id/communications", async (req, res) => {
     .returning();
 
   await writeAudit({
+    tenantId,
     userId,
     action: "whatsapp_opened",
     entityType: "communication",
@@ -565,8 +639,8 @@ router.post("/patients/:id/communications", async (req, res) => {
   });
 
   const [names, templates] = await Promise.all([
-    userNames([userId]),
-    templateNamesFor([created.templateId]),
+    userNames([userId], tenantId),
+    templateNamesFor([created.templateId], tenantId),
   ]);
   res
     .status(201)
@@ -584,7 +658,7 @@ router.patch("/communications/:id/result", async (req, res) => {
   const [row] = await db
     .select()
     .from(communicationsTable)
-    .where(eq(communicationsTable.id, req.params.id))
+    .where(and(eq(communicationsTable.id, req.params.id), eq(communicationsTable.tenantId, req.currentTenant!.id)))
     .limit(1);
   if (!row) {
     res.status(404).json({
@@ -593,7 +667,8 @@ router.patch("/communications/:id/result", async (req, res) => {
     });
     return;
   }
-  if (await isPatientArchived(row.patientId)) {
+  const tenantId = req.currentTenant!.id;
+  if (await isPatientArchived(row.patientId, tenantId)) {
     res.status(409).json(PATIENT_ARCHIVED_BODY);
     return;
   }
@@ -607,10 +682,11 @@ router.patch("/communications/:id/result", async (req, res) => {
       communicationResult: input.communicationResult,
       resultNote: input.resultNote,
     })
-    .where(eq(communicationsTable.id, row.id))
+    .where(and(eq(communicationsTable.id, row.id), eq(communicationsTable.tenantId, tenantId)))
     .returning();
 
   await writeAudit({
+    tenantId,
     userId,
     action: "communication_result",
     entityType: "communication",
@@ -620,8 +696,8 @@ router.patch("/communications/:id/result", async (req, res) => {
   });
 
   const [names, templates] = await Promise.all([
-    userNames([updated.userId]),
-    templateNamesFor([updated.templateId]),
+    userNames([updated.userId], tenantId),
+    templateNamesFor([updated.templateId], tenantId),
   ]);
   res.json({ communication: toCommunicationDto(updated, names, templates) });
 });
@@ -632,6 +708,7 @@ router.patch("/communications/:id/result", async (req, res) => {
 
 router.get("/notifications", async (req, res) => {
   const now = new Date();
+  const tenantId = req.currentTenant!.id;
   const today = riyadhDateOf(now);
   const startOfToday = new Date(`${today}T00:00:00+03:00`);
   const endOfToday = new Date(`${today}T23:59:59.999+03:00`);
@@ -651,6 +728,9 @@ router.get("/notifications", async (req, res) => {
     )
     .where(
       and(
+        eq(followupsTable.tenantId, tenantId),
+        eq(patientsTable.tenantId, tenantId),
+        eq(implantCasesTable.tenantId, tenantId),
         isNull(patientsTable.archivedAt),
         isNull(implantCasesTable.archivedAt),
         sql`${followupsTable.followupStatus} NOT IN ('تمت','ملغاة','مؤجلة')`,
@@ -706,6 +786,8 @@ router.get("/notifications", async (req, res) => {
     )
     .where(
       and(
+        eq(implantCasesTable.tenantId, tenantId),
+        eq(patientsTable.tenantId, tenantId),
         eq(implantCasesTable.caseStatus, READY_CASE_STATUS),
         isNull(implantCasesTable.archivedAt),
         isNull(patientsTable.archivedAt),

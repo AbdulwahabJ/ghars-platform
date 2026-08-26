@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import app from "../src/app";
 import {
   agentFor,
+  attachUserToInternalTenant,
   freshAdminSession,
   login,
   makePool,
@@ -42,6 +43,7 @@ beforeAll(async () => {
       "ASSISTANT",
     ],
   );
+  await attachUserToInternalTenant(pool, "rep-assist", "ASSISTANT");
   assistant = agentFor(app);
   await login(assistant, "rep-assist", "Rep0TestPass12");
 

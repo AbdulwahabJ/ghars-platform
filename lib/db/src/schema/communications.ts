@@ -3,6 +3,7 @@ import { implantCasesTable } from "./implant-cases";
 import { patientsTable } from "./patients";
 import { usersTable } from "./users";
 import { whatsappTemplatesTable } from "./whatsapp-templates";
+import { tenantsTable } from "./tenants";
 
 /**
  * Communication log — records that a WhatsApp link was opened and the result
@@ -13,6 +14,9 @@ export const communicationsTable = pgTable(
   "communications",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     patientId: uuid("patient_id")
       .notNull()
       .references(() => patientsTable.id),
@@ -30,7 +34,10 @@ export const communicationsTable = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("IDX_communications_patient_id").on(table.patientId)],
+  (table) => [
+    index("IDX_communications_tenant_id").on(table.tenantId),
+    index("IDX_communications_patient_id").on(table.patientId),
+  ],
 );
 
 export type CommunicationRow = typeof communicationsTable.$inferSelect;

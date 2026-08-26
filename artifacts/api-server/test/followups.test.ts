@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import app from "../src/app";
 import {
   agentFor,
+  attachUserToInternalTenant,
   freshAdminSession,
   login,
   makePool,
@@ -40,6 +41,7 @@ async function seedUser(
      VALUES ($1, $2, $3, $4)`,
     [username, bcrypt.hashSync("Fup0TestPass12", 10), `مستخدم ${username}`, role],
   );
+  await attachUserToInternalTenant(pool, username, role);
   const agent = agentFor(app);
   await login(agent, username, "Fup0TestPass12");
   return agent;

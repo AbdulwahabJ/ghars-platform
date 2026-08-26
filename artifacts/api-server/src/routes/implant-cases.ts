@@ -185,34 +185,35 @@ function toBoneGraftProcedureDto(
   };
 }
 
-async function findCase(id: string): Promise<ImplantCaseRow | undefined> {
+async function findCase(id: string, tenantId: string): Promise<ImplantCaseRow | undefined> {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(implantCasesTable)
-    .where(eq(implantCasesTable.id, id))
+    .where(and(eq(implantCasesTable.id, id), eq(implantCasesTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
 
-async function findImplant(id: string): Promise<ImplantRow | undefined> {
+async function findImplant(id: string, tenantId: string): Promise<ImplantRow | undefined> {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(implantsTable)
-    .where(eq(implantsTable.id, id))
+    .where(and(eq(implantsTable.id, id), eq(implantsTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
 
 async function findProstheticEvent(
   id: string,
+  tenantId: string,
 ): Promise<ProstheticEventRow | undefined> {
   if (!UUID_RE.test(id)) return undefined;
   const [row] = await db
     .select()
     .from(prostheticEventsTable)
-    .where(eq(prostheticEventsTable.id, id))
+    .where(and(eq(prostheticEventsTable.id, id), eq(prostheticEventsTable.tenantId, tenantId)))
     .limit(1);
   return row;
 }
@@ -224,12 +225,13 @@ async function findProstheticEvent(
 async function validateSourceCase(
   sourceCaseId: string,
   patientId: string,
+  tenantId: string,
   selfId?: string,
 ): Promise<string | null> {
   if (selfId && sourceCaseId === selfId) {
     return "لا يمكن ربط الحالة بنفسها كحالة مصدر.";
   }
-  const source = await findCase(sourceCaseId);
+  const source = await findCase(sourceCaseId, tenantId);
   if (!source || source.patientId !== patientId) {
     return "الحالة المصدر غير موجودة أو لا تخص نفس المريض.";
   }
@@ -237,11 +239,11 @@ async function validateSourceCase(
 }
 
 /** True when the parent patient file is archived (all writes are blocked). */
-async function isPatientArchived(patientId: string): Promise<boolean> {
+async function isPatientArchived(patientId: string, tenantId: string): Promise<boolean> {
   const [row] = await db
     .select({ archivedAt: patientsTable.archivedAt })
     .from(patientsTable)
-    .where(eq(patientsTable.id, patientId))
+    .where(and(eq(patientsTable.id, patientId), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   return Boolean(row?.archivedAt);
 }
@@ -250,10 +252,12 @@ async function isPatientArchived(patientId: string): Promise<boolean> {
 async function hasActiveSiteConflict(
   caseId: string,
   site: string,
+  tenantId: string,
   excludeImplantId?: string,
 ): Promise<boolean> {
   const conditions = [
     eq(implantsTable.implantCaseId, caseId),
+    eq(implantsTable.tenantId, tenantId),
     eq(implantsTable.site, site),
     isNull(implantsTable.archivedAt),
     notInArray(implantsTable.implantStatus, [...REIMPLANTABLE_STATUSES]),
@@ -273,12 +277,13 @@ async function hasActiveSiteConflict(
 /* Options                                                             */
 /* ------------------------------------------------------------------ */
 
-router.get("/implant-options", async (_req, res) => {
+router.get("/implant-options", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const [systems, lookups] = await Promise.all([
     db
       .select({ name: implantSystemOptionsTable.name })
       .from(implantSystemOptionsTable)
-      .where(eq(implantSystemOptionsTable.isActive, true))
+      .where(and(eq(implantSystemOptionsTable.isActive, true), eq(implantSystemOptionsTable.tenantId, tenantId)))
       .orderBy(
         asc(implantSystemOptionsTable.sortOrder),
         asc(implantSystemOptionsTable.name),
@@ -292,6 +297,7 @@ router.get("/implant-options", async (_req, res) => {
       .where(
         and(
           eq(lookupOptionsTable.isActive, true),
+          eq(lookupOptionsTable.tenantId, tenantId),
           inArray(lookupOptionsTable.category, [
             LOOKUP_CATEGORIES.qValue,
             LOOKUP_CATEGORIES.formerValue,
@@ -329,6 +335,7 @@ router.get("/implant-options", async (_req, res) => {
 /* ------------------------------------------------------------------ */
 
 router.get("/patients/:patientId/implant-cases", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const { patientId } = req.params;
   if (!UUID_RE.test(patientId)) {
     res.status(404).json({ error: "المريض غير موجود.", code: "PATIENT_NOT_FOUND" });
@@ -337,7 +344,7 @@ router.get("/patients/:patientId/implant-cases", async (req, res) => {
   const [patient] = await db
     .select({ id: patientsTable.id })
     .from(patientsTable)
-    .where(eq(patientsTable.id, patientId))
+    .where(and(eq(patientsTable.id, patientId), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   if (!patient) {
     res.status(404).json({ error: "المريض غير موجود.", code: "PATIENT_NOT_FOUND" });
@@ -347,7 +354,7 @@ router.get("/patients/:patientId/implant-cases", async (req, res) => {
   const cases = await db
     .select()
     .from(implantCasesTable)
-    .where(eq(implantCasesTable.patientId, patientId))
+    .where(and(eq(implantCasesTable.patientId, patientId), eq(implantCasesTable.tenantId, tenantId)))
     .orderBy(desc(implantCasesTable.createdAt));
 
   const caseIds = cases.map((c) => c.id);
@@ -355,14 +362,14 @@ router.get("/patients/:patientId/implant-cases", async (req, res) => {
     ? await db
         .select()
         .from(implantsTable)
-        .where(inArray(implantsTable.implantCaseId, caseIds))
+        .where(and(inArray(implantsTable.implantCaseId, caseIds), eq(implantsTable.tenantId, tenantId)))
         .orderBy(asc(implantsTable.createdAt))
     : [];
   const prostheticEvents = caseIds.length
     ? await db
         .select()
         .from(prostheticEventsTable)
-        .where(inArray(prostheticEventsTable.implantCaseId, caseIds))
+        .where(and(inArray(prostheticEventsTable.implantCaseId, caseIds), eq(prostheticEventsTable.tenantId, tenantId)))
         .orderBy(
           desc(prostheticEventsTable.eventDate),
           desc(prostheticEventsTable.createdAt),
@@ -375,6 +382,7 @@ router.get("/patients/:patientId/implant-cases", async (req, res) => {
         .where(
           and(
             inArray(boneGraftProceduresTable.implantCaseId, caseIds),
+            eq(boneGraftProceduresTable.tenantId, tenantId),
             isNull(boneGraftProceduresTable.archivedAt),
           ),
         )
@@ -400,6 +408,7 @@ router.get("/patients/:patientId/implant-cases", async (req, res) => {
 });
 
 router.post("/patients/:patientId/implant-cases", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const { patientId } = req.params;
   if (!UUID_RE.test(patientId)) {
     res.status(404).json({ error: "المريض غير موجود.", code: "PATIENT_NOT_FOUND" });
@@ -408,7 +417,7 @@ router.post("/patients/:patientId/implant-cases", async (req, res) => {
   const [patient] = await db
     .select({ id: patientsTable.id, archivedAt: patientsTable.archivedAt })
     .from(patientsTable)
-    .where(eq(patientsTable.id, patientId))
+    .where(and(eq(patientsTable.id, patientId), eq(patientsTable.tenantId, tenantId)))
     .limit(1);
   if (!patient) {
     res.status(404).json({ error: "المريض غير موجود.", code: "PATIENT_NOT_FOUND" });
@@ -427,7 +436,7 @@ router.post("/patients/:patientId/implant-cases", async (req, res) => {
     input.sourceCaseId = null;
   }
   if (input.sourceCaseId) {
-    const problem = await validateSourceCase(input.sourceCaseId, patientId);
+    const problem = await validateSourceCase(input.sourceCaseId, patientId, tenantId);
     if (problem) {
       res.status(400).json({ error: problem, code: SOURCE_CASE_INVALID });
       return;
@@ -437,6 +446,7 @@ router.post("/patients/:patientId/implant-cases", async (req, res) => {
   const [row] = await db
     .insert(implantCasesTable)
     .values({
+      tenantId,
       patientId,
       procedureDate: input.procedureDate,
       treatingDoctor: input.treatingDoctor,
@@ -455,6 +465,7 @@ router.post("/patients/:patientId/implant-cases", async (req, res) => {
     .returning();
 
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "implant_case_create",
     entityType: "implant_case",
@@ -465,7 +476,8 @@ router.post("/patients/:patientId/implant-cases", async (req, res) => {
 });
 
 router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
-  const parentCase = await findCase(String(req.params.id));
+  const tenantId = req.currentTenant!.id;
+  const parentCase = await findCase(String(req.params.id), tenantId);
   if (!parentCase) {
     res.status(404).json(CASE_NOT_FOUND_BODY);
     return;
@@ -474,7 +486,7 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
     res.status(409).json(CASE_ARCHIVED_BODY);
     return;
   }
-  if (await isPatientArchived(parentCase.patientId)) {
+  if (await isPatientArchived(parentCase.patientId, tenantId)) {
     res.status(409).json(PATIENT_ARCHIVED_BODY);
     return;
   }
@@ -492,7 +504,7 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
 
   let linkedImplant: ImplantRow | null = null;
   if (input.implantId) {
-    const implant = await findImplant(input.implantId);
+    const implant = await findImplant(input.implantId, tenantId);
     if (
       !implant ||
       implant.implantCaseId !== parentCase.id ||
@@ -511,6 +523,7 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
     const [row] = await tx
       .insert(prostheticEventsTable)
       .values({
+        tenantId,
         implantCaseId: parentCase.id,
         implantId: input.implantId,
         eventType: input.eventType,
@@ -522,6 +535,7 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
 
     await writeAudit(
       {
+        tenantId,
         userId: req.currentUser!.id,
         action: "prosthetic_event_create",
         entityType: "prosthetic_event",
@@ -550,6 +564,7 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
       .where(
         and(
           eq(implantsTable.id, linkedImplant.id),
+          eq(implantsTable.tenantId, tenantId),
           isNull(implantsTable.archivedAt),
         ),
       )
@@ -560,6 +575,7 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
 
     await writeAudit(
       {
+        tenantId,
         userId: req.currentUser!.id,
         action: "implant_update",
         entityType: "implant",
@@ -583,7 +599,8 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
 });
 
 router.patch("/implant-cases/:id", async (req, res) => {
-  const existing = await findCase(String(req.params.id));
+  const tenantId = req.currentTenant!.id;
+  const existing = await findCase(String(req.params.id), tenantId);
   if (!existing) {
     res.status(404).json(CASE_NOT_FOUND_BODY);
     return;
@@ -592,7 +609,7 @@ router.patch("/implant-cases/:id", async (req, res) => {
     res.status(409).json(CASE_ARCHIVED_BODY);
     return;
   }
-  if (await isPatientArchived(existing.patientId)) {
+  if (await isPatientArchived(existing.patientId, tenantId)) {
     res.status(409).json(PATIENT_ARCHIVED_BODY);
     return;
   }
@@ -619,6 +636,7 @@ router.patch("/implant-cases/:id", async (req, res) => {
     const problem = await validateSourceCase(
       merged.sourceCaseId,
       existing.patientId,
+      tenantId,
       existing.id,
     );
     if (problem) {
@@ -659,10 +677,11 @@ router.patch("/implant-cases/:id", async (req, res) => {
       updatedBy: req.currentUser!.id,
       updatedAt: new Date(),
     })
-    .where(eq(implantCasesTable.id, existing.id))
+    .where(and(eq(implantCasesTable.id, existing.id), eq(implantCasesTable.tenantId, tenantId)))
     .returning();
 
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "implant_case_update",
     entityType: "implant_case",
@@ -677,7 +696,8 @@ router.post(
   "/implant-cases/:id/archive",
   requireRole("ADMIN", "DOCTOR"),
   async (req, res) => {
-    const existing = await findCase(String(req.params.id));
+    const tenantId = req.currentTenant!.id;
+    const existing = await findCase(String(req.params.id), tenantId);
     if (!existing) {
       res.status(404).json(CASE_NOT_FOUND_BODY);
       return;
@@ -686,7 +706,7 @@ router.post(
       res.json({ case: toCaseDto(existing) });
       return;
     }
-    if (await isPatientArchived(existing.patientId)) {
+    if (await isPatientArchived(existing.patientId, tenantId)) {
       res.status(409).json(PATIENT_ARCHIVED_BODY);
       return;
     }
@@ -698,7 +718,7 @@ router.post(
         updatedAt: new Date(),
       })
       .where(
-        and(eq(implantCasesTable.id, existing.id), isNull(implantCasesTable.archivedAt)),
+        and(eq(implantCasesTable.id, existing.id), eq(implantCasesTable.tenantId, tenantId), isNull(implantCasesTable.archivedAt)),
       )
       .returning();
     if (!row) {
@@ -706,6 +726,7 @@ router.post(
       return;
     }
     await writeAudit({
+    tenantId,
       userId: req.currentUser!.id,
       action: "implant_case_archive",
       entityType: "implant_case",
@@ -720,7 +741,8 @@ router.post(
   "/implant-cases/:id/restore",
   requireRole("ADMIN", "DOCTOR"),
   async (req, res) => {
-    const existing = await findCase(String(req.params.id));
+    const tenantId = req.currentTenant!.id;
+    const existing = await findCase(String(req.params.id), tenantId);
     if (!existing) {
       res.status(404).json(CASE_NOT_FOUND_BODY);
       return;
@@ -729,7 +751,7 @@ router.post(
       res.json({ case: toCaseDto(existing) });
       return;
     }
-    if (await isPatientArchived(existing.patientId)) {
+    if (await isPatientArchived(existing.patientId, tenantId)) {
       res.status(409).json(PATIENT_ARCHIVED_BODY);
       return;
     }
@@ -740,9 +762,10 @@ router.post(
         updatedBy: req.currentUser!.id,
         updatedAt: new Date(),
       })
-      .where(eq(implantCasesTable.id, existing.id))
+      .where(and(eq(implantCasesTable.id, existing.id), eq(implantCasesTable.tenantId, tenantId)))
       .returning();
     await writeAudit({
+    tenantId,
       userId: req.currentUser!.id,
       action: "implant_case_restore",
       entityType: "implant_case",
@@ -757,7 +780,8 @@ router.post(
   "/prosthetic-events/:id/archive",
   requireRole("ADMIN", "DOCTOR"),
   async (req, res) => {
-    const existing = await findProstheticEvent(String(req.params.id));
+    const tenantId = req.currentTenant!.id;
+    const existing = await findProstheticEvent(String(req.params.id), tenantId);
     if (!existing) {
       res.status(404).json(PROSTHETIC_EVENT_NOT_FOUND_BODY);
       return;
@@ -767,7 +791,7 @@ router.post(
       return;
     }
 
-    const parentCase = await findCase(existing.implantCaseId);
+    const parentCase = await findCase(existing.implantCaseId, tenantId);
     if (!parentCase) {
       res.status(404).json(CASE_NOT_FOUND_BODY);
       return;
@@ -776,7 +800,7 @@ router.post(
       res.status(409).json(CASE_ARCHIVED_BODY);
       return;
     }
-    if (await isPatientArchived(parentCase.patientId)) {
+    if (await isPatientArchived(parentCase.patientId, tenantId)) {
       res.status(409).json(PATIENT_ARCHIVED_BODY);
       return;
     }
@@ -787,6 +811,7 @@ router.post(
       .where(
         and(
           eq(prostheticEventsTable.id, existing.id),
+          eq(prostheticEventsTable.tenantId, tenantId),
           isNull(prostheticEventsTable.archivedAt),
         ),
       )
@@ -797,6 +822,7 @@ router.post(
     }
 
     await writeAudit({
+    tenantId,
       userId: req.currentUser!.id,
       action: "prosthetic_event_archive",
       entityType: "prosthetic_event",
@@ -812,7 +838,8 @@ router.post(
 /* ------------------------------------------------------------------ */
 
 router.post("/implant-cases/:id/implants", async (req, res) => {
-  const parentCase = await findCase(String(req.params.id));
+  const tenantId = req.currentTenant!.id;
+  const parentCase = await findCase(String(req.params.id), tenantId);
   if (!parentCase) {
     res.status(404).json(CASE_NOT_FOUND_BODY);
     return;
@@ -821,7 +848,7 @@ router.post("/implant-cases/:id/implants", async (req, res) => {
     res.status(409).json(CASE_ARCHIVED_BODY);
     return;
   }
-  if (await isPatientArchived(parentCase.patientId)) {
+  if (await isPatientArchived(parentCase.patientId, tenantId)) {
     res.status(409).json(PATIENT_ARCHIVED_BODY);
     return;
   }
@@ -829,7 +856,7 @@ router.post("/implant-cases/:id/implants", async (req, res) => {
   const input = parseOrRespond(implantInputSchema, req.body, res);
   if (!input) return;
 
-  if (await hasActiveSiteConflict(parentCase.id, input.site)) {
+  if (await hasActiveSiteConflict(parentCase.id, input.site, tenantId)) {
     res.status(409).json(DUPLICATE_SITE_BODY);
     return;
   }
@@ -838,6 +865,7 @@ router.post("/implant-cases/:id/implants", async (req, res) => {
     const [row] = await db
       .insert(implantsTable)
       .values({
+        tenantId,
         implantCaseId: parentCase.id,
         site: input.site,
         isCustomSite: false,
@@ -858,6 +886,7 @@ router.post("/implant-cases/:id/implants", async (req, res) => {
       .returning();
 
     await writeAudit({
+    tenantId,
       userId: req.currentUser!.id,
       action: "implant_create",
       entityType: "implant",
@@ -875,7 +904,8 @@ router.post("/implant-cases/:id/implants", async (req, res) => {
 });
 
 router.patch("/implants/:id", async (req, res) => {
-  const existing = await findImplant(String(req.params.id));
+  const tenantId = req.currentTenant!.id;
+  const existing = await findImplant(String(req.params.id), tenantId);
   if (!existing) {
     res.status(404).json(IMPLANT_NOT_FOUND_BODY);
     return;
@@ -887,12 +917,12 @@ router.patch("/implants/:id", async (req, res) => {
     });
     return;
   }
-  const parentCase = await findCase(existing.implantCaseId);
+  const parentCase = await findCase(existing.implantCaseId, tenantId);
   if (parentCase?.archivedAt) {
     res.status(409).json(CASE_ARCHIVED_BODY);
     return;
   }
-  if (parentCase && (await isPatientArchived(parentCase.patientId))) {
+  if (parentCase && (await isPatientArchived(parentCase.patientId, tenantId))) {
     res.status(409).json(PATIENT_ARCHIVED_BODY);
     return;
   }
@@ -920,7 +950,7 @@ router.patch("/implants/:id", async (req, res) => {
       (REIMPLANTABLE_STATUSES as readonly string[]).includes(
         existing.implantStatus,
       )) &&
-    (await hasActiveSiteConflict(existing.implantCaseId, targetSite, existing.id))
+    (await hasActiveSiteConflict(existing.implantCaseId, targetSite, tenantId, existing.id))
   ) {
     res.status(409).json(DUPLICATE_SITE_BODY);
     return;
@@ -962,10 +992,11 @@ router.patch("/implants/:id", async (req, res) => {
         updatedBy: req.currentUser!.id,
         updatedAt: new Date(),
       })
-      .where(eq(implantsTable.id, existing.id))
+      .where(and(eq(implantsTable.id, existing.id), eq(implantsTable.tenantId, tenantId)))
       .returning();
 
     await writeAudit({
+    tenantId,
       userId: req.currentUser!.id,
       action: "implant_update",
       entityType: "implant",
@@ -987,7 +1018,8 @@ router.post(
   "/implants/:id/archive",
   requireRole("ADMIN", "DOCTOR"),
   async (req, res) => {
-    const existing = await findImplant(String(req.params.id));
+    const tenantId = req.currentTenant!.id;
+    const existing = await findImplant(String(req.params.id), tenantId);
     if (!existing) {
       res.status(404).json(IMPLANT_NOT_FOUND_BODY);
       return;
@@ -996,8 +1028,8 @@ router.post(
       res.json({ implant: toImplantDto(existing) });
       return;
     }
-    const parentCase = await findCase(existing.implantCaseId);
-    if (parentCase && (await isPatientArchived(parentCase.patientId))) {
+    const parentCase = await findCase(existing.implantCaseId, tenantId);
+    if (parentCase && (await isPatientArchived(parentCase.patientId, tenantId))) {
       res.status(409).json(PATIENT_ARCHIVED_BODY);
       return;
     }
@@ -1009,13 +1041,14 @@ router.post(
         updatedBy: req.currentUser!.id,
         updatedAt: new Date(),
       })
-      .where(and(eq(implantsTable.id, existing.id), isNull(implantsTable.archivedAt)))
+      .where(and(eq(implantsTable.id, existing.id), eq(implantsTable.tenantId, tenantId), isNull(implantsTable.archivedAt)))
       .returning();
     if (!row) {
       res.status(404).json(IMPLANT_NOT_FOUND_BODY);
       return;
     }
     await writeAudit({
+    tenantId,
       userId: req.currentUser!.id,
       action: "implant_archive",
       entityType: "implant",

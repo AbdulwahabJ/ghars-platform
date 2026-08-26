@@ -45,13 +45,15 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
   if (!input) return;
 
   const user = req.currentUser!;
-  const perms = effectivePermissions(user);
+  const tenantId = req.currentTenant!.id;
+  const membership = req.currentMembership!;
+  const perms = effectivePermissions(membership);
 
   // Validate financial permissions before touching the DB
   if (
     typeof input.baseTreatmentAmount === "number" &&
     input.baseTreatmentAmount > 0 &&
-    user.role !== "ADMIN" &&
+    membership.role !== "ADMIN" &&
     !perms.canViewFinancials
   ) {
     res.status(403).json({
@@ -60,7 +62,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
     });
     return;
   }
-  if (input.initialPayment && user.role !== "ADMIN" && !perms.canRecordPayments) {
+  if (input.initialPayment && membership.role !== "ADMIN" && !perms.canRecordPayments) {
     res.status(403).json({
       error: "ليست لديك صلاحية تسجيل الدفعات.",
       code: FORBIDDEN_FINANCIAL,
@@ -88,7 +90,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
       const [existing] = await tx
         .select({ id: patientsTable.id, archivedAt: patientsTable.archivedAt })
         .from(patientsTable)
-        .where(eq(patientsTable.fileNumber, fileNumber))
+        .where(and(eq(patientsTable.fileNumber, fileNumber), eq(patientsTable.tenantId, tenantId)))
         .limit(1);
 
       if (existing) {
@@ -104,6 +106,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
       const [patientRow] = await tx
         .insert(patientsTable)
         .values({
+          tenantId,
           fileNumber,
           fullName: input.patient.fullName,
           fullNameNormalized: normalizeArabicSearchText(input.patient.fullName),
@@ -116,6 +119,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
 
       await writeAudit(
         {
+          tenantId,
           userId: user.id,
           action: "patient_create",
           entityType: "patient",
@@ -141,6 +145,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
       const [caseRow] = await tx
         .insert(implantCasesTable)
         .values({
+          tenantId,
           patientId: patientRow.id,
           procedureDate: input.case.procedureDate ?? null,
           treatingDoctor: input.case.treatingDoctor,
@@ -160,6 +165,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
 
       await writeAudit(
         {
+          tenantId,
           userId: user.id,
           action: "implant_case_create",
           entityType: "implant_case",
@@ -174,10 +180,11 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         await tx
           .update(implantCasesTable)
           .set({ baseTreatmentAmount: input.baseTreatmentAmount.toFixed(2) })
-          .where(eq(implantCasesTable.id, caseRow.id));
+          .where(and(eq(implantCasesTable.id, caseRow.id), eq(implantCasesTable.tenantId, tenantId)));
 
         await writeAudit(
           {
+            tenantId,
             userId: user.id,
             action: "case_base_amount_update",
             entityType: "implant_case",
@@ -205,6 +212,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         const [planRow] = await tx
           .insert(installmentPlansTable)
           .values({
+            tenantId,
             implantCaseId: caseRow.id,
             totalAmount: input.installmentPlan.totalAmount.toFixed(2),
             installmentCount: input.installmentPlan.installmentCount,
@@ -219,6 +227,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
         await tx.insert(installmentsTable).values(
           amounts.map((amount, index) => ({
+            tenantId,
             planId: planRow.id,
             sequence: index + 1,
             dueDate: addCalendarMonths(input.installmentPlan!.firstDueDate, index),
@@ -227,6 +236,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         );
         await writeAudit(
           {
+            tenantId,
             userId: user.id,
             action: "installment_plan_create",
             entityType: "installment_plan",
@@ -262,6 +272,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
           .where(
             and(
               eq(implantsTable.implantCaseId, caseRow.id),
+              eq(implantsTable.tenantId, tenantId),
               eq(implantsTable.site, site),
               isNull(implantsTable.archivedAt),
               notInArray(implantsTable.implantStatus, [...REIMPLANTABLE_STATUSES]),
@@ -280,6 +291,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         const [implantRow] = await tx
           .insert(implantsTable)
           .values({
+            tenantId,
             implantCaseId: caseRow.id,
             site,
             isCustomSite: false,
@@ -301,6 +313,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
 
         await writeAudit(
           {
+            tenantId,
             userId: user.id,
             action: "implant_create",
             entityType: "implant",
@@ -327,6 +340,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         const [procedureRow] = await tx
           .insert(boneGraftProceduresTable)
           .values({
+            tenantId,
             ...procedure,
             implantCaseId: caseRow.id,
             implantId: linkedImplant?.id ?? null,
@@ -337,6 +351,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         boneGraftProcedureRows.push(procedureRow);
         await writeAudit(
           {
+            tenantId,
             userId: user.id,
             action: "bone_graft_procedure_create",
             entityType: "bone_graft_procedure",
@@ -353,6 +368,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         const [pr] = await tx
           .insert(paymentsTable)
           .values({
+            tenantId,
             implantCaseId: caseRow.id,
             amount: input.initialPayment.amount.toFixed(2),
             paymentDate: input.initialPayment.paymentDate,
@@ -368,6 +384,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
 
         await writeAudit(
           {
+            tenantId,
             userId: user.id,
             action: "payment_create",
             entityType: "payment",
@@ -384,6 +401,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
         const [fr] = await tx
           .insert(followupsTable)
           .values({
+            tenantId,
             implantCaseId: caseRow.id,
             patientId: patientRow.id,
             followupType: input.followup.followupType,
@@ -403,6 +421,7 @@ router.post("/quick-entry", requireAuth, async (req, res) => {
 
         await writeAudit(
           {
+            tenantId,
             userId: user.id,
             action: "followup_created",
             entityType: "followup",

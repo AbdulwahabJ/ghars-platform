@@ -9,6 +9,7 @@ import {
 import { implantCasesTable } from "./implant-cases";
 import { implantsTable } from "./implants";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * Explicit clinical prosthetic/installation events.
@@ -21,6 +22,9 @@ export const prostheticEventsTable = pgTable(
   "prosthetic_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
@@ -35,6 +39,7 @@ export const prostheticEventsTable = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
+    index("IDX_prosthetic_events_tenant_id").on(table.tenantId),
     index("IDX_prosthetic_events_case_date").on(
       table.implantCaseId,
       table.eventDate,

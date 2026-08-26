@@ -1,10 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Redirect, Route, Switch, Router as WouterRouter } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
 
 import Dashboard from '@/pages/Dashboard';
 import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import VerifyEmail from '@/pages/VerifyEmail';
+import AccessStatus from '@/pages/AccessStatus';
+import PlatformAdmin from '@/pages/PlatformAdmin';
 import Setup from '@/pages/Setup';
 import PatientsList from '@/pages/PatientsList';
 import PatientFile from '@/pages/PatientFile';
@@ -23,21 +29,82 @@ function RemovedSettingsTabRedirect() {
   return <Redirect to="/settings" replace />;
 }
 
+function ProtectedRoute({ component: Component, path }: { component: any; path: string }) {
+  const { user, currentTenant, isPlatformAdmin, isLoading } = useAuth();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  if (isLoading) return null;
+
+  if (!user) {
+    return <Redirect to="/login" replace />;
+  }
+
+  if (currentTenant) {
+    const isPending = currentTenant.status === "PENDING_VERIFICATION";
+    const isSuspended = currentTenant.status === "SUSPENDED";
+    const trialEndsAt = currentTenant.trialEndsAt
+      ? new Date(currentTenant.trialEndsAt).getTime()
+      : Number.NaN;
+    const isTrialExpired =
+      currentTenant.status === "TRIAL" &&
+      Number.isFinite(trialEndsAt) &&
+      trialEndsAt <= now;
+
+    const isBlocked = isPending || isSuspended || isTrialExpired;
+
+    if (isBlocked && path !== "/access-status") {
+      if (!(isPlatformAdmin && path === "/platform-admin")) {
+        return <Redirect to="/access-status" replace />;
+      }
+    }
+
+    if (!isBlocked && path === "/access-status") {
+      return <Redirect to="/" replace />;
+    }
+  }
+
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
       <Route path="/login" component={Login} />
       <Route path="/reset-password" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/setup" component={Setup} />
-      <Route path="/patients" component={PatientsList} />
-      <Route path="/patients/:id" component={PatientFile} />
+
+      <Route path="/access-status">
+        {() => <ProtectedRoute component={AccessStatus} path="/access-status" />}
+      </Route>
+      <Route path="/platform-admin">
+        {() => <ProtectedRoute component={PlatformAdmin} path="/platform-admin" />}
+      </Route>
+      <Route path="/">
+        {() => <ProtectedRoute component={Dashboard} path="/" />}
+      </Route>
+      <Route path="/patients">
+        {() => <ProtectedRoute component={PatientsList} path="/patients" />}
+      </Route>
+      <Route path="/patients/:id">
+        {() => <ProtectedRoute component={PatientFile} path="/patients/:id" />}
+      </Route>
       <Route path="/finance" component={FinanceRedirect} />
-      <Route path="/statistics" component={Statistics} />
+      <Route path="/statistics">
+        {() => <ProtectedRoute component={Statistics} path="/statistics" />}
+      </Route>
       <Route path="/settings/system" component={RemovedSettingsTabRedirect} />
       <Route path="/settings/templates" component={RemovedSettingsTabRedirect} />
       <Route path="/settings/import" component={RemovedSettingsTabRedirect} />
-      <Route path="/settings" component={Settings} />
+      <Route path="/settings">
+        {() => <ProtectedRoute component={Settings} path="/settings" />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

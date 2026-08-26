@@ -15,7 +15,7 @@ import {
   type AdminLookupOption,
   type AdminLookupsResponse,
 } from "@workspace/shared";
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { writeAudit } from "../lib/audit";
 import { parseOrRespond } from "../lib/validation";
 import { requireAuth, requireRole } from "../middlewares/auth";
@@ -49,20 +49,22 @@ const REFERENCE_COLUMNS = {
 async function referencedValues(
   category: AdminLookupCategory,
   values: string[],
+  tenantId: string,
 ): Promise<Set<string>> {
   if (values.length === 0) return new Set();
   if (category === "implant_system") {
     const rows = await db
       .selectDistinct({ v: implantsTable.system })
       .from(implantsTable)
-      .where(inArray(implantsTable.system, values));
+      .where(and(inArray(implantsTable.system, values), eq(implantsTable.tenantId, tenantId)));
     return new Set(rows.map((r) => r.v).filter((v): v is string => !!v));
   }
   if (category === "procedure_tag") {
     const rows = await db.execute(sql`
       SELECT DISTINCT tag AS v
       FROM implants, unnest(procedure_tags) AS tag
-      WHERE tag IN (${sql.join(values.map((v) => sql`${v}`), sql`, `)})
+      WHERE implants.tenant_id = ${tenantId}
+        AND tag IN (${sql.join(values.map((v) => sql`${v}`), sql`, `)})
     `);
     return new Set((rows.rows as { v: string }[]).map((r) => r.v));
   }
@@ -76,14 +78,14 @@ async function referencedValues(
     const rows = await db
       .selectDistinct({ v: column })
       .from(boneGraftProceduresTable)
-      .where(inArray(column, values));
+      .where(and(inArray(column, values), eq(boneGraftProceduresTable.tenantId, tenantId)));
     return new Set(rows.map((r) => r.v).filter((v): v is string => !!v));
   }
   const column = REFERENCE_COLUMNS[category];
   const rows = await db
     .selectDistinct({ v: column })
     .from(implantsTable)
-    .where(inArray(column, values));
+    .where(and(inArray(column, values), eq(implantsTable.tenantId, tenantId)));
   return new Set(rows.map((r) => r.v).filter((v): v is string => !!v));
 }
 
@@ -94,7 +96,7 @@ type OptionRow = {
   sortOrder: number;
 };
 
-async function listCategory(category: AdminLookupCategory): Promise<OptionRow[]> {
+async function listCategory(category: AdminLookupCategory, tenantId: string): Promise<OptionRow[]> {
   if (category === "implant_system") {
     const rows = await db
       .select({
@@ -104,6 +106,7 @@ async function listCategory(category: AdminLookupCategory): Promise<OptionRow[]>
         sortOrder: implantSystemOptionsTable.sortOrder,
       })
       .from(implantSystemOptionsTable)
+      .where(eq(implantSystemOptionsTable.tenantId, tenantId))
       .orderBy(
         asc(implantSystemOptionsTable.sortOrder),
         asc(implantSystemOptionsTable.name),
@@ -118,15 +121,16 @@ async function listCategory(category: AdminLookupCategory): Promise<OptionRow[]>
       sortOrder: lookupOptionsTable.sortOrder,
     })
     .from(lookupOptionsTable)
-    .where(eq(lookupOptionsTable.category, category))
+    .where(and(eq(lookupOptionsTable.category, category), eq(lookupOptionsTable.tenantId, tenantId)))
     .orderBy(asc(lookupOptionsTable.sortOrder), asc(lookupOptionsTable.value));
 }
 
 async function findOption(
   category: AdminLookupCategory,
   id: string,
+  tenantId: string,
 ): Promise<OptionRow | undefined> {
-  const rows = await listCategory(category);
+  const rows = await listCategory(category, tenantId);
   return rows.find((r) => r.id === id);
 }
 
@@ -143,16 +147,17 @@ function categoryOr400(req: { params: { category?: string } }, res: import("expr
 /* List all categories (with reference flags)                          */
 /* ------------------------------------------------------------------ */
 
-router.get("/admin/lookups", async (_req, res) => {
+router.get("/admin/lookups", async (req, res) => {
+  const tenantId = req.currentTenant!.id;
   const categories = Object.keys(
     ADMIN_LOOKUP_CATEGORY_LABELS,
   ) as AdminLookupCategory[];
   const options: AdminLookupOption[] = [];
   for (const category of categories) {
-    const rows = await listCategory(category);
+    const rows = await listCategory(category, tenantId);
     const referenced = await referencedValues(
       category,
-      rows.map((r) => r.value),
+      rows.map((r) => r.value), tenantId,
     );
     for (const row of rows) {
       options.push({
@@ -177,16 +182,17 @@ router.post("/admin/lookups", async (req, res) => {
   const input = parseOrRespond(createLookupOptionInputSchema, req.body, res);
   if (!input) return;
   const user = req.currentUser!;
+  const tenantId = req.currentTenant!.id;
 
   try {
-    const existing = await listCategory(input.category);
+    const existing = await listCategory(input.category, tenantId);
     const nextOrder =
       existing.reduce((max, r) => Math.max(max, r.sortOrder), 0) + 1;
     let created: OptionRow;
     if (input.category === "implant_system") {
       const [row] = await db
         .insert(implantSystemOptionsTable)
-        .values({ name: input.value, sortOrder: nextOrder })
+        .values({ tenantId, name: input.value, sortOrder: nextOrder })
         .returning();
       created = {
         id: row.id,
@@ -198,6 +204,7 @@ router.post("/admin/lookups", async (req, res) => {
       const [row] = await db
         .insert(lookupOptionsTable)
         .values({
+          tenantId,
           category: input.category,
           value: input.value,
           sortOrder: nextOrder,
@@ -211,6 +218,7 @@ router.post("/admin/lookups", async (req, res) => {
       };
     }
     await writeAudit({
+      tenantId,
       userId: user.id,
       action: "lookup_create",
       entityType: "lookup_option",
@@ -249,7 +257,8 @@ router.patch("/admin/lookups/:category/:id", async (req, res) => {
   const input = parseOrRespond(updateLookupOptionInputSchema, req.body, res);
   if (!input) return;
 
-  const option = await findOption(category, req.params.id);
+  const tenantId = req.currentTenant!.id;
+  const option = await findOption(category, req.params.id, tenantId);
   if (!option) {
     res.status(404).json(NOT_FOUND);
     return;
@@ -260,12 +269,12 @@ router.patch("/admin/lookups/:category/:id", async (req, res) => {
       await db
         .update(implantSystemOptionsTable)
         .set({ name: input.value })
-        .where(eq(implantSystemOptionsTable.id, option.id));
+        .where(and(eq(implantSystemOptionsTable.id, option.id), eq(implantSystemOptionsTable.tenantId, tenantId)));
     } else {
       await db
         .update(lookupOptionsTable)
         .set({ value: input.value })
-        .where(eq(lookupOptionsTable.id, option.id));
+        .where(and(eq(lookupOptionsTable.id, option.id), eq(lookupOptionsTable.tenantId, tenantId)));
     }
   } catch (err) {
     if (isUniqueViolation(err)) {
@@ -280,6 +289,7 @@ router.patch("/admin/lookups/:category/:id", async (req, res) => {
   // Historical records store the raw text value, so they keep displaying
   // the old label — renaming only affects future selections.
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "lookup_update",
     entityType: "lookup_option",
@@ -300,7 +310,8 @@ for (const [path, active] of [
   router.post(`/admin/lookups/:category/:id/${path}`, async (req, res) => {
     const category = categoryOr400(req, res);
     if (!category) return;
-    const option = await findOption(category, req.params.id);
+    const tenantId = req.currentTenant!.id;
+    const option = await findOption(category, req.params.id, tenantId);
     if (!option) {
       res.status(404).json(NOT_FOUND);
       return;
@@ -309,14 +320,15 @@ for (const [path, active] of [
       await db
         .update(implantSystemOptionsTable)
         .set({ isActive: active })
-        .where(eq(implantSystemOptionsTable.id, option.id));
+        .where(and(eq(implantSystemOptionsTable.id, option.id), eq(implantSystemOptionsTable.tenantId, tenantId)));
     } else {
       await db
         .update(lookupOptionsTable)
         .set({ isActive: active })
-        .where(eq(lookupOptionsTable.id, option.id));
+        .where(and(eq(lookupOptionsTable.id, option.id), eq(lookupOptionsTable.tenantId, tenantId)));
     }
     await writeAudit({
+      tenantId,
       userId: req.currentUser!.id,
       action: active ? "lookup_activate" : "lookup_deactivate",
       entityType: "lookup_option",
@@ -334,12 +346,13 @@ for (const [path, active] of [
 router.delete("/admin/lookups/:category/:id", async (req, res) => {
   const category = categoryOr400(req, res);
   if (!category) return;
-  const option = await findOption(category, req.params.id);
+  const tenantId = req.currentTenant!.id;
+  const option = await findOption(category, req.params.id, tenantId);
   if (!option) {
     res.status(404).json(NOT_FOUND);
     return;
   }
-  const referenced = await referencedValues(category, [option.value]);
+  const referenced = await referencedValues(category, [option.value], tenantId);
   if (referenced.has(option.value)) {
     res.status(409).json({
       error:
@@ -351,13 +364,14 @@ router.delete("/admin/lookups/:category/:id", async (req, res) => {
   if (category === "implant_system") {
     await db
       .delete(implantSystemOptionsTable)
-      .where(eq(implantSystemOptionsTable.id, option.id));
+      .where(and(eq(implantSystemOptionsTable.id, option.id), eq(implantSystemOptionsTable.tenantId, tenantId)));
   } else {
     await db
       .delete(lookupOptionsTable)
-      .where(eq(lookupOptionsTable.id, option.id));
+      .where(and(eq(lookupOptionsTable.id, option.id), eq(lookupOptionsTable.tenantId, tenantId)));
   }
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "lookup_delete",
     entityType: "lookup_option",
@@ -375,7 +389,8 @@ router.post("/admin/lookups/reorder", async (req, res) => {
   const input = parseOrRespond(reorderLookupOptionsInputSchema, req.body, res);
   if (!input) return;
 
-  const rows = await listCategory(input.category);
+  const tenantId = req.currentTenant!.id;
+  const rows = await listCategory(input.category, tenantId);
   const known = new Set(rows.map((r) => r.id));
   if (
     input.orderedIds.length !== rows.length ||
@@ -394,16 +409,17 @@ router.post("/admin/lookups/reorder", async (req, res) => {
         await tx
           .update(implantSystemOptionsTable)
           .set({ sortOrder: index + 1 })
-          .where(eq(implantSystemOptionsTable.id, id));
+          .where(and(eq(implantSystemOptionsTable.id, id), eq(implantSystemOptionsTable.tenantId, tenantId)));
       } else {
         await tx
           .update(lookupOptionsTable)
           .set({ sortOrder: index + 1 })
-          .where(eq(lookupOptionsTable.id, id));
+          .where(and(eq(lookupOptionsTable.id, id), eq(lookupOptionsTable.tenantId, tenantId)));
       }
     }
     await writeAudit(
       {
+        tenantId,
         userId: req.currentUser!.id,
         action: "lookup_reorder",
         entityType: "lookup_option",

@@ -1,5 +1,11 @@
 import { Router, type IRouter } from "express";
-import { auditLogsTable, db, patientsTable, usersTable } from "@workspace/db";
+import {
+  auditLogsTable,
+  db,
+  patientsTable,
+  tenantMembershipsTable,
+  usersTable,
+} from "@workspace/db";
 import { auditFiltersSchema, type AuditLogResponse } from "@workspace/shared";
 import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import { writeAudit } from "../lib/audit";
@@ -16,7 +22,7 @@ router.use("/admin/audit-logs", requireAuth, requireRole("ADMIN"));
  * Only safe columns are ever selected — password hashes, session tokens and
  * raw `details` payloads are never exposed through this endpoint.
  */
-function buildConditions(filters: {
+function buildConditions(tenantId: string, filters: {
   from?: string;
   to?: string;
   userId?: string;
@@ -24,7 +30,7 @@ function buildConditions(filters: {
   entityType?: string;
   fileNumber?: string;
 }): SQL[] {
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(auditLogsTable.tenantId, tenantId)];
   if (filters.from) {
     conditions.push(
       sql`(${auditLogsTable.createdAt} AT TIME ZONE 'Asia/Riyadh')::date >= ${filters.from}::date`,
@@ -51,7 +57,8 @@ function buildConditions(filters: {
         ${auditLogsTable.entityType} = 'patient'
         AND ${auditLogsTable.entityId} IN (
           SELECT id::text FROM ${patientsTable}
-          WHERE ${patientsTable.fileNumber} = ${filters.fileNumber}
+           WHERE ${patientsTable.fileNumber} = ${filters.fileNumber}
+             AND ${patientsTable.tenantId} = ${tenantId}
         )
       )
     )`);
@@ -73,7 +80,8 @@ router.get("/admin/audit-logs", async (req, res) => {
   const filters = parseOrRespond(auditFiltersSchema, req.query, res);
   if (!filters) return;
 
-  const conditions = buildConditions(filters);
+  const tenantId = req.currentTenant!.id;
+  const conditions = buildConditions(tenantId, filters);
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [items, [countRow], actions, entityTypes, users] = await Promise.all([
@@ -92,14 +100,23 @@ router.get("/admin/audit-logs", async (req, res) => {
     db
       .selectDistinct({ action: auditLogsTable.action })
       .from(auditLogsTable)
+     .where(eq(auditLogsTable.tenantId, tenantId))
       .orderBy(asc(auditLogsTable.action)),
     db
       .selectDistinct({ entityType: auditLogsTable.entityType })
       .from(auditLogsTable)
+     .where(eq(auditLogsTable.tenantId, tenantId))
       .orderBy(asc(auditLogsTable.entityType)),
     db
       .select({ id: usersTable.id, fullName: usersTable.fullName })
-      .from(usersTable)
+     .from(usersTable)
+     .innerJoin(
+       tenantMembershipsTable,
+       and(
+         eq(tenantMembershipsTable.userId, usersTable.id),
+         eq(tenantMembershipsTable.tenantId, tenantId),
+       ),
+     )
       .orderBy(asc(usersTable.fullName)),
   ]);
 
@@ -129,7 +146,8 @@ router.get("/admin/audit-logs/export.csv", async (req, res) => {
   const filters = parseOrRespond(auditFiltersSchema, req.query, res);
   if (!filters) return;
 
-  const conditions = buildConditions(filters);
+  const tenantId = req.currentTenant!.id;
+  const conditions = buildConditions(tenantId, filters);
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const rows = await db
@@ -153,6 +171,7 @@ router.get("/admin/audit-logs/export.csv", async (req, res) => {
   );
 
   await writeAudit({
+    tenantId,
     userId: req.currentUser!.id,
     action: "audit_export",
     entityType: "audit_log",

@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { implantCasesTable } from "./implant-cases";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * Discounts — separate records; a discount never overwrites the original
@@ -20,6 +21,9 @@ export const caseDiscountsTable = pgTable(
   "case_discounts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
@@ -33,6 +37,7 @@ export const caseDiscountsTable = pgTable(
       .defaultNow(),
   },
   (table) => [
+    index("IDX_case_discounts_tenant_id").on(table.tenantId),
     index("IDX_case_discounts_case_id").on(table.implantCaseId),
     check("CHK_case_discounts_amount_non_negative", sql`${table.amount} >= 0`),
   ],

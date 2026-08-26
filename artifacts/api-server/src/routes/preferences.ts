@@ -43,6 +43,7 @@ router.patch("/preferences", requireAuth, async (req, res) => {
 
   // Onboarding status change is logged without private activity details.
   await writeAudit({
+    tenantId: req.currentTenant!.id,
     userId: user.id,
     action: "onboarding_status_change",
     entityType: "user_preferences",

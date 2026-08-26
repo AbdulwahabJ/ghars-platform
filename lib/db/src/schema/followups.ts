@@ -9,6 +9,7 @@ import {
 import { implantCasesTable } from "./implant-cases";
 import { patientsTable } from "./patients";
 import { usersTable } from "./users";
+import { tenantsTable } from "./tenants";
 
 /**
  * Follow-ups drive the dashboard operational cards; status is structured,
@@ -18,6 +19,9 @@ export const followupsTable = pgTable(
   "followups",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id),
     implantCaseId: uuid("implant_case_id")
       .notNull()
       .references(() => implantCasesTable.id),
@@ -42,6 +46,7 @@ export const followupsTable = pgTable(
       .defaultNow(),
   },
   (table) => [
+    index("IDX_followups_tenant_id").on(table.tenantId),
     index("IDX_followups_case_id").on(table.implantCaseId),
     index("IDX_followups_patient_id").on(table.patientId),
     index("IDX_followups_scheduled_at").on(table.scheduledAt),

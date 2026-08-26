@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import app from "../src/app";
 import {
   agentFor,
+  attachUserToInternalTenant,
   freshAdminSession,
   login,
   makePool,
@@ -42,6 +43,7 @@ async function seedUser(
       overrides.canRecordPayments ?? null,
     ],
   );
+  await attachUserToInternalTenant(pool, username, role);
   const agent = agentFor(app);
   await login(agent, username, "Fin0TestPass12");
   return agent;
