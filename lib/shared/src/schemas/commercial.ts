@@ -367,7 +367,8 @@ export type ResolvePlatformErrorInput = z.infer<
 
 export type PlatformHealthComponent = {
   status: "healthy" | "warning" | "unavailable";
-  message: string;
+  messageCode: string;
+  value?: number;
   latencyMs?: number;
 };
 export type PlatformHealth = {
@@ -415,9 +416,22 @@ export const platformSettingsSchema = z.object({
   updatedAt: z.string().nullable(),
 });
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
+const nullableContactNumberSchema = z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? null : value,
+  z.string()
+    .trim()
+    .min(7)
+    .max(24)
+    .regex(/^\+?[0-9 ()-]+$/)
+    .nullable(),
+);
+
 export const updatePlatformSettingsInputSchema = z.object({
-  supportWhatsapp: z.string().trim().max(80).nullable(),
-  supportPhone: z.string().trim().max(80).nullable(),
+  supportWhatsapp: z.preprocess(
+    (value) => typeof value === "string" && value.trim() === "" ? null : value,
+    phoneSchema.nullable(),
+  ),
+  supportPhone: nullableContactNumberSchema,
   supportEmail: z.preprocess(
     (value) => value === "" ? null : value,
     z.string().email().nullable(),

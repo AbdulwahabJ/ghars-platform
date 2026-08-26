@@ -35,9 +35,15 @@ describe("commercial lifecycle", () => {
   });
 
   it("keeps commercial status available for an expired tenant and deduplicates activation requests", async () => {
-    const customer = await freshAdminSession(app, pool);
-    const internal = await pool.query<{ id: string }>("SELECT id FROM tenants WHERE reference_code = 'internal'");
-    await pool.query("UPDATE tenants SET status = 'TRIAL', trial_started_at = now() - interval '4 days', trial_ends_at = now() - interval '1 day' WHERE id = $1", [internal.rows[0].id]);
+    await freshAdminSession(app, pool);
+    expect((await agentFor(app).post("/api/auth/register").send(registration)).status).toBe(201);
+    const customer = agentFor(app);
+    expect((await customer.post("/api/auth/login").send({
+      username: registration.username,
+      password: registration.password,
+    })).status).toBe(200);
+    const tenant = await pool.query<{ id: string }>("SELECT id FROM tenants WHERE reference_code <> 'internal'");
+    await pool.query("UPDATE tenants SET status = 'TRIAL', trial_started_at = now() - interval '4 days', trial_ends_at = now() - interval '1 day' WHERE id = $1", [tenant.rows[0].id]);
     expect((await customer.get("/api/patients")).status).toBe(403);
     expect((await customer.get("/api/commercial/status")).status).toBe(200);
     const first = await customer.post("/api/commercial/activation-requests").send({ note: "please" });
@@ -48,14 +54,20 @@ describe("commercial lifecycle", () => {
   });
 
   it("denies customer admins and lets explicit platform admins activate, suspend, and extend", async () => {
-    const customer = await freshAdminSession(app, pool);
+    await freshAdminSession(app, pool);
+    expect((await agentFor(app).post("/api/auth/register").send(registration)).status).toBe(201);
+    const customer = agentFor(app);
+    expect((await customer.post("/api/auth/login").send({
+      username: registration.username,
+      password: registration.password,
+    })).status).toBe(200);
     expect((await customer.get("/api/platform-admin/tenants")).status).toBe(403);
     const platform = agentFor(app);
     await platform.post("/api/auth/login").send({
       username: "platform-admin",
       password: "Passw0rd1234",
     });
-    const tenant = await pool.query<{ id: string }>("SELECT id FROM tenants WHERE reference_code = 'internal'");
+    const tenant = await pool.query<{ id: string }>("SELECT id FROM tenants WHERE reference_code <> 'internal'");
     expect((await platform.post(`/api/platform-admin/tenants/${tenant.rows[0].id}/activate`)).status).toBe(200);
     expect((await platform.post(`/api/platform-admin/tenants/${tenant.rows[0].id}/suspend`)).status).toBe(200);
     expect((await platform.post(`/api/platform-admin/tenants/${tenant.rows[0].id}/extend-trial`).send({ days: 3 })).status).toBe(200);

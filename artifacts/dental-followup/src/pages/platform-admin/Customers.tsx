@@ -158,6 +158,7 @@ function StatusBadge({ status }: { status: string }) {
     case 'ACTIVE': return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-none">{t("statuses.ACTIVE", "Active")}</Badge>;
     case 'SUSPENDED': return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-none">{t("statuses.SUSPENDED", "Suspended")}</Badge>;
     case 'TRIAL': return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-none">{t("statuses.TRIAL", "Trial")}</Badge>;
+    case 'EXPIRED': return <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100 border-none">{t("statuses.EXPIRED", "Expired")}</Badge>;
     default: return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-none">{t("statuses.PENDING_VERIFICATION", "Pending")}</Badge>;
   }
 }
@@ -240,7 +241,7 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
                   <StatusBadge status={tenant.status} />
                 </div>
                 <div className="flex items-center gap-4 text-sm text-slate-500">
-                  <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">Ref: {tenant.referenceCode}</span>
+                  <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">{t("platformAdmin.columns.ref")}: {tenant.referenceCode}</span>
                   {tenant.legalName && <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> {tenant.legalName}</span>}
                 </div>
               </div>
@@ -357,7 +358,7 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
                           req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
                           'bg-red-100 text-red-800'
                         }`}>
-                          {req.status}
+                           {t(`platformAdmin.requestStatuses.${req.status}`)}
                         </span>
                         <span className="text-xs text-slate-400 notranslate">{formatSaudiDateTime(req.createdAt)}</span>
                       </div>

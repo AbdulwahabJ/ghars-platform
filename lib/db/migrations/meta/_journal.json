@@ -127,6 +127,13 @@
       "when": 1787763000000,
       "tag": "0017_platform_admin_control_center",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787767200000,
+      "tag": "0018_close_internal_activation_requests",
+      "breakpoints": true
     }
   ]
 }

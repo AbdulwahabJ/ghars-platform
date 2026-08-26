@@ -1,6 +1,19 @@
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, ArrowRight, Building2, Clock, KeyRound, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Ban,
+  Building2,
+  CalendarPlus,
+  CalendarRange,
+  Clock,
+  KeyRound,
+  Loader2,
+  ShieldCheck,
+  TimerOff,
+  UsersRound,
+} from "lucide-react";
 import { usePlatformOverview } from "@/hooks/use-platform-admin";
 import { formatSaudiDateTime } from "@/lib/datetime";
 
@@ -10,15 +23,21 @@ export default function Overview() {
   if (isLoading) return <Loading />;
   if (isError || !data) return <State text={t("platformAdmin.loadError")} />;
   const cards = [
+    ["totalCustomers", data.metrics.totalCustomers, UsersRound, "/platform-admin/customers", "text-slate-700 bg-slate-100"],
     ["activeCustomers", data.metrics.activeCustomers, Building2, "/platform-admin/customers", "text-emerald-700 bg-emerald-50"],
     ["trialCustomers", data.metrics.trialCustomers, Clock, "/platform-admin/trials", "text-blue-700 bg-blue-50"],
+    ["expiringTrials", data.metrics.expiringTrials, CalendarRange, "/platform-admin/trials", "text-orange-700 bg-orange-50"],
+    ["expiredTrials", data.metrics.expiredTrials, TimerOff, "/platform-admin/trials", "text-slate-700 bg-slate-100"],
+    ["suspendedCustomers", data.metrics.suspendedCustomers, Ban, "/platform-admin/customers", "text-red-700 bg-red-50"],
+    ["newToday", data.metrics.newToday, CalendarPlus, "/platform-admin/customers", "text-violet-700 bg-violet-50"],
+    ["newThisMonth", data.metrics.newThisMonth, ShieldCheck, "/platform-admin/customers", "text-cyan-700 bg-cyan-50"],
     ["openActivationRequests", data.metrics.openActivationRequests, KeyRound, "/platform-admin/activation-requests", "text-amber-700 bg-amber-50"],
     ["openSystemErrors", data.metrics.openSystemErrors, AlertTriangle, "/platform-admin/errors", "text-red-700 bg-red-50"],
   ] as const;
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-brand-navy">{t("platformAdmin.nav.overview")}</h2>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {cards.map(([key, value, Icon, href, tone]) => (
           <Link key={key} href={href} className="group rounded-2xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-start justify-between">
@@ -30,7 +49,7 @@ export default function Overview() {
           </Link>
         ))}
       </div>
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-3">
         <Panel title={t("platformAdmin.overview.expiringTrials")}>
           {data.expiringTrials.length ? data.expiringTrials.map((tenant) => (
             <Link key={tenant.id} href={`/platform-admin/customers/${tenant.id}`} className="flex items-center justify-between border-b px-5 py-3 last:border-0 hover:bg-slate-50">
@@ -39,10 +58,26 @@ export default function Overview() {
             </Link>
           )) : <State text={t("platformAdmin.overview.none")} />}
         </Panel>
+        <Panel title={t("platformAdmin.overview.recentActivationRequests")}>
+          {data.recentActivationRequests.length ? data.recentActivationRequests.map(({ request, tenant }) => (
+            <Link key={request.id} href="/platform-admin/activation-requests" className="flex items-center justify-between border-b px-5 py-3 last:border-0 hover:bg-slate-50">
+              <div><p className="font-medium">{tenant.name}</p><p className="text-xs text-slate-500">{t(`platformAdmin.workflow.${request.workflowStatus}`)}</p></div>
+              <span className="text-xs text-slate-400 notranslate">{formatSaudiDateTime(request.createdAt)}</span>
+            </Link>
+          )) : <State text={t("platformAdmin.overview.none")} />}
+        </Panel>
+        <Panel title={t("platformAdmin.overview.recentErrors")}>
+          {data.recentErrors.length ? data.recentErrors.map((error) => (
+            <Link key={error.id} href="/platform-admin/errors" className="flex items-center justify-between border-b px-5 py-3 last:border-0 hover:bg-slate-50">
+              <div><p className="font-mono text-xs">{error.referenceCode}</p><p className="text-xs text-slate-500">{error.tenantName || t("platformAdmin.platformScope")}</p></div>
+              <span className={error.isResolved ? "text-xs text-emerald-700" : "text-xs text-red-700"}>{error.isResolved ? t("platformAdmin.errors.resolved") : t("platformAdmin.errors.open")}</span>
+            </Link>
+          )) : <State text={t("platformAdmin.overview.none")} />}
+        </Panel>
         <Panel title={t("platformAdmin.overview.recentActivity")}>
           {data.recentActivity.length ? data.recentActivity.map((entry) => (
             <div key={entry.id} className="border-b px-5 py-3 last:border-0">
-              <div className="flex justify-between gap-3"><p className="font-medium">{entry.summary || entry.action}</p><span className="text-xs text-slate-400 notranslate">{formatSaudiDateTime(entry.createdAt)}</span></div>
+              <div className="flex justify-between gap-3"><p className="font-medium">{t(`platformAdmin.audit.actions.${entry.action}`, { defaultValue: t("platformAdmin.audit.unknownAction") })}</p><span className="text-xs text-slate-400 notranslate">{formatSaudiDateTime(entry.createdAt)}</span></div>
               <p className="mt-1 text-xs text-slate-500">{entry.actor || "—"} · {entry.tenantName || t("platformAdmin.platformScope")}</p>
             </div>
           )) : <State text={t("platformAdmin.overview.none")} />}

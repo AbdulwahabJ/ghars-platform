@@ -24,9 +24,11 @@ function requestDto(row: typeof tenantActivationRequestsTable.$inferSelect) {
 router.get("/commercial/status", async (req, res) => {
   const tenant = req.currentTenant;
   if (!tenant) { res.status(403).json({ error: "لا توجد عيادة متاحة لهذا الحساب.", code: "TENANT_ACCESS_REQUIRED" }); return; }
-  const [request] = await db.select().from(tenantActivationRequestsTable)
-    .where(eq(tenantActivationRequestsTable.tenantId, tenant.id))
-    .orderBy(desc(tenantActivationRequestsTable.createdAt)).limit(1);
+  const [request] = tenant.isInternal
+    ? []
+    : await db.select().from(tenantActivationRequestsTable)
+      .where(eq(tenantActivationRequestsTable.tenantId, tenant.id))
+      .orderBy(desc(tenantActivationRequestsTable.createdAt)).limit(1);
   const platformSettings = await loadPlatformSettings();
   res.json({
     tenant: {
@@ -54,6 +56,13 @@ router.post("/commercial/activation-requests", requireRole("ADMIN"), async (req,
   if (!input) return;
   const tenant = req.currentTenant!;
   const user = req.currentUser!;
+  if (tenant.isInternal) {
+    res.status(403).json({
+      error: "الحساب الداخلي غير مؤهل لطلبات التفعيل التجارية.",
+      code: "INTERNAL_TENANT_ACTIVATION_FORBIDDEN",
+    });
+    return;
+  }
   const [created] = await db.insert(tenantActivationRequestsTable).values({
     tenantId: tenant.id, requestedByUserId: user.id, note: input.note ?? null,
   }).onConflictDoNothing().returning();

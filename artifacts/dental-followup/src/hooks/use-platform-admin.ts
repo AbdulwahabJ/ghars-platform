@@ -88,6 +88,8 @@ export function usePlatformUpdateActivationRequest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_ACTIVATION_REQUESTS_KEY });
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANTS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_OVERVIEW_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_AUDIT_KEY });
     },
   });
 }
@@ -99,6 +101,9 @@ export function usePlatformResolveError() {
       api.platformResolveError(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_ERRORS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_OVERVIEW_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_HEALTH_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_AUDIT_KEY });
     },
   });
 }
@@ -109,6 +114,7 @@ export function usePlatformUpdateSettings() {
     mutationFn: (input: UpdatePlatformSettingsInput) => api.platformUpdateSettings(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_SETTINGS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_AUDIT_KEY });
     },
   });
 }
@@ -137,6 +143,9 @@ export function usePlatformActivateTenant() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANT_DETAIL_KEY(id) });
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANTS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_OVERVIEW_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_ACTIVATION_REQUESTS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_AUDIT_KEY });
     },
   });
 }
@@ -148,6 +157,8 @@ export function usePlatformSuspendTenant() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANT_DETAIL_KEY(id) });
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANTS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_OVERVIEW_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_AUDIT_KEY });
     },
   });
 }
@@ -159,6 +170,8 @@ export function usePlatformReactivateTenant() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANT_DETAIL_KEY(id) });
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANTS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_OVERVIEW_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_AUDIT_KEY });
     },
   });
 }
@@ -171,6 +184,9 @@ export function usePlatformExtendTrial() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANT_DETAIL_KEY(id) });
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANTS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_TRIALS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_OVERVIEW_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_AUDIT_KEY });
     },
   });
 }
@@ -192,6 +208,8 @@ export function usePlatformResolveActivationRequest() {
     onSuccess: (_, { tenantId }) => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANT_DETAIL_KEY(tenantId) });
       queryClient.invalidateQueries({ queryKey: PLATFORM_TENANTS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_ACTIVATION_REQUESTS_KEY });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_OVERVIEW_KEY });
     },
   });
 }

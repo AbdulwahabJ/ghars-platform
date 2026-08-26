@@ -47,6 +47,14 @@ describe("platform admin control center", () => {
        ) RETURNING id`,
     );
     const tenantId = tenant.rows[0].id;
+    const clinicUser = await pool.query<{ id: string }>(
+      "SELECT id FROM users WHERE username = 'admin'",
+    );
+    await pool.query(
+      `INSERT INTO tenant_memberships (tenant_id, user_id, role, is_active)
+       VALUES ($1, $2, 'ADMIN', true)`,
+      [tenantId, clinicUser.rows[0].id],
+    );
     await pool.query(
       `INSERT INTO patients (
          tenant_id, file_number, full_name, full_name_normalized
@@ -75,12 +83,28 @@ describe("platform admin control center", () => {
     expect(overview.body.metrics.totalCustomers).toBeGreaterThanOrEqual(1);
     expect(JSON.stringify(overview.body)).not.toContain("PRIVATE PATIENT NAME");
     expect(JSON.stringify(overview.body)).not.toContain("P-PRIVATE");
+    expect(overview.body.metrics).toMatchObject({
+      totalCustomers: expect.any(Number),
+      activeCustomers: expect.any(Number),
+      trialCustomers: expect.any(Number),
+      expiringTrials: expect.any(Number),
+      expiredTrials: expect.any(Number),
+      suspendedCustomers: expect.any(Number),
+      newToday: expect.any(Number),
+      newThisMonth: expect.any(Number),
+      openActivationRequests: expect.any(Number),
+      openSystemErrors: expect.any(Number),
+    });
 
     const detail = await platformAdmin.get(`/api/platform-admin/tenants/${tenantId}`);
     expect(detail.status).toBe(200);
+    expect(detail.body.tenant.userCount).toBe(1);
     expect(detail.body.tenant.usage.patientCount).toBe(1);
     expect(JSON.stringify(detail.body)).not.toContain("PRIVATE PATIENT NAME");
     expect(JSON.stringify(detail.body)).not.toContain("P-PRIVATE");
+    const customers = await platformAdmin.get("/api/platform-admin/tenants");
+    const customer = customers.body.items.find((item: { id: string }) => item.id === tenantId);
+    expect(customer.userCount).toBe(detail.body.tenant.userCount);
 
     const workflow = await platformAdmin
       .patch(`/api/platform-admin/activation-requests/${request.rows[0].id}`)
@@ -104,5 +128,74 @@ describe("platform admin control center", () => {
     expect(settings.body.settings.defaultTrialHours).toBe(96);
     const loaded = await platformAdmin.get("/api/platform-admin/settings");
     expect(loaded.body.settings.supportEmail).toBe("support@example.test");
+
+    const invalidSettings = await platformAdmin.patch("/api/platform-admin/settings").send({
+      supportWhatsapp: "not-a-phone",
+      supportPhone: "12",
+      supportEmail: "not-an-email",
+      defaultTrialHours: 24.5,
+    });
+    expect(invalidSettings.status).toBe(400);
+
+    const registration = await agentFor(app).post("/api/auth/register").send({
+      tenantName: "Future Default Clinic",
+      ownerName: "Future Owner",
+      username: "future-owner",
+      phone: "0501234567",
+      password: ADMIN_PASSWORD,
+      confirmPassword: ADMIN_PASSWORD,
+      locale: "en",
+    });
+    expect(registration.status).toBe(201);
+    const futureTenant = await pool.query<{
+      trial_started_at: Date;
+      trial_ends_at: Date;
+    }>(
+      `SELECT trial_started_at, trial_ends_at
+       FROM tenants WHERE name = 'Future Default Clinic'`,
+    );
+    const durationHours = (
+      futureTenant.rows[0].trial_ends_at.getTime()
+      - futureTenant.rows[0].trial_started_at.getTime()
+    ) / 3_600_000;
+    expect(durationHours).toBe(96);
+
+    const health = await platformAdmin.get("/api/platform-admin/health");
+    expect(health.status).toBe(200);
+    expect(health.body.components.storage).toMatchObject({
+      status: "healthy",
+      messageCode: "storageDatabaseBacked",
+    });
+    for (const component of Object.values(health.body.components) as Array<Record<string, unknown>>) {
+      expect(component.messageCode).toEqual(expect.any(String));
+      expect(component).not.toHaveProperty("message");
+    }
+
+    const internal = await pool.query<{ id: string }>(
+      "SELECT id FROM tenants WHERE is_internal = true",
+    );
+    const internalTenantId = internal.rows[0].id;
+    const internalRequest = await pool.query<{ id: string }>(
+      `INSERT INTO tenant_activation_requests (
+         tenant_id, requested_by_user_id, note
+       ) VALUES ($1, $2, 'must stay outside commercial workflows') RETURNING id`,
+      [internalTenantId, userId],
+    );
+    expect((await platformAdmin.get(`/api/platform-admin/tenants/${internalTenantId}`)).status).toBe(404);
+    const filteredCustomers = await platformAdmin.get("/api/platform-admin/tenants");
+    expect(filteredCustomers.body.items.some((item: { id: string }) => item.id === internalTenantId)).toBe(false);
+    const filteredRequests = await platformAdmin.get("/api/platform-admin/activation-requests");
+    expect(filteredRequests.body.items.some(
+      (item: { request: { id: string } }) => item.request.id === internalRequest.rows[0].id,
+    )).toBe(false);
+    const internalWorkflowUpdate = await platformAdmin
+      .patch(`/api/platform-admin/activation-requests/${internalRequest.rows[0].id}`)
+      .send({ workflowStatus: "CONTACTED" });
+    expect(internalWorkflowUpdate.status).toBe(404);
+    const internalCommercialRequest = await clinicAdmin
+      .post("/api/commercial/activation-requests")
+      .send({ note: "not allowed" });
+    expect(internalCommercialRequest.status).toBe(403);
+    expect(internalCommercialRequest.body.code).toBe("INTERNAL_TENANT_ACTIVATION_FORBIDDEN");
   });
 });

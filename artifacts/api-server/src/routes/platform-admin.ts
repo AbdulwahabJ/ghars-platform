@@ -7,6 +7,7 @@ import {
   eq,
   gte,
   ilike,
+  isNull,
   lte,
   or,
   sql,
@@ -96,8 +97,12 @@ function tenantDto(
 const tenantAggregateSelection = {
   tenant: tenantsTable,
   userCount: sql<number>`(
-    SELECT count(*)::int FROM tenant_memberships tm
-    WHERE tm.tenant_id = ${tenantsTable.id}
+    SELECT count(*)::int
+    FROM tenant_memberships tm
+    JOIN users u ON u.id = tm.user_id
+    WHERE tm.tenant_id = "tenants"."id"
+      AND tm.is_active = true
+      AND u.is_active = true
   )`,
   activationRequestCount: sql<number>`(
     SELECT count(*)::int FROM tenant_activation_requests ar
@@ -143,7 +148,11 @@ router.get("/platform-admin/overview", async (_req, res) => {
   const [[activationCount], [errorCount], expiringRows, recentRequests, recentErrors, recentActivity, registrations, distribution] =
     await Promise.all([
       db.select({ count: sql<number>`count(*)::int` }).from(tenantActivationRequestsTable)
-        .where(sql`${tenantActivationRequestsTable.workflowStatus} NOT IN ('ACTIVATED','CLOSED')`),
+        .innerJoin(tenantsTable, eq(tenantsTable.id, tenantActivationRequestsTable.tenantId))
+        .where(and(
+          eq(tenantsTable.isInternal, false),
+          sql`${tenantActivationRequestsTable.workflowStatus} NOT IN ('ACTIVATED','CLOSED')`,
+        )),
       db.select({ count: sql<number>`count(*)::int` }).from(systemErrorsTable)
         .where(eq(systemErrorsTable.isResolved, false)),
       db.select(tenantAggregateSelection).from(tenantsTable)
@@ -156,6 +165,7 @@ router.get("/platform-admin/overview", async (_req, res) => {
       db.select({ request: tenantActivationRequestsTable, tenant: tenantsTable })
         .from(tenantActivationRequestsTable)
         .innerJoin(tenantsTable, eq(tenantsTable.id, tenantActivationRequestsTable.tenantId))
+        .where(eq(tenantsTable.isInternal, false))
         .orderBy(desc(tenantActivationRequestsTable.createdAt)).limit(6),
       db.select({
         error: systemErrorsTable,
@@ -174,7 +184,10 @@ router.get("/platform-admin/overview", async (_req, res) => {
       }).from(auditLogsTable)
         .leftJoin(usersTable, eq(usersTable.id, auditLogsTable.userId))
         .leftJoin(tenantsTable, eq(tenantsTable.id, auditLogsTable.tenantId))
-        .where(sql`${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%'`)
+        .where(and(
+          sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%')`,
+          or(isNull(auditLogsTable.tenantId), eq(tenantsTable.isInternal, false)),
+        ))
         .orderBy(desc(auditLogsTable.createdAt)).limit(8),
       db.select({
         bucket: sql<string>`to_char(${tenantsTable.createdAt}, 'YYYY-MM-DD')`,
@@ -229,7 +242,7 @@ router.get("/platform-admin/overview", async (_req, res) => {
 router.get("/platform-admin/tenants", async (req, res) => {
   const input = parseOrRespond(platformTenantListInputSchema, req.query, res);
   if (!input) return;
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(tenantsTable.isInternal, false)];
   if (input.status === "EXPIRED") {
     conditions.push(eq(tenantsTable.status, "TRIAL"), lte(tenantsTable.trialEndsAt, new Date()));
   } else if (input.status) {
@@ -238,7 +251,7 @@ router.get("/platform-admin/tenants", async (req, res) => {
   }
   const search = tenantSearch(input.query);
   if (search) conditions.push(search);
-  const where = conditions.length ? and(...conditions) : undefined;
+  const where = and(...conditions);
   const [rows, [count]] = await Promise.all([
     db.select(tenantAggregateSelection).from(tenantsTable).where(where)
       .orderBy(desc(tenantsTable.createdAt)).limit(input.limit)
@@ -255,7 +268,10 @@ router.get("/platform-admin/tenants", async (req, res) => {
 
 router.get("/platform-admin/tenants/:tenantId", async (req, res) => {
   const tenantId = String(req.params.tenantId);
-  const [tenant] = await db.select().from(tenantsTable).where(eq(tenantsTable.id, tenantId)).limit(1);
+  const [tenant] = await db.select().from(tenantsTable).where(and(
+    eq(tenantsTable.id, tenantId),
+    eq(tenantsTable.isInternal, false),
+  )).limit(1);
   if (!tenant) {
     res.status(404).json({ error: "العميل غير موجود.", code: "TENANT_NOT_FOUND" });
     return;
@@ -269,7 +285,7 @@ router.get("/platform-admin/tenants/:tenantId", async (req, res) => {
       fullName: usersTable.fullName,
       username: usersTable.username,
       role: tenantMembershipsTable.role,
-      isActive: tenantMembershipsTable.isActive,
+      isActive: sql<boolean>`${tenantMembershipsTable.isActive} AND ${usersTable.isActive}`,
       lastLoginAt: usersTable.lastLoginAt,
     }).from(tenantMembershipsTable)
       .innerJoin(usersTable, eq(usersTable.id, tenantMembershipsTable.userId))
@@ -303,7 +319,7 @@ router.get("/platform-admin/tenants/:tenantId", async (req, res) => {
   res.json({
     tenant: {
       ...tenantDto(tenant, {
-        userCount: tenantUsers.length,
+        userCount: tenantUsers.filter((user) => user.isActive).length,
         activationRequestCount: requests.length,
         lastActivityAt: usage?.last_activity_at ?? null,
       }),
@@ -337,7 +353,10 @@ router.get("/platform-admin/trials", async (req, res) => {
   const input = parseOrRespond(platformTrialsInputSchema, req.query, res);
   if (!input) return;
   const now = new Date();
-  const conditions: SQL[] = [eq(tenantsTable.status, "TRIAL")];
+  const conditions: SQL[] = [
+    eq(tenantsTable.isInternal, false),
+    eq(tenantsTable.status, "TRIAL"),
+  ];
   if (input.view === "active") conditions.push(gte(tenantsTable.trialEndsAt, now));
   if (input.view === "expiring") {
     conditions.push(gte(tenantsTable.trialEndsAt, now));
@@ -371,7 +390,7 @@ router.get("/platform-admin/trials", async (req, res) => {
 router.get("/platform-admin/activation-requests", async (req, res) => {
   const input = parseOrRespond(platformActivationRequestsInputSchema, req.query, res);
   if (!input) return;
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(tenantsTable.isInternal, false)];
   if (input.workflowStatus) conditions.push(eq(tenantActivationRequestsTable.workflowStatus, input.workflowStatus));
   if (input.from) conditions.push(gte(tenantActivationRequestsTable.createdAt, new Date(`${input.from}T00:00:00Z`)));
   if (input.to) conditions.push(lte(tenantActivationRequestsTable.createdAt, new Date(`${input.to}T23:59:59Z`)));
@@ -384,7 +403,7 @@ router.get("/platform-admin/activation-requests", async (req, res) => {
       ilike(tenantsTable.contactPhone, like),
     )!);
   }
-  const where = conditions.length ? and(...conditions) : undefined;
+  const where = and(...conditions);
   const [rows, [count]] = await Promise.all([
     db.select({ request: tenantActivationRequestsTable, tenant: tenantsTable })
       .from(tenantActivationRequestsTable)
@@ -406,6 +425,17 @@ router.get("/platform-admin/activation-requests", async (req, res) => {
 router.patch("/platform-admin/activation-requests/:requestId", async (req, res) => {
   const input = parseOrRespond(updateActivationWorkflowInputSchema, req.body, res);
   if (!input) return;
+  const [request] = await db.select({ id: tenantActivationRequestsTable.id })
+    .from(tenantActivationRequestsTable)
+    .innerJoin(tenantsTable, eq(tenantsTable.id, tenantActivationRequestsTable.tenantId))
+    .where(and(
+      eq(tenantActivationRequestsTable.id, String(req.params.requestId)),
+      eq(tenantsTable.isInternal, false),
+    )).limit(1);
+  if (!request) {
+    res.status(404).json({ error: "طلب التفعيل غير موجود.", code: "ACTIVATION_REQUEST_NOT_FOUND" });
+    return;
+  }
   const [updated] = await db.update(tenantActivationRequestsTable).set({
     workflowStatus: input.workflowStatus,
     note: input.note,
@@ -507,39 +537,52 @@ router.patch("/platform-admin/errors/:errorId", async (req, res) => {
 
 router.get("/platform-admin/health", async (_req, res) => {
   const started = Date.now();
-  const components: Record<string, { status: "healthy" | "warning" | "unavailable"; message: string; latencyMs?: number }> = {
-    api: { status: "healthy", message: "API is responding" },
+  const components: Record<string, {
+    status: "healthy" | "warning" | "unavailable";
+    messageCode: string;
+    value?: number;
+    latencyMs?: number;
+  }> = {
+    api: { status: "healthy", messageCode: "apiResponding" },
   };
+  let databaseAvailable = false;
   try {
     await db.execute(sql`SELECT 1`);
-    components.database = { status: "healthy", message: "Database query succeeded", latencyMs: Date.now() - started };
+    databaseAvailable = true;
+    components.database = { status: "healthy", messageCode: "databaseReachable", latencyMs: Date.now() - started };
   } catch {
-    components.database = { status: "unavailable", message: "Database query failed" };
+    components.database = { status: "unavailable", messageCode: "databaseUnavailable" };
   }
   try {
     await db.select({ count: sql<number>`count(*)::int` }).from(sessionsTable);
-    components.sessions = { status: "healthy", message: "Session store is reachable" };
+    components.sessions = { status: "healthy", messageCode: "sessionsReachable" };
   } catch {
-    components.sessions = { status: "unavailable", message: "Session store is unavailable" };
+    components.sessions = { status: "unavailable", messageCode: "sessionsUnavailable" };
   }
-  components.storage = process.env.REPLIT_OBJECT_STORAGE_BUCKETS
-    ? { status: "healthy", message: "File storage configuration is present" }
-    : { status: "warning", message: "File storage is not configured" };
+  // User-uploaded avatars are stored in PostgreSQL, so no ephemeral filesystem
+  // or external object-storage dependency exists in this release.
+  components.storage = databaseAvailable
+    ? { status: "healthy", messageCode: "storageDatabaseBacked" }
+    : { status: "unavailable", messageCode: "storageDatabaseUnavailable" };
   components.email = process.env.SUPPORT_EMAIL
-    ? { status: "warning", message: "Support email is configured; transactional email is disabled" }
-    : { status: "warning", message: "Email subsystem is disabled for this release" };
+    ? { status: "warning", messageCode: "emailSupportOnly" }
+    : { status: "warning", messageCode: "emailDisabled" };
   const [errors] = await db.select({ count: sql<number>`count(*)::int` }).from(systemErrorsTable)
     .where(and(eq(systemErrorsTable.isResolved, false), gte(systemErrorsTable.occurredAt, new Date(Date.now() - 3600000))));
   components.recentErrors = Number(errors?.count ?? 0) > 0
-    ? { status: "warning", message: `${errors?.count ?? 0} open errors in the last hour` }
-    : { status: "healthy", message: "No open errors in the last hour" };
+    ? { status: "warning", messageCode: "recentErrorsOpen", value: Number(errors?.count ?? 0) }
+    : { status: "healthy", messageCode: "recentErrorsNone", value: 0 };
   try {
     const result = await db.execute<{ count: number }>(
       sql`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`,
     );
-    components.schema = { status: "healthy", message: `${result.rows[0]?.count ?? 0} migrations recorded` };
+    components.schema = {
+      status: "healthy",
+      messageCode: "schemaRecorded",
+      value: Number(result.rows[0]?.count ?? 0),
+    };
   } catch {
-    components.schema = { status: "warning", message: "Migration history is not measurable" };
+    components.schema = { status: "warning", messageCode: "schemaUnknown" };
   }
   const statuses = Object.values(components).map((component) => component.status);
   const overall = statuses.includes("unavailable") ? "unavailable" : statuses.includes("warning") ? "warning" : "healthy";
@@ -557,6 +600,7 @@ router.get("/platform-admin/audit", async (req, res) => {
   if (!input) return;
   const conditions: SQL[] = [
     sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%')`,
+    or(isNull(auditLogsTable.tenantId), eq(tenantsTable.isInternal, false))!,
   ];
   if (input.actor) conditions.push(ilike(usersTable.fullName, `%${input.actor}%`));
   if (input.action) conditions.push(eq(auditLogsTable.action, input.action));
@@ -581,9 +625,15 @@ router.get("/platform-admin/audit", async (req, res) => {
       .where(where).orderBy(desc(auditLogsTable.createdAt))
       .limit(input.limit).offset((input.page - 1) * input.limit),
     db.select({ count: sql<number>`count(*)::int` }).from(auditLogsTable)
-      .leftJoin(usersTable, eq(usersTable.id, auditLogsTable.userId)).where(where),
+      .leftJoin(usersTable, eq(usersTable.id, auditLogsTable.userId))
+      .leftJoin(tenantsTable, eq(tenantsTable.id, auditLogsTable.tenantId))
+      .where(where),
     db.selectDistinct({ action: auditLogsTable.action }).from(auditLogsTable)
-      .where(sql`${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%'`)
+      .leftJoin(tenantsTable, eq(tenantsTable.id, auditLogsTable.tenantId))
+      .where(and(
+        sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%')`,
+        or(isNull(auditLogsTable.tenantId), eq(tenantsTable.isInternal, false)),
+      ))
       .orderBy(asc(auditLogsTable.action)),
   ]);
   res.json({
@@ -633,7 +683,10 @@ router.patch("/platform-admin/settings", async (req, res) => {
 
 async function changeStatus(req: Request, res: Response, mode: "activate" | "suspend" | "reactivate") {
   const [tenant] = await db.select().from(tenantsTable)
-    .where(eq(tenantsTable.id, String(req.params.tenantId))).limit(1);
+    .where(and(
+      eq(tenantsTable.id, String(req.params.tenantId)),
+      eq(tenantsTable.isInternal, false),
+    )).limit(1);
   if (!tenant) {
     res.status(404).json({ error: "العميل غير موجود.", code: "TENANT_NOT_FOUND" });
     return;
@@ -681,7 +734,10 @@ router.post("/platform-admin/tenants/:tenantId/extend-trial", async (req, res) =
   const input = parseOrRespond(extendTrialInputSchema, req.body, res);
   if (!input) return;
   const [tenant] = await db.select().from(tenantsTable)
-    .where(eq(tenantsTable.id, String(req.params.tenantId))).limit(1);
+    .where(and(
+      eq(tenantsTable.id, String(req.params.tenantId)),
+      eq(tenantsTable.isInternal, false),
+    )).limit(1);
   if (!tenant) {
     res.status(404).json({ error: "العميل غير موجود.", code: "TENANT_NOT_FOUND" });
     return;
@@ -712,7 +768,10 @@ router.post("/platform-admin/tenants/:tenantId/users/:userId/reset-password", as
   const tenantId = String(req.params.tenantId);
   const targetUserId = String(req.params.userId);
   const [tenant] = await db.select().from(tenantsTable)
-    .where(eq(tenantsTable.id, tenantId)).limit(1);
+    .where(and(
+      eq(tenantsTable.id, tenantId),
+      eq(tenantsTable.isInternal, false),
+    )).limit(1);
   if (!tenant) {
     res.status(404).json({ error: "العميل غير موجود.", code: "TENANT_NOT_FOUND" });
     return;
@@ -779,6 +838,17 @@ router.post("/platform-admin/activation-requests/:requestId/:decision", async (r
   const workflowStatus = req.params.decision === "approve" ? "CONTACTED" : req.params.decision === "reject" ? "CLOSED" : null;
   if (!workflowStatus) {
     res.status(404).json({ error: "الإجراء غير موجود.", code: "NOT_FOUND" });
+    return;
+  }
+  const [eligible] = await db.select({ id: tenantActivationRequestsTable.id })
+    .from(tenantActivationRequestsTable)
+    .innerJoin(tenantsTable, eq(tenantsTable.id, tenantActivationRequestsTable.tenantId))
+    .where(and(
+      eq(tenantActivationRequestsTable.id, String(req.params.requestId)),
+      eq(tenantsTable.isInternal, false),
+    )).limit(1);
+  if (!eligible) {
+    res.status(404).json({ error: "طلب التفعيل غير موجود.", code: "ACTIVATION_REQUEST_NOT_FOUND" });
     return;
   }
   const [updated] = await db.update(tenantActivationRequestsTable).set({

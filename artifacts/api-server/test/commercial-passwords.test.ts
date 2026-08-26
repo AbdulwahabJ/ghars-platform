@@ -22,7 +22,8 @@ afterAll(async () => {
 describe("commercial password recovery hierarchy", () => {
   it("enforces tenant boundaries, temporary-password change, session revocation, and platform protection", async () => {
     const tenant = await pool.query<{ id: string }>(
-      "SELECT id FROM tenants WHERE reference_code = 'internal'",
+      `INSERT INTO tenants (reference_code, name, status, activated_at)
+       VALUES ('tenant-a', 'Tenant A', 'ACTIVE', now()) RETURNING id`,
     );
     const tenantId = tenant.rows[0].id;
     const admin = await pool.query<{ id: string }>(
@@ -31,6 +32,12 @@ describe("commercial password recovery hierarchy", () => {
     const platformAdmin = await pool.query<{ id: string }>(
       "SELECT id FROM users WHERE username = 'platform-admin'",
     );
+    await pool.query(
+      `INSERT INTO tenant_memberships (tenant_id, user_id, role)
+       VALUES ($1, $2, 'ADMIN')`,
+      [tenantId, admin.rows[0].id],
+    );
+    expect((await tenantAdmin.post("/api/auth/tenant").send({ tenantId })).status).toBe(200);
 
     const created = await tenantAdmin.post("/api/admin/users").send({
       username: "employee-a",
