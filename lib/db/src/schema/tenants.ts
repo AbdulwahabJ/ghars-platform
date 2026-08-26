@@ -31,6 +31,7 @@ export const tenantsTable = pgTable(
     contactPhone: text("contact_phone"),
     city: text("city"),
     locale: text("locale").notNull().default("ar"),
+    isInternal: boolean("is_internal").notNull().default(false),
     status: tenantStatusEnum("status")
       .notNull()
       .default("PENDING_VERIFICATION"),

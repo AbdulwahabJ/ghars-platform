@@ -29,10 +29,10 @@ export function LocaleProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const preferredLocale = preferences?.locale;
-    if (user && isLocale(preferredLocale) && preferredLocale !== locale) {
+    if (user && isLocale(preferredLocale)) {
       void setLocale(preferredLocale);
     }
-  }, [locale, preferences?.locale, user]);
+  }, [preferences?.locale, user]);
 
   useEffect(() => {
     const direction = locale === "ar" ? "rtl" : "ltr";

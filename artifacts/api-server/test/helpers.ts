@@ -15,7 +15,7 @@ export function makePool(): pg.Pool {
 /** Wipe all mutable tables in the test database (FK-safe). */
 export async function truncateAll(pool: pg.Pool): Promise<void> {
   await pool.query(
-    'TRUNCATE TABLE "audit_logs", "sessions", "user_preferences", "patients", "users" CASCADE',
+    'TRUNCATE TABLE "system_errors", "platform_settings", "audit_logs", "sessions", "user_preferences", "patients", "users" CASCADE',
   );
   await pool.query(`DELETE FROM tenants WHERE reference_code <> 'internal'`);
   await pool.query(

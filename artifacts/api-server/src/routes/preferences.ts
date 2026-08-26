@@ -41,15 +41,17 @@ router.patch("/preferences", requireAuth, async (req, res) => {
     return;
   }
 
-  // Onboarding status change is logged without private activity details.
-  await writeAudit({
-    tenantId: req.currentTenant!.id,
-    userId: user.id,
-    action: "onboarding_status_change",
-    entityType: "user_preferences",
-    entityId: updated.id,
-    summary: `حالة الجولة التعريفية: ${input.onboardingStatus}`,
-  });
+  // Onboarding belongs to a clinic context; identity-level locale changes do not.
+  if (req.currentTenant && input.onboardingStatus !== undefined) {
+    await writeAudit({
+      tenantId: req.currentTenant.id,
+      userId: user.id,
+      action: "onboarding_status_change",
+      entityType: "user_preferences",
+      entityId: updated.id,
+      summary: `حالة الجولة التعريفية: ${input.onboardingStatus}`,
+    });
+  }
 
   res.json({ preferences: toPreferencesDto(updated) });
 });

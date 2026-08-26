@@ -87,6 +87,7 @@ export const tenantActivationRequestsTable = pgTable(
       .notNull()
       .references(() => usersTable.id),
     status: activationRequestStatusEnum("status").notNull().default("PENDING"),
+    workflowStatus: text("workflow_status").notNull().default("NEW"),
     note: text("note"),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     resolvedByUserId: uuid("resolved_by_user_id").references(() => usersTable.id),

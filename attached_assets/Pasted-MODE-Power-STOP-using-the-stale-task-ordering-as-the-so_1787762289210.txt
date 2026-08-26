@@ -1,0 +1,644 @@
+MODE: Power
+
+STOP using the stale task ordering as the source of truth.
+
+The task queue currently contains outdated, completed, blocked, and cancelled tasks from previous development phases.
+
+We need to CLEAN UP THE TASK STATE FIRST, then continue with the CURRENT priority.
+
+DO NOT make unrelated code changes while cleaning up task state.
+
+==================================================
+1. CURRENT SOURCE OF TRUTH
+==================================================
+
+The current project state is more advanced than the old task queue suggests.
+
+The following major work has already been implemented and verified:
+
+- Arabic / English localization
+- RTL / LTR
+- Multi-tenant architecture
+- Tenant isolation
+- 72-hour trial
+- Manual activation
+- Platform Super Admin authentication separation
+- Customer registration without mandatory email
+- Administrative password reset architecture
+- Trial expiration / commercial access logic
+
+Do NOT restart these projects from scratch.
+
+==================================================
+2. TASK #25 — LOCALIZATION
+==================================================
+
+Task #25 relates to:
+
+Complete Arabic/English localization for Ghars
+
+Localization has already been completed and verified.
+
+Previous verification included:
+
+- frontend TypeScript PASS
+- backend TypeScript PASS
+- production build PASS
+- Arabic/English browser verification
+- RTL/LTR verification
+- localized canonical statuses
+- localized dialogs/errors/validation
+
+Inspect the CURRENT code briefly to confirm this implementation still exists.
+
+If confirmed:
+
+MARK TASK #25 COMPLETE.
+
+Do NOT reimplement localization.
+
+==================================================
+3. TASK #21 — PATIENT FILE TABS
+==================================================
+
+Task #21 relates to the approved two-tab Patient File architecture.
+
+The current application already contains the Patient File architecture developed during previous work.
+
+Inspect the CURRENT implementation.
+
+If the approved structure already exists and works:
+
+- بيانات المريض
+- إجراءات المريض
+
+then:
+
+MARK TASK #21 COMPLETE.
+
+Do NOT rebuild it.
+
+If a very small unfinished issue remains, report it separately instead of blocking the current commercial priority.
+
+==================================================
+4. TASK #19 — INSTALLMENT PLAN
+==================================================
+
+Task #19 currently appears as:
+
+"Unified installment plan inside the Finance card"
+
+DO NOT create a duplicate implementation.
+
+Inspect the current code and current running task state.
+
+There are only two acceptable outcomes:
+
+A.
+If the feature is already implemented in the current code and works:
+
+verify it quickly and MARK TASK #19 COMPLETE.
+
+B.
+If another agent is genuinely still actively modifying Task #19:
+
+DO NOT interfere with its code.
+
+Allow that task to finish, then continue immediately with the new Platform Admin task.
+
+Do NOT restart Task #19.
+
+Do NOT create another installment-plan implementation.
+
+==================================================
+5. CANCELLED TASKS #18 / #20
+==================================================
+
+Tasks #18 and #20 are cancelled/stale.
+
+Do NOT reopen them.
+
+Do NOT reimplement them.
+
+Existing functionality already present in the product must remain untouched.
+
+==================================================
+6. TASKS #26 AND #30
+==================================================
+
+Tasks #26 and #30 related to earlier Platform Admin / commercial control-center work were cancelled by task-state updates.
+
+DO NOT restore those old task IDs.
+
+Their descriptions are now outdated.
+
+Instead create ONE NEW CURRENT task using the latest approved requirements.
+
+==================================================
+7. CREATE ONE NEW PRIORITY TASK
+==================================================
+
+Create a new task titled:
+
+Complete Ghars Platform Admin Control Center
+
+This becomes the NEXT primary development task.
+
+It must use the CURRENT codebase as its starting point.
+
+Do NOT rebuild:
+
+- multi-tenancy
+- trials
+- activation architecture
+- password architecture
+- localization
+
+Reuse all existing working backend functionality.
+
+==================================================
+8. CURRENT PLATFORM ADMIN PROBLEM
+==================================================
+
+The existing /platform-admin implementation is incomplete.
+
+Currently the UI mainly provides:
+
+- Customers list
+- Customer detail
+- Activate account
+- Suspend account
+- Extend trial
+- Customer users
+- Activation request inside customer detail
+
+This is only part of the required Platform Admin.
+
+The approved requirement is a COMPLETE Ghars owner/operator control center.
+
+==================================================
+9. REQUIRED PLATFORM ADMIN SECTIONS
+==================================================
+
+The new Platform Admin task must create/complete:
+
+1. Overview
+2. Customers
+3. Trials
+4. Activation Requests
+5. System Errors
+6. System Health
+7. Platform Audit Log
+8. Platform Settings
+
+All must use the existing Ghars design system.
+
+All must support:
+
+Arabic RTL
+English LTR
+
+using the EXISTING localization architecture.
+
+==================================================
+10. PLATFORM ADMIN OVERVIEW
+==================================================
+
+Create a real Platform Admin dashboard.
+
+Required canonical metrics:
+
+- Total Customers
+- Active Customers
+- Trial Customers
+- Trials Expiring Soon
+- Expired Trials
+- Suspended Customers
+- New Customers Today
+- New Customers This Month
+- Open Activation Requests
+- Recent Activations
+- Open System Errors
+
+Use real backend data.
+
+No hardcoded values.
+
+Also show useful operational sections such as:
+
+- trials expiring soon
+- recent activation requests
+- recent errors
+- recent platform activity
+
+Keep it professional and actionable.
+
+==================================================
+11. CUSTOMERS
+==================================================
+
+Reuse the current Customers implementation.
+
+Do not throw away working code.
+
+Provide:
+
+- search
+- status filtering
+- customer reference
+- organization
+- owner
+- phone
+- status
+- trial dates
+- activation date
+- user count
+- last activity
+- registration date
+
+==================================================
+12. CUSTOMER DETAIL
+==================================================
+
+Preserve the existing Customer Detail functionality.
+
+Complete it with:
+
+- Organization information
+- Owner
+- Contact information
+- Customer reference
+- Commercial status
+- Trial start
+- Trial end
+- Activation date
+- Suspension state
+- User count
+- Last activity
+- Activation requests
+- Recent safe system errors
+- Commercial audit history
+
+Do NOT expose patient clinical records by default.
+
+==================================================
+13. TRIALS PAGE
+==================================================
+
+Create a dedicated Trials page.
+
+Filters:
+
+- Active
+- Expiring Soon
+- Expired
+- Extended
+
+Show:
+
+- Organization
+- Customer Reference
+- Owner
+- Phone
+- Trial Start
+- Trial End
+- Remaining Time
+- Status
+
+Actions:
+
+- View Customer
+- Extend Trial
+- Activate where appropriate
+
+==================================================
+14. ACTIVATION REQUESTS PAGE
+==================================================
+
+Create a GLOBAL Activation Requests page.
+
+Do not require opening customers individually.
+
+Workflow:
+
+- New
+- Contacted
+- Awaiting Payment
+- Payment Received
+- Activated
+- Closed
+
+Remember:
+
+There is NO payment gateway.
+
+Payment occurs outside Ghars.
+
+"Payment Received" must NOT automatically activate a tenant.
+
+Activation requires explicit:
+
+Activate License
+
+==================================================
+15. SYSTEM ERRORS
+==================================================
+
+Create/complete centralized:
+
+System Errors
+
+Platform Admin should be able to:
+
+- search by GH-ERR reference
+- filter by tenant
+- filter by date
+- filter open/resolved
+- view safe diagnostic metadata
+- mark resolved
+- add resolution note
+
+Never expose:
+
+- passwords
+- tokens
+- cookies
+- Authorization headers
+- patient clinical notes
+- secrets
+
+==================================================
+16. SYSTEM HEALTH
+==================================================
+
+Create a real System Health page.
+
+Show only measurable health:
+
+- Application/API
+- Database
+- Session Store
+- File Storage
+- Recent Errors
+- Environment
+- Application Version
+- Migration/schema state where reliably measurable
+
+Do NOT hardcode fake Healthy statuses.
+
+==================================================
+17. PLATFORM AUDIT
+==================================================
+
+Create a dedicated Platform Audit Log.
+
+Include events such as:
+
+- Customer Registered
+- Trial Started
+- Trial Extended
+- Activation Request Changed
+- Tenant Activated
+- Tenant Suspended
+- Tenant Reactivated
+- Tenant Admin Password Reset
+- Platform Setting Changed
+
+Filters:
+
+- Actor
+- Action
+- Tenant
+- Date
+
+==================================================
+18. PLATFORM SETTINGS
+==================================================
+
+Create Platform-only settings.
+
+Required:
+
+- Support WhatsApp
+- Support Phone
+- Default Trial Hours
+
+Optional:
+
+- Support Email, if already present
+
+Email is NOT mandatory for the current release.
+
+Do NOT reintroduce email verification.
+
+==================================================
+19. INTERNAL TENANT
+==================================================
+
+The current:
+
+Internal
+
+tenant contains preserved legacy development data.
+
+DO NOT delete it.
+
+If it is an internal/system tenant:
+
+mark it explicitly using proper architecture.
+
+Do NOT identify it only by name == "Internal".
+
+Commercial KPIs should exclude internal/system tenants where appropriate.
+
+==================================================
+20. NO CUSTOMER TENANT SWITCHING
+==================================================
+
+Normal customer users must belong to ONE customer tenant.
+
+Do not expose:
+
+- clinic switcher
+- tenant switcher
+- organization switcher
+
+Only Platform Super Admin has cross-customer visibility through /platform-admin.
+
+==================================================
+21. PLATFORM ADMIN SECURITY
+==================================================
+
+Every Platform Admin endpoint must require:
+
+platform_super_admin
+
+server-side.
+
+Tenant Admin:
+403
+
+Doctor:
+403
+
+Normal User:
+403
+
+Platform Super Admin:
+Allowed
+
+==================================================
+22. UI QUALITY
+==================================================
+
+The current Platform Admin screen uses too little of the available desktop space.
+
+Improve the admin workspace.
+
+Use approximately:
+
+1400–1600px useful desktop content width
+
+where appropriate.
+
+Do not leave tiny tables floating in huge empty space.
+
+Use:
+
+- clear page hierarchy
+- KPI cards
+- proper tables
+- filters
+- useful empty states
+- responsive layout
+
+Keep Ghars visual identity.
+
+==================================================
+23. LOCALIZATION ISSUE
+==================================================
+
+The current Arabic Platform Admin screenshot shows raw canonical value:
+
+PENDING
+
+This is incorrect.
+
+All canonical platform statuses must be localized through the EXISTING translation layer.
+
+Do NOT change stored values.
+
+Translate display only.
+
+==================================================
+24. DO NOT IMPLEMENT NOW
+==================================================
+
+Do NOT implement:
+
+- Landing Page
+- Demo Marketing Data
+- Payment Gateway
+- Pricing Plans
+- Subscriptions
+- Email Verification
+- Email Password Recovery
+- Customer tenant switching
+
+==================================================
+25. TESTS
+==================================================
+
+After completing Platform Admin run:
+
+- frontend TypeScript
+- backend TypeScript
+- lint
+- existing API tests
+- Platform Admin API tests
+- Platform Admin authorization tests
+- commercial lifecycle tests
+- localization tests
+- production build
+
+Browser-test:
+
+Arabic
+English
+Desktop
+390px mobile
+
+==================================================
+26. REQUIRED ROUTES
+==================================================
+
+Ensure equivalent navigable sections exist for:
+
+/platform-admin
+Overview
+
+/platform-admin/customers
+
+/platform-admin/customers/:id
+
+/platform-admin/trials
+
+/platform-admin/activation-requests
+
+/platform-admin/errors
+
+/platform-admin/health
+
+/platform-admin/audit
+
+/platform-admin/settings
+
+Use current routing conventions if exact URLs differ.
+
+==================================================
+27. FINAL RESULT
+==================================================
+
+When done report:
+
+TASK QUEUE CLEANUP:
+- #19 status
+- #21 status
+- #25 status
+- confirmation that cancelled stale tasks were not restarted
+
+Then Platform Admin report:
+
+1. Overview
+2. Customers
+3. Customer Detail
+4. Trials
+5. Activation Requests
+6. Errors
+7. Health
+8. Audit
+9. Settings
+10. Internal tenant handling
+11. Platform Admin security
+12. Arabic/English status
+13. Responsive status
+14. API tests
+15. TypeScript
+16. Production build
+17. Remaining gaps
+18. Checkpoint hash
+
+Final flags:
+
+PLATFORM ADMIN COMPLETENESS: PASS / FAIL
+PLATFORM ADMIN SECURITY: PASS / FAIL
+PLATFORM ADMIN LOCALIZATION: PASS / FAIL
+PLATFORM ADMIN RESPONSIVE: PASS / FAIL
+
+If completeness is FAIL:
+
+do NOT close the new Platform Admin task.
+
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.

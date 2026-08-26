@@ -108,6 +108,20 @@ import type {
   ExtendTrialInput,
   ResolveActivationRequestInput,
   ResolveActivationRequestResponse,
+  PlatformOverview,
+  PlatformTrialsInput,
+  PlatformTrialsResponse,
+  PlatformActivationRequestsInput,
+  PlatformActivationRequestsResponse,
+  UpdateActivationWorkflowInput,
+  PlatformErrorsInput,
+  PlatformErrorsResponse,
+  ResolvePlatformErrorInput,
+  PlatformHealth,
+  PlatformAuditInput,
+  PlatformAuditResponse,
+  PlatformSettings,
+  UpdatePlatformSettingsInput,
 } from "@workspace/shared";
 import i18n from "@/i18n";
 import { localizeApiErrorMessage } from "@/lib/localize-error";
@@ -277,6 +291,67 @@ export const api = {
       `/platform-admin/activation-requests/${id}/${action}`,
       { method: "POST", json: input }
     ),
+  platformGetOverview: () => request<PlatformOverview>("/platform-admin/overview"),
+  platformGetTrials: (query: PlatformTrialsInput) => {
+    const params = new URLSearchParams();
+    params.set("view", query.view);
+    if (query.query) params.set("query", query.query);
+    params.set("page", String(query.page));
+    params.set("limit", String(query.limit));
+    return request<PlatformTrialsResponse>(`/platform-admin/trials?${params}`);
+  },
+  platformGetActivationRequests: (query: PlatformActivationRequestsInput) => {
+    const params = new URLSearchParams();
+    if (query.workflowStatus) params.set("workflowStatus", query.workflowStatus);
+    if (query.query) params.set("query", query.query);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
+    params.set("page", String(query.page));
+    params.set("limit", String(query.limit));
+    return request<PlatformActivationRequestsResponse>(`/platform-admin/activation-requests?${params}`);
+  },
+  platformUpdateActivationRequest: (id: string, input: UpdateActivationWorkflowInput) =>
+    request<ResolveActivationRequestResponse>(`/platform-admin/activation-requests/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  platformGetErrors: (query: PlatformErrorsInput) => {
+    const params = new URLSearchParams();
+    if (query.query) params.set("query", query.query);
+    if (query.tenantId) params.set("tenantId", query.tenantId);
+    if (query.status) params.set("status", query.status);
+    if (query.errorType) params.set("errorType", query.errorType);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
+    params.set("page", String(query.page));
+    params.set("limit", String(query.limit));
+    return request<PlatformErrorsResponse>(`/platform-admin/errors?${params}`);
+  },
+  platformResolveError: (id: string, input: ResolvePlatformErrorInput) =>
+    request<{ error: unknown }>(`/platform-admin/errors/${id}`, {
+      method: "PATCH",
+      json: input,
+    }),
+  platformGetHealth: () => request<PlatformHealth>("/platform-admin/health"),
+  platformGetAudit: (query: PlatformAuditInput) => {
+    const params = new URLSearchParams();
+    if (query.actor) params.set("actor", query.actor);
+    if (query.action) params.set("action", query.action);
+    if (query.tenantId) params.set("tenantId", query.tenantId);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
+    params.set("page", String(query.page));
+    params.set("limit", String(query.limit));
+    return request<PlatformAuditResponse>(`/platform-admin/audit?${params}`);
+  },
+  platformGetSettings: () =>
+    request<{ settings: PlatformSettings }>("/platform-admin/settings"),
+  platformUpdateSettings: (input: UpdatePlatformSettingsInput) =>
+    request<{ settings: PlatformSettings }>("/platform-admin/settings", {
+      method: "PATCH",
+      json: input,
+    }),
+
 
   // Preferences
   updatePreferences: (input: UpdatePreferencesInput) =>

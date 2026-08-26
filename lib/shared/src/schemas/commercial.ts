@@ -79,6 +79,17 @@ export const activationRequestStatusSchema = z.enum([
 export type ActivationRequestStatus = z.infer<
   typeof activationRequestStatusSchema
 >;
+export const activationWorkflowStatusSchema = z.enum([
+  "NEW",
+  "CONTACTED",
+  "AWAITING_PAYMENT",
+  "PAYMENT_RECEIVED",
+  "ACTIVATED",
+  "CLOSED",
+]);
+export type ActivationWorkflowStatus = z.infer<
+  typeof activationWorkflowStatusSchema
+>;
 
 export const commercialStatusSchema = z.object({
   tenant: z.object({
@@ -99,7 +110,11 @@ export const commercialStatusSchema = z.object({
       resolvedAt: z.string().nullable(),
     })
     .nullable(),
-  support: z.object({ email: z.string().nullable(), phone: z.string().nullable() }),
+  support: z.object({
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    whatsapp: z.string().nullable(),
+  }),
 });
 export type CommercialStatus = z.infer<typeof commercialStatusSchema>;
 
@@ -115,6 +130,7 @@ export const activationRequestSchema = z.object({
   tenantId: z.string().uuid(),
   requestedByUserId: z.string().uuid(),
   status: activationRequestStatusSchema,
+  workflowStatus: activationWorkflowStatusSchema,
   note: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -130,7 +146,13 @@ export type ActivationRequestResponse = z.infer<
 >;
 
 export const platformTenantListInputSchema = z.object({
-  status: tenantStatusSchema.optional(),
+  status: z.enum([
+    "PENDING_VERIFICATION",
+    "TRIAL",
+    "ACTIVE",
+    "SUSPENDED",
+    "EXPIRED",
+  ]).optional(),
   query: z.string().trim().min(1).max(200).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
@@ -143,16 +165,19 @@ export const platformTenantSchema = z.object({
   id: z.string().uuid(),
   referenceCode: z.string(),
   name: z.string(),
+  contactName: z.string().nullable(),
   contactEmail: z.string().nullable(),
   contactPhone: z.string().nullable(),
   city: z.string().nullable(),
   locale: localeSchema,
+  isInternal: z.boolean(),
   status: tenantStatusSchema,
   trialStartedAt: z.string().nullable(),
   trialEndsAt: z.string().nullable(),
   activatedAt: z.string().nullable(),
   suspendedAt: z.string().nullable(),
   createdAt: z.string(),
+  lastActivityAt: z.string().nullable(),
   userCount: z.number().int().nonnegative(),
   activationRequestCount: z.number().int().nonnegative(),
 });
@@ -212,4 +237,193 @@ export const resolveActivationRequestResponseSchema = z.object({
 });
 export type ResolveActivationRequestResponse = z.infer<
   typeof resolveActivationRequestResponseSchema
+>;
+
+export const platformOverviewSchema = z.object({
+  metrics: z.object({
+    totalCustomers: z.number().int(),
+    activeCustomers: z.number().int(),
+    trialCustomers: z.number().int(),
+    expiringTrials: z.number().int(),
+    expiredTrials: z.number().int(),
+    suspendedCustomers: z.number().int(),
+    newToday: z.number().int(),
+    newThisMonth: z.number().int(),
+    openActivationRequests: z.number().int(),
+    openSystemErrors: z.number().int(),
+  }),
+  registrations: z.array(z.object({ bucket: z.string(), count: z.number().int() })),
+  statusDistribution: z.array(z.object({ status: z.string(), count: z.number().int() })),
+  expiringTrials: z.array(platformTenantSchema),
+  recentActivationRequests: z.array(z.object({
+    request: activationRequestSchema,
+    tenant: platformTenantSchema,
+  })),
+  recentErrors: z.array(z.object({
+    id: z.string().uuid(),
+    referenceCode: z.string(),
+    tenantName: z.string().nullable(),
+    errorType: z.string(),
+    safeMessage: z.string(),
+    isResolved: z.boolean(),
+    occurredAt: z.string(),
+  })),
+  recentActivity: z.array(z.object({
+    id: z.string().uuid(),
+    actor: z.string().nullable(),
+    action: z.string(),
+    tenantName: z.string().nullable(),
+    reference: z.string().nullable(),
+    summary: z.string().nullable(),
+    createdAt: z.string(),
+  })),
+  environment: z.object({ name: z.string(), version: z.string() }),
+});
+export type PlatformOverview = z.infer<typeof platformOverviewSchema>;
+
+export const platformTrialsInputSchema = z.object({
+  view: z.enum(["active", "expiring", "expired", "extended"]).default("active"),
+  query: z.string().trim().max(200).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+export type PlatformTrialsInput = z.infer<typeof platformTrialsInputSchema>;
+export type PlatformTrialsResponse = PlatformTenantListResponse;
+
+export const platformActivationRequestsInputSchema = z.object({
+  workflowStatus: activationWorkflowStatusSchema.optional(),
+  query: z.string().trim().max(200).optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+export type PlatformActivationRequestsInput = z.infer<
+  typeof platformActivationRequestsInputSchema
+>;
+export const platformActivationRequestItemSchema = z.object({
+  request: activationRequestSchema,
+  tenant: platformTenantSchema,
+});
+export type PlatformActivationRequestItem = z.infer<
+  typeof platformActivationRequestItemSchema
+>;
+export type PlatformActivationRequestsResponse = {
+  items: PlatformActivationRequestItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
+export const updateActivationWorkflowInputSchema = z.object({
+  workflowStatus: activationWorkflowStatusSchema,
+  note: z.string().trim().max(2_000).optional(),
+});
+export type UpdateActivationWorkflowInput = z.infer<
+  typeof updateActivationWorkflowInputSchema
+>;
+
+export const platformErrorsInputSchema = z.object({
+  query: z.string().trim().max(200).optional(),
+  tenantId: z.string().uuid().optional(),
+  status: z.enum(["open", "resolved"]).optional(),
+  errorType: z.string().trim().max(120).optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+export type PlatformErrorsInput = z.infer<typeof platformErrorsInputSchema>;
+export type PlatformSystemError = {
+  id: string;
+  referenceCode: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  username: string | null;
+  route: string;
+  method: string;
+  errorType: string;
+  safeMessage: string;
+  environment: string;
+  applicationVersion: string;
+  isResolved: boolean;
+  resolutionNote: string | null;
+  occurredAt: string;
+  resolvedAt: string | null;
+};
+export type PlatformErrorsResponse = {
+  items: PlatformSystemError[];
+  total: number;
+  page: number;
+  limit: number;
+  errorTypes: string[];
+};
+export const resolvePlatformErrorInputSchema = z.object({
+  resolved: z.boolean(),
+  note: z.string().trim().max(2_000).optional(),
+});
+export type ResolvePlatformErrorInput = z.infer<
+  typeof resolvePlatformErrorInputSchema
+>;
+
+export type PlatformHealthComponent = {
+  status: "healthy" | "warning" | "unavailable";
+  message: string;
+  latencyMs?: number;
+};
+export type PlatformHealth = {
+  overall: "healthy" | "warning" | "unavailable";
+  checkedAt: string;
+  environment: string;
+  applicationVersion: string;
+  components: Record<string, PlatformHealthComponent>;
+};
+
+export const platformAuditInputSchema = z.object({
+  actor: z.string().trim().max(200).optional(),
+  action: z.string().trim().max(200).optional(),
+  tenantId: z.string().uuid().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+export type PlatformAuditInput = z.infer<typeof platformAuditInputSchema>;
+export type PlatformAuditEntry = {
+  id: string;
+  actor: string | null;
+  action: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  reference: string | null;
+  summary: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+};
+export type PlatformAuditResponse = {
+  items: PlatformAuditEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  actions: string[];
+};
+
+export const platformSettingsSchema = z.object({
+  supportWhatsapp: z.string().nullable(),
+  supportPhone: z.string().nullable(),
+  supportEmail: z.string().email().nullable(),
+  defaultTrialHours: z.number().int().min(1).max(720),
+  updatedAt: z.string().nullable(),
+});
+export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
+export const updatePlatformSettingsInputSchema = z.object({
+  supportWhatsapp: z.string().trim().max(80).nullable(),
+  supportPhone: z.string().trim().max(80).nullable(),
+  supportEmail: z.preprocess(
+    (value) => value === "" ? null : value,
+    z.string().email().nullable(),
+  ),
+  defaultTrialHours: z.number().int().min(1).max(720),
+});
+export type UpdatePlatformSettingsInput = z.infer<
+  typeof updatePlatformSettingsInputSchema
 >;

@@ -54,7 +54,7 @@ const PASSWORD_RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
 const PASSWORD_RESET_GENERIC_MESSAGE =
   "إذا كانت بيانات الحساب مطابقة ويوجد بريد إلكتروني مسجل، فسيصل رابط إعادة التعيين خلال دقائق.";
 const VERIFICATION_TOKEN_TTL_MS = 30 * 60 * 1000;
-const TRIAL_MS = 72 * 60 * 60 * 1000;
+import { loadPlatformSettings } from "../lib/platform-settings";
 
 /** Constant-cost comparison target when the username does not exist. */
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
@@ -250,8 +250,11 @@ router.post("/auth/register", registrationLimiter, async (req, res) => {
   const input = parseOrRespond(publicRegistrationInputSchema, req.body, res);
   if (!input) return;
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+  const platformSettings = await loadPlatformSettings();
   const trialStartedAt = new Date();
-  const trialEndsAt = new Date(trialStartedAt.getTime() + TRIAL_MS);
+  const trialEndsAt = new Date(
+    trialStartedAt.getTime() + platformSettings.defaultTrialHours * 60 * 60 * 1000,
+  );
   try {
     await db.transaction(async (tx) => {
       const referenceCode = `clinic-${randomBytes(6).toString("hex")}`;
@@ -281,7 +284,9 @@ router.post("/auth/register", registrationLimiter, async (req, res) => {
     res.status(409).json({ error: "تعذر إنشاء الحساب بهذه البيانات.", code: "REGISTRATION_CONFLICT" });
     return;
   }
-  res.status(201).json({ message: "تم إنشاء الحساب وبدأت الفترة التجريبية لمدة 72 ساعة." });
+  res.status(201).json({
+    message: `تم إنشاء الحساب وبدأت الفترة التجريبية لمدة ${platformSettings.defaultTrialHours} ساعة.`,
+  });
 });
 
 router.post("/auth/verify-email", verificationLimiter, async (_req, res) => {

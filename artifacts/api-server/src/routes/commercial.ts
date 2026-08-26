@@ -8,6 +8,7 @@ import {
 } from "@workspace/shared";
 import { parseOrRespond } from "../lib/validation";
 import { requireRole } from "../middlewares/auth";
+import { loadPlatformSettings } from "../lib/platform-settings";
 
 const router: IRouter = Router();
 
@@ -26,6 +27,7 @@ router.get("/commercial/status", async (req, res) => {
   const [request] = await db.select().from(tenantActivationRequestsTable)
     .where(eq(tenantActivationRequestsTable.tenantId, tenant.id))
     .orderBy(desc(tenantActivationRequestsTable.createdAt)).limit(1);
+  const platformSettings = await loadPlatformSettings();
   res.json({
     tenant: {
       id: tenant.id, name: tenant.name, status: tenant.status,
@@ -36,9 +38,14 @@ router.get("/commercial/status", async (req, res) => {
     },
     activationRequest: request ? {
       id: request.id, status: request.status, note: request.note,
+      workflowStatus: request.workflowStatus,
       createdAt: request.createdAt.toISOString(), resolvedAt: request.resolvedAt?.toISOString() ?? null,
     } : null,
-    support: { email: process.env.SUPPORT_EMAIL ?? null, phone: process.env.SUPPORT_PHONE ?? null },
+    support: {
+      email: platformSettings.supportEmail,
+      phone: platformSettings.supportPhone,
+      whatsapp: platformSettings.supportWhatsapp,
+    },
   });
 });
 

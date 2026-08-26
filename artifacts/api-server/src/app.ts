@@ -10,6 +10,7 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { csrfProtection } from "./middlewares/csrf";
 import { sessionMiddleware } from "./middlewares/session";
+import { recordSystemError } from "./lib/system-errors";
 
 const app: Express = express();
 
@@ -46,15 +47,17 @@ app.use(csrfProtection);
 
 app.use("/api", router);
 
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use(async (err: Error, req: Request, res: Response, next: NextFunction) => {
   req.log?.error({ err }, "unhandled error");
   if (res.headersSent) {
     next(err);
     return;
   }
+  const referenceCode = await recordSystemError(req, err);
   res.status(500).json({
     error: "حدث خطأ غير متوقع في الخادم. يرجى المحاولة مرة أخرى.",
     code: "INTERNAL",
+    referenceCode,
   });
 });
 

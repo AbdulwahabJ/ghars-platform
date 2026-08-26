@@ -107,6 +107,9 @@ function Router() {
       <Route path="/platform-admin">
         {() => <ProtectedRoute component={PlatformAdmin} path="/platform-admin" />}
       </Route>
+      <Route path="/platform-admin/*">
+        {() => <ProtectedRoute component={PlatformAdmin} path="/platform-admin" />}
+      </Route>
       <Route path="/change-password">
         {() => <ProtectedRoute component={ChangePassword} path="/change-password" />}
       </Route>
