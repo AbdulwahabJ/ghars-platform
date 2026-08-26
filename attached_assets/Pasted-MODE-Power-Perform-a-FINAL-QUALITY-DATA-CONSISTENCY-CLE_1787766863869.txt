@@ -1,0 +1,373 @@
+MODE: Power
+
+Perform a FINAL QUALITY + DATA CONSISTENCY CLEANUP of the existing Ghars Platform Admin.
+
+IMPORTANT:
+
+The Platform Admin architecture and pages are now approved.
+
+DO NOT redesign the Platform Admin.
+DO NOT rebuild commercial architecture.
+DO NOT change tenant isolation.
+DO NOT implement Landing Page or Demo Data yet.
+
+Fix ONLY the remaining issues identified from the current running Platform Admin.
+
+==================================================
+1. FIX PLATFORM ADMIN LOCALIZATION LEAKS
+==================================================
+
+The Arabic Platform Admin still displays raw English/technical strings.
+
+Examples currently visible include:
+
+- "Session store is reachable"
+- "Database query succeeded"
+- "API is responding"
+- "Email subsystem is disabled for this release"
+- "File storage is not configured"
+- raw audit action codes such as:
+  TENANT_REGISTRATION_CREATED
+  platform_settings_updated
+  platform_tenant_reactivate
+  platform_tenant_suspend
+
+When locale = Arabic:
+
+show professional Arabic display labels/messages.
+
+When locale = English:
+
+show professional English equivalents.
+
+Keep canonical machine codes unchanged in backend/database.
+
+Raw technical codes may appear only inside an advanced/detail view if useful.
+
+Do NOT display raw translation keys or action codes in normal tables/dropdowns.
+
+==================================================
+2. FIX CUSTOMER USER COUNT CONSISTENCY
+==================================================
+
+There is a visible data inconsistency:
+
+The Customers table shows:
+
+Users = 0
+
+for a tenant whose Customer Detail page clearly contains an active Tenant Admin user.
+
+Audit the aggregate user-count query.
+
+The Customers list, Customer Detail, and Platform Overview must use the SAME canonical tenant-membership/user model.
+
+Fix the root cause.
+
+Do NOT frontend-hardcode the count.
+
+Add a regression test.
+
+==================================================
+3. INTERNAL TENANT MUST NOT BE A COMMERCIAL CUSTOMER
+==================================================
+
+The existing:
+
+Internal
+
+tenant contains preserved legacy/development data.
+
+DO NOT delete it.
+
+Mark it explicitly as:
+
+system/internal
+
+using proper canonical architecture.
+
+Do NOT identify it only by:
+
+name === "Internal"
+
+The Internal/System tenant must be excluded from normal commercial workflows:
+
+- Commercial customer KPIs
+- Trial counts
+- Expiring trials
+- Activation Requests
+- Commercial customer conversion metrics
+- New customer metrics
+
+It may remain visible to Platform Super Admin through an intentional system/internal view or clearly labeled record if useful.
+
+But it must NOT behave like a commercial trial customer.
+
+==================================================
+4. REMOVE INVALID INTERNAL ACTIVATION REQUESTS
+==================================================
+
+The current Activation Requests page shows an activation request associated with Internal/system data.
+
+Internal/system tenants must not have commercial activation requests.
+
+Inspect whether this is test data or a real invalid record.
+
+If test/invalid:
+
+safely close/archive/remove it according to the current architecture.
+
+Do NOT delete legitimate commercial activation requests.
+
+Prevent future activation requests for system/internal tenants server-side.
+
+==================================================
+5. REVIEW CURRENT OPEN SYSTEM ERRORS
+==================================================
+
+There are currently multiple open errors related to:
+
+TypeError
+PATCH /api/preferences
+
+The previous implementation report states that the Platform Admin preference/language issue was fixed.
+
+Determine whether these errors are:
+
+A. historical errors generated before the fix
+
+OR
+
+B. still reproducible.
+
+If historical and confirmed fixed:
+
+mark them resolved with an appropriate internal resolution note.
+
+Do NOT delete the history.
+
+If still reproducible:
+
+fix the root cause first.
+
+Then verify no new error is generated when:
+
+- switching Arabic → English
+- switching English → Arabic
+- reloading Platform Admin
+- saving Platform Settings
+
+Do not leave known reproducible errors open.
+
+==================================================
+6. SYSTEM HEALTH LOCALIZATION
+==================================================
+
+System Health cards must use localized presentation.
+
+Examples:
+
+Arabic:
+
+واجهة الخدمة
+تعمل بشكل طبيعي
+
+قاعدة البيانات
+الاتصال ناجح
+
+الجلسات
+مخزن الجلسات متاح
+
+البريد الإلكتروني
+معطل في هذا الإصدار
+
+تخزين الملفات
+غير مهيأ
+
+الأخطاء الحديثة
+7 أخطاء مفتوحة خلال الساعة الأخيرة
+
+Use accurate wording based on REAL health state.
+
+Do not hardcode green status.
+
+==================================================
+7. FILE STORAGE PRODUCTION READINESS
+==================================================
+
+System Health currently reports:
+
+File storage is not configured.
+
+Audit what Ghars currently stores as files:
+
+- user profile images
+- avatars
+- uploaded documents if any
+- other persistent files
+
+If files currently use ephemeral local/runtime storage:
+
+report this clearly as a production blocker.
+
+If the current Replit production architecture provides an appropriate durable storage mechanism:
+
+implement/reuse it cleanly.
+
+Do NOT lose existing files.
+
+Keep tenant isolation for private files.
+
+Final report must explicitly state:
+
+PRODUCTION FILE STORAGE:
+PASS / BLOCKED / NOT APPLICABLE
+
+==================================================
+8. PLATFORM OVERVIEW COMPLETENESS
+==================================================
+
+The Platform Overview currently shows only a subset of the approved platform KPIs.
+
+Ensure the Overview includes useful canonical metrics:
+
+- Total Commercial Customers
+- Active Customers
+- Trial Customers
+- Expired Trials
+- Suspended Customers
+- Trials Expiring Soon
+- New Customers Today
+- New Customers This Month
+- Open Activation Requests
+- Open System Errors
+
+Recent sections should include where data exists:
+
+- Recent Activations
+- Trials Expiring Soon
+- Recent Platform Activity
+
+Do NOT count the Internal/System tenant.
+
+Do NOT add excessive charts.
+
+==================================================
+9. DEFAULT TRIAL DURATION
+==================================================
+
+Confirm:
+
+Default Trial Hours = 72
+
+unless Platform Super Admin intentionally changed it.
+
+The commercial default for Ghars is:
+
+72 hours / 3 days.
+
+Changing the Platform Setting affects future tenants only.
+
+Do not modify existing tenant trial_end dates automatically.
+
+==================================================
+10. PLATFORM SETTINGS VALIDATION
+==================================================
+
+Keep:
+
+Support WhatsApp
+Support Phone
+Support Email optional
+Default Trial Hours
+
+Add proper validation/normalization.
+
+Development/test placeholder values are acceptable in development.
+
+Do NOT hardcode them into production code.
+
+Before production launch these values must be configured with real Ghars support contact information.
+
+==================================================
+11. TESTS
+==================================================
+
+Add/run focused regression tests for:
+
+- customer user count consistency
+- internal tenant excluded from commercial KPIs
+- internal tenant cannot create activation request
+- localized Platform Health messages
+- localized Platform Audit action labels
+- preference/language switching generates no new error
+- Platform Admin Overview metrics
+- default trial-hours behavior
+
+Then run:
+
+- full TypeScript
+- affected lint
+- complete API tests
+- production build
+
+==================================================
+12. FINAL BROWSER VERIFICATION
+==================================================
+
+Verify in Arabic:
+
+Overview
+Customers
+Customer Detail
+Trials
+Activation Requests
+System Errors
+System Health
+Platform Audit
+Platform Settings
+
+Then English.
+
+Confirm:
+
+- no unintended raw English in Arabic UI
+- no raw audit action codes in normal UI
+- customer user counts are accurate
+- Internal tenant is handled as system/internal
+- no invalid Internal activation request
+- no new /api/preferences error
+- no horizontal overflow
+
+==================================================
+13. FINAL REPORT
+==================================================
+
+Report:
+
+1. Localization leaks fixed
+2. Customer user-count bug root cause
+3. Internal tenant implementation
+4. Internal activation-request cleanup
+5. /api/preferences error investigation
+6. Current open-error status
+7. Platform Overview KPIs
+8. Default trial hours
+9. File-storage status
+10. Test results
+11. Production build result
+12. Remaining production blockers
+13. Exact checkpoint commit hash
+
+Final flags:
+
+PLATFORM ADMIN DATA CONSISTENCY: PASS / FAIL
+PLATFORM ADMIN LOCALIZATION: PASS / FAIL
+INTERNAL TENANT COMMERCIAL EXCLUSION: PASS / FAIL
+SYSTEM ERRORS CLEAN: PASS / FAIL
+PRODUCTION FILE STORAGE: PASS / BLOCKED / NOT APPLICABLE
+PRODUCTION BUILD: PASS / FAIL
+
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.

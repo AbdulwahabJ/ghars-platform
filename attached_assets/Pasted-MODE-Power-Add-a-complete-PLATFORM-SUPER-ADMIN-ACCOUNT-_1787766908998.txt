@@ -1,0 +1,594 @@
+MODE: Power
+
+Add a complete PLATFORM SUPER ADMIN ACCOUNT & SECURITY section to the existing Ghars Platform Admin.
+
+IMPORTANT:
+
+The Platform Admin Control Center already exists.
+
+DO NOT redesign it.
+DO NOT rebuild authentication.
+DO NOT modify tenant/customer authentication architecture.
+
+Add the missing Platform Super Admin account-management capabilities using the existing Ghars design system, security architecture, sessions, audit logs, and localization.
+
+==================================================
+1. NEW PLATFORM ADMIN ACCOUNT SECTION
+==================================================
+
+Inside the Platform Admin create a dedicated area:
+
+Arabic:
+حساب مدير المنصة
+
+English:
+Platform Admin Account
+
+This may be:
+
+/platform-admin/account
+
+or a clearly separated section under Platform Admin Settings.
+
+Prefer a dedicated Account / Security page rather than mixing login credentials with support/commercial settings.
+
+==================================================
+2. ACCOUNT INFORMATION
+==================================================
+
+Display safe Platform Super Admin account information:
+
+- Display Name
+- Username
+- Preferred Language
+- Role:
+  Platform Super Admin
+- Last Login
+- Password Last Changed, if available
+- Account Created At, if useful
+
+Do NOT show:
+
+- password
+- password hash
+- session secrets
+- security tokens
+
+==================================================
+3. DISPLAY NAME
+==================================================
+
+Allow Platform Super Admin to change their display name.
+
+Fields:
+
+Arabic:
+الاسم
+
+English:
+Display Name
+
+Use normal validation.
+
+Audit the change.
+
+==================================================
+4. LOGIN USERNAME
+==================================================
+
+Allow Platform Super Admin to change their LOGIN USERNAME.
+
+Arabic:
+
+اسم المستخدم
+
+English:
+
+Username
+
+Requirements:
+
+- required
+- trimmed
+- globally unique according to current authentication architecture
+- reasonable length validation
+- allowed-character validation consistent with current usernames
+
+Do NOT allow an empty username.
+
+Do NOT silently overwrite another user's username.
+
+==================================================
+5. USERNAME CHANGE SECURITY
+==================================================
+
+Changing the Platform Admin username is security-sensitive.
+
+Require:
+
+Current Password
+
+before saving a new username.
+
+Do not accept username change using only an authenticated browser session.
+
+After successful username change:
+
+- audit it
+- preserve the current session safely OR require re-login if that matches the existing session security architecture
+- ensure next login uses the NEW username
+- old username must stop authenticating
+
+Do not expose whether unrelated customer usernames exist beyond the safe validation response.
+
+==================================================
+6. CHANGE PASSWORD
+==================================================
+
+Add:
+
+Arabic:
+تغيير كلمة المرور
+
+English:
+Change Password
+
+Fields:
+
+- Current Password
+- New Password
+- Confirm New Password
+
+Requirements:
+
+1. Verify current password server-side.
+2. Use the existing password policy.
+3. Hash new password using the existing secure password-hashing mechanism.
+4. Never send/store plaintext password beyond the request lifecycle.
+5. New Password and Confirm Password must match.
+6. Do not permit changing password without current password for normal self-service.
+
+==================================================
+7. PASSWORD VALIDATION
+==================================================
+
+Reuse the CURRENT Ghars password policy.
+
+Do NOT introduce a conflicting password policy.
+
+Localized errors:
+
+Arabic examples:
+
+كلمة المرور الحالية غير صحيحة.
+
+كلمتا المرور غير متطابقتين.
+
+كلمة المرور الجديدة لا تستوفي المتطلبات.
+
+English equivalents required.
+
+==================================================
+8. AFTER PASSWORD CHANGE
+==================================================
+
+After successful Platform Admin password change:
+
+Preferred behavior:
+
+- invalidate all OTHER active Platform Admin sessions
+- preserve current session only if safe
+
+OR
+
+- invalidate all sessions and require login again
+
+Choose the safest behavior compatible with the current session architecture.
+
+Document which behavior was implemented.
+
+==================================================
+9. PLATFORM ADMIN SESSION MANAGEMENT
+==================================================
+
+Add a small Security / Sessions section.
+
+At minimum provide:
+
+تسجيل الخروج من جميع الأجهزة الأخرى
+Log out from all other sessions
+
+If the current session architecture supports per-session visibility safely, optionally show:
+
+- session created time
+- last activity
+- approximate device/browser
+- current session indicator
+
+Do NOT build invasive tracking.
+
+Do NOT expose session IDs.
+
+==================================================
+10. LAST LOGIN
+==================================================
+
+Ensure Platform Super Admin has:
+
+last_login_at
+
+or equivalent safe tracking.
+
+Update it only after successful login.
+
+Display it in Account/Security.
+
+==================================================
+11. PASSWORD LAST CHANGED
+==================================================
+
+If not already available, add:
+
+password_changed_at
+
+or equivalent.
+
+Update it after:
+
+- self password change
+- secure Platform Admin recovery/bootstrap reset
+
+Do not expose sensitive password history.
+
+==================================================
+12. PREFERRED LANGUAGE
+==================================================
+
+Allow the Platform Admin account to persist:
+
+Arabic
+English
+
+using the EXISTING i18n/user-preference architecture.
+
+Do not require a tenant membership.
+
+The existing Platform Admin language persistence must continue working.
+
+==================================================
+13. PLATFORM ADMIN RECOVERY
+==================================================
+
+Because email recovery is intentionally disabled for the current Ghars release:
+
+DO NOT add email-based Forgot Password for Platform Super Admin.
+
+Platform Super Admin recovery must use a controlled operational/bootstrap process.
+
+Document the recovery procedure.
+
+For example:
+
+secure environment/server bootstrap command
+
+using protected environment credentials.
+
+Do NOT expose a public Platform Admin recovery endpoint.
+
+==================================================
+14. NO PASSWORD VIEW
+==================================================
+
+CRITICAL:
+
+Never implement:
+
+- عرض كلمة المرور الحالية
+- Show Current Password
+- Reveal Password
+- Decrypt Password
+- Retrieve Existing Password
+
+Even Platform Super Admin cannot read the current password.
+
+Only:
+
+Change Password
+
+or controlled recovery/reset.
+
+==================================================
+15. PLATFORM ADMIN ACCOUNT AUDIT
+==================================================
+
+Audit security-sensitive actions:
+
+PLATFORM_ADMIN_DISPLAY_NAME_CHANGED
+
+PLATFORM_ADMIN_USERNAME_CHANGED
+
+PLATFORM_ADMIN_PASSWORD_CHANGED
+
+PLATFORM_ADMIN_OTHER_SESSIONS_REVOKED
+
+PLATFORM_ADMIN_RECOVERY_RESET
+
+where applicable.
+
+Store:
+
+- actor
+- timestamp
+- action
+- safe metadata
+
+For username changes it is acceptable to record:
+
+old username
+new username
+
+Do NOT store:
+
+- old password
+- new password
+- password hash
+- session token
+
+==================================================
+16. PLATFORM ADMINISTRATORS
+==================================================
+
+Inspect whether Ghars currently supports more than one Platform Super Admin.
+
+For the first commercial release:
+
+Do NOT create unnecessary complex platform role management.
+
+However:
+
+the architecture must not accidentally allow the final/only Platform Super Admin account to be disabled or deleted without another valid Platform Admin existing.
+
+Add a safety guard if required.
+
+If multiple Platform Admin accounts already exist, preserve them safely.
+
+==================================================
+17. PLATFORM SETTINGS REMAIN SEPARATE
+==================================================
+
+Keep existing:
+
+Platform Settings
+
+for PRODUCT-level settings such as:
+
+- Support WhatsApp
+- Support Phone
+- Support Email optional
+- Default Trial Hours
+
+Do NOT place the Platform Admin login username/password inside general product settings.
+
+Use:
+
+Platform Account
+→ identity/security
+
+Platform Settings
+→ product configuration
+
+==================================================
+18. PLATFORM HEADER / ACCOUNT MENU
+==================================================
+
+Add a clean account menu in Platform Admin header/sidebar if it does not already exist.
+
+Suggested actions:
+
+حسابي
+My Account
+
+الأمان وكلمة المرور
+Security & Password
+
+تسجيل الخروج
+Logout
+
+Do not clutter the sidebar.
+
+==================================================
+19. SECURITY CONFIRMATIONS
+==================================================
+
+Require confirmation for:
+
+- changing username
+- revoking other sessions
+
+Password change already requires current password.
+
+Use localized Ghars dialogs.
+
+==================================================
+20. SERVER-SIDE AUTHORIZATION
+==================================================
+
+All Platform Account mutation endpoints must require:
+
+platform_super_admin
+
+server-side.
+
+Tenant Admin or customer users must receive:
+
+403
+
+if calling them directly.
+
+==================================================
+21. CSRF / SESSION SECURITY
+==================================================
+
+Preserve current:
+
+- CSRF
+- secure cookies
+- server-side session authorization
+- rate limiting where applicable
+
+Do not weaken authentication for Account Settings.
+
+==================================================
+22. RATE LIMIT PASSWORD CHANGE
+==================================================
+
+Apply sensible rate limiting to repeated failed:
+
+current-password verification
+
+for Platform Admin credential changes.
+
+Do not lock a legitimate Platform Admin out permanently.
+
+Use safe temporary throttling according to existing authentication conventions.
+
+==================================================
+23. ERROR HANDLING
+==================================================
+
+Use existing structured/localized error architecture.
+
+Do not expose:
+
+database errors
+hashing errors
+session internals
+stack traces
+
+Field errors should identify the exact problem.
+
+==================================================
+24. UI DESIGN
+==================================================
+
+Use existing Ghars Platform Admin visual design.
+
+Suggested Account page sections:
+
+1. المعلومات الأساسية
+   Account Information
+
+2. بيانات تسجيل الدخول
+   Login Credentials
+
+3. تغيير كلمة المرور
+   Change Password
+
+4. الجلسات والأمان
+   Sessions & Security
+
+Do NOT create a new design language.
+
+==================================================
+25. ARABIC / ENGLISH
+==================================================
+
+Everything must use the existing localization system.
+
+Verify:
+
+Arabic RTL
+English LTR
+
+including:
+
+- Account labels
+- username validation
+- password validation
+- dialogs
+- toasts
+- session actions
+- audit display labels
+
+==================================================
+26. TESTS
+==================================================
+
+Test:
+
+A.
+Platform Admin changes display name.
+
+B.
+Platform Admin changes username using correct current password.
+
+C.
+Old username no longer logs in.
+
+D.
+New username logs in.
+
+E.
+Incorrect current password rejects username change.
+
+F.
+Duplicate username rejected safely.
+
+G.
+Platform Admin changes password.
+
+H.
+Old password no longer works.
+
+I.
+New password works.
+
+J.
+Other sessions are revoked according to implemented policy.
+
+K.
+Password values never appear in logs/audit.
+
+L.
+Tenant Admin cannot access Platform Account APIs.
+
+M.
+Normal customer user cannot modify Platform Admin account.
+
+N.
+Arabic/English Account UI works.
+
+==================================================
+27. FINAL REPORT
+==================================================
+
+Report:
+
+1. Platform Account route/page
+2. Display-name editing
+3. Username-change implementation
+4. Username uniqueness behavior
+5. Password-change behavior
+6. Session-revocation behavior
+7. Last-login tracking
+8. Password-changed tracking
+9. Platform Admin recovery procedure
+10. Audit events
+11. Authorization test results
+12. Localization results
+13. TypeScript/tests/build result
+14. Exact checkpoint commit hash
+
+Final flags:
+
+PLATFORM ADMIN ACCOUNT MANAGEMENT: PASS / FAIL
+
+PLATFORM ADMIN PASSWORD SECURITY: PASS / FAIL
+
+PLATFORM ADMIN SESSION SECURITY: PASS / FAIL
+
+PLATFORM ADMIN ACCOUNT AUTHORIZATION: PASS / FAIL
+
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.
