@@ -66,6 +66,7 @@ export default {
       submitting: "Submitting...",
       pending: "Activation request is under review. We will contact you soon.",
       success: "Activation request received successfully.",
+      rejected: "The request was rejected. Please contact support.",
     },
   },
   header: {

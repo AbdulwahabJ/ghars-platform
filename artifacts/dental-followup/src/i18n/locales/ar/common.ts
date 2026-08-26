@@ -4,6 +4,7 @@ const common = {
     latin: "Ghars",
     tagline: "منصة ذكية لإدارة زراعة الأسنان",
     shortTagline: "نظام إدارة ومتابعة زراعة الأسنان",
+    values: "تقنية · دقة · ثقة",
   },
   nav: {
     dashboard: "الرئيسية",

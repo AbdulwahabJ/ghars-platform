@@ -2,6 +2,7 @@ const auth = {
   login: {
     title: "Sign in",
     welcome: "Welcome to Ghars",
+    createAccount: "Create Account",
     username: "Username",
     usernamePlaceholder: "Enter your username",
     password: "Password",

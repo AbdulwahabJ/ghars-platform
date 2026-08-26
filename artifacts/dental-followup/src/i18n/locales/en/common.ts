@@ -4,6 +4,7 @@ const common = {
     latin: "Ghars",
     tagline: "Smart dental implant management",
     shortTagline: "Dental implant management and follow-up",
+    values: "Technology · Precision · Trust",
   },
   nav: {
     dashboard: "Dashboard",

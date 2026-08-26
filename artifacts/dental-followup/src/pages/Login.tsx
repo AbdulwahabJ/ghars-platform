@@ -237,7 +237,7 @@ export default function Login() {
                      onClick={() => setLocation("/register")}
                      className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[7px] border border-brand-navy bg-white text-[15px] font-medium text-brand-navy transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/40"
                    >
-                     {t("common:actions.register", "إنشاء حساب جديد")}
+                      {t("login.createAccount")}
                    </button>
 
                     {supportWhatsappHref ? (
@@ -399,14 +399,14 @@ export default function Login() {
           <img src={gharsSymbol} alt={t("login.symbolAlt")} className="h-[140px] w-[140px] object-contain" />
           <div className="mt-2 space-y-0">
             <p className="font-brand-arabic text-[62px] font-bold leading-[1.15] text-brand-navy">{t("common:brand.arabic")}</p>
-            <p className="font-brand-latin text-[56px] font-semibold leading-[1.05] text-brand-navy">Ghars</p>
+            <p className="font-brand-latin text-[56px] font-semibold leading-[1.05] text-brand-navy">{t("common:brand.latin")}</p>
           </div>
           <div className="mt-7 flex items-center gap-3 text-brand-navy">
             <span className="h-px w-6 bg-brand-navy/60" />
             <p className="text-[17px] font-medium">{t("common:brand.tagline")}</p>
             <span className="h-px w-6 bg-brand-navy/60" />
           </div>
-          <p className="mt-2 font-brand-arabic text-[16px] tracking-[0.18em] text-[#5a769b]">تقنية . دقة . ثقة</p>
+          <p className="mt-2 font-brand-arabic text-[16px] tracking-[0.18em] text-[#5a769b]">{t("common:brand.values")}</p>
         </div>
       </div>
 

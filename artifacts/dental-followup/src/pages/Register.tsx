@@ -263,8 +263,8 @@ export default function Register() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="ar">العربية (Arabic)</SelectItem>
-                            <SelectItem value="en">English (الإنجليزية)</SelectItem>
+                            <SelectItem value="ar">{t("register.localeArabic")}</SelectItem>
+                            <SelectItem value="en">{t("register.localeEnglish")}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -306,7 +306,7 @@ export default function Register() {
             <p className="text-[17px] font-medium">{t("common:brand.tagline")}</p>
             <span className="h-px w-6 bg-brand-navy/60" />
           </div>
-          <p className="mt-2 font-brand-arabic text-[16px] tracking-[0.18em] text-[#5a769b]">تقنية . دقة . ثقة</p>
+          <p className="mt-2 font-brand-arabic text-[16px] tracking-[0.18em] text-[#5a769b]">{t("common:brand.values")}</p>
         </div>
       </div>
     </div>

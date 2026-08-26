@@ -1,0 +1,264 @@
+Fix the support contact behavior across Ghars.
+
+CURRENT ISSUE:
+
+On the suspended / expired-access screen, clicking the support contact triggers a browser prompt saying that the website wants to open an external application.
+
+This is caused by using a custom WhatsApp protocol/deep-link such as:
+
+whatsapp://
+
+I do NOT want this behavior.
+
+==================================================
+1. USE HTTPS WHATSAPP LINKS ONLY
+==================================================
+
+Do NOT use:
+
+whatsapp://
+tel:
+custom external-app protocols
+
+for the configured WhatsApp support number.
+
+Use a standard HTTPS WhatsApp URL instead:
+
+https://wa.me/{normalizedPhone}
+
+with an optional encoded message.
+
+This should open through the normal browser flow and avoid explicitly invoking a custom application protocol.
+
+==================================================
+2. SUPPORT PHONE DISPLAY
+==================================================
+
+On customer-facing support screens, the configured WhatsApp support number must function as WHATSAPP contact, NOT a telephone-call link.
+
+Current support number display should become:
+
+WhatsApp icon + support number
+
+Clicking it must open:
+
+https://wa.me/{normalizedSupportWhatsApp}
+
+Do NOT use:
+
+tel:{number}
+
+for the WhatsApp support number.
+
+==================================================
+3. PHONE NORMALIZATION
+==================================================
+
+Use the existing Platform Setting:
+
+Support WhatsApp
+
+as the canonical value.
+
+Normalize it before creating the wa.me URL.
+
+The wa.me phone value must contain:
+
+country code + number
+
+with:
+
+- no +
+- no spaces
+- no dashes
+- no parentheses
+
+Example:
+
+Stored/displayed:
+0506388263
+
+If Saudi Arabia is the configured/default context and the canonical phone normalization architecture already supports it:
+
+WhatsApp URL:
+https://wa.me/966506388263
+
+Do NOT hardcode 966 if the project already has a proper canonical phone normalization helper.
+
+Reuse the existing normalization architecture.
+
+==================================================
+4. PREFILLED SUPPORT MESSAGE
+==================================================
+
+Where the customer is contacting Ghars because their tenant is:
+
+- suspended
+- trial expired
+- requesting activation
+
+include a professional localized prefilled WhatsApp message.
+
+Arabic example:
+
+السلام عليكم،
+أرغب في التواصل مع دعم غرس بخصوص حساب المنشأة.
+
+اسم المنشأة: {tenantName}
+رقم العميل: {tenantReference}
+
+For expired trials, use context-specific wording:
+
+السلام عليكم،
+انتهت الفترة التجريبية لمنشأتي في غرس وأرغب في شراء وتفعيل النظام.
+
+اسم المنشأة: {tenantName}
+رقم العميل: {tenantReference}
+
+For suspended tenants:
+
+السلام عليكم،
+أرغب في التواصل مع دعم غرس بخصوص تعليق حساب المنشأة.
+
+اسم المنشأة: {tenantName}
+رقم العميل: {tenantReference}
+
+Use the existing localization system for Arabic/English.
+
+Encode the text properly using URLSearchParams / encodeURIComponent.
+
+==================================================
+5. OPENING BEHAVIOR
+==================================================
+
+Open the HTTPS WhatsApp link normally.
+
+Preferred desktop behavior:
+
+open in a new browser tab.
+
+Use:
+
+target="_blank"
+rel="noopener noreferrer"
+
+where appropriate.
+
+Do NOT use JavaScript custom-protocol redirects.
+
+Do NOT first attempt whatsapp:// and then fall back to HTTPS.
+
+Use HTTPS directly.
+
+==================================================
+6. CUSTOMER-FACING SUPPORT CARD
+==================================================
+
+On the current suspended/account-access screen:
+
+Change the phone contact presentation.
+
+Instead of a normal phone/call icon:
+
+use the WhatsApp icon or a clearly recognizable messaging icon.
+
+The displayed number can remain visible.
+
+Clicking:
+
+number
+or icon
+
+must open WhatsApp.
+
+The customer should clearly understand:
+
+"this contacts Ghars through WhatsApp"
+
+not:
+
+"this starts a phone call."
+
+==================================================
+7. PLATFORM SETTINGS
+==================================================
+
+Continue using:
+
+Platform Admin → Platform Settings → Support WhatsApp
+
+as the source of truth.
+
+Do NOT hardcode the current development number in the component.
+
+Any future change made by Platform Admin must automatically affect:
+
+- suspended account screen
+- expired trial screen
+- activation/support CTA
+- any other Ghars support WhatsApp action
+
+==================================================
+8. SUPPORT PHONE FIELD
+==================================================
+
+If Platform Settings also has a separate:
+
+Support Phone
+
+field:
+
+keep it separate.
+
+Support WhatsApp:
+→ opens WhatsApp HTTPS URL
+
+Support Phone:
+→ may use tel: ONLY in places explicitly intended for calling
+
+Do NOT confuse these two contact methods.
+
+==================================================
+9. VERIFY ALL SUPPORT LINKS
+==================================================
+
+Audit the application for support links using:
+
+whatsapp://
+tel:
+wa.me
+
+Ensure all WHATSAPP actions consistently use:
+
+https://wa.me/
+
+Check at minimum:
+
+- suspended account page
+- expired trial page
+- activation request flow
+- login/support actions if applicable
+
+==================================================
+10. TEST
+==================================================
+
+Verify on desktop:
+
+Clicking the WhatsApp number/button:
+
+- does NOT use whatsapp://
+- does NOT use tel:
+- uses https://wa.me/
+- includes normalized phone
+- includes encoded support message where applicable
+- opens in a new tab
+- does not trigger the current custom-app protocol prompt from Ghars
+
+Verify Arabic and English.
+
+Do not modify the commercial lifecycle or support settings architecture.
+
+Do not publish.
+
+Create a checkpoint and stop.

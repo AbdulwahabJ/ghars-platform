@@ -1,0 +1,487 @@
+MODE: Power
+
+Fix GLOBAL dialog/modal positioning across the ENTIRE Ghars application.
+
+CURRENT BUG:
+
+Dialogs/modals are not consistently centered in the viewport.
+
+Depending on Arabic RTL / English LTR, some dialogs appear shifted toward the left or right side of the screen.
+
+The attached screenshot demonstrates the issue.
+
+IMPORTANT:
+
+This is a GLOBAL UI infrastructure fix.
+
+Do NOT fix dialogs page-by-page.
+
+Inspect the shared Dialog / AlertDialog / Modal components and fix the root cause centrally.
+
+==================================================
+1. REQUIRED GLOBAL BEHAVIOR
+==================================================
+
+Every standard modal/dialog in Ghars must appear:
+
+HORIZONTALLY CENTERED
++
+VERTICALLY CENTERED
+
+inside the viewport.
+
+This behavior must be IDENTICAL for:
+
+Arabic RTL
+English LTR
+
+Language direction must NOT change the physical position of the modal.
+
+RTL/LTR should only affect:
+
+- text alignment
+- form direction
+- icon positioning inside content
+- button order where appropriate
+
+It must NOT move the modal itself to the right or left.
+
+==================================================
+2. AUDIT SHARED COMPONENTS FIRST
+==================================================
+
+Inspect the shared UI infrastructure first.
+
+Likely components may include:
+
+- Dialog
+- DialogContent
+- AlertDialog
+- AlertDialogContent
+- ConfirmDialog
+- custom Modal components
+- shared form dialogs
+
+If using shadcn / Radix UI:
+
+fix the shared primitive/component rather than individual screens.
+
+Do NOT duplicate centering CSS across every page.
+
+==================================================
+3. CENTERING MUST BE DIRECTION-INDEPENDENT
+==================================================
+
+Use direction-independent viewport centering.
+
+Recommended concept:
+
+position: fixed
+left: 50%
+top: 50%
+transform: translate(-50%, -50%)
+
+OR an equivalent robust fixed overlay layout such as:
+
+fixed
+inset-0
+display grid/flex
+place-items-center / items-center justify-center
+
+Choose the implementation that best fits the existing Radix/shadcn architecture.
+
+CRITICAL:
+
+Do NOT allow RTL styles to invert:
+
+translateX
+left
+right
+
+for modal positioning.
+
+==================================================
+4. REMOVE DIRECTION-BASED POSITION OVERRIDES
+==================================================
+
+Audit for CSS/Tailwind rules such as:
+
+rtl:left-auto
+rtl:right-*
+ltr:left-*
+right-[50%]
+left-[50%]
+translate-x rules altered by direction
+margin-based modal positioning
+logical start/end rules applied to the modal container
+
+Remove/fix anything that makes the dialog location depend on document direction.
+
+==================================================
+5. DIALOG CONTENT DIRECTION
+==================================================
+
+The DIALOG POSITION stays centered.
+
+But content should remain localized correctly.
+
+Arabic:
+
+dir="rtl"
+
+English:
+
+dir="ltr"
+
+This applies inside the dialog to:
+
+- labels
+- text
+- inputs
+- buttons
+- close icon positioning where appropriate
+- select/dropdown text
+
+Do not solve the positioning issue by forcing the dialog content to LTR.
+
+==================================================
+6. ALL DIALOG TYPES
+==================================================
+
+Audit ALL actual modal/dialog surfaces in Ghars, including at minimum:
+
+Authentication dialogs if any
+
+Patients:
+- Add Patient
+- Edit Patient
+- Archive confirmations
+
+Users:
+- Add User
+- Edit User
+- Reset Password
+- Change Password
+
+Implants:
+- Add Implant
+- Edit Implant
+- status dialogs
+- archive confirmations
+
+Adjunct Procedures:
+- Bone Graft
+- Sinus Lift
+- Nerve Repositioning
+
+Prosthetics:
+- Temporary Prosthesis
+- Final Prosthesis
+- prosthetic documentation dialogs
+
+Follow-ups:
+- Add
+- Edit
+- Change Status
+- Cancel
+
+Finance:
+- Payment
+- Charge
+- Discount
+- Installment Plan
+- Void/Cancel confirmations
+
+Settings
+
+Platform Admin:
+- Activate Tenant
+- Suspend Tenant
+- Extend Trial
+- Reset Tenant Admin Password
+- Platform Account dialogs
+- confirmations
+
+Any other Dialog / AlertDialog in the application.
+
+==================================================
+7. DO NOT CHANGE SHEETS/DRAWERS UNLESS THEY ARE ACTUALLY MODALS
+==================================================
+
+If the application intentionally contains:
+
+Side Sheet
+Drawer
+Mobile Drawer
+
+that is intentionally designed to slide from the side:
+
+DO NOT convert it to a centered modal.
+
+This task applies to actual:
+
+Dialog
+Modal
+AlertDialog
+Confirmation Modal
+
+not intentional navigation drawers/sheets.
+
+==================================================
+8. RESPONSIVE WIDTH
+==================================================
+
+Dialogs must remain centered at all viewport sizes.
+
+Desktop:
+
+Use existing appropriate max-width.
+
+Typical examples:
+
+small confirmation:
+~400–480px
+
+standard form:
+~500–650px
+
+large form:
+~700–900px
+
+depending on existing component purpose.
+
+Do NOT make all dialogs the same width.
+
+Preserve current size variants if already present.
+
+==================================================
+9. MOBILE
+==================================================
+
+At mobile width such as:
+
+390px
+
+dialogs must remain centered.
+
+Use safe horizontal margins.
+
+Recommended concept:
+
+width: calc(100vw - 32px)
+
+with appropriate max-width.
+
+There must be:
+
+- no horizontal overflow
+- no modal touching screen edges unnecessarily
+- no part of dialog outside viewport
+
+==================================================
+10. TALL DIALOGS
+==================================================
+
+For tall dialogs such as Add User:
+
+Do NOT allow the whole modal to extend beyond the visible viewport.
+
+Use something like:
+
+max-height: calc(100vh - safe spacing)
+
+and internal scrolling.
+
+The modal frame remains centered.
+
+Only its CONTENT should scroll when necessary.
+
+Do NOT position tall dialogs at the left/right edge just to fit content.
+
+==================================================
+11. CLOSE BUTTON
+==================================================
+
+Keep close X accessible and consistent.
+
+Its logical placement inside the modal may adapt for RTL/LTR if that is the approved UI convention.
+
+But it must not affect modal positioning.
+
+==================================================
+12. OVERLAY
+==================================================
+
+Preserve the full-screen overlay.
+
+The overlay must cover the entire viewport regardless of language.
+
+No offset overlay.
+
+No partial overlay.
+
+==================================================
+13. NESTED PORTALS
+==================================================
+
+If Radix Portal is used:
+
+verify the modal is portaled to the correct root/body and is not inheriting positioning from:
+
+- RTL containers
+- page content max-width
+- sidebar
+- transformed parent
+- relative containers
+
+The modal must center relative to the VIEWPORT, not the page content column.
+
+==================================================
+14. SIDEBAR MUST NOT AFFECT CENTERING
+==================================================
+
+Ghars has pages with side navigation, especially Platform Admin.
+
+Dialogs must center relative to the FULL VIEWPORT.
+
+Do NOT center them only inside the content area excluding the sidebar.
+
+Same requirement for the normal Ghars application header/navigation.
+
+==================================================
+15. LANGUAGE SWITCH TEST
+==================================================
+
+Open the SAME dialog in Arabic.
+
+Record its center position.
+
+Switch to English.
+
+Open the SAME dialog.
+
+Its physical center position must remain identical.
+
+Only internal content direction changes.
+
+==================================================
+16. VISUAL REGRESSION TEST
+==================================================
+
+Test representative dialogs:
+
+1. Add User
+2. Edit Follow-up
+3. Add Implant
+4. Record Payment
+5. Confirmation AlertDialog
+6. Platform Admin Activate Tenant
+7. Platform Admin Reset Password
+
+Test each at:
+
+Arabic RTL
+English LTR
+
+and viewport sizes:
+
+1920x1080
+1600x900
+1366x768
+tablet
+390x844
+
+==================================================
+17. DO NOT REDESIGN
+==================================================
+
+Do NOT change:
+
+- colors
+- Ghars branding
+- form fields
+- button design
+- dialog business logic
+- API behavior
+- validation
+- localization content
+
+Only fix:
+
+GLOBAL MODAL POSITIONING
++
+responsive containment where needed.
+
+==================================================
+18. IMPLEMENT CENTRALLY
+==================================================
+
+The expected result is:
+
+one shared infrastructure fix
+
+not dozens of individual dialog patches.
+
+If multiple shared dialog primitives exist:
+
+standardize all actual modal primitives to use the same direction-independent centering strategy.
+
+==================================================
+19. FINAL AUDIT
+==================================================
+
+Search the codebase for:
+
+DialogContent
+AlertDialogContent
+Modal
+fixed positioning
+translate-x
+left-1/2
+right-1/2
+rtl positioning overrides
+
+Identify any dialog that bypasses the shared implementation.
+
+Bring it into the canonical centered-dialog system where safe.
+
+==================================================
+20. VERIFICATION
+==================================================
+
+Run:
+
+- frontend TypeScript
+- lint for affected files
+- production build
+- relevant UI/component tests if available
+
+Browser verify Arabic + English.
+
+Confirm:
+
+- all standard dialogs centered
+- RTL does not shift dialogs
+- LTR does not shift dialogs
+- tall forms scroll internally
+- mobile has no horizontal overflow
+- overlay covers viewport
+- sidebar does not affect centering
+- no dialog functionality changed
+- no console errors
+
+Do not publish.
+
+Create a stable checkpoint and STOP.
+
+Final report:
+
+1. Root cause
+2. Shared components changed
+3. Any individual legacy modal migrated
+4. Arabic verification
+5. English verification
+6. Desktop verification
+7. Mobile verification
+8. TypeScript/build result
+9. Exact checkpoint commit hash

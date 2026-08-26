@@ -1,0 +1,184 @@
+Fix the remaining localization leaks on the Ghars authentication pages.
+
+CURRENT BUG:
+
+When the selected language is English, some Arabic text is still visible on the Login page.
+
+From the current screenshot, examples include:
+
+1. "إنشاء حساب جديد"
+2. "تقنية · دقة · ثقة"
+
+These are incorrect in English mode.
+
+==================================================
+1. CREATE ACCOUNT BUTTON
+==================================================
+
+The registration CTA must use the existing i18n system.
+
+Arabic:
+
+إنشاء حساب جديد
+
+English:
+
+Create Account
+
+Do NOT hardcode either language inside the Login component.
+
+Use a proper translation key, for example:
+
+auth.createAccount
+
+==================================================
+2. BRAND TAGLINE
+==================================================
+
+The brand tagline must also be localized.
+
+Arabic:
+
+تقنية · دقة · ثقة
+
+English:
+
+Technology · Precision · Trust
+
+Use the existing translation architecture.
+
+Do NOT hardcode the Arabic tagline in the brand/login component.
+
+==================================================
+3. GHARS LOGO / WORDMARK
+==================================================
+
+IMPORTANT:
+
+Do NOT modify the official Ghars logo artwork.
+
+The Arabic wordmark:
+
+غرس
+
+may remain as part of the approved brand identity together with:
+
+Ghars
+
+This is BRAND ARTWORK, not a localization leak.
+
+Only the surrounding UI/tagline text must switch according to locale.
+
+==================================================
+4. FULL AUTH PAGE AUDIT
+==================================================
+
+Do not fix only the two visible strings.
+
+Audit ALL public/authentication screens for hardcoded Arabic/English text:
+
+- Login
+- Registration
+- Forgot Password / support recovery
+- Change Password
+- Temporary Password / forced password change
+- Trial Expired
+- Suspended Account
+- Access Status
+- support/contact screens
+
+When locale = en:
+
+there must be no unintended Arabic UI text.
+
+When locale = ar:
+
+there must be no unintended English UI text.
+
+Exceptions:
+
+- Ghars official logo/brand artwork
+- user-entered data
+- proper names
+
+==================================================
+5. BRAND COPY
+==================================================
+
+Verify these brand/support texts are localized consistently.
+
+Examples:
+
+Arabic:
+منصة ذكية لإدارة زراعة الأسنان
+
+English:
+Smart dental implant management
+
+Arabic:
+تقنية · دقة · ثقة
+
+English:
+Technology · Precision · Trust
+
+Use centralized translation keys.
+
+==================================================
+6. REGISTRATION PAGE
+==================================================
+
+Since the Login page now contains:
+
+Create Account
+
+verify that clicking it opens the current bilingual registration flow.
+
+English registration must contain no Arabic UI labels.
+
+Arabic registration must contain no unintended English UI labels.
+
+==================================================
+7. AUTOMATED HARDCODED STRING CHECK
+==================================================
+
+Search the authentication/public components for visible hardcoded Arabic strings.
+
+Also search English UI components for visible hardcoded English strings that should use i18n.
+
+Move all system UI strings into the existing localization resources.
+
+Do NOT create another translation system.
+
+==================================================
+8. BROWSER VERIFICATION
+==================================================
+
+Test the Login page in English.
+
+Expected visible UI:
+
+Sign in
+Welcome to Ghars
+Username
+Enter your username
+Password
+Enter your password
+Forgot password?
+Sign in
+OR
+Create Account
+Contact Support
+Your data is protected and secure
+Technology · Precision · Trust
+
+No unintended Arabic UI text.
+
+Then switch to Arabic and verify the complete Arabic equivalent.
+
+Do not modify authentication logic.
+
+Do not redesign the Login page.
+
+Do not publish.
+
+Create a checkpoint and stop.

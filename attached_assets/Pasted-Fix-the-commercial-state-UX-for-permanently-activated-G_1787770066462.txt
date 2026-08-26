@@ -1,0 +1,183 @@
+Fix the commercial-state UX for permanently activated Ghars tenants.
+
+IMPORTANT:
+
+The commercial model is:
+
+TRIALING
+→ temporary access until trial_ends_at
+
+ACTIVE
+→ PERMANENT activation with NO expiration date
+
+SUSPENDED
+→ manually blocked by Platform Super Admin
+
+EXPIRED
+→ free trial ended without permanent activation
+
+==================================================
+1. ACTIVE TENANT = PERMANENT ACCESS
+==================================================
+
+When:
+
+tenant.status === "active"
+
+the tenant is permanently activated.
+
+trial_ends_at must NO LONGER control access.
+
+Do not calculate remaining trial time.
+
+Do not expire an ACTIVE tenant automatically.
+
+No renewal date exists.
+
+No subscription expiry exists.
+
+==================================================
+2. HIDE TRIAL EXTENSION FOR ACTIVE TENANTS
+==================================================
+
+Currently an ACTIVE tenant still shows:
+
+تمديد التجربة
+Extend Trial
+
+This is confusing and incorrect.
+
+For ACTIVE tenants:
+
+HIDE the Extend Trial action.
+
+Allowed main commercial action should be:
+
+تعليق الحساب
+Suspend Account
+
+If later suspended, Reactivate should restore:
+
+active
+
+not trialing.
+
+==================================================
+3. ACTIVE TENANT DETAIL UI
+==================================================
+
+For an ACTIVE tenant clearly display:
+
+الحالة:
+نشط — نسخة مفعّلة
+
+تاريخ التفعيل:
+{activated_at}
+
+نوع التفعيل:
+دائم
+
+English:
+
+Status:
+Active — Permanently Activated
+
+Activated At:
+{activated_at}
+
+Activation Type:
+Permanent
+
+Do not show a countdown or active trial expiration.
+
+==================================================
+4. HISTORICAL TRIAL INFORMATION
+==================================================
+
+It is fine to preserve:
+
+trial_started_at
+trial_ends_at
+
+for history/audit.
+
+But after permanent activation label them clearly as historical information:
+
+الفترة التجريبية السابقة
+
+English:
+
+Previous Trial Period
+
+They must NOT appear as the current license validity period.
+
+==================================================
+5. CUSTOMER LIST
+==================================================
+
+For active tenants the Customers table should show:
+
+نشط
+
+and optionally:
+
+مفعّل دائمًا
+
+Do not display them as:
+
+trialing
+expiring
+trial remaining
+
+==================================================
+6. TRIALS PAGE
+==================================================
+
+Permanently ACTIVE tenants should NOT appear under:
+
+Active Trials
+Expiring Soon
+Expired Trials
+
+unless there is a separate historical filter explicitly intended for past trials.
+
+==================================================
+7. ACCESS MIDDLEWARE RECHECK
+==================================================
+
+Verify server-side access logic:
+
+if tenant.status === "active":
+    allow operational access regardless of trial_ends_at
+
+if tenant.status === "trialing":
+    allow only while serverNow < trial_ends_at
+
+if tenant.status === "expired":
+    block
+
+if tenant.status === "suspended":
+    block
+
+==================================================
+8. TEST
+==================================================
+
+Test:
+
+1. Create trial tenant.
+2. Confirm trial_end is enforced while trialing.
+3. Permanently activate tenant.
+4. Advance server time beyond original trial_ends_at.
+5. Confirm tenant STILL has full access.
+6. Confirm Extend Trial is no longer shown.
+7. Confirm activation date is displayed.
+8. Suspend active tenant.
+9. Confirm access blocked.
+10. Reactivate tenant.
+11. Confirm status returns to ACTIVE permanent access.
+
+Do not modify data or subscription architecture.
+
+Do not publish.
+Create a checkpoint and stop.

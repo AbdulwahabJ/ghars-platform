@@ -44,7 +44,7 @@ export default function VerifyEmail() {
       </div>
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <img src={gharsSymbol} alt="Ghars Symbol" className="h-20 w-20 mx-auto mb-6 object-contain" />
+        <img src={gharsSymbol} alt={t("common:brand.latin")} className="h-20 w-20 mx-auto mb-6 object-contain" />
 
         {verifyMutation.isPending || (!token && !resendMode && !verifyMutation.isError) ? (
           <div className="space-y-4 py-8">

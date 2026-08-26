@@ -149,7 +149,7 @@ export default function AccessStatus() {
                       <p className="font-medium">
                         {activationRequest.status === 'PENDING' ? t("status.activation.pending") :
                          activationRequest.status === 'APPROVED' ? t("status.activation.success") :
-                         t("platformAdmin.requestRejected", "تم رفض الطلب. يرجى التواصل مع الدعم.")}
+                          {t("status.activation.rejected")}
                       </p>
                       <p className="text-sm opacity-80 mt-1 notranslate">{formatSaudiDateTime(activationRequest.createdAt)}</p>
                     </div>

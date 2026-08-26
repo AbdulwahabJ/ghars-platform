@@ -2,6 +2,7 @@ const auth = {
   login: {
     title: "تسجيل الدخول",
     welcome: "مرحباً بك في منصة غرس",
+    createAccount: "إنشاء حساب جديد",
     username: "اسم المستخدم",
     usernamePlaceholder: "أدخل اسم المستخدم",
     password: "كلمة المرور",
