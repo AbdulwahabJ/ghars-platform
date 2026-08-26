@@ -134,6 +134,13 @@
       "when": 1787767200000,
       "tag": "0018_close_internal_activation_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787768500000,
+      "tag": "0019_resolve_preferences_type_errors",
+      "breakpoints": true
     }
   ]
 }

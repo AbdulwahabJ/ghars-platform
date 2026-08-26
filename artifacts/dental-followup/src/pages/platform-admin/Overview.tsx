@@ -58,11 +58,11 @@ export default function Overview() {
             </Link>
           )) : <State text={t("platformAdmin.overview.none")} />}
         </Panel>
-        <Panel title={t("platformAdmin.overview.recentActivationRequests")}>
-          {data.recentActivationRequests.length ? data.recentActivationRequests.map(({ request, tenant }) => (
-            <Link key={request.id} href="/platform-admin/activation-requests" className="flex items-center justify-between border-b px-5 py-3 last:border-0 hover:bg-slate-50">
-              <div><p className="font-medium">{tenant.name}</p><p className="text-xs text-slate-500">{t(`platformAdmin.workflow.${request.workflowStatus}`)}</p></div>
-              <span className="text-xs text-slate-400 notranslate">{formatSaudiDateTime(request.createdAt)}</span>
+        <Panel title={t("platformAdmin.overview.recentActivations")}>
+          {data.recentActivations.length ? data.recentActivations.map(({ id, action, actor, tenant, createdAt }) => (
+            <Link key={id} href={`/platform-admin/customers/${tenant.id}`} className="flex items-center justify-between border-b px-5 py-3 last:border-0 hover:bg-slate-50">
+              <div><p className="font-medium">{tenant.name}</p><p className="text-xs text-slate-500">{t(`platformAdmin.audit.actions.${action}`)} · {actor || "—"}</p></div>
+              <span className="text-xs text-slate-400 notranslate">{formatSaudiDateTime(createdAt)}</span>
             </Link>
           )) : <State text={t("platformAdmin.overview.none")} />}
         </Panel>

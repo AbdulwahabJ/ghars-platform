@@ -33,6 +33,11 @@ describe("platform admin control center", () => {
       .send({ locale: "en" });
     expect(preferences.status).toBe(200);
     expect(preferences.body.preferences.locale).toBe("en");
+    const preferenceErrors = await pool.query<{ count: number }>(
+      `SELECT count(*)::int AS count FROM system_errors
+       WHERE route = '/api/preferences' AND method = 'PATCH'`,
+    );
+    expect(preferenceErrors.rows[0].count).toBe(0);
     const platformUser = await pool.query<{ id: string }>(
       "SELECT id FROM users WHERE username = 'platform-admin'",
     );
@@ -77,6 +82,11 @@ describe("platform admin control center", () => {
        ) RETURNING id`,
       [tenantId],
     );
+    await pool.query(
+      `INSERT INTO audit_logs (user_id, tenant_id, action, summary)
+       VALUES ($1, $2, 'platform_tenant_activate', 'Activated customer')`,
+      [userId, tenantId],
+    );
 
     const overview = await platformAdmin.get("/api/platform-admin/overview");
     expect(overview.status).toBe(200);
@@ -95,6 +105,13 @@ describe("platform admin control center", () => {
       openActivationRequests: expect.any(Number),
       openSystemErrors: expect.any(Number),
     });
+    expect(overview.body.recentActivations).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        action: "platform_tenant_activate",
+        tenant: expect.objectContaining({ id: tenantId }),
+      }),
+    ]));
+    expect(overview.body).not.toHaveProperty("recentActivationRequests");
 
     const detail = await platformAdmin.get(`/api/platform-admin/tenants/${tenantId}`);
     expect(detail.status).toBe(200);

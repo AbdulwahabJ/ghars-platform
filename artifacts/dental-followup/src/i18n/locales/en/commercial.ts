@@ -94,7 +94,7 @@ export default {
       openActivationRequests: "Open activation requests",
       openSystemErrors: "Open system errors",
       expiringTrials: "Trials ending within 24 hours",
-      recentActivationRequests: "Recent activation requests",
+      recentActivations: "Recent activations",
       recentErrors: "Recent system errors",
       recentActivity: "Recent platform activity",
       none: "No recent data.",

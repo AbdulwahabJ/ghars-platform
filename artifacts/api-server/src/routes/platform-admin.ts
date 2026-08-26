@@ -145,7 +145,7 @@ router.get("/platform-admin/overview", async (_req, res) => {
     newToday: sql<number>`count(*) FILTER (WHERE ${tenantsTable.createdAt}::date = ${today}::date)::int`,
     newThisMonth: sql<number>`count(*) FILTER (WHERE to_char(${tenantsTable.createdAt}, 'YYYY-MM') = ${month})::int`,
   }).from(tenantsTable).where(eq(tenantsTable.isInternal, false));
-  const [[activationCount], [errorCount], expiringRows, recentRequests, recentErrors, recentActivity, registrations, distribution] =
+  const [[activationCount], [errorCount], expiringRows, recentActivations, recentErrors, recentActivity, registrations, distribution] =
     await Promise.all([
       db.select({ count: sql<number>`count(*)::int` }).from(tenantActivationRequestsTable)
         .innerJoin(tenantsTable, eq(tenantsTable.id, tenantActivationRequestsTable.tenantId))
@@ -162,11 +162,20 @@ router.get("/platform-admin/overview", async (_req, res) => {
           gte(tenantsTable.trialEndsAt, now),
           lte(tenantsTable.trialEndsAt, in24Hours),
         )).orderBy(asc(tenantsTable.trialEndsAt)).limit(6),
-      db.select({ request: tenantActivationRequestsTable, tenant: tenantsTable })
-        .from(tenantActivationRequestsTable)
-        .innerJoin(tenantsTable, eq(tenantsTable.id, tenantActivationRequestsTable.tenantId))
-        .where(eq(tenantsTable.isInternal, false))
-        .orderBy(desc(tenantActivationRequestsTable.createdAt)).limit(6),
+      db.select({
+        id: auditLogsTable.id,
+        action: auditLogsTable.action,
+        actor: usersTable.fullName,
+        tenant: tenantsTable,
+        createdAt: auditLogsTable.createdAt,
+      }).from(auditLogsTable)
+        .innerJoin(tenantsTable, eq(tenantsTable.id, auditLogsTable.tenantId))
+        .leftJoin(usersTable, eq(usersTable.id, auditLogsTable.userId))
+        .where(and(
+          eq(tenantsTable.isInternal, false),
+          sql`${auditLogsTable.action} IN ('platform_tenant_activate', 'platform_tenant_reactivate')`,
+        ))
+        .orderBy(desc(auditLogsTable.createdAt)).limit(6),
       db.select({
         error: systemErrorsTable,
         tenantName: tenantsTable.name,
@@ -218,9 +227,12 @@ router.get("/platform-admin/overview", async (_req, res) => {
     registrations,
     statusDistribution: distribution,
     expiringTrials: expiringRows.map((r) => tenantDto(r.tenant, r)),
-    recentActivationRequests: recentRequests.map((r) => ({
-      request: requestDto(r.request),
+    recentActivations: recentActivations.map((r) => ({
+      id: r.id,
+      action: r.action,
+      actor: r.actor,
       tenant: tenantDto(r.tenant),
+      createdAt: r.createdAt.toISOString(),
     })),
     recentErrors: recentErrors.map(({ error, tenantName }) => ({
       id: error.id,

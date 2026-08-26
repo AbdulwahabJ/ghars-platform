@@ -255,9 +255,12 @@ export const platformOverviewSchema = z.object({
   registrations: z.array(z.object({ bucket: z.string(), count: z.number().int() })),
   statusDistribution: z.array(z.object({ status: z.string(), count: z.number().int() })),
   expiringTrials: z.array(platformTenantSchema),
-  recentActivationRequests: z.array(z.object({
-    request: activationRequestSchema,
+  recentActivations: z.array(z.object({
+    id: z.string().uuid(),
+    action: z.enum(["platform_tenant_activate", "platform_tenant_reactivate"]),
+    actor: z.string().nullable(),
     tenant: platformTenantSchema,
+    createdAt: z.string(),
   })),
   recentErrors: z.array(z.object({
     id: z.string().uuid(),

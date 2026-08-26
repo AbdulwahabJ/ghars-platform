@@ -94,7 +94,7 @@ export default {
       openActivationRequests: "طلبات التفعيل المفتوحة",
       openSystemErrors: "أخطاء النظام المفتوحة",
       expiringTrials: "تجارب تنتهي خلال 24 ساعة",
-      recentActivationRequests: "أحدث طلبات التفعيل",
+      recentActivations: "أحدث التفعيلات",
       recentErrors: "أحدث أخطاء النظام",
       recentActivity: "آخر نشاط للمنصة",
       none: "لا توجد بيانات حديثة.",
