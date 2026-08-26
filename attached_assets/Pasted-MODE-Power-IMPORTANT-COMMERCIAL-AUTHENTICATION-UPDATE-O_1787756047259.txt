@@ -1,0 +1,768 @@
+MODE: Power
+
+IMPORTANT COMMERCIAL AUTHENTICATION UPDATE
+
+Override the previous email-verification and email-based password recovery requirements with the following model.
+
+For the FIRST commercial release of Ghars:
+
+EMAIL IS NOT REQUIRED.
+
+Do NOT make customer onboarding dependent on email.
+
+Temporarily remove/disable:
+
+- mandatory customer email
+- email verification
+- verification tokens
+- email-based signup activation
+- email-based password recovery
+- Resend dependency for customer registration
+- production signup blocking because email provider is missing
+
+Do NOT remove the architecture in a destructive way if it is already cleanly implemented and can remain dormant for future use.
+
+The current commercial release must work WITHOUT email.
+
+==================================================
+1. CUSTOMER REGISTRATION
+==================================================
+
+Public customer registration should use:
+
+- Full Name / اسم المسؤول
+- Organization Name / اسم المنشأة
+- Username / اسم المستخدم
+- Phone / رقم الجوال
+- Password / كلمة المرور
+- Confirm Password / تأكيد كلمة المرور
+- City optional
+
+Email should NOT be required.
+
+If the current schema already contains a nullable email field:
+
+keep it nullable for future use.
+
+Do not require it during registration.
+
+==================================================
+2. TRIAL START
+==================================================
+
+Because email verification is disabled for this release:
+
+the 72-hour trial starts immediately after successful atomic creation of:
+
+Tenant
++
+First Tenant Admin
+
+Flow:
+
+Registration
+→ Tenant created
+→ Tenant Admin created
+→ trial_started_at = server timestamp
+→ trial_ends_at = trial_started_at + 72 hours
+→ tenant.status = trialing
+→ user enters Ghars
+
+Use server time.
+
+==================================================
+3. USERNAME LOGIN
+==================================================
+
+Ghars should continue using username + password authentication.
+
+Because normal customer users belong to one tenant and there is no tenant selector during login:
+
+make username uniqueness safe for authentication.
+
+Preferred for the current architecture:
+
+username must be unique across normal customer accounts platform-wide.
+
+Before changing constraints, inspect the existing authentication architecture and migrate safely.
+
+Do not expose another tenant's username through validation unnecessarily.
+
+==================================================
+4. PHONE
+==================================================
+
+Normalize phone numbers using the existing phone normalization architecture.
+
+The owner phone number should be available to Platform Admin for support/contact purposes.
+
+Use phone as one signal for preventing obvious repeated trial abuse.
+
+Do NOT use phone number as a password.
+
+==================================================
+5. REMOVE EMAIL AS RELEASE BLOCKER
+==================================================
+
+The application must NOT refuse customer registration because:
+
+- RESEND_API_KEY is missing
+- RESEND_FROM is missing
+- email provider is unavailable
+
+Email is intentionally excluded from the first commercial release.
+
+Update the production-readiness report accordingly.
+
+==================================================
+6. PASSWORDS MUST NEVER BE VIEWABLE
+==================================================
+
+CRITICAL:
+
+No administrator may ever VIEW or retrieve an existing password.
+
+This applies to:
+
+- Platform Super Admin
+- Tenant Admin
+- support staff
+
+Never implement:
+
+- Show current password
+- Reveal password
+- Decrypt password
+- Display password hash
+
+Passwords remain one-way hashed using the application's existing secure password-hashing implementation.
+
+Administrators may only RESET a password to a NEW value.
+
+==================================================
+7. PLATFORM ADMIN → TENANT ADMIN PASSWORD RESET
+==================================================
+
+Platform Super Admin must be able to reset the password of:
+
+- Tenant Owner
+- Tenant Admin
+
+from the Platform Admin customer/account management interface.
+
+Provide an explicit action:
+
+إعادة تعيين كلمة المرور
+Reset Password
+
+This is a privileged reset.
+
+It does NOT require the old password.
+
+==================================================
+8. TENANT ADMIN → EMPLOYEE PASSWORD RESET
+==================================================
+
+Tenant Admin must be able to reset passwords for users belonging to THEIR OWN tenant.
+
+Examples:
+
+- Doctor
+- Reception
+- Finance user
+- other normal employee roles
+
+Use the existing:
+
+Settings → Users
+
+or current User Management interface.
+
+Add an action:
+
+إعادة تعيين كلمة المرور
+Reset Password
+
+Tenant Admin must NEVER reset:
+
+- a user from another tenant
+- Platform Super Admin
+- platform-level accounts
+
+Enforce this server-side.
+
+==================================================
+9. TENANT ADMIN SELF PASSWORD
+==================================================
+
+Tenant Admin should NOT use the employee-management privileged reset action to bypass their own password workflow unnecessarily.
+
+For their own password:
+
+provide/use the normal authenticated:
+
+تغيير كلمة المرور
+Change Password
+
+flow where they enter:
+
+- current password
+- new password
+- confirm new password
+
+If they forgot their password:
+
+Platform Super Admin performs the privileged reset.
+
+==================================================
+10. EMPLOYEE SELF PASSWORD
+==================================================
+
+Normal authenticated employees should also be able to change their OWN password if the product already supports account/profile security settings.
+
+Self-change requires:
+
+current password
+new password
+confirm new password
+
+Do not require Platform Admin for normal voluntary password changes.
+
+==================================================
+11. TEMPORARY PASSWORD
+==================================================
+
+For an administrator-triggered password reset:
+
+allow the authorized administrator to set/generate a NEW temporary password.
+
+Preferred UX:
+
+Option A:
+Generate temporary password
+
+Option B:
+Enter temporary password manually
+
+Use the existing password policy.
+
+Never show the old password.
+
+==================================================
+12. FORCE PASSWORD CHANGE
+==================================================
+
+After an administrator resets another user's password:
+
+set a flag conceptually such as:
+
+must_change_password = true
+
+On the user's next successful login:
+
+do NOT allow normal application usage until they create a new private password.
+
+Show a dedicated localized screen:
+
+Arabic:
+يجب تغيير كلمة المرور
+
+تم تعيين كلمة مرور مؤقتة لحسابك.
+يرجى إنشاء كلمة مرور جديدة للمتابعة.
+
+English:
+Password Change Required
+
+A temporary password was assigned to your account.
+Please create a new password to continue.
+
+Fields:
+
+New Password
+Confirm New Password
+
+After successful change:
+
+must_change_password = false
+
+Then continue into Ghars.
+
+==================================================
+13. DO NOT FORCE CHANGE FOR SELF-SERVICE CHANGE
+==================================================
+
+If the user changes their own password normally using:
+
+current password
+→ new password
+
+there is no need to set:
+
+must_change_password = true.
+
+This flag is for privileged/admin resets.
+
+==================================================
+14. PASSWORD RESET AUTHORIZATION
+==================================================
+
+Create/reuse secure server-side authorization.
+
+Allowed:
+
+Platform Super Admin
+→ reset Tenant Owner/Admin password
+
+Tenant Admin
+→ reset normal users inside SAME tenant
+
+Not allowed:
+
+Tenant Admin A
+→ reset Tenant B user
+
+Tenant Admin
+→ reset Platform Admin
+
+Doctor
+→ reset another employee
+
+Reception
+→ reset another employee
+
+Unauthenticated user
+→ privileged reset
+
+==================================================
+15. PLATFORM ADMIN CUSTOMER PAGE
+==================================================
+
+Inside:
+
+/platform-admin
+
+Customer Detail → Users
+
+show safe account information:
+
+- name
+- username
+- role
+- status
+- last login
+
+For Tenant Owner/Admin provide:
+
+Reset Password
+
+Do NOT display passwords.
+
+==================================================
+16. TENANT USER MANAGEMENT
+==================================================
+
+Inside the existing customer:
+
+Settings → Users
+
+show:
+
+Reset Password
+
+for authorized Tenant Admins.
+
+Keep the current UI clean.
+
+Use a confirmation dialog.
+
+==================================================
+17. RESET DIALOG
+==================================================
+
+Recommended localized dialog:
+
+Arabic:
+
+إعادة تعيين كلمة المرور
+
+سيتم استبدال كلمة مرور هذا المستخدم بكلمة مرور مؤقتة جديدة، وسيُطلب منه تغييرها عند تسجيل الدخول التالي.
+
+English:
+
+Reset Password
+
+The user's password will be replaced with a new temporary password, and they will be required to change it on their next login.
+
+Actions:
+
+إلغاء / Cancel
+إعادة تعيين / Reset Password
+
+==================================================
+18. PASSWORD DELIVERY
+==================================================
+
+Because email is disabled:
+
+the temporary password is communicated manually by the authorized administrator to the user.
+
+If the system generates a temporary password:
+
+display it ONLY immediately after successful reset.
+
+Example:
+
+تمت إعادة تعيين كلمة المرور.
+
+كلمة المرور المؤقتة:
+••••••••
+
+Provide:
+
+نسخ كلمة المرور
+
+IMPORTANT:
+
+The temporary plaintext password must NOT be stored for later retrieval.
+
+Once the success dialog is closed:
+
+it cannot be retrieved from the server.
+
+Only the secure password hash remains.
+
+==================================================
+19. DO NOT LOG PASSWORD
+==================================================
+
+Never log:
+
+- temporary password
+- new password
+- old password
+- password hash
+
+Not in:
+
+audit_logs
+server logs
+error logs
+browser console
+analytics
+API debug payloads
+
+==================================================
+20. AUDIT
+==================================================
+
+Audit privileged reset actions.
+
+Examples:
+
+PLATFORM_ADMIN_RESET_TENANT_ADMIN_PASSWORD
+
+TENANT_ADMIN_RESET_USER_PASSWORD
+
+USER_CHANGED_OWN_PASSWORD
+
+Store:
+
+actor user ID
+target user ID
+tenant ID where relevant
+timestamp
+action type
+
+Do NOT store password values.
+
+==================================================
+21. SESSION REVOCATION AFTER ADMIN RESET
+==================================================
+
+After an administrator resets a user's password:
+
+invalidate the target user's existing active sessions where supported by the current session architecture.
+
+The user should be required to authenticate again using the temporary password.
+
+Do not invalidate unrelated users.
+
+If targeted session invalidation is not currently possible:
+
+implement it cleanly if compatible with the production session architecture.
+
+Do not rewrite session security recklessly.
+
+==================================================
+22. DISABLED USERS
+==================================================
+
+Resetting a password must NOT automatically enable a disabled user.
+
+Example:
+
+user = disabled
+
+Admin resets password
+
+Result:
+user remains disabled.
+
+Account status and password state remain separate.
+
+==================================================
+23. TENANT STATUS
+==================================================
+
+Resetting a password must NOT bypass tenant commercial access.
+
+If:
+
+tenant.status = expired
+
+or:
+
+tenant.status = suspended
+
+the user remains unable to access operational Ghars even with the new password.
+
+Commercial tenant middleware remains authoritative.
+
+==================================================
+24. TRIAL ABUSE WITHOUT EMAIL
+==================================================
+
+Because email verification is intentionally excluded:
+
+strengthen basic signup abuse controls using:
+
+- normalized phone
+- username uniqueness
+- rate limiting
+- one-owner/one-trial rule
+- registration audit
+- reasonable duplicate registration checks
+
+Do not build invasive fingerprinting.
+
+Do not claim this completely prevents all trial abuse.
+
+==================================================
+25. EMAIL CODE ALREADY IMPLEMENTED
+==================================================
+
+If email verification/password-reset architecture was already implemented:
+
+do NOT perform a risky destructive rollback.
+
+Prefer:
+
+- make email optional
+- disable email verification requirement
+- remove email dependency from trial start
+- hide email-based Forgot Password for now
+- keep secure unused infrastructure isolated if harmless
+
+Report what was retained for future use.
+
+==================================================
+26. FORGOT PASSWORD UI
+==================================================
+
+Since email recovery is currently disabled:
+
+do not show a broken:
+
+نسيت كلمة المرور؟
+
+flow that requires email.
+
+Replace it with an appropriate support-oriented flow.
+
+Suggested:
+
+نسيت كلمة المرور؟
+
+→ display:
+
+لإعادة تعيين كلمة المرور، يرجى التواصل مع مسؤول المنشأة.
+
+For Tenant Admin/Owner login help:
+
+يرجى التواصل مع دعم غرس.
+
+Make this professional and localized.
+
+==================================================
+27. SUPPORT PASSWORD HIERARCHY
+==================================================
+
+Final recovery hierarchy:
+
+NORMAL EMPLOYEE forgets password
+→ contacts their Tenant Admin
+→ Tenant Admin resets employee password
+
+TENANT ADMIN / OWNER forgets password
+→ contacts Ghars Support
+→ Platform Super Admin resets Tenant Admin password
+
+PLATFORM SUPER ADMIN forgets password
+→ must use a separate secure platform recovery/bootstrap process
+
+Do NOT allow Tenant Admin to reset Platform Admin.
+
+==================================================
+28. PLATFORM SUPER ADMIN RECOVERY
+==================================================
+
+Do not solve Platform Super Admin recovery with customer-level tools.
+
+Use a secure controlled operational mechanism.
+
+If no mechanism currently exists:
+
+document the bootstrap/recovery procedure using protected environment/server access.
+
+Do not expose it publicly.
+
+==================================================
+29. LOCALIZATION
+==================================================
+
+All new password-management UI must use the existing Ghars localization system.
+
+Arabic + English:
+
+- Reset Password
+- Change Password
+- Temporary Password
+- Must Change Password
+- confirmations
+- validation
+- errors
+- success messages
+
+No hardcoded visible text.
+
+==================================================
+30. TESTS
+==================================================
+
+Test:
+
+A.
+Public customer registers WITHOUT email.
+
+Expected:
+registration succeeds.
+
+B.
+72-hour trial starts immediately after successful tenant/admin creation.
+
+C.
+Tenant Admin creates Employee A.
+
+D.
+Tenant Admin resets Employee A password.
+
+E.
+Temporary password works.
+
+F.
+Employee A is forced to create a new password.
+
+G.
+Temporary password no longer works after change.
+
+H.
+New private password works.
+
+I.
+Tenant Admin A attempts to reset Tenant B employee password.
+
+Expected:
+rejected.
+
+J.
+Tenant Admin attempts to reset Platform Super Admin password.
+
+Expected:
+rejected.
+
+K.
+Platform Super Admin resets Tenant Admin A password.
+
+Expected:
+success.
+
+L.
+Tenant Admin A must change temporary password at next login.
+
+M.
+Privileged reset invalidates target user's previous active sessions.
+
+N.
+Password values never appear in audit/error logs.
+
+O.
+Disabled user remains disabled after reset.
+
+P.
+Expired tenant remains commercially blocked after password reset.
+
+Q.
+Normal employee cannot reset another employee.
+
+==================================================
+31. UPDATE COMMERCIAL RELEASE REQUIREMENTS
+==================================================
+
+Remove these as current release blockers:
+
+EMAIL VERIFICATION PRODUCTION CONFIG
+PASSWORD RESET EMAIL
+RESEND configuration
+
+Replace with:
+
+PASSWORD ADMIN RESET SECURITY: PASS / FAIL
+
+TENANT ADMIN PASSWORD RECOVERY: PASS / FAIL
+
+EMPLOYEE PASSWORD RECOVERY: PASS / FAIL
+
+PASSWORD SESSION REVOCATION: PASS / FAIL
+
+NO EMAIL DEPENDENCY: PASS / FAIL
+
+==================================================
+32. FINAL REPORT
+==================================================
+
+Report:
+
+1. How email was removed from the required commercial flow.
+2. Whether existing email infrastructure was retained dormant.
+3. Registration fields now required.
+4. When the trial now starts.
+5. Username uniqueness model.
+6. Phone normalization/duplicate rules.
+7. Platform Admin password-reset capability.
+8. Tenant Admin employee password-reset capability.
+9. User self-password-change behavior.
+10. Temporary-password implementation.
+11. must_change_password implementation.
+12. Session invalidation behavior.
+13. Password audit behavior.
+14. Forgot Password UI behavior.
+15. Cross-tenant reset test result.
+16. Platform Admin protection test result.
+17. Test results.
+18. Production build result.
+19. Remaining release blockers.
+20. Exact checkpoint commit hash.
+
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.

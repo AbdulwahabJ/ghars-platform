@@ -35,6 +35,8 @@ export const usersTable = pgTable("users", {
   /** Override: null = use role default. */
   canRecordPayments: boolean("can_record_payments"),
   isActive: boolean("is_active").notNull().default(true),
+  /** Set only after a privileged administrator reset. */
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
   /** Base-64 data URL for the user's profile photo (optional). */
   avatarData: text("avatar_data"),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),

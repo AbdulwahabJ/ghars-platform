@@ -17,7 +17,9 @@ import {
   type UserPreferences,
 } from "@workspace/db";
 import {
+  changeOwnPasswordInputSchema,
   completePasswordResetInputSchema,
+  forcedPasswordChangeInputSchema,
   emailVerificationInputSchema,
   loginInputSchema,
   passwordResetRequestInputSchema,
@@ -122,9 +124,8 @@ function hashVerificationToken(token: string): string {
 
 async function adminExists(): Promise<boolean> {
   const [row] = await db
-    .select({ id: usersTable.id })
-    .from(usersTable)
-    .where(eq(usersTable.role, "ADMIN"))
+    .select({ id: platformAdminsTable.userId })
+    .from(platformAdminsTable)
     .limit(1);
   return !!row;
 }
@@ -196,9 +197,8 @@ router.post("/auth/setup", setupLimiter, async (req, res) => {
   const created = await db.transaction(async (tx) => {
     // Re-check inside the transaction to close the race window.
     const [existingAdmin] = await tx
-      .select({ id: usersTable.id })
-      .from(usersTable)
-      .where(eq(usersTable.role, "ADMIN"))
+      .select({ id: platformAdminsTable.userId })
+      .from(platformAdminsTable)
       .limit(1);
     if (existingAdmin) return null;
 
@@ -206,24 +206,13 @@ router.post("/auth/setup", setupLimiter, async (req, res) => {
       .insert(usersTable)
       .values({
         username,
-        email: input.email,
+        email: input.email ?? null,
         passwordHash,
         fullName: input.fullName,
         role: "ADMIN",
       })
       .returning();
     if (!user) throw new Error("failed to create admin user");
-    const [tenant] = await tx
-      .select()
-      .from(tenantsTable)
-      .where(eq(tenantsTable.referenceCode, "internal"))
-      .limit(1);
-    if (!tenant) throw new Error("default tenant is missing");
-    await tx.insert(tenantMembershipsTable).values({
-      tenantId: tenant.id,
-      userId: user.id,
-      role: "ADMIN",
-    });
     await tx.insert(platformAdminsTable).values({ userId: user.id });
     await tx.insert(userPreferencesTable).values({ userId: user.id });
     await writeAudit(
@@ -260,96 +249,53 @@ router.post("/auth/setup", setupLimiter, async (req, res) => {
 router.post("/auth/register", registrationLimiter, async (req, res) => {
   const input = parseOrRespond(publicRegistrationInputSchema, req.body, res);
   if (!input) return;
-  // This deliberately occurs before hashing or any database operation.
-  if (!isVerificationEmailConfigured()) {
-    res.status(503).json({ error: "خدمة البريد الإلكتروني غير مهيأة حاليًا.", code: "EMAIL_NOT_CONFIGURED" });
-    return;
-  }
-  const rawToken = randomBytes(32).toString("base64url");
-  const tokenHash = hashVerificationToken(rawToken);
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
-  let created: { tokenId: string; tenantId: string; userId: string };
+  const trialStartedAt = new Date();
+  const trialEndsAt = new Date(trialStartedAt.getTime() + TRIAL_MS);
   try {
-    created = await db.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
       const referenceCode = `clinic-${randomBytes(6).toString("hex")}`;
       const [tenant] = await tx.insert(tenantsTable).values({
         referenceCode, name: input.tenantName, legalName: input.legalName ?? null,
-        contactName: input.ownerName, contactEmail: input.email, locale: input.locale,
+        contactName: input.ownerName, contactEmail: input.email ?? null,
+        contactPhone: input.phone, city: input.city || null, locale: input.locale,
+        status: "TRIAL", trialStartedAt, trialEndsAt,
       }).returning();
       const [user] = await tx.insert(usersTable).values({
-        username: input.username, email: input.email, passwordHash,
+        username: input.username, email: input.email ?? null, passwordHash,
         fullName: input.ownerName, role: "ADMIN",
       }).returning();
-      await tx.insert(tenantOwnerEmailClaimsTable).values({ email: input.email, tenantId: tenant.id, userId: user.id });
       await tx.insert(tenantMembershipsTable).values({ tenantId: tenant.id, userId: user.id, role: "ADMIN" });
       await tx.insert(userPreferencesTable).values({ userId: user.id, locale: input.locale });
-      const [token] = await tx.insert(emailVerificationTokensTable).values({
-        tenantId: tenant.id, userId: user.id, tokenHash,
-        expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
-      }).returning();
-      await writeAudit({ tenantId: tenant.id, userId: user.id, action: "tenant_registration_created", entityType: "tenant", entityId: tenant.id, summary: "إنشاء عيادة بانتظار تأكيد البريد" }, tx);
-      return { tokenId: token.id, tenantId: tenant.id, userId: user.id };
+      await writeAudit({
+        tenantId: tenant.id,
+        userId: user.id,
+        action: "TENANT_REGISTRATION_CREATED",
+        entityType: "tenant",
+        entityId: tenant.id,
+        summary: "إنشاء عيادة وبدء الفترة التجريبية",
+        details: { phone: input.phone, trialEndsAt: trialEndsAt.toISOString() },
+      }, tx);
     });
   } catch {
     res.status(409).json({ error: "تعذر إنشاء الحساب بهذه البيانات.", code: "REGISTRATION_CONFLICT" });
     return;
   }
-  try {
-    await sendVerificationEmail({ to: input.email, fullName: input.ownerName, locale: input.locale, token: rawToken });
-  } catch {
-    await db.update(emailVerificationTokensTable).set({ usedAt: new Date() }).where(eq(emailVerificationTokensTable.id, created.tokenId));
-    res.status(503).json({ error: "تعذر إرسال رسالة التحقق. يرجى المحاولة لاحقًا.", code: "EMAIL_DELIVERY_FAILED" });
-    return;
-  }
-  res.status(201).json({ message: "تم إنشاء الحساب. يرجى التحقق من البريد الإلكتروني." });
+  res.status(201).json({ message: "تم إنشاء الحساب وبدأت الفترة التجريبية لمدة 72 ساعة." });
 });
 
-router.post("/auth/verify-email", verificationLimiter, async (req, res) => {
-  const input = parseOrRespond(emailVerificationInputSchema, req.body, res);
-  if (!input) return;
-  const now = new Date();
-  const result = await db.transaction(async (tx) => {
-    const [token] = await tx.select().from(emailVerificationTokensTable).where(and(
-      eq(emailVerificationTokensTable.tokenHash, hashVerificationToken(input.token)),
-      isNull(emailVerificationTokensTable.usedAt), gt(emailVerificationTokensTable.expiresAt, now),
-    )).limit(1);
-    if (!token) return null;
-    const [consumed] = await tx.update(emailVerificationTokensTable).set({ usedAt: now }).where(and(
-      eq(emailVerificationTokensTable.id, token.id), isNull(emailVerificationTokensTable.usedAt),
-    )).returning({ id: emailVerificationTokensTable.id });
-    if (!consumed) return null;
-    const [tenant] = await tx.select().from(tenantsTable).where(eq(tenantsTable.id, token.tenantId)).limit(1);
-    if (!tenant || tenant.status !== "PENDING_VERIFICATION") return null;
-    const ends = new Date(now.getTime() + TRIAL_MS);
-    const [updated] = await tx.update(tenantsTable).set({
-      status: "TRIAL", trialStartedAt: now, trialEndsAt: ends, updatedAt: now,
-    }).where(and(eq(tenantsTable.id, tenant.id), eq(tenantsTable.status, "PENDING_VERIFICATION"))).returning();
-    if (!updated) return null;
-    await writeAudit({ tenantId: tenant.id, userId: token.userId, action: "tenant_email_verified", entityType: "tenant", entityId: tenant.id, summary: "تم تأكيد البريد وبدء الفترة التجريبية" }, tx);
-    return ends;
+router.post("/auth/verify-email", verificationLimiter, async (_req, res) => {
+  res.status(410).json({
+    error: "التحقق عبر البريد غير متاح في هذا الإصدار.",
+    code: "EMAIL_VERIFICATION_DISABLED",
   });
-  if (!result) { res.status(422).json({ error: "رابط التحقق غير صالح أو منتهي الصلاحية.", code: "VERIFICATION_TOKEN_INVALID" }); return; }
-  res.json({ verified: true, trialEndsAt: result.toISOString() });
 });
 
-router.post("/auth/resend-verification", resendVerificationLimiter, async (req, res) => {
-  const input = parseOrRespond(resendVerificationInputSchema, req.body, res);
-  if (!input) return;
-  const generic = { message: "إذا كان الحساب بانتظار التحقق، فسيصل رابط جديد خلال دقائق." };
-  if (!isVerificationEmailConfigured()) { res.status(503).json({ error: "خدمة البريد الإلكتروني غير مهيأة حاليًا.", code: "EMAIL_NOT_CONFIGURED" }); return; }
-  const [claim] = await db.select().from(tenantOwnerEmailClaimsTable).where(eq(tenantOwnerEmailClaimsTable.email, input.email)).limit(1);
-  if (!claim) { res.json(generic); return; }
-  const [tenant] = await db.select().from(tenantsTable).where(and(eq(tenantsTable.id, claim.tenantId), eq(tenantsTable.status, "PENDING_VERIFICATION"))).limit(1);
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, claim.userId)).limit(1);
-  if (!tenant || !user?.email) { res.json(generic); return; }
-  const rawToken = randomBytes(32).toString("base64url");
-  const [newToken] = await db.transaction(async (tx) => {
-    await tx.delete(emailVerificationTokensTable).where(and(eq(emailVerificationTokensTable.tenantId, tenant.id), eq(emailVerificationTokensTable.userId, user.id), isNull(emailVerificationTokensTable.usedAt)));
-    return tx.insert(emailVerificationTokensTable).values({ tenantId: tenant.id, userId: user.id, tokenHash: hashVerificationToken(rawToken), expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS) }).returning();
+router.post("/auth/resend-verification", resendVerificationLimiter, async (_req, res) => {
+  res.status(410).json({
+    error: "التحقق عبر البريد غير متاح في هذا الإصدار.",
+    code: "EMAIL_VERIFICATION_DISABLED",
   });
-  try { await sendVerificationEmail({ to: user.email, fullName: user.fullName, locale: tenant.locale === "en" ? "en" : "ar", token: rawToken }); }
-  catch { await db.update(emailVerificationTokensTable).set({ usedAt: new Date() }).where(eq(emailVerificationTokensTable.id, newToken.id)); }
-  res.json(generic);
 });
 
 router.post("/auth/login", loginLimiter, async (req, res) => {
@@ -450,23 +396,9 @@ router.post(
   async (req, res) => {
     const input = parseOrRespond(passwordResetRequestInputSchema, req.body, res);
     if (!input) return;
-
-    // The same non-account-specific failure is returned before any account
-    // lookup, so a missing provider cannot become an account-enumeration oracle.
-    if (!isPasswordResetEmailConfigured()) {
-      res.status(503).json({
-        error:
-          "خدمة البريد الإلكتروني غير مهيأة حاليًا. يرجى التواصل مع مدير النظام.",
-        code: "EMAIL_NOT_CONFIGURED",
-      });
-      return;
-    }
-
-    // Return before account-specific work begins. This keeps a matching,
-    // unknown, or legacy no-email identifier indistinguishable by latency.
-    res.json({ message: PASSWORD_RESET_GENERIC_MESSAGE });
-    void issuePasswordReset(input.identifier).catch((err) => {
-      req.log?.error({ err }, "password reset request failed");
+    res.json({
+      message:
+        "لإعادة تعيين كلمة المرور، يرجى التواصل مع مسؤول المنشأة. مسؤولو المنشآت يتواصلون مع دعم غرس.",
     });
   },
 );
@@ -552,81 +484,81 @@ async function issuePasswordReset(identifier: string): Promise<void> {
 router.post(
   "/auth/password-reset/complete",
   passwordResetCompleteLimiter,
-  async (req, res) => {
-    const input = parseOrRespond(completePasswordResetInputSchema, req.body, res);
-    if (!input) return;
-
-    const now = new Date();
-    const tokenHash = hashPasswordResetToken(input.token);
-    const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
-    const didReset = await db.transaction(async (tx) => {
-      const [token] = await tx
-        .select()
-        .from(passwordResetTokensTable)
-        .where(
-          and(
-            eq(passwordResetTokensTable.tokenHash, tokenHash),
-            isNull(passwordResetTokensTable.usedAt),
-            gt(passwordResetTokensTable.expiresAt, now),
-          ),
-        )
-        .limit(1);
-      if (!token) return false;
-
-      const [user] = await tx
-        .select({ id: usersTable.id, isActive: usersTable.isActive })
-        .from(usersTable)
-        .where(eq(usersTable.id, token.userId))
-        .limit(1);
-      if (!user?.isActive) return false;
-
-      // The conditional update makes concurrent attempts race safely: exactly
-      // one request can consume a token and change the password.
-      const [consumed] = await tx
-        .update(passwordResetTokensTable)
-        .set({ usedAt: now })
-        .where(
-          and(
-            eq(passwordResetTokensTable.id, token.id),
-            isNull(passwordResetTokensTable.usedAt),
-            gt(passwordResetTokensTable.expiresAt, now),
-          ),
-        )
-        .returning({ id: passwordResetTokensTable.id });
-      if (!consumed) return false;
-
-      await tx
-        .update(usersTable)
-        .set({ passwordHash, updatedAt: now })
-        .where(eq(usersTable.id, user.id));
-      await tx
-        .delete(sessionsTable)
-        .where(sql`${sessionsTable.sess} ->> 'userId' = ${user.id}`);
-      await writeAudit(
-        {
-          tenantId: null,
-          userId: user.id,
-          action: "password_reset_completed",
-          entityType: "user",
-          entityId: user.id,
-          summary: "إعادة تعيين كلمة المرور عبر رابط الاستعادة",
-        },
-        tx,
-      );
-      return true;
+  async (_req, res) => {
+    res.status(410).json({
+      error: "استعادة كلمة المرور عبر البريد غير متاحة في هذا الإصدار.",
+      code: "EMAIL_PASSWORD_RECOVERY_DISABLED",
     });
-
-    if (!didReset) {
-      res.status(422).json({
-        error: "رابط إعادة التعيين غير صالح أو منتهي الصلاحية.",
-        code: "RESET_TOKEN_INVALID",
-      });
-      return;
-    }
-
-    res.status(204).end();
   },
 );
+
+router.post("/auth/change-password", requireAuth, async (req, res) => {
+  const input = parseOrRespond(changeOwnPasswordInputSchema, req.body, res);
+  if (!input) return;
+  const user = req.currentUser!;
+  if (!(await bcrypt.compare(input.currentPassword, user.passwordHash))) {
+    res.status(422).json({
+      error: "كلمة المرور الحالية غير صحيحة.",
+      code: "CURRENT_PASSWORD_INCORRECT",
+    });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
+  await db.transaction(async (tx) => {
+    await tx.update(usersTable).set({
+      passwordHash,
+      mustChangePassword: false,
+      updatedAt: new Date(),
+    }).where(eq(usersTable.id, user.id));
+    await tx.delete(sessionsTable).where(and(
+      sql`${sessionsTable.sess} ->> 'userId' = ${user.id}`,
+      sql`${sessionsTable.sid} <> ${req.sessionID}`,
+    ));
+    await writeAudit({
+      tenantId: req.currentTenant?.id ?? null,
+      userId: user.id,
+      action: "USER_CHANGED_OWN_PASSWORD",
+      entityType: "user",
+      entityId: user.id,
+      summary: "غيّر المستخدم كلمة مروره",
+    }, tx);
+  });
+  res.status(204).end();
+});
+
+router.post("/auth/forced-password-change", requireAuth, async (req, res) => {
+  const input = parseOrRespond(forcedPasswordChangeInputSchema, req.body, res);
+  if (!input) return;
+  const user = req.currentUser!;
+  if (!user.mustChangePassword) {
+    res.status(409).json({
+      error: "لا يتطلب هذا الحساب تغيير كلمة المرور.",
+      code: "PASSWORD_CHANGE_NOT_REQUIRED",
+    });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+  await db.transaction(async (tx) => {
+    await tx.update(usersTable).set({
+      passwordHash,
+      mustChangePassword: false,
+      updatedAt: new Date(),
+    }).where(eq(usersTable.id, user.id));
+    await tx.delete(sessionsTable).where(and(
+      sql`${sessionsTable.sess} ->> 'userId' = ${user.id}`,
+      sql`${sessionsTable.sid} <> ${req.sessionID}`,
+    ));
+    await writeAudit({
+      tenantId: req.currentTenant?.id ?? null,
+      userId: user.id,
+      action: "USER_COMPLETED_FORCED_PASSWORD_CHANGE",
+      entityType: "user",
+      entityId: user.id,
+      summary: "أنشأ المستخدم كلمة مرور خاصة بعد إعادة تعيين إدارية",
+    }, tx);
+  });
+  res.status(204).end();
+});
 
 router.post("/auth/logout", async (req, res) => {
   const userId = req.session.userId;

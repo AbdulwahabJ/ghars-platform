@@ -52,7 +52,6 @@ export default function Setup() {
       setupKey: "",
       username: "",
       fullName: "",
-      email: "",
       password: "",
       confirmPassword: "",
     },
@@ -141,26 +140,6 @@ export default function Setup() {
                   <FormLabel>{t("setup.username")}</FormLabel>
                   <FormControl>
                     <Input placeholder={t("setup.usernamePlaceholder")} {...field} dir="ltr" className="text-start" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("setup.email")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="name@example.com"
-                      type="email"
-                      {...field}
-                      dir="ltr"
-                      className="text-start"
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

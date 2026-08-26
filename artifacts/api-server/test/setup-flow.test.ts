@@ -71,7 +71,7 @@ describe("first-run setup flow", () => {
     expect(audit.rows[0].n).toBe(1);
   });
 
-  it("requires a recovery email for the first administrator", async () => {
+  it("creates the platform administrator without a recovery email or tenant membership", async () => {
     await truncateAll(pool);
     const res = await agent.post("/api/auth/setup").send({
       setupKey: SETUP_KEY,
@@ -79,16 +79,14 @@ describe("first-run setup flow", () => {
       fullName: "مدير النظام",
       password: ADMIN_PASSWORD,
     });
-    expect(res.status).toBe(400);
-    expect(res.body.code).toBe("VALIDATION_ERROR");
-
-    await agent.post("/api/auth/setup").send({
-      setupKey: SETUP_KEY,
-      username: "admin",
-      email: "admin@example.test",
-      fullName: "مدير النظام",
-      password: ADMIN_PASSWORD,
-    });
+    expect(res.status).toBe(201);
+    const memberships = await pool.query(
+      `SELECT count(*)::int AS count
+       FROM tenant_memberships membership
+       JOIN users ON users.id = membership.user_id
+       WHERE users.username = 'admin'`,
+    );
+    expect(memberships.rows[0].count).toBe(0);
   });
 
   it("reports setupRequired=false afterwards and blocks a second setup", async () => {

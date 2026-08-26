@@ -1,14 +1,30 @@
+import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import { and, asc, desc, eq, ilike, sql } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import type { Request, Response } from "express";
-import { db, tenantActivationRequestsTable, tenantMembershipsTable, tenantsTable } from "@workspace/db";
-import { extendTrialInputSchema, platformTenantListInputSchema, resolveActivationRequestInputSchema } from "@workspace/shared";
+import {
+  db,
+  platformAdminsTable,
+  sessionsTable,
+  tenantActivationRequestsTable,
+  tenantMembershipsTable,
+  tenantsTable,
+  usersTable,
+} from "@workspace/db";
+import {
+  extendTrialInputSchema,
+  platformTenantListInputSchema,
+  resetPasswordInputSchema,
+  resolveActivationRequestInputSchema,
+} from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
 import { parseOrRespond } from "../lib/validation";
 
 const router: IRouter = Router();
 const dto = (t: typeof tenantsTable.$inferSelect) => ({
-  id: t.id, referenceCode: t.referenceCode, name: t.name, contactEmail: t.contactEmail,
+  id: t.id, referenceCode: t.referenceCode, name: t.name,
+  contactEmail: t.contactEmail, contactPhone: t.contactPhone, city: t.city,
   locale: t.locale === "en" ? "en" : "ar", status: t.status,
   trialStartedAt: t.trialStartedAt?.toISOString() ?? null, trialEndsAt: t.trialEndsAt?.toISOString() ?? null,
   activatedAt: t.activatedAt?.toISOString() ?? null, suspendedAt: t.suspendedAt?.toISOString() ?? null,
@@ -32,8 +48,112 @@ router.get("/platform-admin/tenants/:tenantId", async (req, res) => {
   const [tenant] = await db.select().from(tenantsTable).where(eq(tenantsTable.id, String(req.params.tenantId))).limit(1);
   if (!tenant) { res.status(404).json({ error: "العيادة غير موجودة.", code: "TENANT_NOT_FOUND" }); return; }
   const requests = await db.select().from(tenantActivationRequestsTable).where(eq(tenantActivationRequestsTable.tenantId, tenant.id)).orderBy(desc(tenantActivationRequestsTable.createdAt));
-  const [{ count: userCount }] = await db.select({ count: sql<number>`count(*)::int` }).from(tenantMembershipsTable).where(eq(tenantMembershipsTable.tenantId, tenant.id));
-  res.json({ tenant: { ...dto(tenant), legalName: tenant.legalName, contactName: tenant.contactName, contactPhone: tenant.contactPhone, userCount, activationRequestCount: requests.length, activationRequests: requests.map((r) => ({ ...r, createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString(), resolvedAt: r.resolvedAt?.toISOString() ?? null, resolvedByUserId: r.resolvedByUserId ?? null })) } });
+  const tenantUsers = await db.select({
+    id: usersTable.id,
+    fullName: usersTable.fullName,
+    username: usersTable.username,
+    role: tenantMembershipsTable.role,
+    isActive: tenantMembershipsTable.isActive,
+    lastLoginAt: usersTable.lastLoginAt,
+  }).from(tenantMembershipsTable)
+    .innerJoin(usersTable, eq(usersTable.id, tenantMembershipsTable.userId))
+    .where(eq(tenantMembershipsTable.tenantId, tenant.id))
+    .orderBy(asc(usersTable.createdAt));
+  res.json({ tenant: {
+    ...dto(tenant),
+    legalName: tenant.legalName,
+    contactName: tenant.contactName,
+    userCount: tenantUsers.length,
+    activationRequestCount: requests.length,
+    users: tenantUsers.map((user) => ({
+      ...user,
+      lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+    })),
+    activationRequests: requests.map((r) => ({ ...r, createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString(), resolvedAt: r.resolvedAt?.toISOString() ?? null, resolvedByUserId: r.resolvedByUserId ?? null })),
+  } });
+});
+
+router.post("/platform-admin/tenants/:tenantId/users/:userId/reset-password", async (req, res) => {
+  const input = parseOrRespond(resetPasswordInputSchema, req.body, res);
+  if (!input) return;
+  const tenantId = String(req.params.tenantId);
+  const targetUserId = String(req.params.userId);
+  const [tenant] = await db.select().from(tenantsTable)
+    .where(eq(tenantsTable.id, tenantId))
+    .limit(1);
+  if (!tenant) {
+    res.status(404).json({ error: "العيادة غير موجودة.", code: "TENANT_NOT_FOUND" });
+    return;
+  }
+  if (tenant.status === "SUSPENDED") {
+    res.status(403).json({
+      error: "لا يمكن إعادة تعيين كلمة المرور لعيادة معلقة.",
+      code: "TENANT_SUSPENDED",
+    });
+    return;
+  }
+  if (
+    tenant.status !== "ACTIVE" &&
+    (tenant.status !== "TRIAL" ||
+      !tenant.trialEndsAt ||
+      tenant.trialEndsAt.getTime() <= Date.now())
+  ) {
+    res.status(403).json({
+      error: "لا يمكن إعادة تعيين كلمة المرور لعيادة انتهت فترتها التجريبية.",
+      code: "TENANT_TRIAL_EXPIRED",
+    });
+    return;
+  }
+  const [target] = await db.select({
+    user: usersTable,
+    membership: tenantMembershipsTable,
+  }).from(tenantMembershipsTable)
+    .innerJoin(usersTable, eq(usersTable.id, tenantMembershipsTable.userId))
+    .where(and(
+      eq(tenantMembershipsTable.tenantId, tenantId),
+      eq(tenantMembershipsTable.userId, targetUserId),
+      eq(tenantMembershipsTable.role, "ADMIN"),
+    ))
+    .limit(1);
+  if (!target) {
+    res.status(404).json({
+      error: "تعذر العثور على مدير المنشأة.",
+      code: "TENANT_ADMIN_NOT_FOUND",
+    });
+    return;
+  }
+  const [protectedPlatformAdmin] = await db.select({ id: platformAdminsTable.userId })
+    .from(platformAdminsTable)
+    .where(eq(platformAdminsTable.userId, target.user.id))
+    .limit(1);
+  if (protectedPlatformAdmin) {
+    res.status(403).json({
+      error: "لا يمكن إعادة تعيين حساب مدير منصة من أدوات العملاء.",
+      code: "PLATFORM_ADMIN_PROTECTED",
+    });
+    return;
+  }
+  const temporaryPassword =
+    input.password ?? `Ghars-${randomBytes(9).toString("base64url")}9`;
+  const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+  await db.transaction(async (tx) => {
+    await tx.update(usersTable).set({
+      passwordHash,
+      mustChangePassword: true,
+      updatedAt: new Date(),
+    }).where(eq(usersTable.id, target.user.id));
+    await tx.delete(sessionsTable)
+      .where(sql`${sessionsTable.sess} ->> 'userId' = ${target.user.id}`);
+    await writeAudit({
+      tenantId,
+      userId: req.currentUser!.id,
+      action: "PLATFORM_ADMIN_RESET_TENANT_ADMIN_PASSWORD",
+      entityType: "user",
+      entityId: target.user.id,
+      summary: "أعاد مدير المنصة تعيين كلمة مرور مدير منشأة",
+    }, tx);
+  });
+  res.json({ temporaryPassword });
 });
 
 async function changeStatus(req: Request, res: Response, mode: "activate" | "suspend" | "reactivate") {

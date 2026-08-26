@@ -37,6 +37,7 @@ export const publicUserSchema = z.object({
   canRecordPayments: z.boolean(),
   /** Profile photo as a base-64 data URL, or null when none is set. */
   avatarData: z.string().nullable(),
+  mustChangePassword: z.boolean(),
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;
 
@@ -108,6 +109,11 @@ export const passwordSchema = z
   .regex(/[A-Za-z\u0621-\u064A]/, "كلمة المرور يجب أن تحتوي على حروف.")
   .regex(/\d/, "كلمة المرور يجب أن تحتوي على رقم واحد على الأقل.");
 
+const optionalEmailSchema = z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
+  emailSchema.optional(),
+);
+
 export const setupInputSchema = z.object({
   setupKey: z.string().min(1, "مفتاح الإعداد مطلوب."),
   username: z
@@ -120,7 +126,7 @@ export const setupInputSchema = z.object({
       "اسم المستخدم يجب أن يحتوي على أحرف إنجليزية وأرقام فقط.",
     ),
   fullName: z.string().trim().min(1, "الاسم الكامل مطلوب.").max(200),
-  email: emailSchema,
+  email: optionalEmailSchema,
   password: passwordSchema,
 });
 export type SetupInput = z.infer<typeof setupInputSchema>;
@@ -151,6 +157,21 @@ export const completePasswordResetInputSchema = z.object({
 });
 export type CompletePasswordResetInput = z.infer<
   typeof completePasswordResetInputSchema
+>;
+
+export const changeOwnPasswordInputSchema = z.object({
+  currentPassword: z.string().min(1, "كلمة المرور الحالية مطلوبة."),
+  newPassword: passwordSchema,
+});
+export type ChangeOwnPasswordInput = z.infer<
+  typeof changeOwnPasswordInputSchema
+>;
+
+export const forcedPasswordChangeInputSchema = z.object({
+  password: passwordSchema,
+});
+export type ForcedPasswordChangeInput = z.infer<
+  typeof forcedPasswordChangeInputSchema
 >;
 
 export const updatePreferencesInputSchema = z.object({

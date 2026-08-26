@@ -9,7 +9,7 @@ const admin = {
     operationFailed: "Could not complete the operation", unexpectedError: "An unexpected error occurred.", avatar: "Profile picture", created: "User created successfully.", saved: "Changes saved.", passwordReset: "Password reset.", passwordResetDescription: "The user's current sessions were ended and they will need to sign in again.", deactivated: "User deactivated and their sessions ended.", activated: "User reactivated.",
     createTitle: "New user", usernameLogin: "Username (for sign-in)", recoveryEmail: "Recovery email", temporaryPassword: "Temporary password", passwordHint: "At least 12 characters, including a letter and a number.", create: "Create user",
     editTitle: "Edit user {{name}}", legacyEmailNotice: "This is a legacy account without a recovery email. Add and save a valid email to enable recovery.", permissionNotice: "Permission changes apply immediately to the user's current sessions.", saveChanges: "Save changes",
-    resetTitle: "Reset password for {{name}}", newPassword: "New password", resetHint: "The user's current sessions will be ended after the reset.", reset: "Reset",
+    resetTitle: "Reset password for {{name}}", newPassword: "Temporary password (Optional)", resetHint: "Leave blank to generate a secure password. Current sessions will end and the user must change it at next sign-in.", reset: "Reset", temporaryPasswordNotice: "Copy this temporary password now and share it manually. It cannot be viewed again after closing this dialog.", copyPassword: "Copy password",
     permissionDefault: "Role default", allowed: "Allowed", denied: "Not allowed",
   },
   lookup: {

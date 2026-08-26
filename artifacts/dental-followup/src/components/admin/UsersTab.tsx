@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, KeyRound, Plus, UserCheck, UserX } from "lucide-react";
+import { Copy, Loader2, KeyRound, Plus, UserCheck, UserX } from "lucide-react";
 import type { AdminUser, UserRole } from "@workspace/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,6 +85,7 @@ export function UsersTab() {
   > | null>(null);
   const [resetUser, setResetUser] = useState<AdminUser | null>(null);
   const [newPassword, setNewPassword] = useState("");
+  const [temporaryPassword, setTemporaryPassword] = useState("");
 
   const fail = (err: unknown) =>
     toast({
@@ -155,15 +156,17 @@ export function UsersTab() {
   const submitReset = () => {
     if (!resetUser) return;
     resetPassword.mutate(
-      { id: resetUser.id, input: { password: newPassword } },
       {
-        onSuccess: () => {
+        id: resetUser.id,
+        input: newPassword.trim() ? { password: newPassword } : {},
+      },
+      {
+        onSuccess: (result) => {
           toast({
             title: t("users.passwordReset"),
             description: t("users.passwordResetDescription"),
           });
-          setResetUser(null);
-          setNewPassword("");
+          setTemporaryPassword(result.temporaryPassword);
         },
         onError: fail,
       },
@@ -264,14 +267,19 @@ export function UsersTab() {
                       >
                         {t("users.edit")}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setResetUser(u)}
-                        title={t("users.resetPassword")}
-                      >
-                        <KeyRound className="h-4 w-4" />
-                      </Button>
+                      {u.id !== me?.id && u.role !== "ADMIN" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setResetUser(u);
+                            setTemporaryPassword("");
+                          }}
+                          title={t("users.resetPassword")}
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      )}
                       {u.id !== me?.id && (
                         <Button
                           variant={u.isActive ? "destructive" : "secondary"}
@@ -515,6 +523,7 @@ export function UsersTab() {
           if (!open) {
             setResetUser(null);
             setNewPassword("");
+            setTemporaryPassword("");
           }
         }}
       >
@@ -524,32 +533,55 @@ export function UsersTab() {
               {t("users.resetTitle", { name: resetUser?.fullName })}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="reset-password">{t("users.newPassword")}</Label>
-            <Input
-              id="reset-password"
-              type="password"
-              dir="ltr"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              data-testid="input-reset-password"
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("users.resetHint")}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={submitReset}
-              disabled={resetPassword.isPending}
-              data-testid="button-submit-reset-password"
-            >
-              {resetPassword.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin ms-1" />
-              )}
-              <span>{t("users.reset")}</span>
-            </Button>
-          </DialogFooter>
+          {temporaryPassword ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t("users.temporaryPasswordNotice")}
+              </p>
+              <div className="flex items-center gap-2 rounded-lg border bg-slate-50 p-3">
+                <code dir="ltr" className="flex-1 select-all text-start font-mono text-sm">
+                  {temporaryPassword}
+                </code>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => void navigator.clipboard.writeText(temporaryPassword)}
+                  aria-label={t("users.copyPassword")}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="reset-password">{t("users.newPassword")}</Label>
+                <Input
+                  id="reset-password"
+                  type="password"
+                  dir="ltr"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  data-testid="input-reset-password"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("users.resetHint")}
+                </p>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={submitReset}
+                  disabled={resetPassword.isPending}
+                  data-testid="button-submit-reset-password"
+                >
+                  {resetPassword.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin ms-1" />
+                  )}
+                  <span>{t("users.reset")}</span>
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </Card>

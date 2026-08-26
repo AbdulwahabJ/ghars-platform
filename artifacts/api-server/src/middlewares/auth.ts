@@ -35,6 +35,13 @@ const UNAUTHENTICATED = {
   code: "UNAUTHENTICATED",
 };
 
+const PASSWORD_CHANGE_ALLOWLIST = new Set([
+  "GET /auth/me",
+  "POST /auth/logout",
+  "POST /auth/change-password",
+  "POST /auth/forced-password-change",
+]);
+
 /** Authorization is enforced here on the backend, never only in the UI. */
 export async function requireAuth(
   req: Request,
@@ -79,6 +86,18 @@ export async function requireAuth(
     canRecordPaymentsOverride: membership.canRecordPayments,
     tenant: toTenantSummary(tenant),
   }));
+
+  if (user.mustChangePassword) {
+    const path = req.originalUrl.split("?")[0]!.replace(/^\/api/, "");
+    if (!PASSWORD_CHANGE_ALLOWLIST.has(`${req.method} ${path}`)) {
+      res.status(403).json({
+        error: "يجب تغيير كلمة المرور المؤقتة قبل المتابعة.",
+        code: "PASSWORD_CHANGE_REQUIRED",
+      });
+      return;
+    }
+  }
+
   next();
 }
 
@@ -139,6 +158,13 @@ export function requireOperationalTenant(
   res: Response,
   next: NextFunction,
 ): void {
+  if (req.currentUser?.mustChangePassword) {
+    res.status(403).json({
+      error: "يجب تغيير كلمة المرور المؤقتة قبل المتابعة.",
+      code: "PASSWORD_CHANGE_REQUIRED",
+    });
+    return;
+  }
   const tenant = req.currentTenant;
   if (!tenant || !req.currentMembership) {
     res.status(403).json({

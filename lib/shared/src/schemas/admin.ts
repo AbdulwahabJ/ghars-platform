@@ -32,6 +32,7 @@ export const adminUserSchema = z.object({
   createdAt: z.string(),
   /** Profile photo as a base-64 data URL, or null when none is set. */
   avatarData: z.string().nullable(),
+  mustChangePassword: z.boolean(),
 });
 export type AdminUser = z.infer<typeof adminUserSchema>;
 
@@ -62,7 +63,10 @@ const overrideSchema = z.boolean().nullable();
 
 export const createUserInputSchema = z.object({
   username: usernameSchema,
-  email: emailSchema,
+  email: z.preprocess(
+    (value) => typeof value === "string" && value.trim() === "" ? null : value,
+    emailSchema.nullable(),
+  ),
   fullName: fullNameSchema,
   role: userRoleSchema,
   password: passwordSchema,
@@ -95,9 +99,14 @@ export const updateUserInputSchema = z
 export type UpdateUserInput = z.infer<typeof updateUserInputSchema>;
 
 export const resetPasswordInputSchema = z.object({
-  password: passwordSchema,
+  password: passwordSchema.optional(),
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordInputSchema>;
+
+export const passwordResetResponseSchema = z.object({
+  temporaryPassword: z.string(),
+});
+export type PasswordResetResponse = z.infer<typeof passwordResetResponseSchema>;
 
 /* ------------------------------------------------------------------ */
 /* Application settings                                                */

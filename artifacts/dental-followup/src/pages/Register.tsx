@@ -22,8 +22,9 @@ import {
   Loader2,
   Building2,
   UserRound,
-  Mail,
   LockKeyhole,
+  Phone,
+  MapPin,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
@@ -31,6 +32,7 @@ import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -41,6 +43,7 @@ export default function Register() {
   const [success, setSuccess] = useState(false);
 
   const registerMutation = useRegister();
+  const { login } = useAuth();
 
   const form = useForm<PublicRegistrationInput>({
     resolver: zodResolver(publicRegistrationInputSchema),
@@ -49,8 +52,10 @@ export default function Register() {
       legalName: "",
       ownerName: "",
       username: "",
-      email: "",
+      phone: "",
+      city: "",
       password: "",
+      confirmPassword: "",
       locale: "ar",
     },
   });
@@ -58,7 +63,13 @@ export default function Register() {
   const onSubmit = (data: PublicRegistrationInput) => {
     registerMutation.mutate(data, {
       onSuccess: () => {
-        setSuccess(true);
+        login.mutate(
+          { username: data.username, password: data.password },
+          {
+            onSuccess: () => setLocation("/"),
+            onError: () => setSuccess(true),
+          },
+        );
       }
     });
   };
@@ -110,7 +121,7 @@ export default function Register() {
                         <FormControl>
                           <div className="relative">
                             <Building2 className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                            <Input placeholder={t("register.tenantNamePlaceholder")} {...field} className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-[15px]" />
+                            <Input placeholder={t("register.tenantNamePlaceholder")} {...field} autoComplete="organization" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-[15px]" />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -127,7 +138,7 @@ export default function Register() {
                         <FormControl>
                           <div className="relative">
                             <UserRound className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                            <Input placeholder={t("register.ownerNamePlaceholder")} {...field} className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-[15px]" />
+                            <Input placeholder={t("register.ownerNamePlaceholder")} {...field} autoComplete="name" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-[15px]" />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -143,7 +154,7 @@ export default function Register() {
                         <FormItem>
                           <FormLabel className="text-[14px]">{t("register.username")}</FormLabel>
                           <FormControl>
-                            <Input placeholder={t("register.usernamePlaceholder")} {...field} dir="ltr" className="h-[52px] rounded-[7px] border-slate-300 text-start text-[15px]" />
+                            <Input placeholder={t("register.usernamePlaceholder")} {...field} dir="ltr" autoComplete="username" className="h-[52px] rounded-[7px] border-slate-300 text-start text-[15px]" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -152,14 +163,14 @@ export default function Register() {
 
                     <FormField
                       control={form.control}
-                      name="email"
+                      name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[14px]">{t("register.email")}</FormLabel>
+                          <FormLabel className="text-[14px]">{t("register.phone")}</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Mail className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                              <Input type="email" placeholder={t("register.emailPlaceholder")} {...field} dir="ltr" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-start text-[15px]" />
+                              <Phone className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                              <Input type="tel" placeholder={t("register.phonePlaceholder")} {...field} dir="ltr" autoComplete="tel" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-start text-[15px]" />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -167,6 +178,23 @@ export default function Register() {
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[14px]">{t("register.city")}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <MapPin className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                            <Input placeholder={t("register.cityPlaceholder")} {...field} autoComplete="address-level2" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-[15px]" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField
@@ -202,26 +230,47 @@ export default function Register() {
 
                     <FormField
                       control={form.control}
-                      name="locale"
+                      name="confirmPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[14px]">{t("register.locale")}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="h-[52px] rounded-[7px] border-slate-300 text-[15px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="ar">العربية (Arabic)</SelectItem>
-                              <SelectItem value="en">English (الإنجليزية)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormLabel className="text-[14px]">{t("register.confirmPassword")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={t("register.passwordPlaceholder")}
+                              type={showPassword ? "text" : "password"}
+                              {...field}
+                              dir="ltr"
+                              autoComplete="new-password"
+                              className="h-[52px] rounded-[7px] border-slate-300 text-start text-[15px]"
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="locale"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[14px]">{t("register.locale")}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-[52px] rounded-[7px] border-slate-300 text-[15px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="ar">العربية (Arabic)</SelectItem>
+                            <SelectItem value="en">English (الإنجليزية)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <Button type="submit" className="mt-4 h-[56px] w-full rounded-[7px] text-[16px] btn-primary" disabled={registerMutation.isPending}>
                     {registerMutation.isPending ? <Loader2 className="me-2 h-5 w-5 animate-spin" /> : null}

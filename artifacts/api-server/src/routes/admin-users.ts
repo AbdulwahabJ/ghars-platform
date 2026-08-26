@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import {
+  platformAdminsTable,
   auditLogsTable,
   db,
   sessionsTable,
@@ -56,6 +58,7 @@ function toAdminUser(
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     avatarData: user.avatarData ?? null,
+    mustChangePassword: user.mustChangePassword,
   };
 }
 
@@ -472,6 +475,31 @@ router.post("/admin/users/:id/reset-password", async (req, res) => {
     res.status(404).json(USER_NOT_FOUND);
     return;
   }
+  if (target.id === req.currentUser!.id) {
+    res.status(422).json({
+      error: "استخدم تغيير كلمة المرور لتعديل كلمة مرور حسابك.",
+      code: "SELF_PASSWORD_RESET_BLOCKED",
+    });
+    return;
+  }
+  if (target.membership.role === "ADMIN") {
+    res.status(403).json({
+      error: "تتم استعادة كلمة مرور مدير المنشأة عبر دعم غرس.",
+      code: "TENANT_ADMIN_RESET_BLOCKED",
+    });
+    return;
+  }
+  const [platformAdmin] = await db.select({ id: platformAdminsTable.userId })
+    .from(platformAdminsTable)
+    .where(eq(platformAdminsTable.userId, target.id))
+    .limit(1);
+  if (platformAdmin) {
+    res.status(403).json({
+      error: "لا يمكن إدارة حسابات المنصة من داخل العيادة.",
+      code: "PLATFORM_ADMIN_PROTECTED",
+    });
+    return;
+  }
   if ((await membershipCount(target.id)) > 1) {
     res.status(409).json({
       error: "لا يمكن إعادة تعيين كلمة مرور هوية مشتركة من إدارة عيادة واحدة.",
@@ -480,18 +508,24 @@ router.post("/admin/users/:id/reset-password", async (req, res) => {
     return;
   }
 
-  const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+  const temporaryPassword =
+    input.password ?? `Ghars-${randomBytes(9).toString("base64url")}9`;
+  const passwordHash = await bcrypt.hash(temporaryPassword, BCRYPT_ROUNDS);
   await db.transaction(async (tx) => {
     await tx
       .update(usersTable)
-      .set({ passwordHash, updatedAt: new Date() })
+      .set({
+        passwordHash,
+        mustChangePassword: true,
+        updatedAt: new Date(),
+      })
       .where(eq(usersTable.id, target.id));
     // Never store the password (or its hash) in the audit log.
     await writeAudit(
       {
         tenantId,
         userId: req.currentUser!.id,
-        action: "user_password_reset",
+        action: "TENANT_ADMIN_RESET_USER_PASSWORD",
         entityType: "user",
         entityId: target.id,
         summary: `إعادة تعيين كلمة مرور المستخدم ${target.fullName}`,
@@ -501,11 +535,9 @@ router.post("/admin/users/:id/reset-password", async (req, res) => {
   });
   // Any open sessions of the target user must re-authenticate,
   // except when an admin resets their own password (keep current session).
-  if (target.id !== req.currentUser!.id) {
-    await invalidateUserSessions(target.id);
-  }
+  await invalidateUserSessions(target.id);
 
-  res.status(204).end();
+  res.json({ temporaryPassword });
 });
 
 /* ------------------------------------------------------------------ */

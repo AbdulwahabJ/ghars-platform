@@ -7,8 +7,6 @@ import { useMutation } from "@tanstack/react-query";
 import {
   loginInputSchema,
   LoginInput,
-  passwordResetRequestInputSchema,
-  PasswordResetRequestInput,
   completePasswordResetInputSchema,
   CompletePasswordResetInput,
 } from "@workspace/shared";
@@ -67,7 +65,6 @@ export default function Login() {
 
   const isResetRoute = location === "/reset-password";
   const [view, setView] = useState<"login" | "forgot">("login");
-  const [forgotSuccessMsg, setForgotSuccessMsg] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [supportMessage, setSupportMessage] = useState(false);
@@ -82,13 +79,6 @@ export default function Login() {
     }
   }, [user, setupStatus, isLoading, setLocation]);
 
-  const forgotMutation = useMutation({
-    mutationFn: (data: PasswordResetRequestInput) => api.requestPasswordReset(data),
-    onSuccess: (res) => {
-      setForgotSuccessMsg(res.message || t("recovery.sent"));
-    }
-  });
-
   const resetMutation = useMutation({
     mutationFn: (data: CompletePasswordResetInput) => api.completePasswordReset(data),
     onSuccess: () => {
@@ -99,11 +89,6 @@ export default function Login() {
   const loginForm = useForm<LoginInput>({
     resolver: zodResolver(loginInputSchema),
     defaultValues: { username: "", password: "" },
-  });
-
-  const forgotForm = useForm<PasswordResetRequestInput>({
-    resolver: zodResolver(passwordResetRequestInputSchema),
-    defaultValues: { identifier: "" },
   });
 
   const resetForm = useForm<ResetFormInput>({
@@ -185,8 +170,6 @@ export default function Login() {
                             type="button"
                             onClick={() => {
                               setView("forgot");
-                              forgotForm.reset();
-                              setForgotSuccessMsg(null);
                             }}
                              className="text-xs font-medium text-[#278f8c] transition-colors hover:underline focus:outline-none"
                           >
@@ -289,53 +272,13 @@ export default function Login() {
                 <p className="text-muted-foreground text-sm leading-relaxed">{t("recovery.description")}</p>
               </div>
 
-              {forgotSuccessMsg ? (
-                <Alert className="border-primary/20 bg-primary/5">
-                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                  <AlertDescription className="font-medium text-primary ms-2 text-sm leading-relaxed">
-                    {forgotSuccessMsg}
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <>
-                  {forgotMutation.isError && (
-                    <Alert variant="destructive">
-                      <AlertDescription className="font-medium text-sm">
-                        {localizeErrorMessage(forgotMutation.error)}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <Form {...forgotForm}>
-                    <form onSubmit={forgotForm.handleSubmit((d) => forgotMutation.mutate(d))} className="space-y-5">
-                      <FormField
-                        control={forgotForm.control}
-                        name="identifier"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("recovery.identifier")}</FormLabel>
-                            <FormControl>
-                             <Input
-                                placeholder={t("recovery.identifierPlaceholder")}
-                               {...field}
-                               dir="ltr"
-                               autoComplete="username"
-                               className="h-[52px] rounded-[7px] border-slate-300 text-start shadow-none focus-visible:border-brand-navy focus-visible:ring-brand-navy/20"
-                             />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                       <Button type="submit" className="mt-2 h-[50px] w-full rounded-[7px] bg-brand-navy text-white hover:bg-[#132850]" disabled={forgotMutation.isPending}>
-                        {forgotMutation.isPending ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
-                         {t("recovery.submit")}
-                      </Button>
-                    </form>
-                  </Form>
-                </>
-              )}
+              <Alert className="border-primary/20 bg-primary/5">
+                <Headset className="h-5 w-5 shrink-0 text-primary" />
+                <AlertDescription className="ms-2 space-y-2 text-sm leading-relaxed text-brand-navy">
+                  <p>{t("recovery.employeeSupport")}</p>
+                  <p>{t("recovery.adminSupport")}</p>
+                </AlertDescription>
+              </Alert>
             </>
           )}
 

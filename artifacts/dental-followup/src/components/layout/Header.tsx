@@ -12,7 +12,8 @@ import {
   BookOpen,
   Building2,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  KeyRound,
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -300,6 +301,10 @@ export function Header({ user }: HeaderProps) {
               )}
 
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLocation("/change-password")} className="cursor-pointer gap-2">
+                <KeyRound className="h-4 w-4" />
+                <span>{t("auth:changePassword.menu")}</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer gap-2 focus:bg-destructive/10 focus:text-destructive">
                 <LogOut className="h-4 w-4" />
                 <span>{t("common:actions.logout")}</span>

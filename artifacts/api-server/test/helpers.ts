@@ -1,4 +1,5 @@
 import pg from "pg";
+import bcrypt from "bcryptjs";
 import request from "supertest";
 import type { Express } from "express";
 
@@ -93,8 +94,15 @@ export async function freshAdminSession(
   pool: pg.Pool,
 ): Promise<TestAgent> {
   await truncateAll(pool);
+  await setupAdmin(agentFor(app), "platform-admin");
+  const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+  await pool.query(
+    `INSERT INTO users (username, email, password_hash, full_name, role)
+     VALUES ('admin', NULL, $1, 'مدير العيادة', 'ADMIN')`,
+    [passwordHash],
+  );
+  await attachUserToInternalTenant(pool, "admin", "ADMIN");
   const agent = agentFor(app);
-  await setupAdmin(agent);
   await login(agent);
   return agent;
 }

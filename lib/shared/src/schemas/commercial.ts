@@ -5,6 +5,7 @@ import {
   passwordSchema,
   tenantStatusSchema,
 } from "./auth";
+import { normalizeMobile } from "../phone";
 
 const nameSchema = z.string().trim().min(2).max(200);
 const usernameSchema = z
@@ -15,14 +16,33 @@ const usernameSchema = z
   .max(50)
   .regex(/^[a-z0-9._-]+$/);
 
+const optionalEmailSchema = z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
+  emailSchema.optional(),
+);
+const phoneSchema = z.string().transform((value, ctx) => {
+  const result = normalizeMobile(value);
+  if (!result.ok) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.message });
+    return z.NEVER;
+  }
+  return result.normalized;
+});
+
 export const publicRegistrationInputSchema = z.object({
   tenantName: nameSchema,
   legalName: z.string().trim().max(200).optional(),
   ownerName: nameSchema,
   username: usernameSchema,
-  email: emailSchema,
+  phone: phoneSchema,
+  city: z.string().trim().max(120).optional(),
+  email: optionalEmailSchema,
   password: passwordSchema,
+  confirmPassword: z.string(),
   locale: localeSchema,
+}).refine((value) => value.password === value.confirmPassword, {
+  message: "كلمتا المرور غير متطابقتين.",
+  path: ["confirmPassword"],
 });
 export type PublicRegistrationInput = z.infer<typeof publicRegistrationInputSchema>;
 export const publicRegistrationResponseSchema = z.object({
@@ -124,6 +144,8 @@ export const platformTenantSchema = z.object({
   referenceCode: z.string(),
   name: z.string(),
   contactEmail: z.string().nullable(),
+  contactPhone: z.string().nullable(),
+  city: z.string().nullable(),
   locale: localeSchema,
   status: tenantStatusSchema,
   trialStartedAt: z.string().nullable(),
@@ -149,7 +171,14 @@ export type PlatformTenantListResponse = z.infer<
 export const platformTenantDetailSchema = platformTenantSchema.extend({
   legalName: z.string().nullable(),
   contactName: z.string().nullable(),
-  contactPhone: z.string().nullable(),
+  users: z.array(z.object({
+    id: z.string().uuid(),
+    fullName: z.string(),
+    username: z.string(),
+    role: z.enum(["ADMIN", "DOCTOR", "ASSISTANT"]),
+    isActive: z.boolean(),
+    lastLoginAt: z.string().nullable(),
+  })),
   activationRequests: z.array(activationRequestSchema),
 });
 export type PlatformTenantDetail = z.infer<typeof platformTenantDetailSchema>;

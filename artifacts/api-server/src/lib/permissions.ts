@@ -51,5 +51,6 @@ export function toPublicUser(
     canViewFinancials: perms.canViewFinancials,
     canRecordPayments: perms.canRecordPayments,
     avatarData: user.avatarData ?? null,
+    mustChangePassword: user.mustChangePassword,
   };
 }

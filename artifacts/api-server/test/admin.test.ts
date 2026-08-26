@@ -233,7 +233,8 @@ describe("user management", () => {
     const reset = await admin
       .post(`/api/admin/users/${userId}/reset-password`)
       .send({ password: "N3wSecretPass1234" });
-    expect(reset.status).toBe(204);
+    expect(reset.status).toBe(200);
+    expect(reset.body.temporaryPassword).toBe("N3wSecretPass1234");
 
     expect((await agent.get("/api/auth/me")).status).toBe(401);
     const old = await agentFor(app)
@@ -242,6 +243,10 @@ describe("user management", () => {
     expect(old.status).toBe(401);
     const fresh = agentFor(app);
     await login(fresh, "reset.target", "N3wSecretPass1234");
+    expect((await fresh.get("/api/auth/me")).body.user.mustChangePassword).toBe(true);
+    expect((await fresh.post("/api/auth/forced-password-change").send({
+      password: "Private0Password1234",
+    })).status).toBe(204);
   });
 
   it("records last login time", async () => {

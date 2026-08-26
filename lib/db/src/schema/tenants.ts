@@ -8,6 +8,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable, userRoleEnum } from "./users";
 
 export const tenantStatusEnum = pgEnum("tenant_status", [
@@ -28,6 +29,7 @@ export const tenantsTable = pgTable(
     contactName: text("contact_name"),
     contactEmail: text("contact_email"),
     contactPhone: text("contact_phone"),
+    city: text("city"),
     locale: text("locale").notNull().default("ar"),
     status: tenantStatusEnum("status")
       .notNull()
@@ -43,7 +45,12 @@ export const tenantsTable = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("IDX_tenants_status").on(table.status)],
+  (table) => [
+    index("IDX_tenants_status").on(table.status),
+    uniqueIndex("UQ_tenants_contact_phone")
+      .on(table.contactPhone)
+      .where(sql`${table.contactPhone} IS NOT NULL`),
+  ],
 );
 
 /** A user's customer-organization role; roles retain existing permissions. */

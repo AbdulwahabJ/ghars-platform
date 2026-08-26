@@ -11,6 +11,7 @@ import Register from '@/pages/Register';
 import VerifyEmail from '@/pages/VerifyEmail';
 import AccessStatus from '@/pages/AccessStatus';
 import PlatformAdmin from '@/pages/PlatformAdmin';
+import ChangePassword from '@/pages/ChangePassword';
 import Setup from '@/pages/Setup';
 import PatientsList from '@/pages/PatientsList';
 import PatientFile from '@/pages/PatientFile';
@@ -44,6 +45,22 @@ function ProtectedRoute({ component: Component, path }: { component: any; path: 
     return <Redirect to="/login" replace />;
   }
 
+  if (user.mustChangePassword && path !== "/change-password") {
+    return <Redirect to="/change-password" replace />;
+  }
+  if (!user.mustChangePassword && path === "/change-password") {
+    return <Component />;
+  }
+
+  if (
+    isPlatformAdmin &&
+    !currentTenant &&
+    path !== "/platform-admin" &&
+    path !== "/change-password"
+  ) {
+    return <Redirect to="/platform-admin" replace />;
+  }
+
   if (currentTenant) {
     const isPending = currentTenant.status === "PENDING_VERIFICATION";
     const isSuspended = currentTenant.status === "SUSPENDED";
@@ -57,8 +74,12 @@ function ProtectedRoute({ component: Component, path }: { component: any; path: 
 
     const isBlocked = isPending || isSuspended || isTrialExpired;
 
-    if (isBlocked && path !== "/access-status") {
-      if (!(isPlatformAdmin && path === "/platform-admin")) {
+    if (isBlocked) {
+      if (isPlatformAdmin) {
+        if (path !== "/platform-admin") {
+          return <Redirect to="/platform-admin" replace />;
+        }
+      } else if (path !== "/access-status") {
         return <Redirect to="/access-status" replace />;
       }
     }
@@ -85,6 +106,9 @@ function Router() {
       </Route>
       <Route path="/platform-admin">
         {() => <ProtectedRoute component={PlatformAdmin} path="/platform-admin" />}
+      </Route>
+      <Route path="/change-password">
+        {() => <ProtectedRoute component={ChangePassword} path="/change-password" />}
       </Route>
       <Route path="/">
         {() => <ProtectedRoute component={Dashboard} path="/" />}

@@ -8,6 +8,7 @@ import {
   usePlatformReactivateTenant,
   usePlatformExtendTrial,
   usePlatformResolveActivationRequest,
+  usePlatformResetTenantAdminPassword,
 } from "@/hooks/use-platform-admin";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -17,15 +18,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowRight, CheckCircle2, ShieldAlert, Loader2, FileText, Settings2, ShieldCheck, Calendar } from "lucide-react";
+import { Search, ArrowRight, CheckCircle2, ShieldAlert, Loader2, FileText, Settings2, ShieldCheck, Calendar, Copy, KeyRound, LogOut, MapPin, Phone } from "lucide-react";
 import { TenantStatus } from "@workspace/shared";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "@/i18n/LocaleProvider";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { localizeErrorMessage } from "@/lib/localize-error";
 
 export default function PlatformAdmin() {
   const [, setLocation] = useLocation();
-  const { isPlatformAdmin } = useAuth();
+  const { isPlatformAdmin, logout } = useAuth();
   const { t } = useTranslation("commercial");
   const { direction } = useLocale();
 
@@ -56,15 +59,17 @@ export default function PlatformAdmin() {
     return null;
   }
 
-  const handleBack = () => setLocation("/");
+  const handleLogout = () =>
+    logout.mutate(undefined, { onSuccess: () => setLocation("/login") });
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-[#f4f7fa] pb-12" dir={direction}>
       <header className="bg-brand-navy text-white sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={handleBack} className="text-white hover:bg-white/10 hover:text-white">
-              <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+            <Button variant="ghost" onClick={handleLogout} className="gap-2 text-white hover:bg-white/10 hover:text-white">
+              <LogOut className="h-4 w-4" />
+              <span>{t("common:actions.logout")}</span>
             </Button>
             <div className="flex items-center gap-3 border-s border-white/20 ps-4">
               <ShieldCheck className="h-6 w-6 text-emerald-400" />
@@ -189,19 +194,23 @@ function StatusBadge({ status }: { status: string }) {
 
 function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const { data: detailData, isLoading } = usePlatformTenant(id);
-  const { t } = useTranslation("commercial");
+  const { t } = useTranslation(["commercial", "common"]);
 
   const activateMutation = usePlatformActivateTenant();
   const suspendMutation = usePlatformSuspendTenant();
   const reactivateMutation = usePlatformReactivateTenant();
   const extendTrialMutation = usePlatformExtendTrial();
   const resolveRequestMutation = usePlatformResolveActivationRequest();
+  const resetPasswordMutation = usePlatformResetTenantAdminPassword();
 
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [extendDays, setExtendDays] = useState("14");
 
   const [resolveDialogOpen, setResolveDialogOpen] = useState<{id: string, action: 'approve'|'reject'} | null>(null);
   const [resolveNote, setResolveNote] = useState("");
+  const [resetUser, setResetUser] = useState<{ id: string; fullName: string } | null>(null);
+  const [manualPassword, setManualPassword] = useState("");
+  const [temporaryPassword, setTemporaryPassword] = useState("");
 
   if (isLoading || !detailData) {
     return (
@@ -228,6 +237,17 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
       input: { note: resolveNote || undefined }
     }, {
       onSuccess: () => setResolveDialogOpen(null)
+    });
+  };
+
+  const handlePasswordReset = () => {
+    if (!resetUser) return;
+    resetPasswordMutation.mutate({
+      tenantId: id,
+      userId: resetUser.id,
+      input: manualPassword.trim() ? { password: manualPassword } : {},
+    }, {
+      onSuccess: (result) => setTemporaryPassword(result.temporaryPassword),
     });
   };
 
@@ -269,6 +289,20 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 <div className="text-[15px] font-medium">{tenant.contactEmail || '—'}</div>
               </div>
               <div>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.contactPhone")}</label>
+                <div className="flex items-center gap-1.5 text-[15px] font-medium" dir="ltr">
+                  <Phone className="h-4 w-4 text-slate-400" />
+                  {tenant.contactPhone || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.city")}</label>
+                <div className="flex items-center gap-1.5 text-[15px] font-medium">
+                  <MapPin className="h-4 w-4 text-slate-400" />
+                  {tenant.city || '—'}
+                </div>
+              </div>
+              <div>
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.registrationDate")}</label>
                 <div className="text-[15px] font-medium notranslate">{formatSaudiDateTime(tenant.createdAt)}</div>
               </div>
@@ -280,6 +314,61 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
                   ) : '—'}
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+              <h3 className="font-bold text-brand-navy">{t("platformAdmin.users.title")}</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("platformAdmin.users.name")}</TableHead>
+                    <TableHead>{t("platformAdmin.users.username")}</TableHead>
+                    <TableHead>{t("platformAdmin.users.role")}</TableHead>
+                    <TableHead>{t("platformAdmin.users.status")}</TableHead>
+                    <TableHead>{t("platformAdmin.users.lastLogin")}</TableHead>
+                    <TableHead>{t("common:labels.actions")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tenant.users.map((tenantUser) => (
+                    <TableRow key={tenantUser.id}>
+                      <TableCell className="font-medium">{tenantUser.fullName}</TableCell>
+                      <TableCell dir="ltr">{tenantUser.username}</TableCell>
+                      <TableCell>{t(`common:roles.${tenantUser.role.toLowerCase()}`)}</TableCell>
+                      <TableCell>
+                        <Badge variant={tenantUser.isActive ? "secondary" : "destructive"}>
+                          {tenantUser.isActive ? t("platformAdmin.users.active") : t("platformAdmin.users.disabled")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {tenantUser.lastLoginAt ? formatSaudiDateTime(tenantUser.lastLoginAt) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {tenantUser.role === "ADMIN" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => {
+                              setResetUser({ id: tenantUser.id, fullName: tenantUser.fullName });
+                              setManualPassword("");
+                              setTemporaryPassword("");
+                              resetPasswordMutation.reset();
+                            }}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                            {t("platformAdmin.actions.resetPassword")}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </div>
 
@@ -422,6 +511,63 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
               {resolveDialogOpen?.action === 'approve' ? t("platformAdmin.dialogs.approve") : t("platformAdmin.dialogs.reject")}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!resetUser} onOpenChange={(open) => {
+        if (!open) {
+          setResetUser(null);
+          setManualPassword("");
+          setTemporaryPassword("");
+          resetPasswordMutation.reset();
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("platformAdmin.dialogs.resetPasswordTitle", { name: resetUser?.fullName })}</DialogTitle>
+          </DialogHeader>
+          {resetPasswordMutation.isError && (
+            <Alert variant="destructive">
+              <AlertDescription>{localizeErrorMessage(resetPasswordMutation.error)}</AlertDescription>
+            </Alert>
+          )}
+          {temporaryPassword ? (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">{t("platformAdmin.dialogs.temporaryPasswordNotice")}</p>
+              <div className="flex items-center gap-2 rounded-lg border bg-slate-50 p-3">
+                <code dir="ltr" className="flex-1 select-all text-start font-mono text-sm">{temporaryPassword}</code>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => void navigator.clipboard.writeText(temporaryPassword)}
+                  aria-label={t("platformAdmin.dialogs.copyPassword")}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed text-slate-600">{t("platformAdmin.dialogs.resetPasswordDescription")}</p>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">{t("platformAdmin.dialogs.temporaryPassword")}</label>
+                <Input
+                  type="password"
+                  dir="ltr"
+                  value={manualPassword}
+                  onChange={(event) => setManualPassword(event.target.value)}
+                />
+                <p className="text-xs text-slate-500">{t("platformAdmin.dialogs.generateHint")}</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setResetUser(null)}>{t("platformAdmin.dialogs.cancel")}</Button>
+                <Button onClick={handlePasswordReset} disabled={resetPasswordMutation.isPending}>
+                  {resetPasswordMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                  {t("platformAdmin.actions.resetPassword")}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

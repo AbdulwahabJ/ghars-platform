@@ -34,6 +34,8 @@ import type {
   BoneGraftProcedureInput,
   BoneGraftProcedureUpdate,
   CompletePasswordResetInput,
+  ChangeOwnPasswordInput,
+  ForcedPasswordChangeInput,
   ProstheticEvent,
   ProstheticEventInput,
   LoginInput,
@@ -82,6 +84,7 @@ import type {
   ImportType,
   ReorderLookupOptionsInput,
   ResetPasswordInput,
+  PasswordResetResponse,
   UpdateAppSettingsInput,
   UpdateLookupOptionInput,
   UpdateTemplateInput,
@@ -187,6 +190,16 @@ export const api = {
       method: "POST",
       json: input,
     }),
+  changeOwnPassword: (input: ChangeOwnPasswordInput) =>
+    request<void>("/auth/change-password", {
+      method: "POST",
+      json: input,
+    }),
+  completeForcedPasswordChange: (input: ForcedPasswordChangeInput) =>
+    request<void>("/auth/forced-password-change", {
+      method: "POST",
+      json: input,
+    }),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
   me: () => request<MeResponse>("/auth/me"),
   register: (input: PublicRegistrationInput) =>
@@ -246,6 +259,15 @@ export const api = {
       method: "POST",
       json: input,
     }),
+  platformResetTenantAdminPassword: (
+    tenantId: string,
+    userId: string,
+    input: ResetPasswordInput,
+  ) =>
+    request<PasswordResetResponse>(
+      `/platform-admin/tenants/${tenantId}/users/${userId}/reset-password`,
+      { method: "POST", json: input },
+    ),
   platformResolveActivationRequest: (
     id: string,
     action: "approve" | "reject",
@@ -480,7 +502,7 @@ export const api = {
       method: "POST",
     }),
   adminResetPassword: (id: string, input: ResetPasswordInput) =>
-    request<void>(`/admin/users/${id}/reset-password`, {
+    request<PasswordResetResponse>(`/admin/users/${id}/reset-password`, {
       method: "POST",
       json: input,
     }),
