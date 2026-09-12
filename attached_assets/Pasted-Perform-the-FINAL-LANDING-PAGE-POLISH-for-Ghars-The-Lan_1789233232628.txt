@@ -1,0 +1,458 @@
+Perform the FINAL LANDING PAGE POLISH for Ghars.
+
+The Landing Page implementation is approved.
+
+DO NOT redesign it.
+DO NOT rebuild the commercial architecture.
+DO NOT change the screenshot/demo dataset.
+DO NOT remove visible TEST / screenshot seed markers; leave them as they are.
+
+Only fix the remaining branding, support, legal, localization, and final QA items.
+
+==================================================
+1. CONSISTENT GHARS BRAND IN NAVBAR
+==================================================
+
+The official Landing Page navbar brand must ALWAYS display:
+
+غرس | Ghars
+
+followed by the official Ghars hexagon icon.
+
+Some current states/screens show only:
+
+Ghars
+
+This is inconsistent.
+
+Use the same approved brand lockup everywhere:
+
+غرس | Ghars + icon
+
+Arabic and English locales should both preserve the bilingual product brand.
+
+Do NOT create a new logo treatment.
+
+Do NOT use a stacked oversized logo in the navbar.
+
+Use the existing official Ghars assets already available in the project.
+
+==================================================
+2. BRAND TYPOGRAPHY
+==================================================
+
+Match the authenticated Ghars application branding as closely as possible.
+
+Arabic:
+Cairo / existing Ghars Arabic font
+
+English:
+Montserrat / existing Ghars English font
+
+Use appropriate SemiBold/Bold weights consistent with the product UI.
+
+==================================================
+3. SUPPORT CONTACTS
+==================================================
+
+Verify Landing Page support contacts come from Platform Settings.
+
+Do NOT hardcode:
+
+- Support WhatsApp
+- Support Phone
+- Support Email
+
+Use the current canonical Platform Settings as the source of truth.
+
+==================================================
+4. WHATSAPP SUPPORT
+==================================================
+
+All Landing Page WhatsApp actions must use:
+
+https://wa.me/{normalizedSupportWhatsApp}
+
+Do NOT use:
+
+whatsapp://
+
+Do NOT use tel: for WhatsApp actions.
+
+Use:
+
+target="_blank"
+rel="noopener noreferrer"
+
+where appropriate.
+
+==================================================
+5. SUPPORT CONTACT VALIDATION
+==================================================
+
+Report the currently configured:
+
+- Support WhatsApp
+- Support Phone
+- Support Email
+
+Do NOT change them automatically.
+
+If they look like development placeholders, flag:
+
+PRODUCTION SUPPORT CONTACTS: NEED CONFIGURATION
+
+Do not invent real production values.
+
+==================================================
+6. PRIVACY POLICY
+==================================================
+
+Verify:
+
+سياسة الخصوصية
+Privacy Policy
+
+navigates to a real public bilingual route/page.
+
+If missing:
+
+create a simple professional bilingual Privacy Policy page consistent with Ghars branding.
+
+Do not make unsupported legal promises.
+
+Cover only reasonable topics such as:
+
+- information collected
+- account and tenant data
+- service operation
+- security practices
+- user responsibilities
+- support/contact
+- policy updates
+
+Keep wording general and safe.
+
+==================================================
+7. TERMS & CONDITIONS
+==================================================
+
+Verify:
+
+الشروط والأحكام
+Terms & Conditions
+
+navigates to a real public bilingual route/page.
+
+If missing:
+
+create a simple professional bilingual Terms page consistent with Ghars branding.
+
+It should reflect the actual commercial model:
+
+- 3-day free trial
+- no recurring subscription
+- no payment gateway inside Ghars
+- activation occurs manually after contacting support
+- permanent activation after approval/payment
+- tenant/user responsibilities
+- service availability
+- acceptable use
+- support
+- suspension rights where applicable
+
+Do not invent monthly/yearly plans.
+
+==================================================
+8. FREE TRIAL MESSAGING
+==================================================
+
+Keep the approved commercial wording:
+
+تجربة مجانية لمدة 3 أيام
+
+English:
+
+3-day free trial
+
+Do NOT introduce:
+
+monthly plans
+annual plans
+subscription tiers
+checkout
+payment gateway
+
+==================================================
+9. COMMERCIAL FLOW
+==================================================
+
+Landing Page commercial flow must remain:
+
+Registration
+→ 3-day free trial
+→ Trial expires
+→ Contact Ghars Support
+→ Manual payment/agreement outside Ghars
+→ Platform Admin activates account permanently
+
+Keep this consistent across:
+
+Hero
+How It Works
+FAQ
+Final CTA
+Terms
+
+==================================================
+10. LOGIN / SIGNUP LINKS
+==================================================
+
+Verify:
+
+تسجيل الدخول
+Sign in
+
+routes to the actual Ghars login page.
+
+Verify:
+
+ابدأ تجربتك المجانية
+Start Free Trial
+
+routes to the actual public registration flow.
+
+No dead routes.
+
+==================================================
+11. LANDING LOCALIZATION
+==================================================
+
+Audit the entire Landing Page.
+
+Arabic mode:
+no unintended English UI text.
+
+English mode:
+no unintended Arabic UI text.
+
+Exceptions:
+
+- official brand:
+  غرس | Ghars
+- screenshots containing real app UI
+- user-entered/demo data inside screenshots
+
+Use the existing i18n system.
+
+Do NOT create a second localization framework.
+
+==================================================
+12. NAVIGATION
+==================================================
+
+Verify navbar section links correctly scroll/navigate to:
+
+- المزايا / Features
+- لماذا غرس / Why Ghars
+- كيف يعمل / How It Works
+- لقطات النظام / Product Screens
+- الأسئلة الشائعة / FAQ
+
+Keep smooth navigation if already implemented.
+
+==================================================
+13. SCREENSHOT GALLERY
+==================================================
+
+Keep the real Ghars screenshots already used.
+
+Do NOT replace them with AI-generated or fake dashboards.
+
+Verify:
+
+- images load correctly
+- labels are correct
+- lightbox/modal works
+- no broken assets
+- responsive layout works
+
+Do NOT remove TEST / screenshot-seed text from screenshots.
+
+==================================================
+14. VIDEO
+==================================================
+
+Keep the current real Ghars product video.
+
+Verify:
+
+- it loads
+- play/pause works
+- fullscreen works if supported
+- mobile playback is usable
+- no broken source
+- no autoplay with sound
+
+==================================================
+15. RESPONSIVE QA
+==================================================
+
+Verify:
+
+1920x1080
+1600x900
+1366x768
+tablet
+390x844
+
+Check:
+
+- no horizontal overflow
+- navbar usable
+- CTA buttons fit
+- hero screenshot fits
+- gallery cards fit
+- FAQ usable
+- footer usable
+- legal pages responsive
+
+==================================================
+16. ACCESSIBILITY
+==================================================
+
+Verify:
+
+- meaningful alt text for marketing images
+- buttons have readable labels
+- focus states remain visible
+- links are keyboard accessible
+- contrast remains acceptable
+
+Do not redesign the palette.
+
+==================================================
+17. SEO
+==================================================
+
+Verify Arabic and English SEO basics:
+
+- page title
+- meta description
+- canonical route if current architecture supports it
+- heading hierarchy
+- Open Graph metadata if already supported
+- robots index, follow
+
+Do not overengineer SEO.
+
+==================================================
+18. FOOTER
+==================================================
+
+Footer should contain:
+
+- غرس | Ghars brand
+- Privacy Policy
+- Terms & Conditions
+- support contact
+- quick links
+- copyright
+
+Use current support settings.
+
+==================================================
+19. DO NOT TOUCH PRODUCT APP
+==================================================
+
+Do NOT change:
+
+- Dashboard
+- Patient File
+- Finance
+- Statistics
+- operational workflows
+- commercial lifecycle backend
+- demo dataset
+- tenant isolation
+- authentication architecture
+
+This task is Landing Page final polish only.
+
+==================================================
+20. FINAL BROWSER VERIFICATION
+==================================================
+
+Browser-test Arabic and English.
+
+Verify:
+
+- غرس | Ghars navbar branding
+- signup works
+- login works
+- WhatsApp works
+- support contacts come from settings
+- Privacy works
+- Terms works
+- FAQ works
+- gallery works
+- video works
+- navigation works
+- free-trial wording consistent
+- mobile responsive
+- no console errors
+
+==================================================
+21. TESTS
+==================================================
+
+Run:
+
+- frontend TypeScript
+- backend/shared TypeScript if affected
+- existing API tests
+- production frontend build
+- production backend build
+- browser smoke test for Landing Page
+
+Do not weaken existing tests.
+
+==================================================
+22. FINAL REPORT
+==================================================
+
+Report:
+
+1. Navbar branding result
+2. Support contact source
+3. WhatsApp behavior
+4. Privacy Policy route
+5. Terms route
+6. Signup route
+7. Login route
+8. Arabic localization result
+9. English localization result
+10. Responsive result
+11. Gallery result
+12. Video result
+13. SEO result
+14. Full tests
+15. Production builds
+16. Exact checkpoint/commit hash
+
+Final flags:
+
+LANDING BRAND CONSISTENCY: PASS / FAIL
+SUPPORT CONTACTS: PASS / NEED CONFIGURATION
+WHATSAPP SUPPORT: PASS / FAIL
+PRIVACY POLICY: PASS / FAIL
+TERMS & CONDITIONS: PASS / FAIL
+LANDING ARABIC: PASS / FAIL
+LANDING ENGLISH: PASS / FAIL
+RESPONSIVE LANDING: PASS / FAIL
+LANDING MEDIA: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.
