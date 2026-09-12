@@ -32,7 +32,7 @@ export default function ChangePassword() {
         : api.changeOwnPassword({ currentPassword, newPassword }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
-      setLocation(isPlatformAdmin && !currentTenant ? "/platform-admin" : "/");
+      setLocation(isPlatformAdmin && !currentTenant ? "/platform-admin" : "/dashboard");
     },
   });
 

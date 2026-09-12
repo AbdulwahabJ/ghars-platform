@@ -17,6 +17,7 @@ import PatientsList from '@/pages/PatientsList';
 import PatientFile from '@/pages/PatientFile';
 import Statistics from '@/pages/Statistics';
 import Settings from '@/pages/Settings';
+import LandingPage from '@/pages/LandingPage';
 import NotFound from '@/pages/not-found';
 import { LocaleProvider } from '@/i18n/LocaleProvider';
 
@@ -84,7 +85,7 @@ function ProtectedRoute({ component: Component, path }: { component: any; path: 
     }
 
     if (!isBlocked && path === "/access-status") {
-      return <Redirect to="/" replace />;
+      return <Redirect to="/dashboard" replace />;
     }
   }
 
@@ -112,8 +113,11 @@ function Router() {
       <Route path="/change-password">
         {() => <ProtectedRoute component={ChangePassword} path="/change-password" />}
       </Route>
+      <Route path="/dashboard">
+        {() => <ProtectedRoute component={Dashboard} path="/dashboard" />}
+      </Route>
       <Route path="/">
-        {() => <ProtectedRoute component={Dashboard} path="/" />}
+        {() => <LandingPage />}
       </Route>
       <Route path="/patients">
         {() => <ProtectedRoute component={PatientsList} path="/patients" />}

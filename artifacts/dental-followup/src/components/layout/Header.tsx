@@ -60,7 +60,7 @@ export function Header({ user }: HeaderProps) {
       : t("roles.assistant");
 
   const navItems = [
-    { label: t("nav.dashboard"), path: "/" },
+    { label: t("nav.dashboard"), path: "/dashboard" },
     { label: t("nav.patients"), path: "/patients" },
     { label: t("nav.statistics"), path: "/statistics" },
     ...(user.role === "ADMIN" ? [{ label: t("nav.settings"), path: "/settings" }] : []),
@@ -115,8 +115,8 @@ export function Header({ user }: HeaderProps) {
         <nav className="hidden md:flex items-center gap-1 justify-self-center h-full" data-testid="nav-tabs" id="tour-nav-tabs">
           {navItems.map((item) => {
             const isActive =
-              item.path === "/"
-                ? location === "/"
+              item.path === "/dashboard"
+                ? location === "/dashboard"
                 : location.startsWith(item.path);
             return (
               <Link
@@ -279,7 +279,7 @@ export function Header({ user }: HeaderProps) {
                       className="cursor-pointer gap-2"
                       onClick={() => switchTenant.mutate({ tenantId: m.tenant.id }, {
                         onSuccess: () => {
-                          setLocation("/");
+                          setLocation("/dashboard");
                         }
                       })}
                     >

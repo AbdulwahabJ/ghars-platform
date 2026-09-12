@@ -17,7 +17,7 @@ export default function PlatformAdmin() {
 
   useEffect(() => {
     if (!isPlatformAdmin) {
-      setLocation("/");
+      setLocation("/dashboard");
     }
   }, [isPlatformAdmin, setLocation]);
 

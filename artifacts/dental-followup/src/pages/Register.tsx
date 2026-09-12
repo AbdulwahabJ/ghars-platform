@@ -66,7 +66,7 @@ export default function Register() {
         login.mutate(
           { username: data.username, password: data.password },
           {
-            onSuccess: () => setLocation("/"),
+            onSuccess: () => setLocation("/dashboard"),
             onError: () => setSuccess(true),
           },
         );

@@ -82,7 +82,7 @@ export default function Login() {
       if (setupStatus?.setupRequired) {
         setLocation("/setup");
       } else if (user) {
-        setLocation("/");
+        setLocation("/dashboard");
       }
     }
   }, [user, setupStatus, isLoading, setLocation]);

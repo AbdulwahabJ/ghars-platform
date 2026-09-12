@@ -19,7 +19,7 @@ export default function Settings() {
   // Backend enforces ADMIN on every endpoint; this just avoids a dead page.
   useEffect(() => {
     if (!isLoading && user && user.role !== "ADMIN") {
-      setLocation("/");
+      setLocation("/dashboard");
     }
   }, [isLoading, user, setLocation]);
 

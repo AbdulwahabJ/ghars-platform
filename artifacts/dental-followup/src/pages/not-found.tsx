@@ -15,7 +15,7 @@ export default function NotFound() {
         <p className="text-muted-foreground mb-8">
           {t("notFound.description")}
         </p>
-        <Link href="/" className="btn-primary w-full inline-flex justify-center">
+        <Link href="/dashboard" className="btn-primary w-full inline-flex justify-center">
           {t("notFound.returnHome")}
         </Link>
       </div>
