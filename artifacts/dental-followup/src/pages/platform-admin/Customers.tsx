@@ -163,7 +163,7 @@ function StatusBadge({ status }: { status: string }) {
   }
 }
 
-function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
+export function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const { data: detailData, isLoading } = usePlatformTenant(id);
   const { t } = useTranslation(["commercial", "common"]);
 

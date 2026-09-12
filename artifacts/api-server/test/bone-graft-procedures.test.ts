@@ -33,6 +33,10 @@ beforeAll(async () => {
   patientId = patient.body.patient.id;
   const firstCase = await admin.post(`/api/patients/${patientId}/implant-cases`).send({});
   caseId = firstCase.body.case.id;
+  await pool.query(
+    "UPDATE implant_cases SET procedure_date = $2 WHERE id = $1",
+    [caseId, procedurePayload.procedureDate],
+  );
   const secondCase = await admin.post(`/api/patients/${patientId}/implant-cases`).send({});
   secondCaseId = secondCase.body.case.id;
   implantId = (await admin.post(`/api/implant-cases/${caseId}/implants`).send({ site: "36" })).body.implant.id;

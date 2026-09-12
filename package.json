@@ -16,6 +16,9 @@
     "@replit/connectors-sdk": "^0.4.1"
   },
   "devDependencies": {
+    "@vitest/browser-playwright": "4.1.10",
+    "playwright": "^1.63.0",
+    "vitest": "4.1.10",
     "@eslint/js": "^10.0.1",
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",
