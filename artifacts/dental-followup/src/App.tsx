@@ -18,6 +18,8 @@ import PatientFile from '@/pages/PatientFile';
 import Statistics from '@/pages/Statistics';
 import Settings from '@/pages/Settings';
 import LandingPage from '@/pages/LandingPage';
+import Terms from '@/pages/legal/Terms';
+import Privacy from '@/pages/legal/Privacy';
 import NotFound from '@/pages/not-found';
 import { LocaleProvider } from '@/i18n/LocaleProvider';
 
@@ -118,6 +120,12 @@ function Router() {
       </Route>
       <Route path="/">
         {() => <LandingPage />}
+      </Route>
+      <Route path="/privacy">
+        {() => <Privacy />}
+      </Route>
+      <Route path="/terms">
+        {() => <Terms />}
       </Route>
       <Route path="/patients">
         {() => <ProtectedRoute component={PatientsList} path="/patients" />}

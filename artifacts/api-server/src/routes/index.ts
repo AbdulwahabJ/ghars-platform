@@ -18,6 +18,7 @@ import patientsRouter from "./patients";
 import preferencesRouter from "./preferences";
 import reportsRouter from "./reports";
 import settingsRouter from "./settings";
+import landingMediaRouter from "./landing-media";
 import {
   requireAuth,
   requireOperationalTenant,
@@ -28,6 +29,8 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+// Public landing-page media read/proxy must remain outside the admin mount.
+router.use(landingMediaRouter);
 // These authenticated lifecycle surfaces must remain reachable for suspended,
 // expired-trial, and pending-verification customers.
 router.use(commercialRouter);

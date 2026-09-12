@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Users, Clock, Key, AlertOctagon, Activity, FileStack, Settings, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Clock, Key, AlertOctagon, Activity, FileStack, Settings, LogOut, ShieldCheck, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/LocaleProvider";
@@ -21,6 +21,7 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
     { href: "/platform-admin/activation-requests", icon: Key, label: t("platformAdmin.nav.activationRequests", "Activation Requests") },
     { href: "/platform-admin/errors", icon: AlertOctagon, label: t("platformAdmin.nav.errors", "System Errors") },
     { href: "/platform-admin/health", icon: Activity, label: t("platformAdmin.nav.health", "System Health") },
+    { href: "/platform-admin/landing", icon: ImageIcon, label: t("platformAdmin.nav.landing", "Landing Page Content") },
     { href: "/platform-admin/audit", icon: FileStack, label: t("platformAdmin.nav.audit", "Audit Log") },
     { href: "/platform-admin/settings", icon: Settings, label: t("platformAdmin.nav.settings", "Settings") },
   ];

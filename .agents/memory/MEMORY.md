@@ -20,3 +20,4 @@
 - [Tenant membership authority](tenant-membership-authority.md) — roles, overrides, activity, assignment, and sessions are tenant-membership concerns; global users are identity only.
 - [Tenantless platform preferences](tenantless-platform-preferences.md) — identity preferences must work without a clinic tenant; avoid locale feedback loops and tenant audit assumptions.
 - [Permanent activation invariant](permanent-activation-invariant.md) — use activation history, not current status, to block trial actions and preserve permanent access through suspension.
+- [Immutable media promotion](immutable-media-promotion.md) — validate and copy the exact same staging generation into a create-only canonical object; one final object belongs to one record.

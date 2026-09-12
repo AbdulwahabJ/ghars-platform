@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
-import { 
+import {
   CheckCircle2,
-  ShieldCheck, 
-  Stethoscope, 
-  LineChart, 
-  Wallet, 
-  Users, 
+  ShieldCheck,
+  Stethoscope,
+  LineChart,
+  Wallet,
+  Users,
   BellRing,
   Menu,
   X,
@@ -16,14 +16,17 @@ import {
   MessageCircle,
   Headset,
   X as CloseIcon,
-  ChevronDown
+  ChevronDown,
+  Image as ImageIcon
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useSupportContacts } from "@/hooks/use-commercial";
+import { usePublicLandingMedia } from "@/hooks/use-landing-media";
 import { buildSupportWhatsappLink } from "@/lib/support";
+import gharsLogo from "@/assets/ghars-logo.png";
 import gharsSymbol from "@/assets/ghars-symbol.png";
 
 const CONTENT = {
@@ -103,11 +106,6 @@ const CONTENT = {
         { title: "إدارة الموظفين", img: "/assets/settings_staff.png" },
         { title: "إدارة المنصة", img: "/assets/settings_platform.png" },
       ]
-    },
-    demo: {
-      badge: "شاهد وتعلم",
-      title: "النظام أثناء العمل",
-      subtitle: "جولة سريعة لتتعرف على مميزات غرس الرئيسية."
     },
     trial: {
       title: "جاهز للارتقاء بعيادتك؟",
@@ -213,11 +211,6 @@ const CONTENT = {
         { title: "Platform Management", img: "/assets/settings_platform.png" },
       ]
     },
-    demo: {
-      badge: "Watch & Learn",
-      title: "The System in Action",
-      subtitle: "A quick tour to get to know Ghars' main features."
-    },
     trial: {
       title: "Ready to elevate your clinic?",
       subtitle: "Join the dental implant clinics that trust Ghars. Start your free trial today.",
@@ -253,7 +246,7 @@ export default function LandingPage() {
   const lang = i18n.language === 'en' ? 'en' : 'ar';
   const t = CONTENT[lang];
   const isRTL = direction === 'rtl';
-  
+
   const { user } = useAuth();
   const { data: supportContacts } = useSupportContacts();
   const supportWhatsappHref = buildSupportWhatsappLink(
@@ -262,7 +255,9 @@ export default function LandingPage() {
   );
   const supportEmail = supportContacts?.email;
   const supportPhone = supportContacts?.phone;
-  
+
+  const { data: landingMedia } = usePublicLandingMedia();
+
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -272,8 +267,7 @@ export default function LandingPage() {
     document.title = t.hero.title + " | غرس Ghars";
     document.documentElement.dir = isRTL ? "rtl" : "ltr";
     document.documentElement.lang = lang;
-    
-    // Set meta description
+
     let metaDesc = document.querySelector('meta[name="description"]');
     if (!metaDesc) {
       metaDesc = document.createElement('meta');
@@ -282,7 +276,6 @@ export default function LandingPage() {
     }
     metaDesc.setAttribute('content', t.hero.subtitle);
 
-    // Open Graph
     let ogTitle = document.querySelector('meta[property="og:title"]');
     if (!ogTitle) {
       ogTitle = document.createElement('meta');
@@ -299,7 +292,6 @@ export default function LandingPage() {
     }
     ogDesc.setAttribute('content', t.hero.subtitle);
 
-    // Twitter
     let twTitle = document.querySelector('meta[name="twitter:title"]');
     if (!twTitle) {
       twTitle = document.createElement('meta');
@@ -339,12 +331,38 @@ export default function LandingPage() {
   };
 
   const getAssetPath = (path: string) => {
+    if (path.startsWith('/objects/')) {
+      return `/api/storage${path}`;
+    }
     return import.meta.env.BASE_URL.replace(/\/$/, '') + path;
   };
 
+  // Determine resolved media
+  const heroTitle = landingMedia?.hero
+    ? (isRTL ? landingMedia.hero.titleAr : landingMedia.hero.titleEn) || t.hero.title
+    : t.hero.title;
+
+  const heroSubtitle = landingMedia?.hero
+    ? (isRTL ? landingMedia.hero.descriptionAr : landingMedia.hero.descriptionEn) || t.hero.subtitle
+    : t.hero.subtitle;
+
+  const heroImageSrc = landingMedia?.hero
+    ? getAssetPath(landingMedia.hero.fileRef)
+    : getAssetPath("/assets/dashboard.png");
+
+  const galleryItems = landingMedia?.gallery && landingMedia.gallery.length > 0
+    ? landingMedia.gallery.map(g => ({
+        title: isRTL ? g.titleAr : g.titleEn,
+        img: getAssetPath(g.fileRef)
+      }))
+    : t.gallery.items.map(g => ({
+        title: g.title,
+        img: getAssetPath(g.img)
+      }));
+
   return (
     <div className={`min-h-screen max-w-full overflow-x-hidden bg-background font-sans ${isRTL ? "font-brand-arabic" : "font-brand-latin"}`} dir={isRTL ? "rtl" : "ltr"}>
-      
+
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/90 backdrop-blur-md border-b border-border shadow-sm py-3" : "bg-transparent py-5"}`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -391,8 +409,8 @@ export default function LandingPage() {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <button 
-            className="md:hidden text-[#0D1B3D] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy rounded-md" 
+          <button
+            className="md:hidden text-[#0D1B3D] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy rounded-md"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-menu"
@@ -403,7 +421,7 @@ export default function LandingPage() {
         </div>
 
         {/* Mobile Nav */}
-        <div 
+        <div
           id="mobile-menu"
           className={`md:hidden absolute top-full left-0 right-0 bg-white border-b border-border shadow-lg py-4 px-4 flex flex-col gap-4 transition-all duration-300 ${mobileMenuOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
           aria-hidden={!mobileMenuOpen}
@@ -439,25 +457,26 @@ export default function LandingPage() {
       <section className="pt-32 pb-20 overflow-hidden relative">
         <div className="absolute top-0 right-0 -z-10 w-[800px] h-[800px] bg-gradient-to-br from-[#0F766E]/5 to-transparent rounded-full blur-3xl opacity-70 translate-x-1/3 -translate-y-1/3"></div>
         <div className="absolute bottom-0 left-0 -z-10 w-[600px] h-[600px] bg-gradient-to-tr from-[#1FA9B8]/5 to-transparent rounded-full blur-3xl opacity-70 -translate-x-1/3 translate-y-1/3"></div>
-        
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#ECF8F6] text-[#0F766E] font-medium text-sm mb-6 border border-[#0F766E]/10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <CheckCircle2 size={16} />
-              <span>{t.hero.trialNote}</span>
-            </div>
+            <img
+              src={gharsLogo}
+              alt="غرس | Ghars"
+              className="mx-auto mb-6 h-auto w-[100px] sm:w-[130px] md:w-[145px] object-contain animate-in fade-in slide-in-from-bottom-4 duration-700"
+            />
             <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-[#0D1B3D] leading-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
-              {t.hero.title}
+              {heroTitle}
             </h1>
             <p className="text-lg md:text-xl text-[#64748B] mb-10 max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
-              {t.hero.subtitle}
+              {heroSubtitle}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
               <Link data-testid="link-register" href="/register" className="btn-primary bg-[#0F766E] hover:bg-[#0F766E]/90 w-full sm:w-auto text-lg h-14 px-8 shadow-lg shadow-[#0F766E]/20">
                 {t.hero.ctaPrimary}
               </Link>
               {supportWhatsappHref ? (
-                <a href={supportWhatsappHref} target="_blank" rel="noreferrer" className="btn-outline border-[#0D1B3D]/20 text-[#0D1B3D] hover:bg-[#0D1B3D]/5 w-full sm:w-auto text-lg h-14 px-8">
+                <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline border-[#0D1B3D]/20 text-[#0D1B3D] hover:bg-[#0D1B3D]/5 w-full sm:w-auto text-lg h-14 px-8">
                   {t.hero.ctaSecondary}
                 </a>
               ) : (
@@ -466,7 +485,7 @@ export default function LandingPage() {
                 </button>
               )}
             </div>
-            
+
             <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-[#64748B] animate-in fade-in duration-700 delay-500">
               {t.hero.badges.map((badge, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -486,7 +505,7 @@ export default function LandingPage() {
                   <div className="w-3 h-3 rounded-full bg-green-400"></div>
                 </div>
               </div>
-              <img src={getAssetPath("/assets/dashboard.png")} alt="Ghars Dashboard" className="w-full object-cover rounded-b-lg border-t border-gray-100" />
+              <img src={heroImageSrc} alt={heroTitle} className="w-full object-cover rounded-b-lg border-t border-gray-100" />
             </div>
           </div>
         </div>
@@ -527,7 +546,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      
+
       {/* Why Ghars Section */}
       <section id="why" className="py-24 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -548,7 +567,7 @@ export default function LandingPage() {
             </div>
             <div className="relative">
               <div className="absolute inset-0 bg-[#0F766E]/5 rounded-3xl -rotate-6 scale-105"></div>
-              <img src={getAssetPath("/assets/patient_finance.png")} loading="lazy" alt="Why Ghars" className="relative z-10 rounded-2xl shadow-xl border border-gray-100" />
+              <img src={getAssetPath("/assets/patient_finance.png")} loading="lazy" alt={lang === "ar" ? "المالية والمدفوعات في غرس" : "Ghars finances and payments"} className="relative z-10 rounded-2xl shadow-xl border border-gray-100" />
             </div>
           </div>
         </div>
@@ -566,7 +585,7 @@ export default function LandingPage() {
           <div className="relative max-w-4xl mx-auto">
             {/* Connecting Line */}
             <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-[#0F766E]/10 via-[#0F766E]/30 to-[#0F766E]/10 -translate-y-1/2"></div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
               {t.howItWorks.steps.map((step, i) => (
                 <div key={i} className="text-center">
@@ -592,18 +611,18 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {t.gallery.items.map((item, i) => (
-              <div 
-                key={i} 
+            {galleryItems.map((item, i) => (
+              <div
+                key={i}
                 className="group relative rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-white/30 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
-                onClick={() => setLightboxImage(getAssetPath(item.img))}
+                onClick={() => setLightboxImage(item.img)}
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && setLightboxImage(getAssetPath(item.img))}
+                onKeyDown={(e) => e.key === 'Enter' && setLightboxImage(item.img)}
               >
                 <div className="aspect-[4/3] overflow-hidden">
-                  <img 
-                    src={getAssetPath(item.img)} 
-                    alt={item.title} 
+                  <img
+                    src={item.img}
+                    alt={item.title}
                     loading="lazy"
                     className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                   />
@@ -620,56 +639,27 @@ export default function LandingPage() {
 
       {/* Lightbox */}
       {lightboxImage && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"
           onClick={() => setLightboxImage(null)}
           role="dialog"
           aria-modal="true"
         >
-          <button 
+          <button
             className="absolute top-6 right-6 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             onClick={() => setLightboxImage(null)}
             aria-label="Close image preview"
           >
             <CloseIcon size={32} />
           </button>
-          <img 
-            src={lightboxImage} 
-            alt="Expanded view" 
+          <img
+            src={lightboxImage}
+            alt="Expanded view"
             className="max-w-full max-h-[90vh] object-contain rounded-lg border border-white/10 shadow-2xl"
-            onClick={(e) => e.stopPropagation()} 
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}
-
-      {/* Demo Video Section */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-[#0F766E] font-bold text-sm tracking-wider uppercase mb-3 block">{t.demo.badge}</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#0D1B3D] mb-4">{t.demo.title}</h2>
-            <p className="text-[#64748B] text-lg mb-4">{t.demo.subtitle}</p>
-          </div>
-
-          <div className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-border bg-black aspect-video relative group">
-            <video 
-              className="w-full h-full object-contain"
-              controls
-              preload="metadata"
-              poster={getAssetPath("/assets/dashboard.png")}
-              aria-label="Ghars system demo video"
-            >
-              <source src={getAssetPath("/assets/demo_1.webm")} type="video/webm" />
-              <source src={getAssetPath("/assets/demo_1.mp4")} type="video/mp4" />
-              <p>Your browser doesn't support HTML video. Here is a <a href={getAssetPath("/assets/demo_1.webm")}>link to the video</a> instead.</p>
-            </video>
-            {/* Visual transcript for screen readers */}
-            <div className="sr-only">
-              Video demonstrating the Ghars dental implant platform. It shows a user navigating through the dashboard, accessing patient files, reviewing financial records, and tracking implant cases.
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* FAQ Section */}
       <section id="faq" className="py-24 bg-[#F5F8FA]">
@@ -684,7 +674,7 @@ export default function LandingPage() {
               const isOpen = openFaq === i;
               return (
                 <div key={i} className="bg-white border border-border rounded-xl overflow-hidden transition-all duration-300">
-                  <button 
+                  <button
                     className="w-full px-6 py-5 flex items-center justify-between text-start focus-visible:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0F766E]"
                     onClick={() => setOpenFaq(isOpen ? null : i)}
                     aria-expanded={isOpen}
@@ -695,7 +685,7 @@ export default function LandingPage() {
                       <ChevronDown size={20} />
                     </div>
                   </button>
-                  <div 
+                  <div
                     id={`faq-answer-${i}`}
                     className={`px-6 overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-40 pb-6 opacity-100' : 'max-h-0 opacity-0'}`}
                     aria-hidden={!isOpen}
@@ -717,21 +707,21 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 max-w-3xl mx-auto">{t.trial.title}</h2>
           <p className="text-white/80 text-xl mb-10 max-w-2xl mx-auto">{t.trial.subtitle}</p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link data-testid="link-register-footer" href="/register" className="btn-primary bg-[#0F766E] hover:bg-[#0F766E]/90 text-white border-none text-lg h-14 px-8 w-full sm:w-auto shadow-xl">
               {t.trial.cta}
             </Link>
             {supportWhatsappHref ? (
-              <a href={supportWhatsappHref} target="_blank" rel="noreferrer" className="btn-outline border-white/20 text-white hover:bg-white/10 text-lg h-14 px-8 w-full sm:w-auto">
+              <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline border-white/20 text-white hover:bg-white/10 text-lg h-14 px-8 w-full sm:w-auto">
                 <MessageCircle className="me-2 text-[#25D366]" size={20} />
                 {t.trial.whatsapp}
               </a>
             ) : (
-               <button disabled className="btn-outline border-white/20 text-white text-lg h-14 px-8 w-full sm:w-auto opacity-50 cursor-not-allowed">
+              <button disabled className="btn-outline border-white/20 text-white text-lg h-14 px-8 w-full sm:w-auto opacity-50 cursor-not-allowed">
                 <Headset className="me-2" size={20} />
                 {t.trial.support}
-               </button>
+              </button>
             )}
           </div>
           <p className="text-white/60 text-sm mt-8 max-w-lg mx-auto leading-relaxed bg-white/5 p-4 rounded-lg border border-white/10">{t.trial.note}</p>
@@ -743,15 +733,19 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-3 mb-6">
-                <img src={gharsSymbol} alt="Ghars Logo" className="w-10 h-10 object-contain grayscale brightness-200" />
-                <span className="font-bold text-2xl tracking-tight">Ghars</span>
+              <div className="flex items-center gap-3 mb-6" dir="ltr">
+                <span className="notranslate inline-flex items-baseline whitespace-nowrap font-semibold text-2xl tracking-tight">
+                  <span dir="rtl" className="font-brand-arabic">غرس</span>
+                  <span className="mx-1 text-white/50">|</span>
+                  <span className="font-brand-latin text-[0.9em]">Ghars</span>
+                </span>
+                <img src={gharsSymbol} alt="Ghars" className="w-10 h-10 object-contain grayscale brightness-200" />
               </div>
               <p className="text-white/60 leading-relaxed max-w-sm text-start">
                 {t.hero.subtitle}
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-bold text-lg mb-6 text-start">{t.footer.quickLinks}</h4>
               <ul className="space-y-3 flex flex-col items-start">
@@ -766,21 +760,31 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-lg mb-6 text-start">{t.footer.contactUs}</h4>
               <ul className="space-y-3 flex flex-col items-start">
-                {supportEmail && (
+                {supportWhatsappHref && (
                   <li>
-                    <a href={`mailto:${supportEmail}`} className="text-white/60 hover:text-white transition-colors flex items-center gap-2" dir="ltr">
-                      {supportEmail}
+                    <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors flex items-center gap-2">
+                      <MessageCircle size={18} />
+                      <span dir="ltr">{supportContacts?.whatsapp}</span>
                     </a>
                   </li>
                 )}
                 {supportPhone && (
                   <li>
                     <a href={`tel:${supportPhone}`} className="text-white/60 hover:text-white transition-colors flex items-center gap-2" dir="ltr">
+                      <Headset size={18} />
                       {supportPhone}
                     </a>
                   </li>
                 )}
-                {!supportEmail && !supportPhone && (
+                {supportEmail && (
+                  <li>
+                    <a href={`mailto:${supportEmail}`} className="text-white/60 hover:text-white transition-colors flex items-center gap-2 break-all" dir="ltr">
+                      <Globe size={18} />
+                      {supportEmail}
+                    </a>
+                  </li>
+                )}
+                {!supportWhatsappHref && !supportEmail && !supportPhone && (
                   <li><span className="text-white/40 italic">-</span></li>
                 )}
               </ul>
@@ -790,8 +794,8 @@ export default function LandingPage() {
           <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-white/40 text-sm">{t.footer.rights}</p>
             <div className="flex gap-6 text-sm">
-              <span className="text-white/40 hover:text-white transition-colors cursor-not-allowed">{t.footer.privacy}</span>
-              <span className="text-white/40 hover:text-white transition-colors cursor-not-allowed">{t.footer.terms}</span>
+              <Link href="/privacy" className="text-white/40 hover:text-white transition-colors">{t.footer.privacy}</Link>
+              <Link href="/terms" className="text-white/40 hover:text-white transition-colors">{t.footer.terms}</Link>
             </div>
           </div>
         </div>

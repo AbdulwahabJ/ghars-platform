@@ -1,0 +1,211 @@
+MODE: Free
+
+Update ONLY the Landing Page HERO section.
+
+Use the attached current Hero screenshot and the attached official Ghars logo reference.
+
+DO NOT redesign the Landing Page.
+DO NOT change any other section.
+
+==================================================
+1. REMOVE THE GREEN TRIAL BADGE
+==================================================
+
+Remove the green pill/badge currently displayed above the Hero heading:
+
+"تجربة مجانية لمدة 3 أيام، بدون بطاقة ائتمان"
+
+and its English equivalent.
+
+Do not leave an empty gap.
+
+IMPORTANT:
+
+The 3-day free trial still exists commercially.
+
+Do NOT remove the free-trial messaging from:
+
+- CTA buttons
+- How It Works
+- FAQ
+- final CTA
+- Terms
+
+We are removing it ONLY from this Hero badge.
+
+==================================================
+2. ADD THE FULL GHARS LOGO IN ITS PLACE
+==================================================
+
+In the upper center of the Hero, place the official FULL Ghars vertical logo shown in the attached reference:
+
+[hexagon implant icon]
+
+غرس
+
+Ghars
+
+Use the existing official Ghars brand asset in the project if available.
+
+The attached image is the visual reference.
+
+Do NOT recreate or reinterpret the logo.
+
+Do NOT change:
+
+- icon
+- typography
+- proportions
+- brand colors
+
+==================================================
+3. LOGO SIZE
+==================================================
+
+The logo should be clearly visible but elegant.
+
+Desktop target approximately:
+
+120–150px wide
+
+Adjust slightly if required for visual balance.
+
+It should NOT dominate the Hero more than the main headline.
+
+Keep generous whitespace around it.
+
+==================================================
+4. HERO ORDER
+==================================================
+
+The Hero visual hierarchy should become:
+
+1. Full Ghars logo
+2. Main heading:
+   منصة ذكية لإدارة زراعة الأسنان
+3. Supporting description
+4. CTA buttons
+5. Feature highlights
+6. Main product screenshot
+
+Conceptually:
+
+        [Ghars Logo]
+
+منصة ذكية لإدارة زراعة الأسنان
+
+غرس تساعد عيادات زراعة الأسنان على إدارة المرضى...
+
+[ابدأ تجربتك المجانية] [تواصل مع الدعم]
+
+✓ متابعة حالات الزراعة ...
+✓ تنظيم المرضى ...
+...
+
+[Product Screenshot]
+
+==================================================
+5. SPACING
+==================================================
+
+Make the spacing polished.
+
+Recommended:
+
+Logo
+↓ 20–28px
+Headline
+↓ 16–20px
+Description
+↓ 28–32px
+CTA buttons
+
+Do not create excessive vertical empty space.
+
+The entire Hero should still appear compact and premium on a normal desktop screen.
+
+==================================================
+6. RESPONSIVE
+==================================================
+
+Desktop:
+full stacked logo clearly visible.
+
+Tablet:
+scale proportionally.
+
+Mobile:
+reduce logo size appropriately, approximately 90–110px wide.
+
+Do not crop or distort it.
+
+==================================================
+7. ENGLISH VERSION
+==================================================
+
+Keep the SAME official bilingual logo:
+
+غرس
+Ghars
+
+in both Arabic and English Landing Page modes.
+
+This is brand artwork and must not switch by locale.
+
+The Hero heading itself should continue using the existing localization:
+
+Arabic:
+منصة ذكية لإدارة زراعة الأسنان
+
+English:
+Smart dental implant management platform
+
+or the existing approved English translation.
+
+==================================================
+8. KEEP EVERYTHING ELSE
+==================================================
+
+Do NOT change:
+
+- Hero headline text
+- Hero description
+- CTA behavior
+- main screenshot
+- navbar
+- Landing sections
+- colors
+- commercial flow
+- registration
+- support
+- screenshot gallery
+
+Only:
+
+REMOVE the green Hero trial badge
++
+ADD the official full Ghars logo above the headline.
+
+==================================================
+9. VERIFY
+==================================================
+
+Browser verify:
+
+- Arabic desktop
+- English desktop
+- mobile 390px
+
+Confirm:
+
+- logo is sharp
+- logo is centered
+- no distortion
+- no green trial badge remains in Hero
+- main heading remains visually dominant
+- Hero spacing is balanced
+- no horizontal overflow
+
+Do not publish.
+
+Create a checkpoint and stop.

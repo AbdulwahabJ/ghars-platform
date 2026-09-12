@@ -1,0 +1,617 @@
+MODE: Power
+
+Update the Ghars Landing Page media architecture.
+
+The current Landing Page design is APPROVED.
+
+DO NOT redesign the Landing Page.
+
+Required changes:
+
+1. REMOVE the video section completely.
+2. Make the Landing Page product screenshots/images manageable by the Platform Super Admin instead of being hardcoded in the frontend.
+
+==================================================
+1. REMOVE VIDEO SECTION COMPLETELY
+==================================================
+
+Remove the Landing Page section currently titled similar to:
+
+شاهد وتعلم
+النظام أثناء العمل
+
+and its English equivalent.
+
+Remove:
+
+- video player
+- video section heading
+- video description
+- video CTA if any
+- video-specific translation strings
+- video-specific frontend logic
+- video-specific Landing Page navigation links if any
+
+Do NOT leave an empty gap.
+
+The next Landing Page section should naturally move up.
+
+If the bundled WebM/video asset is used ONLY by the Landing Page and nowhere else, it may be removed from the application assets to avoid unnecessary production bundle/storage usage.
+
+Do not remove user-uploaded/source files outside the app repository.
+
+==================================================
+2. LANDING PAGE IMAGES MUST BE ADMIN-MANAGED
+==================================================
+
+The current Landing Page screenshots must no longer be permanently hardcoded in frontend source.
+
+Create Platform Super Admin management for Landing Page images.
+
+This is GLOBAL Ghars marketing content.
+
+It is NOT tenant content.
+
+Only:
+
+platform_super_admin
+
+may manage it.
+
+==================================================
+3. PLATFORM ADMIN SECTION
+==================================================
+
+Add a new Platform Admin section:
+
+Arabic:
+محتوى الصفحة التعريفية
+
+English:
+Landing Page Content
+
+Route can be:
+
+/platform-admin/landing
+
+or another clean equivalent within the existing Platform Admin architecture.
+
+Add it to the Platform Admin sidebar.
+
+==================================================
+4. LANDING MEDIA MANAGEMENT
+==================================================
+
+Create a section:
+
+صور النظام
+Product Screenshots
+
+Platform Admin must be able to:
+
+- Upload image
+- Preview image
+- Edit title
+- Edit optional subtitle/description
+- Select placement/type
+- Change display order
+- Activate/deactivate
+- Delete safely
+- Replace an existing image
+
+==================================================
+5. IMAGE FIELDS
+==================================================
+
+Each Landing screenshot/media record should support at minimum:
+
+- id
+- image/file reference
+- title_ar
+- title_en
+- description_ar optional
+- description_en optional
+- placement/type
+- sort_order
+- is_active
+- created_at
+- updated_at
+
+Do not put binary image data directly inside normal database text fields.
+
+Use the existing approved file-storage architecture.
+
+==================================================
+6. PLACEMENT TYPES
+==================================================
+
+Support at least these placements:
+
+HERO
+→ main large product screenshot in the Hero area
+
+GALLERY
+→ screenshots shown in "لقطات من النظام"
+
+If the current Landing Page has another real screenshot placement that needs management, reuse the same architecture cleanly.
+
+Do not make decorative Ghars brand assets admin-managed.
+
+Logo/icon/background decoration remain application brand assets.
+
+==================================================
+7. HERO IMAGE
+==================================================
+
+Allow Platform Admin to choose ONE active Hero screenshot.
+
+The Hero area should load that configured image.
+
+If no Hero screenshot is configured:
+
+use a graceful fallback using the current approved Ghars screenshot asset.
+
+Do not break the Hero layout.
+
+==================================================
+8. SCREENSHOT GALLERY
+==================================================
+
+The section:
+
+لقطات من النظام
+Product Screens
+
+must read its cards dynamically from the Platform Admin-managed media records.
+
+Use:
+
+is_active = true
+
+ordered by:
+
+sort_order
+
+Do NOT hardcode screenshot imports in the Landing Page component after migration.
+
+==================================================
+9. DEFAULT CURRENT IMAGES
+==================================================
+
+IMPORTANT:
+
+Preserve the screenshots currently being used on the Landing Page.
+
+Migrate/bootstrap the existing current images into the new Landing media records so the Landing Page looks the SAME immediately after this change.
+
+Do not make the current gallery suddenly empty.
+
+Existing approved screenshots should become initial managed records.
+
+==================================================
+10. IMAGE TITLES
+==================================================
+
+Use the current screenshot labels as initial bilingual titles where appropriate, for example:
+
+Arabic / English:
+
+لوحة التحكم
+Dashboard
+
+قائمة الحالات
+Cases
+
+تسجيل الدخول
+Login
+
+ملف المريض
+Patient File
+
+المالية والمدفوعات
+Finance & Payments
+
+الإحصائيات والتقارير
+Statistics & Reports
+
+إدارة المستخدمين
+User Management
+
+etc.
+
+Use the actual current Landing Page content as source of truth.
+
+==================================================
+11. UPLOAD VALIDATION
+==================================================
+
+Accept safe image types only:
+
+- PNG
+- JPEG
+- WebP
+
+Reject unsupported executable/document formats.
+
+Apply reasonable upload-size limits.
+
+Validate MIME type server-side.
+
+Do not trust file extension alone.
+
+==================================================
+12. FILE STORAGE
+==================================================
+
+CRITICAL:
+
+Do NOT store new Platform Admin uploads in an ephemeral runtime path if the project has durable storage available.
+
+Use the existing production-safe storage abstraction.
+
+Uploaded Landing Page images must survive:
+
+- deployment
+- application restart
+- new build
+
+If production-safe durable storage is still not configured:
+
+do NOT pretend this is production-safe.
+
+Report:
+
+LANDING MEDIA STORAGE: BLOCKED
+
+and clearly state what must be configured.
+
+Do not silently fall back to temporary storage.
+
+==================================================
+13. IMAGE DELIVERY
+==================================================
+
+Public Landing Page images are public marketing assets.
+
+Serve them efficiently.
+
+Where existing architecture supports it:
+
+- cache appropriately
+- use responsive sizing
+- lazy-load gallery images below the fold
+
+The Hero image should load with appropriate priority.
+
+Do not overengineer CDN infrastructure.
+
+==================================================
+14. ADMIN UX
+==================================================
+
+Platform Admin Landing Content page should be simple and practical.
+
+Suggested layout:
+
+[Hero Screenshot]
+
+Current image preview
+Replace image
+Title AR
+Title EN
+Active
+
+[Product Screenshots]
+
+Cards/table showing:
+
+Thumbnail
+Arabic title
+English title
+Placement
+Order
+Status
+Edit
+Delete
+
+Button:
+
+إضافة صورة
+Add Image
+
+==================================================
+15. ORDERING
+==================================================
+
+Platform Admin must be able to control gallery order.
+
+Use either:
+
+- numeric sort order
+or
+- simple move up/down controls
+or
+- drag-and-drop if already easy with current stack
+
+Do not add an unnecessary large library.
+
+==================================================
+16. DEACTIVATION
+==================================================
+
+An image marked inactive:
+
+must immediately disappear from the public Landing Page
+
+without deleting the file/record.
+
+This allows temporary hiding.
+
+==================================================
+17. DELETE BEHAVIOR
+==================================================
+
+Deleting a Landing Page image must:
+
+- require confirmation
+- remove the media record safely
+- remove the stored file if it is not referenced anywhere else
+- never affect clinical/user files
+
+Do not create broad file deletion logic.
+
+==================================================
+18. PLATFORM AUTHORIZATION
+==================================================
+
+All write operations require:
+
+platform_super_admin
+
+Normal tenant users:
+
+403
+
+Tenant Admin:
+
+403
+
+Doctors:
+
+403
+
+Finance/Reception users:
+
+403
+
+Public visitors can only READ active Landing Page media.
+
+==================================================
+19. PUBLIC API
+==================================================
+
+Expose only the minimum public Landing content needed.
+
+Do NOT expose:
+
+- Platform Admin information
+- private paths
+- internal storage IDs if avoidable
+- inactive media
+- audit metadata
+
+Public response should contain only safe presentation fields.
+
+==================================================
+20. AUDIT LOG
+==================================================
+
+Record Platform Admin actions such as:
+
+- landing image uploaded
+- landing image updated
+- landing image activated/deactivated
+- landing image reordered
+- landing image deleted
+- hero image changed
+
+Do not log binary content.
+
+==================================================
+21. LOCALIZATION
+==================================================
+
+Admin interface must support Arabic and English through the existing i18n system.
+
+Do not create a second localization system.
+
+The public Landing Page should select:
+
+title_ar / description_ar
+
+when Arabic is active.
+
+and:
+
+title_en / description_en
+
+when English is active.
+
+==================================================
+22. LANDING DESIGN MUST REMAIN THE SAME
+==================================================
+
+Do NOT redesign:
+
+- Hero
+- features
+- why Ghars
+- how it works
+- FAQ
+- CTA
+- footer
+
+Only:
+
+- make screenshots dynamic/admin-managed
+- remove the video section
+
+Keep current spacing and design language.
+
+==================================================
+23. REMOVE VIDEO FROM NAVIGATION/COPY
+==================================================
+
+Audit Landing Page text/navigation for any references such as:
+
+شاهد النظام
+Watch Demo
+Watch Video
+شاهد وتعلم
+
+If they specifically refer to the removed video section:
+
+remove or replace appropriately.
+
+Do not remove the screenshot gallery.
+
+==================================================
+24. MOBILE
+==================================================
+
+Verify dynamically loaded images work correctly on:
+
+1920x1080
+1600x900
+1366x768
+tablet
+390x844
+
+No horizontal overflow.
+
+Gallery remains usable on mobile.
+
+==================================================
+25. FAILURE STATES
+==================================================
+
+If the Landing media API temporarily fails:
+
+the entire Landing Page must not crash.
+
+Use a graceful fallback for the Hero.
+
+For gallery:
+
+show the current safe fallback assets or hide only the gallery content gracefully.
+
+Do not expose raw API errors to visitors.
+
+==================================================
+26. MIGRATION / BACKWARD COMPATIBILITY
+==================================================
+
+If a database migration is required:
+
+create it safely using the current Drizzle migration architecture.
+
+Do not disturb existing tenant or clinical data.
+
+Current hardcoded Landing screenshots should be migrated/bootstrap-loaded into the new system.
+
+==================================================
+27. TESTS
+==================================================
+
+Add tests for:
+
+- Platform Admin can upload image
+- Platform Admin can edit image
+- Platform Admin can activate/deactivate
+- Platform Admin can reorder
+- Platform Admin can delete
+- Tenant users receive 403
+- public API returns active media only
+- correct Arabic title returned/displayed
+- correct English title returned/displayed
+- Hero fallback works
+- video section no longer renders
+- Landing Page still builds and loads
+
+Run:
+
+- frontend TypeScript
+- backend/shared TypeScript
+- API tests
+- production frontend build
+- production backend build
+- browser test Arabic
+- browser test English
+- mobile browser test
+
+==================================================
+28. FINAL BROWSER VERIFICATION
+==================================================
+
+Verify:
+
+Platform Admin:
+→ Landing Page Content
+→ upload a screenshot
+→ assign it to Gallery
+→ it appears publicly
+
+Deactivate:
+→ disappears publicly
+
+Reactivate:
+→ returns publicly
+
+Change sort order:
+→ public order changes
+
+Replace Hero screenshot:
+→ Hero updates
+
+Then restore the approved current screenshot configuration.
+
+==================================================
+29. FINAL REPORT
+==================================================
+
+Report:
+
+1. Platform Admin route created
+2. Landing media data model
+3. Storage mechanism used
+4. Existing screenshots migrated
+5. Hero image management result
+6. Gallery management result
+7. Ordering result
+8. Activation/deactivation result
+9. Delete behavior
+10. Authorization result
+11. Video section removal result
+12. Arabic result
+13. English result
+14. Mobile result
+15. Tests
+16. Production builds
+17. Exact checkpoint/commit hash
+
+Final flags:
+
+LANDING MEDIA ADMIN: PASS / FAIL
+HERO IMAGE MANAGEMENT: PASS / FAIL
+GALLERY IMAGE MANAGEMENT: PASS / FAIL
+PLATFORM ADMIN AUTHORIZATION: PASS / FAIL
+LANDING MEDIA STORAGE: PASS / BLOCKED
+VIDEO SECTION REMOVED: PASS / FAIL
+LANDING ARABIC: PASS / FAIL
+LANDING ENGLISH: PASS / FAIL
+RESPONSIVE LANDING: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.

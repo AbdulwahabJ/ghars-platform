@@ -1,0 +1,536 @@
+MODE: Free
+
+Redesign ONLY the Landing Page HERO section for Ghars.
+
+IMPORTANT:
+
+The attached HERO reference image is the APPROVED visual direction.
+
+Use it as the PRIMARY VISUAL SOURCE OF TRUTH.
+
+Do NOT reinterpret the design into a generic AI/SaaS hero.
+
+The current Landing Page already exists and works.
+Do NOT rebuild the Landing Page.
+Do NOT change backend/commercial/authentication logic.
+
+Only redesign the first Hero section.
+
+==================================================
+1. VISUAL DIRECTION
+==================================================
+
+Match the attached approved reference closely.
+
+The desired style is:
+
+- premium
+- clean
+- medical
+- professional
+- realistic
+- modern SaaS
+- dental implant focused
+
+But it must NOT look:
+
+- AI generated
+- futuristic
+- overly glowing
+- overly decorated
+- like a generic startup template
+
+The result should feel like a real premium dental software company website.
+
+==================================================
+2. HERO STRUCTURE
+==================================================
+
+Desktop layout:
+
+LEFT SIDE:
+Real Ghars product/dashboard presentation
+
+RIGHT SIDE:
+Brand + headline + description + CTA
+
+Use approximately:
+
+55% product visual
+45% marketing copy
+
+Do not center everything like the current Hero.
+
+The split composition in the attached approved reference is the target.
+
+==================================================
+3. LEFT SIDE — REAL GHARS DASHBOARD
+==================================================
+
+This part is especially important.
+
+Use the attached REAL Ghars Dashboard screenshot from Dr. Humam's account.
+
+Do NOT recreate the Dashboard.
+
+Do NOT generate a fake dashboard.
+
+Do NOT alter its actual interface.
+
+Present the real screenshot inside a clean browser/product frame similar to the approved reference.
+
+The screenshot should be:
+
+- large
+- immediately noticeable
+- crisp
+- slightly elevated with subtle shadow
+- integrated naturally into the composition
+
+It should feel like the actual product is sitting inside the Hero.
+
+==================================================
+4. DENTAL BACKGROUND
+==================================================
+
+Behind the LEFT product area only, use a very subtle dental-clinic atmosphere inspired by the approved reference.
+
+Examples:
+
+- softly blurred dental chair / clinic environment
+- subtle dental implant/tooth physical object near lower edge
+- soft daylight
+- very low visual contrast
+
+IMPORTANT:
+
+Keep this restrained.
+
+Do NOT create:
+
+- sci-fi dental imagery
+- floating futuristic implants
+- holograms
+- heavy gradients
+- glowing AI graphics
+- abstract technology networks
+
+The background must feel like a premium real dental clinic photograph, not AI artwork.
+
+The center/right copy area should remain mostly clean white/light.
+
+==================================================
+5. GHARS BRAND ON RIGHT
+==================================================
+
+At the top of the right-side content, show the approved full Ghars identity:
+
+official hexagon/tooth implant icon
+
+غرس
+Ghars
+
+Then underneath:
+
+منصة ذكية لإدارة زراعة الأسنان
+
+and the existing approved small brand phrase if appropriate:
+
+تقنية · دقة · ثقة
+
+Do not recreate the logo.
+
+Use the existing official Ghars asset.
+
+==================================================
+6. MAIN HEADLINE
+==================================================
+
+Use this Arabic headline:
+
+كل ما تحتاجه لإدارة زراعة الأسنان
+من مكان واحد
+
+Use a controlled two-line layout.
+
+Make:
+
+"من مكان واحد"
+
+visually emphasized with a very subtle Ghars teal underline/accent similar to the reference.
+
+Do NOT use flashy effects.
+
+English:
+
+Everything you need to manage dental implants,
+in one place.
+
+Use the existing localization architecture.
+
+==================================================
+7. SUPPORTING COPY
+==================================================
+
+Use concise copy.
+
+Arabic:
+
+غرس يساعد عيادات زراعة الأسنان على إدارة المرضى وحالات الزراعة،
+والمتابعات والمواعيد والمدفوعات والتقارير في نظام واحد متكامل،
+لعمل أكثر تنظيماً ونتائج أفضل.
+
+Keep it approximately 2–3 lines on desktop.
+
+Do not use oversized paragraphs.
+
+Create a natural professional English equivalent.
+
+==================================================
+8. CTA BUTTONS
+==================================================
+
+Primary CTA:
+
+ابدأ تجربتك المجانية
+
+English:
+Start Free Trial
+
+Use Deep Navy #0D1B3D.
+
+It routes to the existing registration flow.
+
+Secondary CTA:
+
+تواصل معنا عبر واتساب
+
+English:
+Contact Us on WhatsApp
+
+Use a white/light button with WhatsApp icon.
+
+Use the existing canonical Support WhatsApp setting.
+
+Do not hardcode the phone number.
+
+Keep HTTPS wa.me behavior.
+
+==================================================
+9. FREE TRIAL COMMERCIAL MESSAGE
+==================================================
+
+The free trial remains:
+
+3 days
+
+Do NOT put back the previous large green trial badge above the headline.
+
+The primary CTA already communicates the free trial.
+
+If a very small supporting line is useful underneath the CTA, it can say:
+
+تجربة مجانية لمدة 3 أيام
+
+but keep it subtle.
+
+Do NOT clutter the Hero.
+
+==================================================
+10. FEATURE STRIP
+==================================================
+
+Below the CTA, create a simple clean row of 4 key capabilities similar to the approved reference.
+
+Use:
+
+متابعة حالات الزراعة
+تنظيم المرضى
+المالية والمدفوعات
+الإحصائيات والتقارير
+
+Use simple line icons.
+
+Avoid large cards.
+
+Avoid unnecessary descriptions.
+
+This should act as a quick capability strip.
+
+On English locale:
+
+Implant Cases
+Patient Management
+Finance & Payments
+Analytics & Reports
+
+==================================================
+11. FLOATING PRODUCT METRICS
+==================================================
+
+The approved reference contains a few small floating metric cards near the Dashboard.
+
+You MAY reproduce this treatment, but only in a restrained way.
+
+Maximum:
+
+2 or 3 cards.
+
+Examples should relate to real demo/application data such as:
+
+زرعات
+متابعات
+دفعات
+
+IMPORTANT:
+
+Do NOT invent customer counts, clinic counts, satisfaction percentages, or fake social proof.
+
+If reliable values cannot be sourced from the current screenshot/demo dataset:
+
+omit the floating cards rather than fake them.
+
+Keep them subtle and clean.
+
+==================================================
+12. REMOVE AI-LOOKING DECORATION
+==================================================
+
+Do NOT add decorative handwritten marketing phrases.
+
+Do NOT add random arrows.
+
+Do NOT add excessive floating shapes.
+
+Do NOT add fake implant illustrations around the right-side copy.
+
+Do NOT add artificial claims such as:
+
++500 doctors
++300 clinics
+10,000 patients
+99% satisfaction
+
+unless those are verified real business metrics.
+
+We want the visual composition of the reference, NOT fake marketing statistics.
+
+==================================================
+13. HERO HEIGHT
+==================================================
+
+The Hero should feel substantial but not excessively tall.
+
+On a typical desktop such as 1920x1080:
+
+most of the Hero should be visible without requiring large scrolling.
+
+Target approximately:
+
+780–900px maximum visual height depending on navbar.
+
+The Dashboard screenshot should remain large enough to appreciate.
+
+==================================================
+14. NAVBAR
+==================================================
+
+Preserve the existing Landing navbar.
+
+Brand must remain:
+
+غرس | Ghars + official icon
+
+Do not redesign navbar architecture.
+
+Keep:
+
+- Features
+- Why Ghars
+- How It Works
+- Product Screens
+- FAQ
+- Sign In
+- language switch
+- Start Free Trial
+
+Localization must continue to work.
+
+==================================================
+15. COLOR SYSTEM
+==================================================
+
+Use Ghars brand palette:
+
+Deep Navy:
+#0D1B3D
+
+Blue Gray:
+#64748B
+
+Existing Ghars teal:
+use selectively for small accents only.
+
+Background:
+white / very pale blue-gray.
+
+Do NOT introduce new dominant colors.
+
+==================================================
+16. TYPOGRAPHY
+==================================================
+
+Arabic:
+Cairo
+
+English:
+Montserrat
+
+Use bold/strong weight for headline.
+
+Do not use decorative fonts.
+
+==================================================
+17. SUBTLE MOTION
+==================================================
+
+Optional only:
+
+Use very subtle entrance animation such as:
+
+- small fade
+- small upward movement
+- gentle dashboard entrance
+
+Do NOT use:
+
+parallax overload
+floating animations
+continuous pulsing
+3D effects
+heavy animation libraries
+
+The Hero should feel premium and calm.
+
+==================================================
+18. MOBILE
+==================================================
+
+On mobile:
+
+Order should be:
+
+1. Ghars branding
+2. headline
+3. description
+4. CTA buttons
+5. product screenshot
+6. feature strip
+
+Do NOT force desktop split layout onto mobile.
+
+Product screenshot must remain readable.
+
+No horizontal overflow.
+
+==================================================
+19. TABLET
+==================================================
+
+Use either:
+
+balanced two-column layout
+
+or
+
+copy above product visual
+
+depending on available width.
+
+Prioritize readability over forcing the desktop composition.
+
+==================================================
+20. DO NOT TOUCH OTHER SECTIONS
+==================================================
+
+Do NOT redesign:
+
+- What is Ghars
+- Features
+- Why Ghars
+- How It Works
+- Screenshots section
+- FAQ
+- final CTA
+- footer
+- legal pages
+
+This task is ONLY:
+
+LANDING HERO REDESIGN.
+
+==================================================
+21. PRESERVE EXISTING FUNCTIONALITY
+==================================================
+
+Do not break:
+
+- Arabic / English
+- RTL / LTR
+- registration
+- login
+- WhatsApp
+- Landing media admin
+- gallery
+- Platform Admin
+- SEO
+- responsive navigation
+
+==================================================
+22. VISUAL VERIFICATION
+==================================================
+
+Browser-test:
+
+Arabic:
+1920x1080
+1600x900
+1366x768
+390x844
+
+English:
+desktop + mobile
+
+Verify:
+
+- product screenshot looks real
+- Hero does not look AI-generated
+- no excessive empty space
+- headline visually strong
+- Dashboard visually dominant
+- background is subtle
+- buttons work
+- no horizontal overflow
+- Ghars branding sharp
+- RTL/LTR correct
+
+==================================================
+23. FINAL RULE
+==================================================
+
+The attached approved Hero reference controls:
+
+- composition
+- product screenshot prominence
+- whitespace
+- visual balance
+- clinic background atmosphere
+- premium medical feel
+
+But use REAL Ghars assets and REAL Ghars product screenshots.
+
+Do NOT copy any fake text, numbers, statistics, UI, or decorative details from the reference.
+
+Do NOT publish.
+
+Create a checkpoint and STOP.

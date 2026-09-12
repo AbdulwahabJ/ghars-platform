@@ -21,3 +21,4 @@ export * from "./lookup-options";
 export * from "./application-settings";
 export * from "./audit-logs";
 export * from "./platform-admin";
+export * from "./landing-media";

@@ -122,6 +122,14 @@ import type {
   PlatformAuditResponse,
   PlatformSettings,
   UpdatePlatformSettingsInput,
+  LandingMediaAdminResponse,
+  LandingMediaPublicResponse,
+  LandingMediaUploadInput,
+  CreateLandingMediaInput,
+  UpdateLandingMediaInput,
+  ReplaceLandingMediaInput,
+  LandingMediaStatusInput,
+  ReorderLandingMediaInput,
 } from "@workspace/shared";
 import i18n from "@/i18n";
 import { localizeApiErrorMessage } from "@/lib/localize-error";
@@ -355,6 +363,46 @@ export const api = {
       method: "PATCH",
       json: input,
     }),
+
+  // Public landing page media
+  getLandingMedia: () =>
+    request<LandingMediaPublicResponse>("/landing-media"),
+
+  // Platform-super-admin landing page media management
+  platformListLandingMedia: () =>
+    request<LandingMediaAdminResponse>("/platform-admin/landing-media"),
+  platformRequestLandingMediaUploadUrl: (input: LandingMediaUploadInput) =>
+    request<{ uploadURL: string; objectPath: string; metadata: LandingMediaUploadInput }>(
+      "/platform-admin/landing-media/upload-url",
+      { method: "POST", json: input },
+    ),
+  platformCreateLandingMedia: (input: CreateLandingMediaInput) =>
+    request<{ media: LandingMediaAdminResponse["media"][number] }>(
+      "/platform-admin/landing-media",
+      { method: "POST", json: input },
+    ),
+  platformUpdateLandingMedia: (id: string, input: UpdateLandingMediaInput) =>
+    request<{ media: LandingMediaAdminResponse["media"][number] }>(
+      `/platform-admin/landing-media/${id}`,
+      { method: "PATCH", json: input },
+    ),
+  platformReplaceLandingMedia: (id: string, input: ReplaceLandingMediaInput) =>
+    request<{ media: LandingMediaAdminResponse["media"][number] }>(
+      `/platform-admin/landing-media/${id}/replace`,
+      { method: "PUT", json: input },
+    ),
+  platformSetLandingMediaStatus: (id: string, input: LandingMediaStatusInput) =>
+    request<{ media: LandingMediaAdminResponse["media"][number] }>(
+      `/platform-admin/landing-media/${id}/status`,
+      { method: "POST", json: input },
+    ),
+  platformReorderLandingMedia: (input: ReorderLandingMediaInput) =>
+    request<{ ok: boolean }>("/platform-admin/landing-media/reorder", {
+      method: "POST",
+      json: input,
+    }),
+  platformDeleteLandingMedia: (id: string) =>
+    request<void>(`/platform-admin/landing-media/${id}`, { method: "DELETE" }),
 
 
   // Preferences

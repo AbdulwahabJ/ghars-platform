@@ -8,6 +8,7 @@ import Errors from "./platform-admin/Errors";
 import Health from "./platform-admin/Health";
 import Audit from "./platform-admin/Audit";
 import Settings from "./platform-admin/Settings";
+import LandingContent from "./platform-admin/LandingContent";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -37,6 +38,7 @@ export default function PlatformAdmin() {
         <Route path="/platform-admin/health" component={Health} />
         <Route path="/platform-admin/audit" component={Audit} />
         <Route path="/platform-admin/settings" component={Settings} />
+        <Route path="/platform-admin/landing" component={LandingContent} />
       </Switch>
     </PlatformAdminLayout>
   );
