@@ -27,7 +27,7 @@ import { useSupportContacts } from "@/hooks/use-commercial";
 import { usePublicLandingMedia } from "@/hooks/use-landing-media";
 import { buildSupportWhatsappLink } from "@/lib/support";
 import gharsLogo from "@/assets/ghars-logo.png";
-import gharsSymbol from "@/assets/ghars-symbol.png";
+import gharsFooterLogo from "@/assets/ghars-footer-logo.png";
 
 const CONTENT = {
   ar: {
@@ -392,7 +392,7 @@ export default function LandingPage() {
               <span className="mx-1 text-[#64748B]">|</span>
               <span className="font-brand-latin text-[0.9em]">Ghars</span>
             </span>
-            <img src={gharsSymbol} alt="Ghars official icon" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
+            <img src={gharsFooterLogo} alt="Ghars official icon" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
           </div>
 
           {/* Desktop Nav */}
@@ -794,7 +794,7 @@ export default function LandingPage() {
                   <span className="mx-1 text-white/50">|</span>
                   <span className="font-brand-latin text-[0.9em]">Ghars</span>
                 </span>
-                <img src={gharsSymbol} alt="Ghars" className="w-10 h-10 object-contain grayscale brightness-200" />
+                <img src={gharsFooterLogo} alt="Ghars" className="w-10 h-10 object-contain" />
               </div>
               <p className="text-white/60 leading-relaxed max-w-sm text-start">
                 {t.hero.subtitle}
