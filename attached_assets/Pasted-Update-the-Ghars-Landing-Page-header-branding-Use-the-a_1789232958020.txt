@@ -1,0 +1,124 @@
+Update the Ghars Landing Page header branding.
+
+Use the attached screenshots as the visual reference.
+
+CURRENT ISSUE:
+The Landing Page header currently displays only:
+
+Ghars + icon
+
+I want the branding to match the REAL Ghars application header exactly.
+
+==================================================
+REQUIRED BRAND FORMAT
+==================================================
+
+In the Landing Page navbar, display:
+
+غرس | Ghars
+
+followed by the official Ghars hexagon/tooth icon.
+
+Match the visual treatment used in the authenticated Dr. Humam Ghars application header.
+
+The final visual should conceptually be:
+
+غرس | Ghars   [Ghars icon]
+
+==================================================
+STYLE
+==================================================
+
+Use the same visual language as the real application header:
+
+- Arabic word: غرس
+- separator: |
+- English word: Ghars
+- official Ghars hexagon icon
+- Deep Navy brand color
+- clean compact sizing
+- vertically centered
+- professional SaaS navbar appearance
+
+Do NOT create a new logo treatment.
+
+Do NOT use only "Ghars".
+
+Do NOT use a large stacked logo in the navbar.
+
+Use the existing official Ghars brand assets already available in the project.
+
+==================================================
+TYPOGRAPHY
+==================================================
+
+Match the real application branding as closely as possible.
+
+Arabic:
+Cairo / existing Ghars Arabic font
+
+English:
+Montserrat / existing Ghars English font
+
+Use appropriate SemiBold/Bold weights consistent with the authenticated app.
+
+==================================================
+ARABIC / ENGLISH
+==================================================
+
+Keep the brand itself bilingual in BOTH locales:
+
+غرس | Ghars
+
+This is the official product identity and should not disappear when switching language.
+
+The surrounding navigation still follows the selected locale.
+
+==================================================
+ALIGNMENT
+==================================================
+
+Arabic Landing Page:
+brand stays on the right side of the navbar.
+
+English Landing Page:
+preserve the approved responsive navbar structure, but keep the official bilingual brand lockup intact.
+
+Do not let RTL/LTR reverse the internal order of:
+
+غرس | Ghars
+
+==================================================
+RESPONSIVE
+==================================================
+
+Desktop:
+show full:
+
+غرس | Ghars + icon
+
+Mobile:
+prefer keeping the full brand if space allows.
+
+If space becomes genuinely constrained, reduce spacing/font size before removing brand elements.
+
+==================================================
+DO NOT CHANGE
+==================================================
+
+Do not redesign the Landing Page.
+
+Do not change:
+- hero layout
+- CTA
+- screenshots
+- trial messaging
+- sections
+- commercial flow
+
+Only correct the navbar brand identity.
+
+Browser verify Arabic and English.
+
+Do not publish.
+Create a checkpoint and stop.
