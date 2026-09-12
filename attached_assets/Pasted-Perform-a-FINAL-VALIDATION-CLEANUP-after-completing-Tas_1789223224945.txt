@@ -1,0 +1,130 @@
+Perform a FINAL VALIDATION CLEANUP after completing Task #34.
+
+Do NOT change the approved commercial lifecycle unless a real regression is found.
+
+The permanent-license behavior is now approved:
+
+TRIALING
+→ ACTIVE permanent activation
+
+ACTIVE
+→ SUSPENDED
+→ ACTIVE after reactivation
+
+A tenant that has ever been permanently activated must NEVER return to TRIALING through trial-extension logic.
+
+==================================================
+1. CONFIRM PERMANENT ACTIVATION RULE
+==================================================
+
+Verify server-side:
+
+If activated_at / activatedAt exists:
+
+- Extend Trial must be rejected
+- Suspended permanent tenant cannot become trialing
+- Reactivation returns tenant to ACTIVE
+- original activation date remains preserved
+- ACTIVE tenant ignores trial_ends_at for access
+
+Add/retain regression tests.
+
+==================================================
+2. ADD PERMANENT LICENSE UI REGRESSION TEST
+==================================================
+
+The previous report identified a missing durable UI regression test.
+
+Add one focused automated/browser test that verifies:
+
+1. Trial tenant exists.
+2. Platform Admin permanently activates tenant.
+3. Customer Detail displays permanent ACTIVE state.
+4. Extend Trial action is no longer visible.
+5. Suspend remains available.
+6. Suspend tenant.
+7. Reactivate tenant.
+8. Tenant returns to ACTIVE.
+9. Extend Trial still remains unavailable.
+10. Historical trial dates do not control current access.
+
+Do not depend only on manual browser testing.
+
+==================================================
+3. FIX THE UNRELATED DATE-DEPENDENT TEST
+==================================================
+
+The full test suite currently has one unrelated clinical/report test that depends on a hard-coded calendar month/date.
+
+Fix the TEST so it is deterministic.
+
+Do NOT change production clinical/report business logic merely to make the test pass.
+
+Preferred approaches:
+
+- controlled test clock
+- explicit fixture date
+- relative date generated from the test anchor
+
+Do not use the real current month as an implicit dependency.
+
+Confirm the underlying production calculation remains unchanged.
+
+==================================================
+4. FULL VALIDATION
+==================================================
+
+After the above:
+
+run the COMPLETE test suite again.
+
+Required:
+
+- full API tests
+- frontend TypeScript
+- backend/shared TypeScript
+- production build
+- focused commercial lifecycle tests
+- permanent activation UI regression test
+
+The final result must have no unexplained failing test.
+
+==================================================
+5. TASK VALIDATION STATUS
+==================================================
+
+Update/report Task #34 as fully validated only after all required checks pass.
+
+Do not leave the final state as:
+
+"complete without validation"
+
+if validation has actually been successfully completed.
+
+==================================================
+6. FINAL REPORT
+==================================================
+
+Report only:
+
+1. Permanent activation regression result
+2. Suspended-permanent-tenant extension protection
+3. Permanent activation UI test result
+4. Root cause of the date-dependent clinical test
+5. How the test was made deterministic
+6. Full test-suite result
+7. TypeScript result
+8. Production build result
+9. Exact checkpoint/commit hash
+
+Final flags:
+
+PERMANENT ACTIVE LICENSE: PASS / FAIL
+SUSPENDED LICENSE PROTECTION: PASS / FAIL
+PERMANENT LICENSE UI REGRESSION: PASS / FAIL
+FULL TEST SUITE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+Do not publish.
+
+Create a stable checkpoint and stop.
