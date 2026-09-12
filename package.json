@@ -9,7 +9,10 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "pnpm -r --if-present run test"
+    "test": "pnpm -r --if-present run test",
+    "seed:screenshot-data": "SCREENSHOT_DATA_ENV=development SCREENSHOT_DATA_CONFIRM=ghars-screenshot-2026-09-12-v1 NODE_ENV=development APP_ENV=development pnpm --filter @workspace/scripts run seed:screenshot-data",
+    "cleanup:screenshot-data": "SCREENSHOT_DATA_ENV=development SCREENSHOT_DATA_CONFIRM=ghars-screenshot-2026-09-12-v1 NODE_ENV=development APP_ENV=development pnpm --filter @workspace/scripts run cleanup:screenshot-data",
+    "validate:screenshot-data": "SCREENSHOT_DATA_ENV=development SCREENSHOT_DATA_CONFIRM=ghars-screenshot-2026-09-12-v1 NODE_ENV=development APP_ENV=development pnpm --filter @workspace/scripts run validate:screenshot-data"
   },
   "private": true,
   "dependencies": {

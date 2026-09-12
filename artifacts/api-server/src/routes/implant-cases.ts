@@ -13,6 +13,7 @@ import {
   type ImplantRow,
   type ProstheticEventRow,
   type BoneGraftProcedureRow,
+  createProstheticEventWithStatusSync,
 } from "@workspace/db";
 import {
   CASE_ARCHIVED,
@@ -519,78 +520,21 @@ router.post("/implant-cases/:id/prosthetic-events", async (req, res) => {
     linkedImplant = implant;
   }
 
-  const { row: event, implant } = await db.transaction(async (tx) => {
-    const [row] = await tx
-      .insert(prostheticEventsTable)
-      .values({
+  const { event, implant } = await db.transaction(async (tx) =>
+    createProstheticEventWithStatusSync(
+      tx,
+      {
         tenantId,
         implantCaseId: parentCase.id,
-        implantId: input.implantId,
+        implantId: linkedImplant?.id ?? null,
         eventType: input.eventType,
         eventDate: input.eventDate,
         note: input.note,
         createdBy: req.currentUser!.id,
-      })
-      .returning();
-
-    await writeAudit(
-      {
-        tenantId,
-        userId: req.currentUser!.id,
-        action: "prosthetic_event_create",
-        entityType: "prosthetic_event",
-        entityId: row.id,
-        summary: `توثيق ${row.eventType}`,
       },
-      tx,
-    );
-
-    if (!linkedImplant) {
-      return { row, implant: null };
-    }
-
-    const targetStatus = IMPLANT_STATUS_BY_PROSTHETIC_EVENT[input.eventType];
-    if (linkedImplant.implantStatus === targetStatus) {
-      return { row, implant: linkedImplant };
-    }
-
-    const [updatedImplant] = await tx
-      .update(implantsTable)
-      .set({
-        implantStatus: targetStatus,
-        updatedBy: req.currentUser!.id,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(implantsTable.id, linkedImplant.id),
-          eq(implantsTable.tenantId, tenantId),
-          isNull(implantsTable.archivedAt),
-        ),
-      )
-      .returning();
-    if (!updatedImplant) {
-      throw new Error("لا يمكن توثيق التركيب لهذه الزرعة.");
-    }
-
-    await writeAudit(
-      {
-        tenantId,
-        userId: req.currentUser!.id,
-        action: "implant_update",
-        entityType: "implant",
-        entityId: updatedImplant.id,
-        summary: `تحديث حالة زرعة السن ${updatedImplant.site}`,
-        details: {
-          changedFields: ["implantStatus"],
-          source: "prosthetic_event_create",
-          eventType: row.eventType,
-        },
-      },
-      tx,
-    );
-    return { row, implant: updatedImplant };
-  });
+      writeAudit,
+    ),
+  );
 
   res.status(201).json({
     event: toProstheticEventDto(event),
