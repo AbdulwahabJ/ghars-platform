@@ -43,12 +43,14 @@ const CONTENT = {
       dashboard: "لوحة التحكم"
     },
     hero: {
-      title: "منصة ذكية لإدارة زراعة الأسنان",
-      subtitle: "غرس تساعد عيادات زراعة الأسنان على إدارة المرضى، حالات الزرعات، الإجراءات الجراحية مثل ترقيع العظم ورفع الجيب، والمتابعات، والدفعات، والتقارير من نظام واحد متكامل.",
+      title: "كل ما تحتاجه لإدارة زراعة الأسنان من مكان واحد",
+      titleLead: "كل ما تحتاجه لإدارة زراعة الأسنان",
+      titleAccent: "من مكان واحد",
+      subtitle: "غرس يساعد عيادات زراعة الأسنان على إدارة المرضى وحالات الزراعة، والمتابعات والمواعيد والمدفوعات والتقارير في نظام واحد متكامل، لعمل أكثر تنظيماً ونتائج أفضل.",
       ctaPrimary: "ابدأ تجربتك المجانية",
-      ctaSecondary: "تواصل مع الدعم",
+      ctaSecondary: "تواصل معنا عبر واتساب",
       trialNote: "تجربة مجانية لمدة 3 أيام، بدون بطاقة ائتمان.",
-      badges: ["متابعة حالات الزراعة", "تنظيم المرضى", "المالية والمدفوعات", "الإحصائيات والتقارير", "المتابعات والتنبيهات"]
+      badges: ["متابعة حالات الزراعة", "تنظيم المرضى", "المالية والمدفوعات", "الإحصائيات والتقارير"]
     },
     intro: {
       badge: "عن غرس",
@@ -147,12 +149,14 @@ const CONTENT = {
       dashboard: "Go to Dashboard"
     },
     hero: {
-      title: "Smart Platform for Dental Implants",
-      subtitle: "Ghars helps dental implant clinics manage patients, implant cases, surgical procedures like bone grafting and sinus lifting, follow-ups, payments, and reports from one integrated system.",
+      title: "Everything you need to manage dental implants, in one place",
+      titleLead: "Everything you need to manage dental implants,",
+      titleAccent: "in one place",
+      subtitle: "Ghars helps dental implant clinics manage patients and implant cases, follow-ups, appointments, payments, and reports in one integrated system for more organized work and better outcomes.",
       ctaPrimary: "Start Free Trial",
-      ctaSecondary: "Contact Support",
+      ctaSecondary: "Contact Us on WhatsApp",
       trialNote: "3-day free trial, no credit card required.",
-      badges: ["Implant Case Tracking", "Patient Organization", "Finances & Payments", "Statistics & Reports", "Follow-ups & Alerts"]
+      badges: ["Implant Cases", "Patient Management", "Finance & Payments", "Analytics & Reports"]
     },
     intro: {
       badge: "About Ghars",
@@ -338,13 +342,25 @@ export default function LandingPage() {
   };
 
   // Determine resolved media
-  const heroTitle = landingMedia?.hero
-    ? (isRTL ? landingMedia.hero.titleAr : landingMedia.hero.titleEn) || t.hero.title
+  const storedHeroTitle = landingMedia?.hero
+    ? (isRTL ? landingMedia.hero.titleAr : landingMedia.hero.titleEn)
+    : null;
+  const storedHeroSubtitle = landingMedia?.hero
+    ? (isRTL ? landingMedia.hero.descriptionAr : landingMedia.hero.descriptionEn)
+    : null;
+  const legacyHeroTitle = isRTL
+    ? "منصة ذكية لإدارة زراعة الأسنان"
+    : "Smart Platform for Dental Implants";
+  const legacyHeroSubtitle = isRTL
+    ? "غرس تساعد عيادات زراعة الأسنان على إدارة المرضى، حالات الزرعات، الإجراءات الجراحية مثل ترقيع العظم ورفع الجيب، والمتابعات، والدفعات، والتقارير من نظام واحد متكامل."
+    : "Ghars helps dental implant clinics manage patients, implant cases, surgical procedures like bone grafting and sinus lifting, follow-ups, payments, and reports from one integrated system.";
+  const heroTitle = storedHeroTitle && storedHeroTitle !== legacyHeroTitle
+    ? storedHeroTitle
     : t.hero.title;
-
-  const heroSubtitle = landingMedia?.hero
-    ? (isRTL ? landingMedia.hero.descriptionAr : landingMedia.hero.descriptionEn) || t.hero.subtitle
+  const heroSubtitle = storedHeroSubtitle && storedHeroSubtitle !== legacyHeroSubtitle
+    ? storedHeroSubtitle
     : t.hero.subtitle;
+  const usesApprovedHeroTitle = heroTitle === t.hero.title;
 
   const heroImageSrc = landingMedia?.hero
     ? getAssetPath(landingMedia.hero.fileRef)
@@ -454,59 +470,98 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 overflow-hidden relative">
-        <div className="absolute top-0 right-0 -z-10 w-[800px] h-[800px] bg-gradient-to-br from-[#0F766E]/5 to-transparent rounded-full blur-3xl opacity-70 translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 -z-10 w-[600px] h-[600px] bg-gradient-to-tr from-[#1FA9B8]/5 to-transparent rounded-full blur-3xl opacity-70 -translate-x-1/3 translate-y-1/3"></div>
-
+      <section className="relative overflow-hidden bg-[#F7FAFC] pt-24 sm:pt-28 lg:pt-28 lg:min-h-[780px]">
+        <div className="absolute inset-x-0 top-0 h-px bg-white"></div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto mb-16">
-            <img
-              src={gharsLogo}
-              alt="غرس | Ghars"
-              className="mx-auto mb-6 h-auto w-[100px] sm:w-[130px] md:w-[145px] object-contain animate-in fade-in slide-in-from-bottom-4 duration-700"
-            />
-            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-[#0D1B3D] leading-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
-              {heroTitle}
-            </h1>
-            <p className="text-lg md:text-xl text-[#64748B] mb-10 max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
-              {heroSubtitle}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
-              <Link data-testid="link-register" href="/register" className="btn-primary bg-[#0F766E] hover:bg-[#0F766E]/90 w-full sm:w-auto text-lg h-14 px-8 shadow-lg shadow-[#0F766E]/20">
-                {t.hero.ctaPrimary}
-              </Link>
-              {supportWhatsappHref ? (
-                <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline border-[#0D1B3D]/20 text-[#0D1B3D] hover:bg-[#0D1B3D]/5 w-full sm:w-auto text-lg h-14 px-8">
-                  {t.hero.ctaSecondary}
-                </a>
-              ) : (
-                <button disabled className="btn-outline border-[#0D1B3D]/20 text-[#0D1B3D] hover:bg-[#0D1B3D]/5 w-full sm:w-auto text-lg h-14 px-8 opacity-50">
-                  {t.hero.ctaSecondary}
-                </button>
-              )}
+          <div className="grid items-center gap-10 pb-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(370px,0.8fr)] lg:gap-10 lg:pb-12" dir="ltr">
+            <div className="order-2 relative min-w-0 lg:order-1 lg:py-4">
+              <div
+                className="absolute -inset-x-10 -inset-y-14 bg-cover bg-center opacity-[0.22] blur-[1px]"
+                style={{ backgroundImage: `url(${getAssetPath("/assets/dental-clinic-bg.jpg")})` }}
+                aria-hidden="true"
+              ></div>
+              <div className="absolute -inset-x-10 -inset-y-14 bg-gradient-to-r from-white/15 via-[#F7FAFC]/25 to-[#F7FAFC] lg:bg-gradient-to-r lg:from-white/5 lg:via-[#F7FAFC]/20 lg:to-[#F7FAFC]"></div>
+              <div className="relative animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                <div className="overflow-hidden rounded-xl border border-white/80 bg-white p-1.5 shadow-[0_24px_65px_-28px_rgba(13,27,61,0.38)] sm:p-2">
+                  <div className="flex h-7 items-center gap-1.5 rounded-t-lg bg-[#EEF3F6] px-3 sm:h-8 sm:px-4">
+                    <span className="h-2 w-2 rounded-full bg-[#F87171] sm:h-2.5 sm:w-2.5"></span>
+                    <span className="h-2 w-2 rounded-full bg-[#FBBF24] sm:h-2.5 sm:w-2.5"></span>
+                    <span className="h-2 w-2 rounded-full bg-[#34D399] sm:h-2.5 sm:w-2.5"></span>
+                  </div>
+                  <img
+                    src={heroImageSrc}
+                    alt={heroTitle}
+                    className="w-full rounded-b-lg border-t border-gray-100 object-cover"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-[#64748B] animate-in fade-in duration-700 delay-500">
-              {t.hero.badges.map((badge, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-[#0F766E]" />
-                  <span>{badge}</span>
-                </div>
-              ))}
+            <div className="order-1 relative z-10 text-center lg:order-2 lg:text-start" dir={isRTL ? "rtl" : "ltr"}>
+              <img
+                src={gharsLogo}
+                alt="غرس | Ghars"
+                className="mx-auto mb-5 h-auto w-[92px] object-contain mix-blend-multiply sm:w-[104px] lg:mx-0 lg:w-[112px]"
+              />
+              <h1 className={`mb-5 text-4xl font-bold leading-[1.2] text-[#0D1B3D] sm:text-5xl animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRTL ? "lg:text-[clamp(2.75rem,3.5vw,4.25rem)]" : "lg:text-[2.875rem] lg:leading-[1.12]"}`}>
+                {usesApprovedHeroTitle ? (
+                  <>
+                    <span className="block">{t.hero.titleLead}</span>
+                    <span className="relative mt-1 inline-block">
+                      <span className="relative z-10">{t.hero.titleAccent}</span>
+                      <span className="absolute inset-x-0 bottom-1.5 -z-0 h-2 rounded-full bg-[#1FA9B8]/20" aria-hidden="true"></span>
+                    </span>
+                  </>
+                ) : heroTitle}
+              </h1>
+              <p className="mx-auto mb-7 max-w-xl text-base leading-8 text-[#64748B] sm:text-lg lg:mx-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                {heroSubtitle}
+              </p>
+              <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                <Link data-testid="link-register" href="/register" className="btn-primary h-[52px] w-full bg-[#0D1B3D] px-7 text-base text-white shadow-lg shadow-[#0D1B3D]/15 hover:bg-[#142A59] sm:w-auto">
+                  {t.hero.ctaPrimary}
+                </Link>
+                {supportWhatsappHref ? (
+                  <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline h-[52px] w-full border-[#0D1B3D]/15 bg-white/80 px-6 text-base text-[#0D1B3D] hover:bg-white sm:w-auto">
+                    <MessageCircle className="me-2 text-[#25D366]" size={19} />
+                    {t.hero.ctaSecondary}
+                  </a>
+                ) : (
+                  <button disabled className="btn-outline h-[52px] w-full border-[#0D1B3D]/15 bg-white/80 px-6 text-base text-[#0D1B3D] opacity-50 sm:w-auto">
+                    <MessageCircle className="me-2 text-[#25D366]" size={19} />
+                    {t.hero.ctaSecondary}
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-8 hidden grid-cols-2 gap-x-5 gap-y-4 border-t border-[#0D1B3D]/8 pt-6 sm:grid lg:grid-cols-2">
+                {t.hero.badges.map((badge, i) => {
+                  const BadgeIcon = [Stethoscope, Users, Wallet, LineChart][i];
+                  return (
+                    <div key={badge} className="flex items-center gap-2.5 text-sm font-medium text-[#0D1B3D]">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF7F5] text-[#0F766E]">
+                        <BadgeIcon size={17} strokeWidth={1.8} />
+                      </span>
+                      <span>{badge}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          <div className="relative max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-700">
-            <div className="relative rounded-xl overflow-hidden shadow-2xl border border-white/20 bg-white p-2">
-              <div className="bg-[#F0F4F6] rounded-t-lg h-8 flex items-center px-4 gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3 border-t border-[#0D1B3D]/8 pb-10 pt-5 sm:hidden">
+            {t.hero.badges.map((badge, i) => {
+              const BadgeIcon = [Stethoscope, Users, Wallet, LineChart][i];
+              return (
+                <div key={badge} className="flex items-center gap-2 text-xs font-medium text-[#0D1B3D]">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#EAF7F5] text-[#0F766E]">
+                    <BadgeIcon size={15} strokeWidth={1.8} />
+                  </span>
+                  <span>{badge}</span>
                 </div>
-              </div>
-              <img src={heroImageSrc} alt={heroTitle} className="w-full object-cover rounded-b-lg border-t border-gray-100" />
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
