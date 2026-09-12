@@ -1,0 +1,1114 @@
+MODE: Power
+
+Create a COMPLETE, SCREENSHOT-READY synthetic dental implant dataset inside the EXISTING Ghars tenant/account used by Dr. Humam.
+
+IMPORTANT:
+
+This is NOT a new demo tenant.
+
+The user explicitly wants the demo/screenshot data inserted into Dr. Humam's existing Ghars account so they can log in normally, navigate the real product, and capture screenshots for the Landing Page.
+
+However:
+
+- NEVER overwrite existing real records
+- NEVER modify existing patient data
+- NEVER delete existing user data
+- NEVER reuse real patient names, phones, IDs, or medical details
+- All generated data must be clearly synthetic
+- All generated records must be fully removable afterward
+- Do not publish
+
+==================================================
+1. IDENTIFY THE CORRECT TENANT / ACCOUNT
+==================================================
+
+Use the existing authenticated tenant/account associated with Dr. Humam.
+
+Do NOT create a new tenant.
+
+Do NOT create a clinic switcher.
+
+Do NOT use Platform Admin as the clinical owner of these records.
+
+Dr. Humam should be the primary doctor/clinical owner for the seeded implant cases wherever the existing schema supports doctor assignment.
+
+Before inserting anything:
+
+- identify the tenant ID server-side
+- identify Dr. Humam's actual user/doctor ID
+- confirm the target is NOT a different tenant
+- do not trust a frontend-provided tenant ID
+
+==================================================
+2. SAFETY / REVERSIBILITY
+==================================================
+
+All generated records must belong to one identifiable seed batch.
+
+Use the cleanest architecture available.
+
+Preferred:
+
+demo_seed_batch_id
+
+or existing metadata/tag/notes architecture if available.
+
+If schema changes are unnecessary, do NOT create schema changes only for this.
+
+The goal is to allow a cleanup command that removes ONLY records created by this seed.
+
+Create commands conceptually like:
+
+npm run seed:screenshot-data
+
+and:
+
+npm run cleanup:screenshot-data
+
+The cleanup command must NEVER delete existing non-seeded data.
+
+==================================================
+3. DO NOT RUN AUTOMATICALLY
+==================================================
+
+The screenshot seed must NEVER run:
+
+- at application startup
+- during deployment
+- during migrations
+- in production automatically
+
+It must require an explicit command.
+
+If the current environment is production, STOP and report before inserting synthetic data unless there is an explicit safe development/staging context.
+
+==================================================
+4. USE REAL GHARS BUSINESS LOGIC
+==================================================
+
+Do not fake dashboard counters.
+
+Do not insert disconnected rows just to make charts look populated.
+
+Use the real canonical domain models and existing application services.
+
+Reuse:
+
+- canonical statuses
+- canonical financial calculations
+- case/implant services
+- prosthetic synchronization logic
+- follow-up logic
+- adjunct procedure logic
+- payment logic
+- existing lists/settings
+
+Prefer application/service-layer creation over raw SQL where practical.
+
+Do not introduce duplicate business logic.
+
+==================================================
+5. DATASET SIZE
+==================================================
+
+Create a rich but believable screenshot-ready dataset approximately:
+
+PATIENTS:
+32–40 synthetic patients
+
+IMPLANT CASES:
+38–48 implant cases
+
+IMPLANTS:
+65–80 individual implants
+
+ADJUNCT SURGICAL PROCEDURES:
+18–25
+
+FOLLOW-UPS:
+70–100
+
+COMMUNICATIONS:
+35–55
+
+PAYMENTS:
+55–80
+
+CASE CHARGES:
+enough to create realistic financial variation
+
+DISCOUNTS:
+10–18 cases
+
+PROSTHETIC EVENTS:
+25–40
+
+Installment plans:
+create only if installment architecture currently exists.
+
+Do not invent unsupported modules.
+
+==================================================
+6. PATIENT DATA
+==================================================
+
+Use completely fictional Arabic patient identities.
+
+Use a balanced mix of:
+
+- male
+- female
+- young adults
+- middle age
+- older adults
+
+Use realistic Arabic names but not names copied from current real patients.
+
+Phones must be obviously synthetic/test-safe.
+
+Do not use real Saudi IDs.
+
+If national ID is required by schema:
+
+use deterministic fictional/test identifiers that cannot reasonably represent real patient data.
+
+Do not use:
+
+1234567890 everywhere
+
+Make the dataset visually believable.
+
+==================================================
+7. PATIENT DISTRIBUTION
+==================================================
+
+Create patients with varied clinical journeys.
+
+Examples:
+
+- single implant
+- two implants
+- multiple implants
+- bilateral implants
+- upper jaw
+- lower jaw
+- anterior
+- posterior
+- completed case
+- active surgical case
+- prosthetic phase
+- follow-up phase
+- delayed treatment
+- cancelled/archived case only where current statuses support this
+
+Use the real tooth numbering / location architecture already implemented.
+
+==================================================
+8. IMPLANT SYSTEMS
+==================================================
+
+Populate several implant systems already available in Ghars lists.
+
+Do NOT invent enum values that do not exist.
+
+Use approximately 4–6 systems/brands if the current configured lists allow it.
+
+Distribution should be varied enough so:
+
+Dashboard:
+"الأنظمة المستخدمة"
+
+and Statistics:
+
+implant system charts
+
+look meaningful.
+
+Do not make every implant use the same system.
+
+==================================================
+9. IMPLANT STATUS DISTRIBUTION
+==================================================
+
+Use the real canonical implant statuses.
+
+Distribute implants across meaningful stages such as:
+
+- planned
+- placed
+- healing
+- ready for prosthetic
+- temporary prosthetic
+- final prosthetic
+- completed
+
+Use exact current application enum values, NOT these English examples if the system uses different machine codes.
+
+Clinical sequence must make sense.
+
+A final prosthetic implant cannot have a final prosthetic event before the implant procedure date.
+
+==================================================
+10. TODAY DATA — VERY IMPORTANT
+==================================================
+
+The Home Dashboard must look alive TODAY.
+
+Using the application's Riyadh timezone:
+
+create enough TODAY activity so these approved Dashboard cards are all meaningful:
+
+1. المرضى الذين تم زرعهم
+2. عدد الزرعات
+3. الأنظمة المستخدمة
+4. مرضى التركيب
+5. التركيبات التي تمت
+
+Do NOT modify the Dashboard implementation.
+
+Populate the canonical records that naturally drive these cards.
+
+Target screenshot result conceptually:
+
+- several patients implanted today
+- more implants than patients
+- 2–4 implant systems represented today
+- multiple patients with prosthetic activity today
+- several prosthetic procedures today
+
+Do not hardcode counters.
+
+==================================================
+11. CURRENT MONTH
+==================================================
+
+Current Month metrics must also contain substantial activity.
+
+Use enough activity this month for:
+
+- implant counts
+- patient counts
+- system distribution
+- prosthetic activity
+- financial totals
+- payments
+- follow-ups
+
+The Today and Current Month dashboard modes must both look populated.
+
+==================================================
+12. HISTORICAL DISTRIBUTION
+==================================================
+
+Spread historical clinical activity across approximately the previous 6 months.
+
+Use a believable monthly pattern.
+
+Do not make every month identical.
+
+The Statistics page should show useful trends.
+
+Include:
+
+- quieter months
+- busier months
+- current month with strong activity
+
+Respect Riyadh date boundaries.
+
+==================================================
+13. BONE GRAFT CASES
+==================================================
+
+Create multiple Bone Graft cases.
+
+Use the existing generalized adjunct procedure architecture.
+
+Include realistic variation in:
+
+- procedure date
+- material
+- membrane
+- status
+- clinical notes where appropriate
+
+Remember:
+
+material/membrane/status fields are free-text where the current architecture defines them that way.
+
+Do NOT convert them to dropdown enums.
+
+Create approximately:
+
+8–12 bone graft procedures
+
+Some should accompany implant cases.
+
+Some may occur before implant placement if clinically coherent.
+
+==================================================
+14. SINUS LIFT CASES
+==================================================
+
+Create multiple sinus lift procedures.
+
+Approximately:
+
+5–8 cases
+
+Include variation such as:
+
+- sinus lift with simultaneous implant placement
+- sinus lift before implant placement
+- follow-up after sinus lift
+
+Use only fields currently supported by Ghars.
+
+Do not fabricate unsupported clinical parameters.
+
+==================================================
+15. NERVE REPOSITIONING
+==================================================
+
+Create a small number of inferior alveolar nerve repositioning cases if this procedure type is already supported.
+
+Approximately:
+
+2–3 cases
+
+Keep them clinically plausible.
+
+==================================================
+16. ADJUNCT-ONLY CASES
+==================================================
+
+Include approximately:
+
+2–4 cases
+
+where an adjunct surgical procedure exists without immediate implant placement.
+
+These are important for testing/displaying the existing generalized adjunct-procedure architecture.
+
+==================================================
+17. PROSTHETIC WORKFLOW
+==================================================
+
+Create realistic prosthetic journeys.
+
+Use the real canonical:
+
+prosthetic_events
+
+architecture.
+
+Include:
+
+- temporary prosthesis
+- final prosthesis
+
+where appropriate.
+
+CRITICAL:
+
+Reuse the existing transactional synchronization between prosthetic events and implant status.
+
+Do NOT manually fake implant status if the prosthetic service already synchronizes it.
+
+==================================================
+18. PROSTHETIC DISTRIBUTION
+==================================================
+
+Create approximately:
+
+10–15 temporary prosthetic events
+
+15–22 final prosthetic events
+
+Some cases may have both sequentially.
+
+The prosthetic charts and:
+
+مرضى التركيب
+التركيبات التي تمت
+
+must show meaningful current activity.
+
+==================================================
+19. FOLLOW-UPS — FULL WORKFLOW
+==================================================
+
+Create a rich set of follow-ups.
+
+Use approximately:
+
+70–100 records
+
+with varied:
+
+- due dates
+- completed dates
+- status
+- notes
+- responsible user if architecture supports it
+
+Include:
+
+- today
+- upcoming
+- completed
+- overdue
+- cancelled/archived only if canonical workflow supports them
+
+The follow-up screens must look realistic and operational.
+
+==================================================
+20. FOLLOW-UP EXAMPLES
+==================================================
+
+Use believable follow-up purposes such as:
+
+- مراجعة بعد الزراعة
+- فحص الالتئام
+- متابعة الطعم العظمي
+- متابعة رفع الجيب الفكي
+- موعد كشف الغطاء
+- تقييم قبل التركيب
+- متابعة التركيب المؤقت
+- مراجعة التركيب النهائي
+
+Use localized/user-visible Arabic content where clinical notes are user-entered text.
+
+Do not add translation keys for patient notes.
+
+==================================================
+21. COMMUNICATIONS
+==================================================
+
+Populate patient communication history.
+
+Approximately:
+
+35–55 records.
+
+Use existing communication types only.
+
+Examples may include:
+
+- appointment confirmation
+- follow-up reminder
+- patient contacted
+- rescheduling
+- post-operative follow-up
+
+If WhatsApp communication is currently manual, do NOT pretend messages were sent through an automated integration.
+
+Use the existing canonical communication record architecture.
+
+==================================================
+22. FINANCIAL DATA — VERY IMPORTANT
+==================================================
+
+Fully populate finance.
+
+Do NOT only create implant rows.
+
+The screenshots must show a real operational business.
+
+For cases, create varied:
+
+- base amounts
+- charges
+- discounts
+- payments
+
+Reuse:
+
+loadCaseFinancials
+
+and:
+
+calcPaymentStatus
+
+or the current canonical equivalents.
+
+Do NOT manually store derived mutable totals.
+
+==================================================
+23. FINANCIAL VARIATION
+==================================================
+
+Create cases that are:
+
+- fully paid
+- partially paid
+- unpaid
+- over multiple payments
+- discounted
+- with additional charges
+
+Use plausible SAR amounts.
+
+Do not make every case exactly the same value.
+
+==================================================
+24. PAYMENTS
+==================================================
+
+Create approximately:
+
+55–80 payment records.
+
+Distribute payments across:
+
+- today
+- current month
+- previous months
+
+Use only supported payment methods.
+
+If the system contains:
+
+cash
+card
+bank transfer
+
+or equivalent canonical values, use those.
+
+Do not invent payment-method enums.
+
+==================================================
+25. CHARGES
+==================================================
+
+Where supported, create charges such as:
+
+- additional implant
+- bone graft
+- sinus lift
+- prosthetic work
+- other supported treatment charge
+
+But:
+
+adjunct clinical procedure record and financial charge must remain separate records.
+
+Do NOT conflate the clinical procedure with the charge entity.
+
+==================================================
+26. DISCOUNTS
+==================================================
+
+Apply realistic discounts to some cases.
+
+Approximately:
+
+10–18 cases
+
+Use both:
+
+- fixed amount
+- percentage
+
+only if both models currently exist.
+
+Otherwise use the existing supported architecture.
+
+==================================================
+27. INSTALLMENTS
+==================================================
+
+If Ghars currently supports installment planning:
+
+create several realistic installment-based cases.
+
+If the installment feature is not implemented:
+
+DO NOT invent it.
+
+==================================================
+28. FINANCIAL INTEGRITY
+==================================================
+
+For every seeded case:
+
+Expected total must be calculated using canonical logic:
+
+base
++ charges
+- discounts
+
+Paid:
+
+sum of valid/non-voided payments
+
+Remaining:
+
+canonical derived result
+
+No screenshots should contain mathematically inconsistent balances.
+
+==================================================
+29. VOID/CANCELLED FINANCE RECORDS
+==================================================
+
+If void/cancel functionality currently exists:
+
+include a very small number of voided/cancelled financial records so history looks realistic.
+
+These must NOT count toward paid totals.
+
+Use the canonical implementation.
+
+==================================================
+30. OPERATIONAL TABLE
+==================================================
+
+The Operational Table must look rich after seeding.
+
+Include a varied mix of:
+
+- active surgery
+- healing
+- adjunct procedure
+- ready for prosthetic
+- temporary prosthetic
+- final prosthetic
+- completed
+
+The derived:
+
+ملخص الحالة
+
+must come from canonical implant/procedure statuses.
+
+Do NOT create a new summary DB field.
+
+==================================================
+31. PATIENT FILE
+==================================================
+
+Make several patients especially strong for screenshots.
+
+Create at least 6 showcase patients with different journeys.
+
+SHOWCASE A:
+Single implant → completed → final prosthesis → fully paid
+
+SHOWCASE B:
+Two implants + bone graft → healing → partial payment
+
+SHOWCASE C:
+Sinus lift → multiple upper implants → temporary prosthesis
+
+SHOWCASE D:
+Multiple implants → final prosthetics → several payments
+
+SHOWCASE E:
+Adjunct procedure first → implant later → active follow-up
+
+SHOWCASE F:
+Complex case with charges + discount + multiple follow-ups
+
+Use synthetic names.
+
+==================================================
+32. PATIENT FILE TWO-TAB ARCHITECTURE
+==================================================
+
+Do not alter Patient File architecture.
+
+It remains exactly:
+
+بيانات المريض
+
+إجراءات المريض
+
+Populate data so both tabs look meaningful.
+
+==================================================
+33. SCREENSHOT QUALITY
+==================================================
+
+The generated dataset should make these real Ghars screens screenshot-ready:
+
+1. Home Dashboard
+2. Operational Table
+3. Patients List
+4. Patient File — Patient Data
+5. Patient File — Patient Procedures
+6. Implant Case details
+7. Follow-ups
+8. Statistics overview
+9. Implant system analytics
+10. Prosthetic analytics
+11. Finance analytics
+12. Financial case details
+
+Do NOT create fake screenshots.
+
+We will capture the actual Ghars UI afterward.
+
+==================================================
+34. STATISTICS
+==================================================
+
+Ensure statistics contain enough data for useful charts across 6 months.
+
+Include:
+
+- patients
+- implant cases
+- implants
+- implant systems
+- prosthetics
+- adjunct procedures
+- follow-up activity
+- finance where currently supported
+
+Use canonical queries.
+
+Do not hardcode stats.
+
+==================================================
+35. FINANCE STATISTICS
+==================================================
+
+Finance analytics should show meaningful:
+
+- billed value
+- payments collected
+- outstanding balance
+- discounts
+- charges
+
+based entirely on canonical finance calculations.
+
+==================================================
+36. DOCTOR ASSIGNMENT
+==================================================
+
+Dr. Humam should appear prominently as the primary treating doctor in the screenshot data.
+
+If existing architecture permits doctor assignment per case:
+
+assign most seeded cases to Dr. Humam.
+
+If multiple doctors already exist and screens benefit from variation:
+
+a small number may use other existing synthetic/non-sensitive staff assignments.
+
+Do NOT create fake staff unless necessary.
+
+==================================================
+37. DATES
+==================================================
+
+Use a deterministic screenshot anchor date.
+
+For this seed, use:
+
+2026-09-12
+
+in Asia/Riyadh timezone
+
+unless the existing development clock architecture requires a cleaner configurable anchor.
+
+Create:
+
+TODAY activity:
+2026-09-12
+
+CURRENT MONTH:
+September 2026
+
+HISTORICAL:
+approximately March–September 2026
+
+This prevents screenshot content from changing unexpectedly during this preparation phase.
+
+==================================================
+38. DATE CONSISTENCY
+==================================================
+
+Ensure:
+
+implant date >= case creation date
+
+follow-up date makes sense relative to surgery
+
+prosthetic date > implant placement where clinically appropriate
+
+final prosthesis >= temporary prosthesis where both exist
+
+payments may occur before/during/after procedures where business logic permits
+
+adjunct procedures occur in clinically sensible sequence
+
+==================================================
+39. DO NOT MODIFY EXISTING USERS
+==================================================
+
+Do not reset:
+
+Dr. Humam's password
+roles
+permissions
+tenant
+locale
+
+Do not alter any existing staff authentication data.
+
+==================================================
+40. IDEMPOTENCY
+==================================================
+
+Running the screenshot seed twice must NOT duplicate records.
+
+Either:
+
+detect existing seed batch and stop
+
+or safely replace only the previous screenshot seed batch.
+
+Never duplicate synthetic patients repeatedly.
+
+==================================================
+41. CLEANUP COMMAND
+==================================================
+
+Create a safe cleanup workflow.
+
+Example:
+
+npm run cleanup:screenshot-data
+
+It must remove ONLY this screenshot seed batch.
+
+Deletion order must respect foreign keys.
+
+Never delete:
+
+- existing clinic users
+- existing real patients
+- existing historical data
+- configuration/lists
+- tenant
+- Dr. Humam account
+
+==================================================
+42. DATA LABELING
+==================================================
+
+Where internal metadata permits, identify these records as:
+
+Screenshot Seed
+
+or equivalent.
+
+Do NOT show an ugly "DEMO DATA" label in customer-facing screenshots unless necessary.
+
+The UI should look like a normal working Ghars installation.
+
+==================================================
+43. NO REAL PERSONAL DATA
+==================================================
+
+Perform a final scan of the generated dataset.
+
+Ensure:
+
+- no real patient IDs
+- no copied real phone numbers
+- no copied existing patient names
+- no real clinical notes
+
+Everything generated must be fictional.
+
+==================================================
+44. VALIDATION
+==================================================
+
+After seeding, validate:
+
+- patient count
+- case count
+- implant count
+- adjunct procedure count
+- prosthetic event count
+- follow-up count
+- communication count
+- payment count
+- charges
+- discounts
+
+Verify foreign-key integrity.
+
+==================================================
+45. FINANCE VALIDATION
+==================================================
+
+For every seeded case:
+
+recalculate financial totals through canonical application logic.
+
+Verify:
+
+expected
+paid
+remaining
+payment status
+
+No mismatches.
+
+==================================================
+46. DASHBOARD VALIDATION
+==================================================
+
+Open Home Dashboard.
+
+Verify both:
+
+Today
+
+and:
+
+Current Month
+
+All five canonical summary cards must show meaningful non-zero content where clinically appropriate.
+
+Do NOT change the cards.
+
+==================================================
+47. BROWSER VERIFICATION
+==================================================
+
+Log into Dr. Humam's normal account.
+
+Browser-test the seeded records in actual UI.
+
+Verify:
+
+- Dashboard
+- Operational Table
+- Patients
+- Patient File
+- Procedures
+- Implants
+- Follow-ups
+- Statistics
+- Finance analytics
+
+No broken records.
+
+No empty unexpected labels.
+
+No 404/500 errors.
+
+==================================================
+48. ARABIC SCREENSHOT READINESS
+==================================================
+
+Primary screenshot preparation language:
+
+Arabic
+
+Verify Arabic RTL pages look polished.
+
+No localization leaks.
+
+No raw status codes.
+
+No technical seed labels visible.
+
+==================================================
+49. ENGLISH REGRESSION
+==================================================
+
+Also switch to English briefly.
+
+Verify synthetic records do not break English rendering.
+
+Do not rewrite user-entered Arabic clinical notes for English.
+
+==================================================
+50. DO NOT CHANGE PRODUCT DESIGN
+==================================================
+
+This task is DATA PREPARATION.
+
+Do NOT redesign:
+
+- Dashboard
+- Patient File
+- Statistics
+- Finance
+- Operational Table
+- Landing Page
+
+Do not build Landing Page yet.
+
+==================================================
+51. TESTS
+==================================================
+
+Run:
+
+- TypeScript frontend
+- TypeScript backend/shared
+- production build
+- existing API tests
+- seed integrity validation
+
+Do not weaken existing tests.
+
+==================================================
+52. FINAL REPORT
+==================================================
+
+After the dataset is successfully created, report:
+
+1. Target tenant/account used
+2. Dr. Humam user/doctor matched
+3. Seed batch identifier
+4. Number of synthetic patients
+5. Number of implant cases
+6. Number of implants
+7. Bone graft count
+8. Sinus lift count
+9. Nerve repositioning count
+10. Prosthetic event count
+11. Follow-up count
+12. Communication count
+13. Payment count
+14. Charge count
+15. Discount count
+16. Financial integrity result
+17. Dashboard Today verification
+18. Dashboard Current Month verification
+19. Statistics verification
+20. Best 6 patient records to use for screenshots
+21. Cleanup command
+22. Full test result
+23. Production build result
+24. Exact checkpoint/commit hash
+
+Final flags:
+
+SCREENSHOT DATA ISOLATION: PASS / FAIL
+NO REAL PATIENT DATA USED: PASS / FAIL
+CLINICAL DATA INTEGRITY: PASS / FAIL
+FINANCIAL DATA INTEGRITY: PASS / FAIL
+DASHBOARD SCREENSHOT READINESS: PASS / FAIL
+PATIENT FILE SCREENSHOT READINESS: PASS / FAIL
+FOLLOW-UP SCREENSHOT READINESS: PASS / FAIL
+STATISTICS SCREENSHOT READINESS: PASS / FAIL
+FINANCE SCREENSHOT READINESS: PASS / FAIL
+SAFE CLEANUP AVAILABLE: PASS / FAIL
+FULL TEST SUITE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+DO NOT PUBLISH.
+DO NOT BUILD THE LANDING PAGE YET.
+
+Create a stable checkpoint and STOP.
