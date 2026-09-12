@@ -1,0 +1,206 @@
+MODE: Free
+
+Redesign ONLY the Landing Page section:
+
+"ثلاث خطوات للانطلاق"
+"Three Steps to Get Started"
+
+The current section feels visually unbalanced and unfinished.
+
+Do NOT change the commercial flow.
+Do NOT redesign other sections.
+
+==================================================
+1. CHANGE THE CURRENT LAYOUT
+==================================================
+
+Remove the current floating-number + long horizontal-line layout.
+
+Replace it with a clean 3-step card-based timeline.
+
+The section should feel:
+
+- premium
+- structured
+- simple
+- professional
+- easy to scan
+
+==================================================
+2. DESKTOP STRUCTURE
+==================================================
+
+Use 3 equal-width cards in one row.
+
+Arabic RTL order from RIGHT to LEFT:
+
+1. تسجيل العيادة
+2. استخدام النظام
+3. تفعيل الحساب
+
+Each card should contain:
+
+- small numbered circle at the top
+- optional simple line icon
+- title
+- short description
+
+Cards must have equal height.
+
+Use subtle border and very light shadow.
+
+Do not make them heavy or colorful.
+
+==================================================
+3. ARABIC COPY
+==================================================
+
+Step 1:
+
+تسجيل العيادة
+
+أنشئ حساب منشأتك وابدأ تجربة مجانية لمدة 3 أيام.
+
+Step 2:
+
+ابدأ استخدام غرس
+
+أضف المرضى، ووثّق الزرعات والإجراءات، وتابع المواعيد والدفعات من مكان واحد.
+
+Step 3:
+
+فعّل حسابك
+
+بعد انتهاء التجربة، تواصل مع دعم غرس لتفعيل الحساب بشكل دائم.
+
+==================================================
+4. ENGLISH COPY
+==================================================
+
+Step 1:
+
+Register Your Clinic
+
+Create your clinic account and start a free 3-day trial.
+
+Step 2:
+
+Start Using Ghars
+
+Add patients, document implants and procedures, and manage appointments and payments from one place.
+
+Step 3:
+
+Activate Your Account
+
+After the trial ends, contact Ghars Support to activate your account permanently.
+
+==================================================
+5. VISUAL STYLE
+==================================================
+
+Use Ghars design system:
+
+Deep Navy:
+#0D1B3D
+
+Teal:
+use only as a small accent
+
+Background:
+very light neutral / pale blue-gray
+
+Cards:
+white
+
+Borders:
+subtle
+
+Numbers:
+inside small circles with light teal/navy accent
+
+==================================================
+6. CONNECTOR
+==================================================
+
+Optionally add a very subtle connector between cards.
+
+Use:
+
+- thin line
+or
+- small arrow
+
+Do NOT use a large horizontal line across the whole section.
+
+The cards themselves should remain the main visual structure.
+
+==================================================
+7. SECTION HEADER
+==================================================
+
+Keep:
+
+كيف تبدأ
+
+ثلاث خطوات للانطلاق
+
+But tighten spacing.
+
+Use:
+
+small eyebrow
+main heading
+one short supporting line
+
+Then cards.
+
+Do not leave excessive empty space above the cards.
+
+==================================================
+8. MOBILE
+==================================================
+
+On mobile:
+
+stack the 3 cards vertically.
+
+Order:
+
+1
+2
+3
+
+Use a subtle vertical connector if useful.
+
+No horizontal overflow.
+
+Cards should keep consistent spacing.
+
+==================================================
+9. DO NOT CHANGE
+==================================================
+
+Do not change:
+
+- trial length
+- permanent activation model
+- support flow
+- other landing sections
+- navbar
+- hero
+- FAQ
+- screenshots
+
+Only redesign this section.
+
+==================================================
+10. FINAL RESULT
+==================================================
+
+The section should look like a polished SaaS onboarding timeline, not floating text under numbers.
+
+Verify Arabic RTL and English LTR.
+
+Do not publish.
+Create a checkpoint and stop.

@@ -26,7 +26,6 @@ import { useLocale } from "@/i18n/LocaleProvider";
 import { useSupportContacts } from "@/hooks/use-commercial";
 import { usePublicLandingMedia } from "@/hooks/use-landing-media";
 import { buildSupportWhatsappLink } from "@/lib/support";
-import gharsLogo from "@/assets/ghars-logo.png";
 import gharsNavbarLogo from "@/assets/ghars-navbar-logo.png";
 import gharsFooterLogo from "@/assets/ghars-footer-logo.png";
 
@@ -45,9 +44,10 @@ const CONTENT = {
     },
     hero: {
       title: "كل ما تحتاجه لإدارة زراعة الأسنان من مكان واحد",
-      titleLead: "كل ما تحتاجه لإدارة زراعة الأسنان",
+      titleLine1: "كل ما تحتاجه لإدارة",
+      titleLine2: "زراعة الأسنان",
       titleAccent: "من مكان واحد",
-      subtitle: "غرس يساعد عيادات زراعة الأسنان على إدارة المرضى وحالات الزراعة، والمتابعات والمواعيد والمدفوعات والتقارير في نظام واحد متكامل، لعمل أكثر تنظيماً ونتائج أفضل.",
+      subtitle: "غرس يساعد عيادات زراعة الأسنان على إدارة المرضى وحالات الزراعة والمتابعات والمواعيد والمدفوعات والتقارير من نظام واحد متكامل.",
       ctaPrimary: "ابدأ تجربتك المجانية",
       ctaSecondary: "تواصل معنا عبر واتساب",
       trialNote: "تجربة مجانية لمدة 3 أيام، بدون بطاقة ائتمان.",
@@ -151,9 +151,10 @@ const CONTENT = {
     },
     hero: {
       title: "Everything you need to manage dental implants, in one place",
-      titleLead: "Everything you need to manage dental implants,",
+      titleLine1: "Everything you need",
+      titleLine2: "to manage dental implants",
       titleAccent: "in one place",
-      subtitle: "Ghars helps dental implant clinics manage patients and implant cases, follow-ups, appointments, payments, and reports in one integrated system for more organized work and better outcomes.",
+      subtitle: "Ghars helps dental implant clinics manage patients, implant cases, follow-ups, appointments, payments, and reports from one integrated system.",
       ctaPrimary: "Start Free Trial",
       ctaSecondary: "Contact Us on WhatsApp",
       trialNote: "3-day free trial, no credit card required.",
@@ -499,23 +500,23 @@ export default function LandingPage() {
             </div>
 
             <div className="order-1 relative z-10 text-center lg:order-2 lg:text-start" dir={isRTL ? "rtl" : "ltr"}>
-              <img
-                src={gharsLogo}
-                alt="غرس | Ghars"
-                className="mx-auto mb-5 h-auto w-[92px] object-contain mix-blend-multiply sm:w-[104px] lg:mx-0 lg:w-[112px]"
-              />
-              <h1 className={`mb-5 text-4xl font-bold leading-[1.2] text-[#0D1B3D] sm:text-5xl animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRTL ? "lg:text-[clamp(2.75rem,3.5vw,4.25rem)]" : "lg:text-[2.875rem] lg:leading-[1.12]"}`}>
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#EAF7F5] px-3 py-1.5 text-xs font-medium text-[#0F766E] ring-1 ring-inset ring-[#1FA9B8]/20">
+                <CheckCircle2 size={15} strokeWidth={2} />
+                <span>{t.hero.trialNote}</span>
+              </div>
+              <h1 className={`mb-5 text-[2.2rem] font-bold leading-[1.18] text-[#0D1B3D] sm:text-[2.75rem] animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRTL ? "lg:text-[clamp(2.55rem,3.15vw,3.6rem)]" : "lg:text-[2.7rem] lg:leading-[1.12]"}`}>
                 {usesApprovedHeroTitle ? (
                   <>
-                    <span className="block">{t.hero.titleLead}</span>
-                    <span className="relative mt-1 inline-block">
+                    <span className="block">{t.hero.titleLine1}</span>
+                    <span className="block">{t.hero.titleLine2}</span>
+                    <span className="relative mt-0.5 inline-block">
                       <span className="relative z-10">{t.hero.titleAccent}</span>
-                      <span className="absolute inset-x-0 bottom-1.5 -z-0 h-2 rounded-full bg-[#1FA9B8]/20" aria-hidden="true"></span>
+                      <span className="absolute inset-x-0 bottom-1 -z-0 h-1.5 rounded-full bg-[#1FA9B8]/25" aria-hidden="true"></span>
                     </span>
                   </>
                 ) : heroTitle}
               </h1>
-              <p className="mx-auto mb-7 max-w-xl text-base leading-8 text-[#64748B] sm:text-lg lg:mx-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+              <p className="mx-auto mb-6 max-w-[34rem] text-[15px] leading-7 text-[#64748B] sm:text-base lg:mx-0 lg:max-w-[31rem] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                 {heroSubtitle}
               </p>
               <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
