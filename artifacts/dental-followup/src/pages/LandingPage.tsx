@@ -348,9 +348,17 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/90 backdrop-blur-md border-b border-border shadow-sm py-3" : "bg-transparent py-5"}`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={gharsSymbol} alt="Ghars Logo" className="w-10 h-10 object-contain" />
-            <span className="text-[#0D1B3D] font-bold text-2xl tracking-tight hidden sm:block">Ghars</span>
+          <div className="flex items-center gap-2" dir="ltr">
+            <span
+              className="notranslate inline-flex items-baseline whitespace-nowrap text-[#0D1B3D] font-semibold text-lg sm:text-xl tracking-tight"
+              translate="no"
+              aria-label="غرس | Ghars"
+            >
+              <span dir="rtl" className="font-brand-arabic">غرس</span>
+              <span className="mx-1 text-[#64748B]">|</span>
+              <span className="font-brand-latin text-[0.9em]">Ghars</span>
+            </span>
+            <img src={gharsSymbol} alt="Ghars official icon" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
           </div>
 
           {/* Desktop Nav */}
