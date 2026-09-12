@@ -85,13 +85,13 @@ const CONTENT = {
       ]
     },
     howItWorks: {
-      badge: "كيف نبدأ",
+      badge: "كيف تبدأ",
       title: "ثلاث خطوات للانطلاق",
       subtitle: "ابدأ إدارة عيادتك بكل سهولة خلال خطوات بسيطة.",
       steps: [
-        { step: "1", title: "تسجيل العيادة", desc: "أنشئ حساب منشأتك واستمتع بتجربة مجانية كاملة لمدة 3 أيام." },
-        { step: "2", title: "استخدام النظام", desc: "أضف مرضاك، وثّق حالات الزرعات، واكتشف سهولة إدارة عيادتك." },
-        { step: "3", title: "تفعيل الحساب", desc: "تواصل مع الدعم الفني بعد انتهاء التجربة لتفعيل اشتراكك الدائم يدوياً." }
+        { step: "1", title: "تسجيل العيادة", desc: "أنشئ حساب منشأتك وابدأ تجربة مجانية لمدة 3 أيام." },
+        { step: "2", title: "ابدأ استخدام غرس", desc: "أضف المرضى، ووثّق الزرعات والإجراءات، وتابع المواعيد والدفعات من مكان واحد." },
+        { step: "3", title: "فعّل حسابك", desc: "بعد انتهاء التجربة، تواصل مع دعم غرس لتفعيل الحساب بشكل دائم." }
       ]
     },
     gallery: {
@@ -193,12 +193,12 @@ const CONTENT = {
     },
     howItWorks: {
       badge: "Getting Started",
-      title: "Three steps to launch",
+      title: "Three Steps to Get Started",
       subtitle: "Start managing your clinic with ease in a few simple steps.",
       steps: [
-        { step: "1", title: "Register Clinic", desc: "Create your facility account and enjoy a full 3-day free trial." },
-        { step: "2", title: "Use the System", desc: "Add patients, document implant cases, and discover the ease of management." },
-        { step: "3", title: "Activate Account", desc: "Contact tech support after the trial to manually activate your permanent subscription." }
+        { step: "1", title: "Register Your Clinic", desc: "Create your clinic account and start a free 3-day trial." },
+        { step: "2", title: "Start Using Ghars", desc: "Add patients, document implants and procedures, and manage appointments and payments from one place." },
+        { step: "3", title: "Activate Your Account", desc: "After the trial ends, contact Ghars Support to activate your account permanently." }
       ]
     },
     gallery: {
@@ -631,29 +631,35 @@ export default function LandingPage() {
       </section>
 
       {/* How it Works */}
-      <section id="how-it-works" className="py-24 bg-[#F5F8FA] relative overflow-hidden">
+      <section id="how-it-works" className="relative scroll-mt-24 overflow-hidden bg-[#F5F8FA] py-20 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-[#0F766E] font-bold text-sm tracking-wider uppercase mb-3 block">{t.howItWorks.badge}</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#0D1B3D] mb-4">{t.howItWorks.title}</h2>
-            <p className="text-[#64748B] text-lg">{t.howItWorks.subtitle}</p>
+          <div className="mx-auto mb-10 max-w-2xl text-center md:mb-12">
+            <span className="mb-2.5 block text-sm font-bold tracking-wider text-[#0F766E] uppercase">{t.howItWorks.badge}</span>
+            <h2 className="mb-3 text-3xl font-bold text-[#0D1B3D] md:text-4xl">{t.howItWorks.title}</h2>
+            <p className="mx-auto max-w-xl text-base leading-7 text-[#64748B] md:text-lg">{t.howItWorks.subtitle}</p>
           </div>
 
-          <div className="relative max-w-4xl mx-auto">
-            {/* Connecting Line */}
-            <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-[#0F766E]/10 via-[#0F766E]/30 to-[#0F766E]/10 -translate-y-1/2"></div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
-              {t.howItWorks.steps.map((step, i) => (
-                <div key={i} className="text-center">
-                  <div className="w-20 h-20 mx-auto bg-white border-4 border-[#ECF8F6] rounded-full flex items-center justify-center shadow-lg shadow-[#0F766E]/10 mb-6 relative">
-                    <span className="text-3xl font-bold text-[#0F766E]">{step.step}</span>
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
+            {t.howItWorks.steps.map((step, i) => {
+              const StepIcon = [FileText, Stethoscope, ShieldCheck][i];
+              return (
+                <article
+                  key={step.step}
+                  className="flex h-full flex-col rounded-2xl border border-[#0D1B3D]/[0.08] bg-white p-6 text-start shadow-[0_14px_35px_-28px_rgba(13,27,61,0.35)] transition-transform duration-300 hover:-translate-y-1 sm:p-7"
+                >
+                  <div className="mb-6 flex items-center justify-between">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF7F5] text-sm font-bold text-[#0D1B3D] ring-1 ring-inset ring-[#1FA9B8]/20">
+                      {step.step}
+                    </span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F5F8FA] text-[#0F766E]" aria-hidden="true">
+                      <StepIcon size={20} strokeWidth={1.7} />
+                    </span>
                   </div>
-                  <h3 className="text-2xl font-bold text-[#0D1B3D] mb-4">{step.title}</h3>
-                  <p className="text-[#64748B] text-lg leading-relaxed">{step.desc}</p>
-                </div>
-              ))}
-            </div>
+                  <h3 className="mb-3 text-xl font-bold text-[#0D1B3D]">{step.title}</h3>
+                  <p className="text-[15px] leading-7 text-[#64748B]">{step.desc}</p>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
