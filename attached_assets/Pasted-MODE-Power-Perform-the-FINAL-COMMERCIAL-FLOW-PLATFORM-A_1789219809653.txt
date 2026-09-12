@@ -1,0 +1,1114 @@
+MODE: Power
+
+Perform the FINAL COMMERCIAL FLOW + PLATFORM ADMIN CLOSURE for:
+
+غرس | Ghars
+
+IMPORTANT:
+
+Most commercial architecture is already implemented and working.
+
+DO NOT rebuild:
+- multi-tenancy
+- tenant isolation
+- 72-hour trial architecture
+- Platform Admin
+- authentication
+- password reset architecture
+- localization
+- customer lifecycle
+- clinical workflows
+
+Use the CURRENT codebase as the source of truth.
+
+This task is a FINAL CLOSURE / HARDENING pass only.
+
+The goal is to close all remaining known issues before creating the Demo Tenant and Landing Page.
+
+Do NOT publish.
+
+==================================================
+1. FINAL COMMERCIAL MODEL — SOURCE OF TRUTH
+==================================================
+
+Ghars commercial lifecycle is:
+
+Registration
+→ 72-hour trial
+→ Trial expires
+→ Operational access blocked
+→ Customer contacts Ghars Support
+→ Payment occurs manually outside Ghars
+→ Platform Super Admin manually activates tenant
+→ Tenant becomes permanently ACTIVE
+
+There are:
+
+NO subscriptions
+NO recurring billing
+NO monthly/yearly plans
+NO payment gateway
+NO renewal date
+
+==================================================
+2. ACTIVE = PERMANENT ACCESS
+==================================================
+
+CRITICAL:
+
+When:
+
+tenant.status === "active"
+
+the tenant has PERMANENT operational access.
+
+trial_ends_at becomes historical information only.
+
+An ACTIVE tenant must NEVER expire because:
+
+serverNow > trial_ends_at
+
+Access middleware must behave conceptually as:
+
+ACTIVE:
+always allow operational access
+
+TRIALING:
+allow only while serverNow < trial_ends_at
+
+EXPIRED:
+block
+
+SUSPENDED:
+block
+
+==================================================
+3. ACTIVE TENANT UI
+==================================================
+
+For active tenants display clearly:
+
+Arabic:
+
+الحالة:
+نشط — نسخة مفعّلة
+
+تاريخ التفعيل:
+{activated_at}
+
+نوع التفعيل:
+دائم
+
+English:
+
+Status:
+Active — Permanently Activated
+
+Activated At:
+{activated_at}
+
+Activation Type:
+Permanent
+
+==================================================
+4. REMOVE TRIAL ACTIONS AFTER ACTIVATION
+==================================================
+
+For ACTIVE tenants:
+
+REMOVE / HIDE:
+
+تمديد التجربة
+Extend Trial
+
+Do not display:
+
+remaining trial time
+
+trial expiration countdown
+
+trial warning
+
+The historical trial period may remain visible as:
+
+الفترة التجريبية السابقة
+
+Previous Trial Period
+
+==================================================
+5. TRIALS PAGE
+==================================================
+
+ACTIVE permanently activated tenants must NOT appear under:
+
+Active Trials
+Expiring Soon
+Expired Trials
+
+unless a separate historical view intentionally exists.
+
+==================================================
+6. ACTIVE / SUSPEND / REACTIVATE TEST
+==================================================
+
+Test:
+
+1. Create trial tenant.
+2. Activate permanently.
+3. Advance controlled server time beyond original trial_ends_at.
+4. Confirm full access still works.
+5. Confirm Extend Trial is hidden.
+6. Suspend tenant.
+7. Confirm operational access blocked.
+8. Reactivate.
+9. Confirm status returns to ACTIVE permanent access.
+10. Confirm trial does not restart.
+
+==================================================
+7. PLATFORM SUPER ADMIN ACCOUNT MANAGEMENT
+==================================================
+
+Complete the Platform Super Admin account-management experience.
+
+Create/use:
+
+/platform-admin/account
+
+or the appropriate existing route.
+
+This page is separate from:
+
+Platform Settings.
+
+Platform Account manages the ADMIN'S own identity/security.
+
+Platform Settings manages Ghars product configuration.
+
+==================================================
+8. PLATFORM ADMIN ACCOUNT INFORMATION
+==================================================
+
+Show safely:
+
+- Display Name
+- Username
+- Role: Platform Super Admin
+- Preferred Language
+- Last Login
+- Password Last Changed
+- Account Created At if useful
+
+Never display:
+
+- password
+- password hash
+- session IDs
+- security tokens
+
+==================================================
+9. CHANGE PLATFORM ADMIN DISPLAY NAME
+==================================================
+
+Allow editing:
+
+Display Name
+
+Use normal validation.
+
+Audit the change.
+
+==================================================
+10. CHANGE PLATFORM ADMIN USERNAME
+==================================================
+
+Allow Platform Super Admin to change their login username.
+
+Requirements:
+
+- required
+- trimmed
+- safe allowed characters
+- globally unique according to authentication architecture
+- current password required before username change
+
+After successful change:
+
+- old username no longer authenticates
+- new username works
+- audit the change
+
+Do not expose unrelated users through unsafe uniqueness errors.
+
+==================================================
+11. CHANGE PLATFORM ADMIN PASSWORD
+==================================================
+
+Add:
+
+تغيير كلمة المرور
+Change Password
+
+Fields:
+
+Current Password
+New Password
+Confirm New Password
+
+Use the EXISTING password policy.
+
+Verify current password server-side.
+
+Never store/log plaintext passwords.
+
+==================================================
+12. PASSWORD CHANGE SESSION SECURITY
+==================================================
+
+After Platform Admin changes password:
+
+prefer:
+
+invalidate all OTHER active Platform Admin sessions
+
+while preserving the current session safely.
+
+If the current session architecture cannot support this cleanly:
+
+invalidate all sessions and require login again.
+
+Report which policy is used.
+
+==================================================
+13. PLATFORM ADMIN SECURITY / SESSIONS
+==================================================
+
+Provide:
+
+تسجيل الخروج من جميع الأجهزة الأخرى
+Log out from all other sessions
+
+If safe session metadata already exists, optionally show:
+
+- current session indicator
+- created time
+- last activity
+- approximate browser/device
+
+Never expose session IDs.
+
+==================================================
+14. PLATFORM ADMIN RECOVERY
+==================================================
+
+Email recovery is intentionally NOT part of the current commercial release.
+
+Do NOT add email-based Platform Admin recovery.
+
+Platform Super Admin recovery remains a controlled operational/bootstrap procedure.
+
+Document the secure recovery procedure.
+
+==================================================
+15. PLATFORM ACCOUNT AUTHORIZATION
+==================================================
+
+All Platform Account mutation APIs must require:
+
+platform_super_admin
+
+Tenant Admin:
+403
+
+Doctor:
+403
+
+Normal customer users:
+403
+
+==================================================
+16. GLOBAL DIALOG / MODAL CENTERING
+==================================================
+
+There is a global UI problem where dialogs move left/right depending on RTL/LTR.
+
+Fix this CENTRALLY.
+
+Do NOT patch individual dialogs one by one.
+
+Audit shared:
+
+Dialog
+DialogContent
+AlertDialog
+AlertDialogContent
+Modal
+ConfirmDialog
+
+==================================================
+17. DIALOG POSITION RULE
+==================================================
+
+All actual dialogs/modals must always be:
+
+HORIZONTALLY centered
++
+VERTICALLY centered
+
+relative to the VIEWPORT.
+
+Arabic RTL and English LTR must NOT change modal physical position.
+
+RTL/LTR affects only dialog CONTENT direction.
+
+==================================================
+18. DIALOG IMPLEMENTATION
+==================================================
+
+Use a direction-independent centering strategy such as:
+
+fixed
+left: 50%
+top: 50%
+transform: translate(-50%, -50%)
+
+or:
+
+fixed inset-0
+grid/flex
+place-items-center
+
+depending on the current Radix/shadcn architecture.
+
+Do NOT let:
+
+rtl:
+ltr:
+left/right:
+translateX:
+
+change modal viewport positioning.
+
+==================================================
+19. DIALOGS MUST CENTER AGAINST VIEWPORT
+==================================================
+
+Dialogs must NOT center only inside:
+
+- content container
+- sidebar area
+- page max-width
+- relative parent
+
+They must center against the FULL browser viewport.
+
+Platform Admin sidebar must not shift modal center.
+
+==================================================
+20. TALL DIALOGS
+==================================================
+
+Tall forms must remain centered.
+
+Use safe maximum height such as:
+
+max-height: calc(100vh - safe spacing)
+
+and internal content scrolling.
+
+Do NOT let the entire modal extend outside the viewport.
+
+==================================================
+21. MOBILE DIALOGS
+==================================================
+
+At approximately:
+
+390px
+
+dialogs must:
+
+- remain centered
+- have safe left/right margins
+- have no horizontal overflow
+- scroll internally when tall
+
+==================================================
+22. DIALOG AUDIT
+==================================================
+
+Verify representative dialogs:
+
+- Add User
+- Edit User
+- Reset Password
+- Edit Follow-up
+- Add Implant
+- Add Surgical Procedure
+- Payment
+- Archive confirmation
+- Platform Activate Tenant
+- Suspend Tenant
+- Extend Trial
+- Platform Account security dialogs
+
+Arabic + English.
+
+==================================================
+23. WHATSAPP SUPPORT — HTTPS ONLY
+==================================================
+
+Audit all support WhatsApp actions.
+
+Do NOT use:
+
+whatsapp://
+
+Do NOT use:
+
+tel:
+
+for WhatsApp actions.
+
+Use:
+
+https://wa.me/{normalizedNumber}
+
+==================================================
+24. SUPPORT WHATSAPP SOURCE
+==================================================
+
+Use the canonical:
+
+Platform Settings → Support WhatsApp
+
+Do NOT hardcode support numbers in UI components.
+
+==================================================
+25. WHATSAPP NORMALIZATION
+==================================================
+
+Use the existing phone normalization helper.
+
+The wa.me value must contain:
+
+country code + number
+
+with no:
+
++
+spaces
+dashes
+parentheses
+
+Example conceptually:
+
+0506388263
+
+→ normalized Saudi number
+
+→ https://wa.me/966506388263
+
+Do NOT hardcode Saudi normalization if a canonical helper already exists.
+
+==================================================
+26. WHATSAPP PREFILLED MESSAGES
+==================================================
+
+For expired tenant:
+
+Arabic:
+
+السلام عليكم،
+انتهت الفترة التجريبية لمنشأتي في غرس وأرغب في شراء وتفعيل النظام.
+
+اسم المنشأة: {tenantName}
+رقم العميل: {tenantReference}
+
+For suspended tenant:
+
+السلام عليكم،
+أرغب في التواصل مع دعم غرس بخصوص تعليق حساب المنشأة.
+
+اسم المنشأة: {tenantName}
+رقم العميل: {tenantReference}
+
+Create localized English equivalents.
+
+Use encoded HTTPS URL parameters.
+
+==================================================
+27. WHATSAPP OPENING BEHAVIOR
+==================================================
+
+Preferred:
+
+target="_blank"
+rel="noopener noreferrer"
+
+Do NOT attempt whatsapp:// first.
+
+Do NOT trigger the browser's explicit custom-app protocol prompt from Ghars.
+
+==================================================
+28. SUPPORT PHONE VS WHATSAPP
+==================================================
+
+Keep:
+
+Support WhatsApp
+
+and:
+
+Support Phone
+
+as separate concepts.
+
+WhatsApp:
+→ https://wa.me/
+
+Support Phone:
+→ tel:
+
+only in places explicitly meant for calling.
+
+On expired/suspended screens, the primary support number should be clearly identified as WhatsApp where intended.
+
+==================================================
+29. COMPLETE LOCALIZATION LEAK AUDIT
+==================================================
+
+Audit the application for remaining visible hardcoded language leaks.
+
+Known examples previously observed:
+
+English Login page showing:
+
+إنشاء حساب جديد
+
+تقنية · دقة · ثقة
+
+Platform Health Arabic page showing English descriptions.
+
+Platform Audit showing raw codes.
+
+Fix all remaining cases.
+
+==================================================
+30. LOGIN LOCALIZATION
+==================================================
+
+English mode must display:
+
+Sign in
+Welcome to Ghars
+Username
+Password
+Forgot password?
+Create Account
+Contact Support
+Technology · Precision · Trust
+
+No unintended Arabic UI text.
+
+The official:
+
+غرس / Ghars
+
+brand artwork may remain bilingual.
+
+==================================================
+31. PLATFORM LOCALIZATION
+==================================================
+
+Arabic Platform Admin must not display raw values like:
+
+PENDING
+TENANT_REGISTRATION_CREATED
+platform_settings_updated
+Session store is reachable
+Database query succeeded
+
+Use the existing translation layer.
+
+Keep canonical codes unchanged internally.
+
+==================================================
+32. HEALTH LOCALIZATION
+==================================================
+
+Localize System Health descriptions.
+
+For Arabic, examples conceptually:
+
+واجهة الخدمة
+تعمل بصورة طبيعية
+
+قاعدة البيانات
+الاتصال ناجح
+
+الجلسات
+مخزن الجلسات متاح
+
+البريد الإلكتروني
+معطل في هذا الإصدار
+
+تخزين الملفات
+غير مهيأ
+
+Use the REAL current health state.
+
+==================================================
+33. FULL LOCALIZATION AUDIT
+==================================================
+
+Audit at minimum:
+
+- Login
+- Registration
+- Forgot Password support flow
+- Change Password
+- Forced Password Change
+- Access Status
+- Trial Expired
+- Suspended Tenant
+- Customer app
+- Platform Admin
+- Dialogs
+- Toasts
+- Errors
+- Platform Health
+- Platform Audit
+
+Arabic:
+no unintended English.
+
+English:
+no unintended Arabic.
+
+Exceptions:
+
+official Ghars brand artwork
+user-entered content
+proper names
+
+==================================================
+34. INTERNAL TENANT — SYSTEM TENANT
+==================================================
+
+The existing:
+
+Internal
+
+tenant contains preserved historical/development data.
+
+DO NOT delete it.
+
+Ensure it has an explicit canonical marker such as:
+
+is_system = true
+
+or equivalent clean architecture.
+
+Do NOT rely on:
+
+name === "Internal"
+
+==================================================
+35. INTERNAL TENANT COMMERCIAL EXCLUSION
+==================================================
+
+System/Internal tenants must be excluded from:
+
+- Total Commercial Customers
+- Active Customer counts
+- Trial counts
+- Expired Trial counts
+- Suspended Commercial counts
+- Expiring Soon
+- New Customer metrics
+- Activation Requests
+- Commercial conversion metrics
+
+==================================================
+36. INTERNAL TENANT UI
+==================================================
+
+Platform Admin may still view Internal/system tenant if useful.
+
+Label clearly:
+
+System / Internal
+
+Do NOT present it as a normal paying customer.
+
+==================================================
+37. INTERNAL ACTIVATION REQUESTS
+==================================================
+
+System/Internal tenants must NOT create activation requests.
+
+If an invalid historical/test Internal activation request exists:
+
+close/archive/remove it safely according to existing architecture.
+
+Do not delete legitimate commercial activation requests.
+
+Add server-side prevention.
+
+==================================================
+38. SYSTEM ERRORS — CLEANUP
+==================================================
+
+Review all current open errors.
+
+Previously observed errors included:
+
+TypeError
+PATCH /api/preferences
+
+Determine whether each is:
+
+HISTORICAL/FIXED
+
+or
+
+STILL REPRODUCIBLE.
+
+==================================================
+39. HISTORICAL ERRORS
+==================================================
+
+If an error was generated before a confirmed fix and cannot be reproduced:
+
+do NOT delete it.
+
+Mark it:
+
+Resolved
+
+with an internal note describing the fix.
+
+Preserve historical error records.
+
+==================================================
+40. REPRODUCIBLE ERRORS
+==================================================
+
+If any known error still reproduces:
+
+fix the ROOT CAUSE first.
+
+Then verify no new error occurs when:
+
+- switching language
+- reloading Platform Admin
+- saving Platform Settings
+- editing Platform Admin Account
+- navigating customers/trials/errors/health
+
+==================================================
+41. ERROR MONITORING FINAL STATE
+==================================================
+
+After cleanup:
+
+Platform Admin should show no OPEN known errors caused by already-fixed development bugs.
+
+If legitimate unresolved errors remain:
+
+leave them open and report clearly.
+
+Do not fake a clean state.
+
+==================================================
+42. FILE STORAGE AUDIT — CRITICAL
+==================================================
+
+Audit what files Ghars currently stores:
+
+- user avatars
+- profile photos
+- uploaded assets
+- documents if any
+- any other persistent file
+
+Determine exactly where they are stored.
+
+==================================================
+43. EPHEMERAL STORAGE
+==================================================
+
+If customer files are stored only in:
+
+local runtime filesystem
+temporary deployment filesystem
+ephemeral Replit environment
+
+then this is NOT commercially safe.
+
+Report:
+
+PRODUCTION FILE STORAGE: BLOCKED
+
+unless fixed.
+
+==================================================
+44. DURABLE STORAGE
+==================================================
+
+If the current deployment environment provides a suitable durable storage mechanism:
+
+migrate/reuse it cleanly.
+
+Requirements:
+
+- files survive deployment/restart
+- existing files preserved
+- customer-private files tenant-isolated
+- access authorization enforced server-side
+- filenames/IDs cannot expose another tenant's files
+
+Do NOT invent a fragile custom storage system.
+
+==================================================
+45. IF FILE STORAGE IS NOT REQUIRED
+==================================================
+
+If Ghars currently stores no persistent customer-uploaded files except non-critical development-only assets:
+
+report:
+
+PRODUCTION FILE STORAGE: NOT APPLICABLE
+
+with explanation.
+
+Do not mark PASS without evidence.
+
+==================================================
+46. PLATFORM SETTINGS FINAL VALIDATION
+==================================================
+
+Keep:
+
+- Support WhatsApp
+- Support Phone
+- Support Email optional
+- Default Trial Hours
+
+Default Trial Hours must be:
+
+72
+
+unless explicitly changed by Platform Admin.
+
+Changes affect FUTURE tenants only.
+
+==================================================
+47. PLATFORM ADMIN ACCOUNT MENU
+==================================================
+
+Ensure the Platform Admin shell provides clean access to:
+
+My Account
+Security / Change Password
+Logout
+
+Do not associate Platform Admin with a tenant.
+
+Do not add tenant switching.
+
+==================================================
+48. DATA CONSISTENCY CHECK
+==================================================
+
+Reconfirm customer user counts.
+
+Customers table and Customer Detail must use the same canonical membership model.
+
+If a tenant has:
+
+2 active users
+
+the list must not show:
+
+0
+
+Add/retain regression test.
+
+==================================================
+49. FINAL BROWSER VERIFICATION — ARABIC
+==================================================
+
+Verify:
+
+Customer app
+Login
+Registration
+Dialogs
+Expired Tenant
+Suspended Tenant
+Platform Overview
+Customers
+Customer Detail
+Trials
+Activation Requests
+Errors
+Health
+Audit
+Settings
+Platform Account
+
+No unintended English leakage.
+
+==================================================
+50. FINAL BROWSER VERIFICATION — ENGLISH
+==================================================
+
+Verify the same surfaces.
+
+No unintended Arabic UI leakage.
+
+Official Ghars brand artwork is allowed.
+
+==================================================
+51. RESPONSIVE
+==================================================
+
+Verify:
+
+1920x1080
+1600x900
+1366x768
+tablet
+390x844
+
+Check:
+
+- dialogs centered
+- no horizontal overflow
+- Platform Admin usable
+- auth screens correct
+- support screens correct
+
+==================================================
+52. SECURITY REGRESSION
+==================================================
+
+Verify:
+
+- tenant isolation unchanged
+- Tenant Admin cannot access Platform Admin
+- Platform Admin remains tenant-independent
+- active permanent access works
+- suspended access blocks
+- expired trial blocks
+- password security unchanged
+- WhatsApp links expose no sensitive data
+
+==================================================
+53. TESTS
+==================================================
+
+Run:
+
+- frontend TypeScript
+- backend/shared TypeScript
+- lint
+- full existing API tests
+- commercial lifecycle tests
+- active permanent access regression
+- Platform Account tests
+- dialog UI/component tests if available
+- localization completeness
+- Internal tenant exclusion tests
+- error-monitoring regression
+- file-access isolation tests where applicable
+- production build
+
+==================================================
+54. FINAL RELEASE FLAGS
+==================================================
+
+Print explicitly:
+
+ACTIVE PERMANENT ACCESS: PASS / FAIL
+
+ACTIVE TENANT UX: PASS / FAIL
+
+PLATFORM ADMIN ACCOUNT MANAGEMENT: PASS / FAIL
+
+PLATFORM ADMIN PASSWORD SECURITY: PASS / FAIL
+
+GLOBAL DIALOG CENTERING: PASS / FAIL
+
+WHATSAPP SUPPORT FLOW: PASS / FAIL
+
+AUTH LOCALIZATION: PASS / FAIL
+
+PLATFORM LOCALIZATION: PASS / FAIL
+
+INTERNAL TENANT COMMERCIAL EXCLUSION: PASS / FAIL
+
+SYSTEM ERRORS CLEAN: PASS / FAIL
+
+CUSTOMER USER COUNT CONSISTENCY: PASS / FAIL
+
+PRODUCTION FILE STORAGE: PASS / BLOCKED / NOT APPLICABLE
+
+TENANT ISOLATION REGRESSION: PASS / FAIL
+
+PRODUCTION BUILD: PASS / FAIL
+
+==================================================
+55. COMMERCIAL CLOSURE RULE
+==================================================
+
+If any of these are FAIL:
+
+- ACTIVE PERMANENT ACCESS
+- PLATFORM ADMIN PASSWORD SECURITY
+- TENANT ISOLATION REGRESSION
+- GLOBAL DIALOG CENTERING
+- INTERNAL TENANT COMMERCIAL EXCLUSION
+- PRODUCTION BUILD
+
+do NOT call this phase closed.
+
+If:
+
+PRODUCTION FILE STORAGE = BLOCKED
+
+clearly state this remains a commercial-launch blocker.
+
+==================================================
+56. FINAL REPORT
+==================================================
+
+Report:
+
+1. Active/permanent access behavior
+2. Trial UI cleanup
+3. Platform Admin Account page
+4. Username-change behavior
+5. Password-change behavior
+6. Session revocation behavior
+7. Dialog root cause and global fix
+8. WhatsApp URL implementation
+9. Localization leaks fixed
+10. Internal tenant handling
+11. System error cleanup
+12. Customer user-count verification
+13. File-storage architecture/status
+14. Tests run
+15. TypeScript/lint result
+16. Production build result
+17. Remaining commercial blockers
+18. Exact checkpoint commit hash
+
+Then print all FINAL RELEASE FLAGS.
+
+DO NOT BUILD THE LANDING PAGE YET.
+DO NOT CREATE DEMO DATA YET.
+DO NOT PUBLISH.
+
+Create a stable checkpoint and STOP.
