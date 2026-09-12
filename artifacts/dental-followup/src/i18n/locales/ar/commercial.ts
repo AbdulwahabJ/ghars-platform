@@ -234,7 +234,7 @@ export default {
     registrationDate: "تاريخ التسجيل",
     trialPeriod: "الفترة التجريبية",
     activationStatus: "حالة التفعيل",
-    permanentlyActivated: "مفعّل بشكل دائم",
+    permanentlyActivated: "نشط — نسخة مفعّلة",
     activatedAt: "تاريخ التفعيل",
     activationType: "نوع التفعيل",
     permanent: "دائم",

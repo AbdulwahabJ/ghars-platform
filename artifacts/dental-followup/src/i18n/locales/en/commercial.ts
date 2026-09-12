@@ -236,7 +236,7 @@ export default {
     registrationDate: "Registration Date",
     trialPeriod: "Trial Period",
     activationStatus: "Activation Status",
-    permanentlyActivated: "Permanently Activated",
+    permanentlyActivated: "Active — Permanently Activated",
     activatedAt: "Activated At",
     activationType: "Activation Type",
     permanent: "Permanent",

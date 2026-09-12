@@ -705,7 +705,12 @@ async function changeStatus(req: Request, res: Response, mode: "activate" | "sus
   }
   const now = new Date();
   const values = mode === "activate"
-    ? { status: "ACTIVE" as const, activatedAt: now, suspendedAt: null, updatedAt: now }
+    ? {
+        status: "ACTIVE" as const,
+        activatedAt: tenant.activatedAt ?? now,
+        suspendedAt: null,
+        updatedAt: now,
+      }
     : mode === "suspend"
       ? { status: "SUSPENDED" as const, suspendedAt: now, updatedAt: now }
       : tenant.activatedAt
@@ -754,7 +759,7 @@ router.post("/platform-admin/tenants/:tenantId/extend-trial", async (req, res) =
     res.status(404).json({ error: "العميل غير موجود.", code: "TENANT_NOT_FOUND" });
     return;
   }
-  if (tenant.status === "ACTIVE") {
+  if (tenant.activatedAt) {
     res.status(409).json({
       error: "الحساب مفعّل بشكل دائم ولا يحتاج إلى تمديد فترة تجريبية.",
       code: "ACTIVE_TENANT_PERMANENT",

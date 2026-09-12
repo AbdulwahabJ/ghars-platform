@@ -42,12 +42,12 @@ export default function AccessStatus() {
   const { tenant, support, activationRequest } = statusData;
   const isPending = tenant.status === "PENDING_VERIFICATION";
   const isSuspended = tenant.status === "SUSPENDED";
-  const isTrialExpired = Boolean(
-    tenant.status === "TRIAL" && 
-    tenant.trialEndsAt && 
-    !isNaN(new Date(tenant.trialEndsAt).getTime()) &&
-    new Date(tenant.trialEndsAt).getTime() <= Date.now()
-  );
+  const trialEndsAt = tenant.trialEndsAt
+    ? new Date(tenant.trialEndsAt).getTime()
+    : Number.NaN;
+  const isTrialExpired =
+    tenant.status === "TRIAL" &&
+    (!tenant.trialEndsAt || !Number.isFinite(trialEndsAt) || trialEndsAt <= Date.now());
   const supportMessageKey = isSuspended
     ? "status.supportMessages.suspended"
     : isTrialExpired

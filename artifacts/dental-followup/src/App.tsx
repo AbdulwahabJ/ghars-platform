@@ -69,8 +69,7 @@ function ProtectedRoute({ component: Component, path }: { component: any; path: 
       : Number.NaN;
     const isTrialExpired =
       currentTenant.status === "TRIAL" &&
-      Number.isFinite(trialEndsAt) &&
-      trialEndsAt <= now;
+      (!currentTenant.trialEndsAt || !Number.isFinite(trialEndsAt) || trialEndsAt <= now);
 
     const isBlocked = isPending || isSuspended || isTrialExpired;
 

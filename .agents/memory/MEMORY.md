@@ -19,3 +19,4 @@
 - [Operational localization namespaces](operational-localization-namespaces.md) — dashboard workflow chrome belongs to operations; retain guidance only for legacy help and explicitly verify rendered keys.
 - [Tenant membership authority](tenant-membership-authority.md) — roles, overrides, activity, assignment, and sessions are tenant-membership concerns; global users are identity only.
 - [Tenantless platform preferences](tenantless-platform-preferences.md) — identity preferences must work without a clinic tenant; avoid locale feedback loops and tenant audit assumptions.
+- [Permanent activation invariant](permanent-activation-invariant.md) — use activation history, not current status, to block trial actions and preserve permanent access through suspension.

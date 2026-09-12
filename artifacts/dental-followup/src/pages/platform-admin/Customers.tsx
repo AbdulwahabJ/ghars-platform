@@ -193,6 +193,7 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
 
   const tenant = detailData.tenant;
   const isActiveTenant = tenant.status === "ACTIVE";
+  const hasPermanentActivation = Boolean(tenant.activatedAt);
 
   const handleExtend = () => {
     extendTrialMutation.mutate({ id, input: { days: parseInt(extendDays) } }, {
@@ -275,11 +276,11 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.registrationDate", "Registration Date")}</label>
                 <div className="text-[15px] font-medium notranslate">{formatSaudiDateTime(tenant.createdAt)}</div>
               </div>
-              {isActiveTenant ? (
+              {hasPermanentActivation ? (
                 <>
                   <div>
                     <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.activationStatus", "Activation Status")}</label>
-                    <div className="text-[15px] font-medium text-emerald-700">{t("platformAdmin.permanentlyActivated", "Permanently Activated")}</div>
+                    <div className="text-[15px] font-medium text-emerald-700">{t("platformAdmin.permanentlyActivated", "Active — Permanently Activated")}</div>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.activatedAt", "Activated At")}</label>
@@ -450,7 +451,7 @@ function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 </Button>
               ) : null}
 
-              {!isActiveTenant && (
+              {!hasPermanentActivation && (
                 <Button
                   variant="outline"
                   className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50"
