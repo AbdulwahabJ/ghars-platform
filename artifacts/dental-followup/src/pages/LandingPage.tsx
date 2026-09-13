@@ -50,7 +50,6 @@ const CONTENT = {
       subtitle: "غرس يساعد عيادات زراعة الأسنان على إدارة المرضى وحالات الزراعة والمتابعات والمواعيد والمدفوعات والتقارير من نظام واحد متكامل.",
       ctaPrimary: "ابدأ تجربتك المجانية",
       ctaSecondary: "تواصل معنا عبر واتساب",
-      trialNote: "تجربة مجانية لمدة 3 أيام، بدون بطاقة ائتمان.",
       badges: ["متابعة حالات الزراعة", "تنظيم المرضى", "المالية والمدفوعات", "الإحصائيات والتقارير"]
     },
     intro: {
@@ -157,7 +156,6 @@ const CONTENT = {
       subtitle: "Ghars helps dental implant clinics manage patients, implant cases, follow-ups, appointments, payments, and reports from one integrated system.",
       ctaPrimary: "Start Free Trial",
       ctaSecondary: "Contact Us on WhatsApp",
-      trialNote: "3-day free trial, no credit card required.",
       badges: ["Implant Cases", "Patient Management", "Finance & Payments", "Analytics & Reports"]
     },
     intro: {
@@ -500,10 +498,6 @@ export default function LandingPage() {
             </div>
 
             <div className="order-1 relative z-10 text-center lg:order-2 lg:text-start" dir={isRTL ? "rtl" : "ltr"}>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#EAF7F5] px-3 py-1.5 text-xs font-medium text-[#0F766E] ring-1 ring-inset ring-[#1FA9B8]/20">
-                <CheckCircle2 size={15} strokeWidth={2} />
-                <span>{t.hero.trialNote}</span>
-              </div>
               <h1 className={`mb-5 text-[2.2rem] font-bold leading-[1.18] text-[#0D1B3D] sm:text-[2.75rem] animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRTL ? "lg:text-[clamp(2.55rem,3.15vw,3.6rem)]" : "lg:text-[2.7rem] lg:leading-[1.12]"}`}>
                 {usesApprovedHeroTitle ? (
                   <>
