@@ -32,6 +32,7 @@ import { PublicBackToHome } from "@/components/layout/PublicBackToHome";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { ApiError } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -42,6 +43,7 @@ export default function Register() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [hasFieldServerError, setHasFieldServerError] = useState(false);
 
   const registerMutation = useRegister();
   const { login } = useAuth();
@@ -62,6 +64,8 @@ export default function Register() {
   });
 
   const onSubmit = (data: PublicRegistrationInput) => {
+    form.clearErrors();
+    setHasFieldServerError(false);
     registerMutation.mutate(data, {
       onSuccess: () => {
         login.mutate(
@@ -71,7 +75,50 @@ export default function Register() {
             onError: () => setSuccess(true),
           },
         );
-      }
+      },
+      onError: (error) => {
+        if (!(error instanceof ApiError)) return;
+
+        const allowedFields = new Set<keyof PublicRegistrationInput>([
+          "tenantName",
+          "legalName",
+          "ownerName",
+          "username",
+          "phone",
+          "city",
+          "email",
+          "password",
+          "confirmPassword",
+          "locale",
+        ]);
+        const payload = error.data as {
+          details?: Array<{ field?: unknown; path?: unknown; code?: unknown }>;
+        } | undefined;
+        const candidates = payload?.details?.length
+          ? payload.details
+          : [{ field: error.field, code: error.code }];
+        let applied = false;
+
+        for (const candidate of candidates) {
+          const field = typeof candidate.field === "string"
+            ? candidate.field
+            : typeof candidate.path === "string"
+              ? candidate.path.split(".")[0]
+              : undefined;
+          if (
+            field &&
+            allowedFields.has(field as keyof PublicRegistrationInput) &&
+            typeof candidate.code === "string"
+          ) {
+            form.setError(field as keyof PublicRegistrationInput, {
+              type: "server",
+              message: `errors.${candidate.code}`,
+            });
+            applied = true;
+          }
+        }
+        setHasFieldServerError(applied);
+      },
     });
   };
 
@@ -104,7 +151,7 @@ export default function Register() {
             </div>
           ) : (
             <>
-              {registerMutation.isError && (
+              {registerMutation.isError && !hasFieldServerError && (
                 <Alert variant="destructive">
                   <AlertDescription className="font-medium text-sm">
                     {localizeErrorMessage(registerMutation.error)}

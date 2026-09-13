@@ -22,6 +22,14 @@ const validation = {
   usernameMin: "اسم المستخدم يجب أن يتكون من 3 أحرف على الأقل.",
   usernameMax: "اسم المستخدم طويل جدًا.",
   englishUsername: "اسم المستخدم يجب أن يحتوي على أحرف إنجليزية وأرقام فقط.",
+  phoneRequired: "يرجى إدخال رقم الجوال.",
+  invalidPhone: "رقم الجوال غير صحيح. تأكد من الرقم ورمز الدولة.",
+  phoneCountryCode: "أدخل الرقم الدولي كاملًا مع رمز الدولة.",
+  organizationNameMin: "اسم المنشأة يجب أن يتكون من حرفين على الأقل.",
+  organizationNameMax: "اسم المنشأة طويل جدًا.",
+  ownerNameMin: "اسم المالك يجب أن يتكون من حرفين على الأقل.",
+  ownerNameMax: "اسم المالك طويل جدًا.",
+  cityMax: "اسم المدينة طويل جدًا.",
 } as const;
 
 export default validation;

@@ -122,6 +122,82 @@ function hashVerificationToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
 
+type RegistrationField =
+  | "tenantName"
+  | "legalName"
+  | "ownerName"
+  | "username"
+  | "phone"
+  | "city"
+  | "email"
+  | "password"
+  | "confirmPassword"
+  | "locale";
+
+class RegistrationPolicyError extends Error {
+  constructor(
+    public readonly code: "TRIAL_NOT_ELIGIBLE",
+    public readonly field: "phone",
+  ) {
+    super("registration policy rejected");
+    this.name = "RegistrationPolicyError";
+  }
+}
+
+class RegistrationInternalError extends Error {
+  constructor() {
+    super("registration failed unexpectedly");
+    this.name = "RegistrationInternalError";
+  }
+}
+
+function registrationValidationCode(field: RegistrationField | undefined): string {
+  switch (field) {
+    case "tenantName":
+    case "legalName":
+      return "INVALID_ORGANIZATION_NAME";
+    case "ownerName":
+      return "INVALID_OWNER_NAME";
+    case "username":
+      return "INVALID_USERNAME";
+    case "phone":
+      return "INVALID_PHONE";
+    case "city":
+      return "INVALID_CITY";
+    case "password":
+      return "WEAK_PASSWORD";
+    case "confirmPassword":
+      return "PASSWORDS_DO_NOT_MATCH";
+    default:
+      return "REGISTRATION_VALIDATION_FAILED";
+  }
+}
+
+export function registrationUniqueConflict(err: unknown):
+  | { code: "USERNAME_UNAVAILABLE"; field: "username" }
+  | { code: "PHONE_UNAVAILABLE"; field: "phone" }
+  | undefined {
+  let current: unknown = err;
+  for (let depth = 0; depth < 6 && typeof current === "object" && current !== null; depth++) {
+    const candidate = current as {
+      code?: unknown;
+      constraint?: unknown;
+      cause?: unknown;
+    };
+    if (candidate.code === "23505") {
+      if (candidate.constraint === "users_username_unique") {
+        return { code: "USERNAME_UNAVAILABLE", field: "username" };
+      }
+      if (candidate.constraint === "UQ_tenants_contact_phone") {
+        return { code: "PHONE_UNAVAILABLE", field: "phone" };
+      }
+      return undefined;
+    }
+    current = candidate.cause;
+  }
+  return undefined;
+}
+
 async function adminExists(): Promise<boolean> {
   const [row] = await db
     .select({ id: platformAdminsTable.userId })
@@ -246,9 +322,27 @@ router.post("/auth/setup", setupLimiter, async (req, res) => {
   });
 });
 
-router.post("/auth/register", registrationLimiter, async (req, res) => {
-  const input = parseOrRespond(publicRegistrationInputSchema, req.body, res);
-  if (!input) return;
+router.post("/auth/register", registrationLimiter, async (req, res, next) => {
+  const parsed = publicRegistrationInputSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const details = parsed.error.issues.map((issue) => {
+      const field = issue.path[0] as RegistrationField | undefined;
+      return {
+        field,
+        path: issue.path.map(String).join("."),
+        code: registrationValidationCode(field),
+      };
+    });
+    const first = details[0];
+    res.status(400).json({
+      error: "يرجى مراجعة بيانات التسجيل.",
+      code: first?.code ?? "REGISTRATION_VALIDATION_FAILED",
+      field: first?.field,
+      details,
+    });
+    return;
+  }
+  const input = parsed.data;
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
   const platformSettings = await loadPlatformSettings();
   const trialStartedAt = new Date();
@@ -257,6 +351,15 @@ router.post("/auth/register", registrationLimiter, async (req, res) => {
   );
   try {
     await db.transaction(async (tx) => {
+      const [existingPhone] = await tx
+        .select({ id: tenantsTable.id })
+        .from(tenantsTable)
+        .where(eq(tenantsTable.contactPhone, input.phone))
+        .limit(1);
+      if (existingPhone) {
+        throw new RegistrationPolicyError("TRIAL_NOT_ELIGIBLE", "phone");
+      }
+
       const referenceCode = `clinic-${randomBytes(6).toString("hex")}`;
       const [tenant] = await tx.insert(tenantsTable).values({
         referenceCode, name: input.tenantName, legalName: input.legalName ?? null,
@@ -280,8 +383,26 @@ router.post("/auth/register", registrationLimiter, async (req, res) => {
         details: { phone: input.phone, trialEndsAt: trialEndsAt.toISOString() },
       }, tx);
     });
-  } catch {
-    res.status(409).json({ error: "تعذر إنشاء الحساب بهذه البيانات.", code: "REGISTRATION_CONFLICT" });
+  } catch (err) {
+    if (err instanceof RegistrationPolicyError) {
+      res.status(409).json({
+        error: "تعذر بدء تجربة مجانية جديدة بهذه البيانات.",
+        code: err.code,
+        field: err.field,
+      });
+      return;
+    }
+    const conflict = registrationUniqueConflict(err);
+    if (conflict) {
+      res.status(409).json({
+        error: "تعذر استخدام هذه البيانات لإنشاء الحساب.",
+        ...conflict,
+      });
+      return;
+    }
+    // Never forward a raw Drizzle error from public registration. Its nested
+    // query metadata may contain contact data or the derived password hash.
+    next(new RegistrationInternalError());
     return;
   }
   res.status(201).json({

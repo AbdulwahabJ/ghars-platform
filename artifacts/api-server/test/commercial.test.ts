@@ -1,5 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { vi } from "vitest";
+import { db } from "@workspace/db";
 import app from "../src/app";
+import { registrationUniqueConflict } from "../src/routes/auth";
 import { agentFor, freshAdminSession, makePool, truncateAll } from "./helpers";
 
 const pool = makePool();
@@ -18,6 +21,17 @@ const registration = {
   password: "Passw0rd1234", confirmPassword: "Passw0rd1234", locale: "en",
 };
 
+let registrationIp = 1;
+function postRegistration(
+  payload: Record<string, unknown>,
+  ip = `198.51.100.${registrationIp++}`,
+) {
+  return agentFor(app)
+    .post("/api/auth/register")
+    .set("X-Forwarded-For", ip)
+    .send(payload);
+}
+
 describe("commercial lifecycle", () => {
   it("exposes only support contacts publicly and keeps lifecycle routes authenticated", async () => {
     const anonymous = agentFor(app);
@@ -31,23 +45,114 @@ describe("commercial lifecycle", () => {
   });
 
   it("registers without email or Resend configuration", async () => {
-    const res = await agentFor(app).post("/api/auth/register").send(registration);
+    const res = await postRegistration(registration);
     expect(res.status).toBe(201);
     const count = await pool.query("SELECT count(*)::int AS count FROM tenants WHERE reference_code <> 'internal'");
     expect(count.rows[0].count).toBe(1);
   });
 
   it("starts the 72-hour trial atomically at registration", async () => {
-    expect((await agentFor(app).post("/api/auth/register").send(registration)).status).toBe(201);
+    expect((await postRegistration(registration)).status).toBe(201);
     const tenant = await pool.query("SELECT status, trial_started_at, trial_ends_at, contact_phone FROM tenants WHERE contact_phone = '966551234567'");
     expect(tenant.rows[0].status).toBe("TRIAL");
     expect(tenant.rows[0].contact_phone).toBe("966551234567");
     expect(new Date(tenant.rows[0].trial_ends_at).getTime() - new Date(tenant.rows[0].trial_started_at).getTime()).toBe(72 * 60 * 60 * 1000);
   });
 
+  it("returns safe field-level codes for unavailable usernames and phones", async () => {
+    expect((await postRegistration(registration)).status).toBe(201);
+
+    const usernameConflict = await postRegistration({
+      ...registration,
+      phone: "0551234568",
+    });
+    expect(usernameConflict.status).toBe(409);
+    expect(usernameConflict.body).toMatchObject({
+      code: "USERNAME_UNAVAILABLE",
+      field: "username",
+    });
+    expect(JSON.stringify(usernameConflict.body)).not.toContain("users_username_unique");
+    const rolledBackTenant = await pool.query(
+      "SELECT id FROM tenants WHERE contact_phone = '966551234568'",
+    );
+    expect(rolledBackTenant.rowCount).toBe(0);
+
+    const phoneConflict = await postRegistration({
+      ...registration,
+      username: "another-owner",
+    });
+    expect(phoneConflict.status).toBe(409);
+    expect(phoneConflict.body).toMatchObject({
+      code: "TRIAL_NOT_ELIGIBLE",
+      field: "phone",
+    });
+    expect(JSON.stringify(phoneConflict.body)).not.toContain("UQ_tenants_contact_phone");
+  });
+
+  it("classifies only known unique constraints through wrapped Drizzle causes", () => {
+    expect(registrationUniqueConflict({
+      cause: {
+        cause: {
+          code: "23505",
+          constraint: "users_username_unique",
+        },
+      },
+    })).toEqual({ code: "USERNAME_UNAVAILABLE", field: "username" });
+    expect(registrationUniqueConflict({
+      cause: {
+        code: "23505",
+        constraint: "UQ_tenants_contact_phone",
+      },
+    })).toEqual({ code: "PHONE_UNAVAILABLE", field: "phone" });
+    expect(registrationUniqueConflict({
+      code: "23505",
+      constraint: "unknown_unique_constraint",
+      message: "users_username_unique",
+    })).toBeUndefined();
+  });
+
+  it.each([
+    ["missing organization name", { tenantName: "" }, "INVALID_ORGANIZATION_NAME", "tenantName"],
+    ["invalid username", { username: "اسم عربي" }, "INVALID_USERNAME", "username"],
+    ["invalid phone", { phone: "12345" }, "INVALID_PHONE", "phone"],
+    ["weak password", { password: "short1", confirmPassword: "short1" }, "WEAK_PASSWORD", "password"],
+    ["password mismatch", { confirmPassword: "Different1234" }, "PASSWORDS_DO_NOT_MATCH", "confirmPassword"],
+  ])("returns a structured validation error for %s", async (_label, patch, code, field) => {
+    const res = await postRegistration({ ...registration, ...patch });
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ code, field });
+    expect(res.body.details).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code, field })]),
+    );
+  });
+
+  it("returns a safe localized-ready fallback for unexpected registration failures", async () => {
+    const transaction = vi
+      .spyOn(db, "transaction")
+      .mockRejectedValueOnce(new Error("sensitive internal detail"));
+    try {
+      const res = await postRegistration(registration);
+      expect(res.status).toBe(500);
+      expect(res.body.code).toBe("INTERNAL");
+      expect(JSON.stringify(res.body)).not.toContain("sensitive internal detail");
+    } finally {
+      transaction.mockRestore();
+    }
+  });
+
+  it("returns RATE_LIMITED after repeated registration attempts", async () => {
+    const ip = "203.0.113.240";
+    for (let attempt = 0; attempt < 5; attempt++) {
+      expect((await postRegistration({ ...registration, tenantName: "" }, ip)).status).toBe(400);
+    }
+    const limited = await postRegistration({ ...registration, tenantName: "" }, ip);
+    expect(limited.status).toBe(429);
+    expect(limited.body.code).toBe("RATE_LIMITED");
+  });
+
   it("keeps commercial status available for an expired tenant and deduplicates activation requests", async () => {
     await freshAdminSession(app, pool);
-    expect((await agentFor(app).post("/api/auth/register").send(registration)).status).toBe(201);
+    expect((await postRegistration(registration)).status).toBe(201);
     const customer = agentFor(app);
     expect((await customer.post("/api/auth/login").send({
       username: registration.username,
@@ -66,7 +171,7 @@ describe("commercial lifecycle", () => {
 
   it("denies customer admins and lets explicit platform admins extend trials and manage permanent activation", async () => {
     await freshAdminSession(app, pool);
-    expect((await agentFor(app).post("/api/auth/register").send(registration)).status).toBe(201);
+    expect((await postRegistration(registration)).status).toBe(201);
     const customer = agentFor(app);
     expect((await customer.post("/api/auth/login").send({
       username: registration.username,
@@ -91,7 +196,7 @@ describe("commercial lifecycle", () => {
 
   it("treats activated tenants as permanent, keeps them operational after trial dates pass, and reactivates them as active", async () => {
     await freshAdminSession(app, pool);
-    expect((await agentFor(app).post("/api/auth/register").send(registration)).status).toBe(201);
+    expect((await postRegistration(registration)).status).toBe(201);
 
     const customer = agentFor(app);
     expect((await customer.post("/api/auth/login").send({

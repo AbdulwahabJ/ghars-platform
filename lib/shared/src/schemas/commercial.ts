@@ -7,14 +7,26 @@ import {
 } from "./auth";
 import { normalizeMobile } from "../phone";
 
-const nameSchema = z.string().trim().min(2).max(200);
+const organizationNameSchema = z
+  .string()
+  .trim()
+  .min(2, "اسم المنشأة يجب أن يتكون من حرفين على الأقل.")
+  .max(200, "اسم المنشأة طويل جدًا.");
+const ownerNameSchema = z
+  .string()
+  .trim()
+  .min(2, "اسم المالك يجب أن يتكون من حرفين على الأقل.")
+  .max(200, "اسم المالك طويل جدًا.");
 const usernameSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .min(3)
-  .max(50)
-  .regex(/^[a-z0-9._-]+$/);
+  .min(3, "اسم المستخدم يجب أن يتكون من 3 أحرف على الأقل.")
+  .max(50, "اسم المستخدم طويل جدًا.")
+  .regex(
+    /^[a-z0-9._-]+$/,
+    "اسم المستخدم يجب أن يحتوي على أحرف إنجليزية وأرقام فقط.",
+  );
 
 const optionalEmailSchema = z.preprocess(
   (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
@@ -30,12 +42,12 @@ const phoneSchema = z.string().transform((value, ctx) => {
 });
 
 export const publicRegistrationInputSchema = z.object({
-  tenantName: nameSchema,
-  legalName: z.string().trim().max(200).optional(),
-  ownerName: nameSchema,
+  tenantName: organizationNameSchema,
+  legalName: z.string().trim().max(200, "الاسم القانوني طويل جدًا.").optional(),
+  ownerName: ownerNameSchema,
   username: usernameSchema,
   phone: phoneSchema,
-  city: z.string().trim().max(120).optional(),
+  city: z.string().trim().max(120, "اسم المدينة طويل جدًا.").optional(),
   email: optionalEmailSchema,
   password: passwordSchema,
   confirmPassword: z.string(),

@@ -18,6 +18,20 @@ const legacyValidationMessages: Record<string, string> = {
   "اسم المستخدم طويل جدًا.": "validation.usernameMax",
   "اسم المستخدم يجب أن يحتوي على أحرف إنجليزية وأرقام فقط.":
     "validation.englishUsername",
+  "كلمتا المرور غير متطابقتين.": "validation.passwordsMismatch",
+  "يرجى إدخال رقم الجوال.": "validation.phoneRequired",
+  "رقم الجوال غير صحيح. يرجى التحقق من الرقم المدخل.":
+    "validation.invalidPhone",
+  "للأرقام غير السعودية، يرجى إدخال الرقم كاملًا مع رمز الدولة (يبدأ بـ + أو 00). الأرقام السعودية يجب أن تبدأ بـ 05.":
+    "validation.phoneCountryCode",
+  "اسم المنشأة يجب أن يتكون من حرفين على الأقل.":
+    "validation.organizationNameMin",
+  "اسم المنشأة طويل جدًا.": "validation.organizationNameMax",
+  "الاسم القانوني طويل جدًا.": "validation.organizationNameMax",
+  "اسم المالك يجب أن يتكون من حرفين على الأقل.":
+    "validation.ownerNameMin",
+  "اسم المالك طويل جدًا.": "validation.ownerNameMax",
+  "اسم المدينة طويل جدًا.": "validation.cityMax",
   "البريد الإلكتروني طويل جدًا.": "validation.emailTooLong",
   "صيغة البريد الإلكتروني غير صحيحة.": "validation.invalidEmail",
   "صيغة التاريخ غير صحيحة.": "validation.invalidDate",
@@ -55,6 +69,10 @@ function translate(key: string): string {
  */
 export function localizeValidationMessage(message: unknown): string {
   const value = typeof message === "string" ? message.trim() : "";
+  if (/^errors\.[A-Z0-9_]+$/.test(value)) {
+    const key = `errors:${value.slice("errors.".length)}`;
+    return i18n.exists(key) ? i18n.t(key) : translate("validation.generic");
+  }
 
   if (getLocale() === "ar") {
     return value || translate("validation.generic");

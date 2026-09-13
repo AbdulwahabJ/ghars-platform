@@ -22,6 +22,14 @@ const validation = {
   usernameMin: "Username must be at least 3 characters.",
   usernameMax: "Username is too long.",
   englishUsername: "Username may contain English letters and numbers only.",
+  phoneRequired: "Enter a mobile number.",
+  invalidPhone: "Enter a valid mobile number with the correct country code.",
+  phoneCountryCode: "Enter the full international number with its country code.",
+  organizationNameMin: "Organization name must be at least 2 characters.",
+  organizationNameMax: "Organization name is too long.",
+  ownerNameMin: "Owner name must be at least 2 characters.",
+  ownerNameMax: "Owner name is too long.",
+  cityMax: "City name is too long.",
 } as const;
 
 export default validation;
