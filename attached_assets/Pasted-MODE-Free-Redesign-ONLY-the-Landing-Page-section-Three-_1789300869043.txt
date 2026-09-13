@@ -1,0 +1,184 @@
+MODE: Free
+
+Redesign ONLY the Landing Page section:
+
+"ثلاث خطوات للانطلاق"
+"Three Steps to Get Started"
+
+The current layout feels visually unbalanced:
+- typography is too large
+- the three steps feel disconnected
+- spacing is inconsistent
+
+I want a cleaner PREMIUM VERTICAL STEPPER.
+
+==================================================
+1. NEW LAYOUT
+==================================================
+
+Display the 3 steps vertically, one under another.
+
+Use ONE centered content container.
+
+Each step should contain:
+
+[number circle]  Title
+                 Short description
+
+with a subtle vertical connector line between steps.
+
+Arabic RTL should remain visually correct.
+
+==================================================
+2. DESKTOP
+==================================================
+
+Do NOT spread the 3 steps across the full width.
+
+Use a centered max-width around:
+
+760–900px
+
+Each step should have enough breathing room.
+
+Example:
+
+   1   تسجيل العيادة
+       أنشئ حساب منشأتك وابدأ تجربة مجانية لمدة 3 أيام.
+       |
+   2   ابدأ استخدام غرس
+       أضف المرضى ووثّق الزرعات والإجراءات...
+       |
+   3   فعّل حسابك
+       بعد انتهاء التجربة تواصل مع دعم غرس للتفعيل الدائم.
+
+==================================================
+3. TYPOGRAPHY
+==================================================
+
+Reduce oversized typography.
+
+Section eyebrow:
+small
+
+Main section heading:
+around 34–40px desktop
+
+Step titles:
+around 20–24px
+
+Descriptions:
+around 15–17px
+
+Use comfortable line-height.
+
+Do NOT use huge bold text inside each step.
+
+==================================================
+4. STEP DESIGN
+==================================================
+
+Number circle:
+- 42–48px
+- white background
+- subtle border
+- very light shadow
+- Deep Navy number
+- small teal accent if needed
+
+Connector:
+- thin
+- light gray / pale teal
+- subtle
+
+Do NOT make it look like a heavy infographic.
+
+==================================================
+5. CONTENT
+==================================================
+
+Arabic:
+
+1. تسجيل العيادة
+أنشئ حساب منشأتك وابدأ تجربة مجانية لمدة 3 أيام.
+
+2. ابدأ استخدام غرس
+أضف المرضى، ووثّق الزرعات والإجراءات، وتابع المواعيد والدفعات من مكان واحد.
+
+3. فعّل حسابك
+بعد انتهاء التجربة، تواصل مع دعم غرس لتفعيل حسابك بشكل دائم.
+
+English:
+
+1. Register Your Clinic
+Create your clinic account and start a free 3-day trial.
+
+2. Start Using Ghars
+Add patients, document implants and procedures, and manage appointments and payments from one place.
+
+3. Activate Your Account
+After the trial ends, contact Ghars Support to activate your account permanently.
+
+==================================================
+6. SECTION HEADER
+==================================================
+
+Keep:
+
+كيف تبدأ
+
+ثلاث خطوات للانطلاق
+
+Then one small supporting sentence.
+
+Reduce the vertical gap between the section title and the steps.
+
+==================================================
+7. MOBILE
+==================================================
+
+Keep the SAME vertical layout.
+
+Do not convert it into horizontal cards.
+
+On mobile:
+- number circle aligned naturally
+- text gets full remaining width
+- connector remains visible
+- no horizontal overflow
+
+==================================================
+8. DESIGN LANGUAGE
+==================================================
+
+Use existing Ghars design:
+
+Deep Navy #0D1B3D
+existing teal accent
+white cards/background
+subtle borders
+
+No gradients.
+No heavy shadows.
+No oversized icons.
+No AI-style decoration.
+
+==================================================
+9. DO NOT CHANGE
+==================================================
+
+Do not modify:
+
+- commercial flow
+- trial duration
+- Hero
+- other Landing sections
+- navigation
+- CTA logic
+
+Only refine this section.
+
+Browser verify Arabic and English, desktop and mobile.
+
+Do not publish.
+Create a checkpoint and stop.
