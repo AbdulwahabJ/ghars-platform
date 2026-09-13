@@ -33,6 +33,8 @@ import gharsSymbol from "@/assets/ghars-symbol.png";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
+import { buildPatientFollowupsPath } from "@/lib/patient-links";
+import { buildPatientPath } from "@/lib/patient-links";
 
 interface HeaderProps {
   user: PublicUser;
@@ -212,7 +214,13 @@ export function Header({ user }: HeaderProps) {
                     <DropdownMenuItem
                       key={`${item.kind}-${item.followupId ?? item.implantCaseId ?? idx}`}
                       className="cursor-pointer flex flex-col items-start gap-0.5 py-2"
-                      onClick={() => setLocation(`/patients/${item.patientId}?tab=followup`)}
+                      onClick={() =>
+                        setLocation(
+                          item.followupId
+                            ? buildPatientFollowupsPath(item.patientId, item.followupId)
+                            : buildPatientPath(item.patientId),
+                        )
+                      }
                       data-testid={`notification-item-${idx}`}
                     >
                       <span className="text-sm font-medium notranslate">{item.patientName}</span>

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation, useParams } from "wouter";
+import { useEffect, useState } from "react";
+import { useLocation, useParams, useSearch } from "wouter";
 import {
   Archive,
   AlertCircle,
@@ -30,13 +30,17 @@ import { SummaryTab } from "@/components/summary/SummaryTab";
 import { formatSaudiDate } from "@/lib/datetime";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { localizeErrorMessage } from "@/lib/localize-error";
-
-type PatientTab = "summary" | "procedures";
+import {
+  buildPatientPath,
+  parsePatientDeepLink,
+  type PatientFileTab,
+} from "@/lib/patient-links";
 
 export default function PatientFile() {
   const { t } = useClinicalTranslation();
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
   const { user } = useAuth();
   const { data, isLoading } = usePatient(id ?? "");
@@ -44,10 +48,20 @@ export default function PatientFile() {
   const restorePatient = useRestorePatient();
   const [showArchived, setShowArchived] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-  const [activeTab, setActiveTab] = useState<PatientTab>("summary");
+  const deepLink = parsePatientDeepLink(search);
+  const [activeTab, setActiveTab] = useState<PatientFileTab>(deepLink.tab);
 
   const patient = data?.patient;
   const canArchive = user?.role === "ADMIN";
+
+  useEffect(() => {
+    setActiveTab(parsePatientDeepLink(search).tab);
+  }, [search]);
+
+  const selectTab = (tab: PatientFileTab) => {
+    setActiveTab(tab);
+    if (id) setLocation(buildPatientPath(id, { tab }));
+  };
 
   const handleArchive = () => {
     if (!id) return;
@@ -152,7 +166,7 @@ export default function PatientFile() {
                   ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground"
                   : "text-muted-foreground hover:bg-background hover:text-foreground"
               }`}
-              onClick={() => setActiveTab("summary")}
+              onClick={() => selectTab("summary")}
             >
                {t("patient.data")}
             </Button>
@@ -165,7 +179,7 @@ export default function PatientFile() {
                   ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground"
                   : "text-muted-foreground hover:bg-background hover:text-foreground"
               }`}
-              onClick={() => setActiveTab("procedures")}
+              onClick={() => selectTab("procedures")}
             >
                {t("patient.procedures")}
             </Button>
@@ -177,7 +191,7 @@ export default function PatientFile() {
             <SummaryTab
               patient={patient}
               showArchived={showArchived}
-              onManage={() => setActiveTab("procedures")}
+              onManage={() => selectTab("procedures")}
             />
           ) : (
             <div className="space-y-5 print:hidden">
@@ -212,12 +226,19 @@ export default function PatientFile() {
                 </div>
                 <PaymentsTab patient={patient} />
               </section>
-              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+              <section
+                id="patient-followups"
+                className="scroll-mt-32 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6"
+              >
                 <div className="mb-5">
                   <h2 className="text-lg font-bold text-foreground">{t("patient.followups")}</h2>
                   <p className="text-sm text-muted-foreground">{t("patient.followupsDescription")}</p>
                 </div>
-                <FollowupsTab patient={patient} />
+                <FollowupsTab
+                  patient={patient}
+                  focusSection={deepLink.section === "followups"}
+                  targetFollowupId={deepLink.followupId}
+                />
               </section>
             </div>
           )}

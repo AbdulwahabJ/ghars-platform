@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlarmClock,
   CalendarClock,
@@ -41,11 +41,17 @@ import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 interface FollowupsTabProps {
   patient: Patient;
+  focusSection?: boolean;
+  targetFollowupId?: string | null;
 }
 
 const CLOSED = CLOSED_FOLLOWUP_STATUSES as readonly string[];
 
-export function FollowupsTab({ patient }: FollowupsTabProps) {
+export function FollowupsTab({
+  patient,
+  focusSection = false,
+  targetFollowupId = null,
+}: FollowupsTabProps) {
   const { t } = useTranslation("operations");
   const { enumLabel } = useEnumTranslation();
   const isArchived = Boolean(patient.archivedAt);
@@ -66,6 +72,46 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappFollowup, setWhatsappFollowup] = useState<Followup | null>(null);
   const [resultTarget, setResultTarget] = useState<Communication | null>(null);
+  const [highlightedFollowupId, setHighlightedFollowupId] = useState<string | null>(null);
+  const handledDeepLinkRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!focusSection) {
+      handledDeepLinkRef.current = null;
+      setHighlightedFollowupId(null);
+      return;
+    }
+    if (isLoading) return;
+
+    const deepLinkKey = targetFollowupId ?? "followups-section";
+    if (handledDeepLinkRef.current === deepLinkKey) return;
+    handledDeepLinkRef.current = deepLinkKey;
+
+    const frame = window.requestAnimationFrame(() => {
+      const target = targetFollowupId
+        ? document.getElementById(`followup-${targetFollowupId}`)
+        : null;
+      const destination = target ?? document.getElementById("patient-followups");
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth";
+
+      destination?.scrollIntoView({ behavior, block: "start" });
+      if (target) {
+        target.focus({ preventScroll: true });
+        setHighlightedFollowupId(targetFollowupId);
+      }
+    });
+
+    const timeout = targetFollowupId
+      ? window.setTimeout(() => setHighlightedFollowupId(null), 2000)
+      : undefined;
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (timeout) window.clearTimeout(timeout);
+    };
+  }, [focusSection, isLoading, targetFollowupId]);
 
   if (isLoading) {
     return (
@@ -141,6 +187,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
             <FollowupItem
               key={f.id}
               followup={f}
+              isTargeted={highlightedFollowupId === f.id}
               isArchived={isArchived}
               onOutcome={setOutcomeTarget}
               onPostpone={setPostponeTarget}
@@ -191,6 +238,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
               <FollowupItem
                 key={f.id}
                 followup={f}
+                isTargeted={highlightedFollowupId === f.id}
                 highlight={t("followups.today")}
                 isArchived={isArchived}
                 onOutcome={setOutcomeTarget}
@@ -205,6 +253,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
               <FollowupItem
                 key={f.id}
                 followup={f}
+                isTargeted={highlightedFollowupId === f.id}
                 isArchived={isArchived}
                 onOutcome={setOutcomeTarget}
                 onPostpone={setPostponeTarget}
@@ -231,6 +280,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
             <FollowupItem
               key={f.id}
               followup={f}
+              isTargeted={highlightedFollowupId === f.id}
               isArchived={isArchived}
               onOutcome={setOutcomeTarget}
               onPostpone={setPostponeTarget}
@@ -351,6 +401,7 @@ export function FollowupsTab({ patient }: FollowupsTabProps) {
 interface FollowupItemProps {
   followup: Followup;
   highlight?: string;
+  isTargeted?: boolean;
   isArchived: boolean;
   onOutcome: (f: Followup) => void;
   onPostpone: (f: Followup) => void;
@@ -363,6 +414,7 @@ interface FollowupItemProps {
 function FollowupItem({
   followup: f,
   highlight,
+  isTargeted = false,
   isArchived,
   onOutcome,
   onPostpone,
@@ -379,7 +431,13 @@ function FollowupItem({
 
   return (
     <div
-      className="rounded-md border border-border/70 p-3 flex items-start justify-between gap-3"
+      id={`followup-${f.id}`}
+      tabIndex={-1}
+      className={`scroll-mt-32 rounded-md border p-3 flex items-start justify-between gap-3 transition-[background-color,border-color,box-shadow] duration-300 ${
+        isTargeted
+          ? "border-primary/60 bg-primary/10 shadow-[0_0_0_3px_hsl(var(--primary)/0.08)]"
+          : "border-border/70"
+      } focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
       data-testid={`followup-${f.id}`}
     >
       <div className="space-y-1 min-w-0">

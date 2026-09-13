@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Link } from "wouter";
+import { buildPatientFollowupsPath, buildPatientPath } from "@/lib/patient-links";
 import { operationalExportUrl } from "@/lib/api";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
@@ -139,7 +140,15 @@ export function OperationalReportSection({
                     </TableCell>
                     <TableCell className="print:hidden">
                       <Button asChild variant="ghost" size="sm">
-                        <Link href={`/patients/${r.patientId}`}>{t("dashboard.openPatient")}</Link>
+                        <Link
+                          href={
+                            r.nextFollowupAt || r.isOverdue
+                              ? buildPatientFollowupsPath(r.patientId)
+                              : buildPatientPath(r.patientId)
+                          }
+                        >
+                          {t("dashboard.openPatient")}
+                        </Link>
                       </Button>
                     </TableCell>
                     {showFinance && (

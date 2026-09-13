@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import type { DashboardListItem } from "@workspace/shared";
 import { useTranslation } from "react-i18next";
+import { buildPatientFollowupsPath } from "@/lib/patient-links";
 
 function ListCard({
   title,
@@ -66,7 +67,7 @@ function ListCard({
                   className="shrink-0"
                   data-testid={`link-open-patient-${item.patientId}`}
                 >
-                  <Link href={`/patients/${item.patientId}?tab=followup`}>{t("dashboard.openPatient")}</Link>
+                  <Link href={buildPatientFollowupsPath(item.patientId)}>{t("dashboard.openPatient")}</Link>
                 </Button>
               </li>
             ))}
