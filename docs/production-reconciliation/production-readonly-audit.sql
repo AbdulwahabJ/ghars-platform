@@ -1,3 +1,5 @@
+-- SUPERSEDED: legacy production reconciliation was abandoned on 2026-09-13.
+-- Retained only as historical read-only evidence. Do not use as a release plan.
 -- Ghars production reconciliation: READ-ONLY validation only.
 -- This file intentionally contains no DDL, DML, journal repair, or transaction.
 -- Run against the intended database and confirm current_database()/current_user

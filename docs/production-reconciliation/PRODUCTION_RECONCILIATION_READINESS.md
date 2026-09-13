@@ -1,5 +1,9 @@
 # Ghars production database reconciliation readiness
 
+> **SUPERSEDED — DO NOT EXECUTE.** The owner abandoned legacy-data
+> reconciliation on 2026-09-13 and authorized a clean production database
+> replacement. Follow `CLEAN_PRODUCTION_RESET_HANDOFF.md` instead.
+
 ## Decision
 
 **STOP. No production write is authorized or safe from the current agent environment.**

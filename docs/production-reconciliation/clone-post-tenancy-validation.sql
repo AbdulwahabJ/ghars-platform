@@ -1,3 +1,5 @@
+-- SUPERSEDED: legacy production reconciliation was abandoned on 2026-09-13.
+-- Retained only as historical read-only evidence. Do not use as a release plan.
 -- Ghars reconciliation: READ-ONLY validation for an ISOLATED CLONE only.
 -- Prerequisite: the clone has reached the intended tenant-aware schema.
 -- This file contains no DDL, DML, or migration-journal changes.
