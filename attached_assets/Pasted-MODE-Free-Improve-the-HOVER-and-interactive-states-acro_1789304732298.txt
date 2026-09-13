@@ -1,0 +1,202 @@
+MODE: Free
+
+Improve the HOVER and interactive states across the Ghars Landing Page.
+
+The current hover feedback is too subtle and inconsistent.
+Users should immediately understand when an element is interactive.
+
+IMPORTANT:
+
+Do NOT redesign the Landing Page.
+Do NOT change layout, copy, routes, or business logic.
+
+Only improve interactive visual feedback.
+
+==================================================
+1. PRIMARY CTA HOVER
+==================================================
+
+For primary Deep Navy buttons such as:
+
+ابدأ تجربتك المجانية
+Start Free Trial
+
+Default:
+background #0D1B3D
+white text
+
+Hover:
+- slightly lighter or darker navy
+- translateY(-2px)
+- slightly stronger but soft shadow
+- smooth transition
+
+Do NOT use glow effects.
+
+Recommended transition:
+150–220ms ease
+
+==================================================
+2. WHATSAPP BUTTON HOVER
+==================================================
+
+For:
+
+تواصل معنا عبر واتساب
+Contact Us on WhatsApp
+
+Default:
+white/light background
+navy text
+subtle border
+green WhatsApp icon
+
+Hover:
+- very subtle pale WhatsApp-green background
+- green border becomes slightly clearer
+- text remains highly readable
+- translateY(-2px)
+- soft shadow
+
+Do NOT turn the entire button into bright green.
+
+==================================================
+3. NAVBAR LINKS
+==================================================
+
+Improve hover feedback for navbar links.
+
+On hover:
+- text becomes Deep Navy / stronger contrast
+- add a subtle teal underline or bottom indicator
+- smooth transition
+
+Active section state must remain visually different from hover.
+
+==================================================
+4. LANGUAGE SWITCH
+==================================================
+
+Arabic / English switcher must also have a clear hover state.
+
+Use:
+- subtle background
+- stronger text contrast
+
+Do not use a thick black outline as the main hover treatment.
+
+==================================================
+5. INTERACTIVE CARDS
+==================================================
+
+ONLY cards that are actually clickable should react on hover.
+
+For clickable cards:
+- translateY(-2px or -3px)
+- slightly stronger border
+- subtle shadow
+
+For static informational cards:
+NO hover animation.
+
+Do not make users think static cards are clickable.
+
+==================================================
+6. SCREENSHOT GALLERY
+==================================================
+
+For clickable product screenshots:
+
+Hover:
+- image scale approximately 1.01–1.02
+- slightly stronger shadow
+- optional subtle overlay with:
+  "عرض الصورة"
+  / "View"
+
+Do not heavily darken screenshots.
+
+==================================================
+7. FAQ
+==================================================
+
+FAQ rows should clearly react on hover:
+
+- very subtle background change
+- icon/chevron becomes more visible
+- cursor pointer
+
+Keep it elegant.
+
+==================================================
+8. FOCUS STATES
+==================================================
+
+Do not rely on hover only.
+
+Keyboard focus must remain clearly visible.
+
+Use:
+focus-visible
+
+with a clean Ghars-colored ring.
+
+Do NOT remove accessibility focus outlines without replacement.
+
+==================================================
+9. CURSOR
+==================================================
+
+All clickable elements must use:
+
+cursor: pointer
+
+Static elements must not.
+
+==================================================
+10. CONSISTENCY
+==================================================
+
+Create/reuse shared button and interaction styles where possible.
+
+Do NOT add random per-component hover colors.
+
+Interactive states should feel like one design system.
+
+==================================================
+11. NO AI-STYLE EFFECTS
+==================================================
+
+Do NOT use:
+
+- neon glow
+- animated gradients
+- pulsing
+- excessive scaling
+- 3D movement
+
+Keep interaction premium and restrained.
+
+==================================================
+12. VERIFY
+==================================================
+
+Browser-test:
+
+- Primary CTA
+- WhatsApp CTA
+- Navbar links
+- Language switch
+- Screenshot gallery
+- FAQ
+- any clickable feature cards
+
+Arabic + English.
+
+Desktop + mobile.
+
+Note:
+Mobile/touch must not depend on hover for usability.
+
+Do not publish.
+Create a checkpoint and stop.

@@ -1,0 +1,891 @@
+MODE: Power
+
+Perform a COMPLETE PRE-PRODUCTION RELEASE AUDIT + END-TO-END SMOKE TEST for Ghars before connecting the custom production domain.
+
+Target production domain after approval:
+
+https://ghars.digitaltclinic.com
+
+Domain DNS is managed at Hostinger.
+
+IMPORTANT:
+
+DO NOT modify DNS.
+DO NOT connect the custom domain yet.
+DO NOT publish a final production release if a critical blocker is found.
+
+Use the current codebase and approved Ghars architecture as the source of truth.
+
+The purpose of this task is to prove that Ghars can be safely launched without obvious production failures.
+
+==================================================
+1. PRE-PRODUCTION DEPLOYMENT
+==================================================
+
+Prepare/run the application using the SAME production build/start configuration intended for Replit Publishing.
+
+Do not rely only on the development server.
+
+We need to test:
+
+production frontend build
+production backend build
+production environment behavior
+
+Use the temporary Replit deployment/preview URL for smoke testing before DNS changes.
+
+Report the exact temporary deployment URL used for testing.
+
+==================================================
+2. TARGET PRODUCTION URL
+==================================================
+
+Future canonical production URL:
+
+https://ghars.digitaltclinic.com
+
+Review all configuration for references to:
+
+localhost
+127.0.0.1
+replit.dev
+replit.app preview URLs
+old development URLs
+
+Public/canonical URL logic must be environment-driven.
+
+Do not scatter:
+
+ghars.digitaltclinic.com
+
+as hardcoded strings throughout components.
+
+==================================================
+3. FULL TEST SUITE FIRST
+==================================================
+
+Before browser smoke testing run:
+
+- frontend TypeScript
+- backend/shared TypeScript
+- complete API suite
+- commercial lifecycle tests
+- tenant isolation tests
+- authentication/security tests
+- production frontend build
+- production backend build
+
+No unexplained failing tests are acceptable.
+
+==================================================
+4. PUBLIC LANDING PAGE SMOKE TEST
+==================================================
+
+Test the production-built Landing Page.
+
+Verify:
+
+/
+loads successfully
+
+Arabic RTL works
+
+English LTR works
+
+language switching works
+
+navbar works
+
+Hero works
+
+Landing Page screenshots load
+
+Platform-admin-managed Landing screenshots load
+
+Features navigation works
+
+Why Ghars works
+
+How It Works works
+
+FAQ opens/closes correctly
+
+final CTA works
+
+footer loads
+
+Privacy Policy works
+
+Terms & Conditions works
+
+No broken media.
+
+No console errors.
+
+No unexpected 404/500 responses.
+
+==================================================
+5. LANDING CTA FLOW
+==================================================
+
+Test:
+
+Landing Page
+→ Start Free Trial
+
+Landing Page
+→ Login
+
+Landing Page
+→ WhatsApp Support
+
+Landing Page
+→ Privacy
+
+Landing Page
+→ Terms
+
+All must navigate to the correct route.
+
+==================================================
+6. PUBLIC REGISTRATION END-TO-END
+==================================================
+
+Create ONE isolated temporary smoke-test tenant/customer.
+
+Use clearly synthetic data.
+
+Test the exact current registration flow:
+
+- organization name
+- owner/admin name
+- username
+- phone
+- optional city
+- password
+- confirm password
+- preferred display language
+
+Verify:
+
+successful registration creates tenant + first Tenant Admin atomically
+
+trial begins immediately
+
+trial duration = configured 72 hours
+
+user is authenticated according to current architecture
+
+correct tenant isolation is established
+
+no email verification is required
+
+no duplicate/partial tenant remains if registration fails
+
+==================================================
+7. REGISTRATION ERROR UX
+==================================================
+
+Test expected registration failures:
+
+- username unavailable
+- invalid phone
+- restricted/duplicate phone if applicable
+- password mismatch
+- weak password
+- missing fields
+- rate limiting where practical
+
+Verify safe localized errors appear clearly.
+
+Do not expose:
+
+SQL
+constraint names
+stack traces
+internal IDs
+
+==================================================
+8. AUTHENTICATION
+==================================================
+
+Test:
+
+Login with valid user
+Invalid password
+Invalid username
+Logout
+Login again
+Page refresh while authenticated
+Direct navigation to authenticated URL
+
+Verify sessions remain correct.
+
+Verify Back to Home works from public auth pages.
+
+==================================================
+9. TEMPORARY PASSWORD FLOW
+==================================================
+
+Test using isolated test users:
+
+Tenant Admin resets employee password
+→ temporary password generated/set
+→ old sessions invalidated
+→ employee logs in
+→ forced password change
+→ normal access restored
+
+Platform Super Admin resets Tenant Owner/Admin password
+→ same security behavior
+
+Do not expose current passwords.
+
+==================================================
+10. SELF PASSWORD CHANGE
+==================================================
+
+Test:
+
+current password
+new password
+confirm password
+
+Verify:
+
+wrong current password rejected
+successful change works
+session policy behaves as designed
+old password no longer works
+
+==================================================
+11. CUSTOMER TENANT ISOLATION
+==================================================
+
+Create/use two isolated smoke tenants:
+
+Tenant A
+Tenant B
+
+Verify server-side isolation for:
+
+- patients
+- implant cases
+- implants
+- follow-ups
+- finance
+- reports
+- statistics
+- managed lists
+- users
+- export
+- uploaded/private files if implemented
+
+Attempt direct object-ID access across tenants.
+
+Expected:
+
+403 / 404 according to approved architecture
+
+Never cross-tenant data.
+
+==================================================
+12. NORMAL CUSTOMER MUST NOT HAVE TENANT SWITCHER
+==================================================
+
+Verify a normal Ghars customer user belongs to one customer tenant.
+
+No tenant/clinic switcher for:
+
+Tenant Admin
+Doctor
+Reception
+Finance user
+
+Only Platform Super Admin has cross-tenant visibility through Platform Admin.
+
+==================================================
+13. CORE CLINICAL SMOKE
+==================================================
+
+Using isolated synthetic smoke data:
+
+Create patient
+Open patient
+Edit patient where supported
+
+Create implant case
+Add implant
+Update implant status
+
+Create:
+
+Bone Graft
+Sinus Lift
+Inferior Alveolar Nerve Repositioning
+
+where current workflow supports them.
+
+Create temporary prosthetic event.
+
+Create final prosthetic event.
+
+Verify canonical implant/prosthetic synchronization remains correct.
+
+==================================================
+14. FOLLOW-UP SMOKE
+==================================================
+
+Test:
+
+Create follow-up
+Edit follow-up
+Change status
+Complete
+Cancel/archive where supported
+
+Verify updates appear consistently in:
+
+patient record
+operational table
+dashboard/statistics where applicable
+
+==================================================
+15. FINANCE SMOKE
+==================================================
+
+Test:
+
+base amount
+charge
+discount
+payment
+multiple payments
+
+Verify canonical calculation:
+
+base
++ charges
+- discounts
+= expected total
+
+paid
+= valid non-voided payments
+
+remaining
+= canonical derived balance
+
+If voiding exists:
+
+void one payment and verify calculations update.
+
+No mutable derived financial total should become inconsistent.
+
+==================================================
+16. DASHBOARD / STATISTICS CONSISTENCY
+==================================================
+
+Verify changes made through canonical workflows propagate to:
+
+Dashboard
+Operational Table
+Patient File
+Statistics
+Finance analytics
+Follow-ups
+
+No stale values requiring manual hard refresh beyond expected cache invalidation.
+
+==================================================
+17. PLATFORM ADMIN AUTHORIZATION
+==================================================
+
+Test:
+
+/platform-admin
+
+Platform Super Admin:
+allowed
+
+Tenant Admin:
+403
+
+Doctor:
+403
+
+Normal customer:
+403
+
+Verify Platform Admin has no clinical tenant membership.
+
+==================================================
+18. PLATFORM ADMIN SMOKE
+==================================================
+
+Test:
+
+Overview
+Customers
+Customer Detail
+Trials
+Activation Requests
+System Errors
+System Health
+Platform Audit
+Platform Settings
+Platform Account
+Landing Page Content
+
+No 403/500 for Platform Super Admin.
+
+==================================================
+19. COMMERCIAL LIFECYCLE — CRITICAL
+==================================================
+
+Test full lifecycle:
+
+Register
+→ TRIALING
+
+Trial access works
+
+Expire controlled test trial
+→ operational access blocked
+
+Platform Admin activates tenant
+→ ACTIVE permanent license
+
+Move test clock beyond old trial_ends_at
+→ ACTIVE access must continue
+
+Suspend ACTIVE tenant
+→ access blocked
+
+Reactivate
+→ ACTIVE permanent access restored
+
+Extend Trial must NOT be possible for a tenant that has ever been permanently activated.
+
+==================================================
+20. SUPPORT / ACCESS SCREENS
+==================================================
+
+Test:
+
+expired tenant
+suspended tenant
+
+Verify:
+
+correct localized status screen
+organization displayed correctly
+support contact displayed
+WhatsApp link uses HTTPS wa.me
+no whatsapp://
+no incorrect tel: for WhatsApp
+back/navigation behavior correct
+
+==================================================
+21. PLATFORM SETTINGS
+==================================================
+
+Verify:
+
+Support WhatsApp
+Support Phone
+Support Email
+Default Trial Hours
+
+are loaded from canonical Platform Settings.
+
+Default trial should currently be 72 hours unless intentionally configured otherwise.
+
+Do not silently modify production values.
+
+==================================================
+22. LANDING PAGE MEDIA ADMIN
+==================================================
+
+If admin-managed Landing Page screenshots are implemented:
+
+Platform Super Admin:
+
+upload image
+preview
+activate
+deactivate
+change order
+replace
+delete test image
+
+Public Landing Page:
+
+reflects active content correctly.
+
+After testing, remove ONLY the temporary smoke upload and restore approved Landing configuration.
+
+==================================================
+23. FILE STORAGE — RELEASE BLOCKER CHECK
+==================================================
+
+Audit the ACTUAL production file architecture.
+
+Check:
+
+- user avatars
+- profile images
+- Landing media uploads
+- any customer uploads
+
+Determine whether files survive:
+
+application restart
+new deployment
+instance change
+
+If files use only ephemeral runtime/local deployment filesystem:
+
+mark:
+
+PRODUCTION FILE STORAGE: BLOCKED
+
+Do NOT pretend it is safe.
+
+If durable storage is used:
+
+test upload
+restart/redeploy-compatible behavior if safely testable
+retrieve file
+authorization
+delete test file
+
+==================================================
+24. SESSION STORE — RELEASE BLOCKER CHECK
+==================================================
+
+Confirm production session storage is durable/shared enough for the selected Replit deployment architecture.
+
+Do NOT use an unsafe process-local MemoryStore in production.
+
+Test:
+
+login
+refresh
+restart/restart-equivalent if safely available
+session remains valid according to intended behavior
+
+If unsafe:
+
+PRODUCTION SESSION STORE: BLOCKED
+
+==================================================
+25. DATABASE / MIGRATIONS
+==================================================
+
+Audit migration state.
+
+Verify:
+
+- migration journal consistent
+- no pending accidental/destructive migration
+- application starts against production-style DB config
+- no automatic reset
+- no automatic screenshot seed
+- no cleanup command runs automatically
+
+Run migration validation safely.
+
+Do not destroy existing development data.
+
+==================================================
+26. DATABASE BACKUP READINESS
+==================================================
+
+Determine whether database backups are managed externally by the production database provider.
+
+If backups cannot be verified from code, report:
+
+DATABASE BACKUPS: NEED EXTERNAL VERIFICATION
+
+Do not falsely mark PASS.
+
+==================================================
+27. SECURITY SMOKE
+==================================================
+
+Verify:
+
+- Secure cookies in production
+- HttpOnly cookies
+- appropriate SameSite
+- CSRF protection
+- server-side role authorization
+- server-side tenant authorization
+- rate limiting on sensitive auth routes
+- no plaintext passwords in logs
+- no hashes/tokens in API responses
+- no secrets committed to source
+- no development auth bypass
+
+==================================================
+28. PRODUCTION LOGGING
+==================================================
+
+Run the smoke suite while monitoring logs.
+
+After the test:
+
+No unexplained:
+
+500
+uncaught exception
+unhandled rejection
+DB connection error
+React runtime error
+
+Expected 400/401/403/409 responses from negative tests are acceptable and should not be misclassified as system failures.
+
+==================================================
+29. SYSTEM ERRORS PAGE
+==================================================
+
+Check Platform Admin → System Errors after smoke testing.
+
+If the smoke test reveals real application errors:
+
+investigate and fix root cause.
+
+Do not simply mark them resolved.
+
+Expected client/business validation errors should not create noisy internal-error records unless the architecture intentionally tracks them.
+
+==================================================
+30. PRODUCTION HEALTH
+==================================================
+
+Verify health reporting for:
+
+API
+Database
+Session Store
+File Storage
+Migrations
+
+Email remains intentionally disabled for this release.
+
+Health page must reflect reality.
+
+Do not show green PASS for unavailable infrastructure.
+
+==================================================
+31. DEEP-LINK / REFRESH TEST
+==================================================
+
+Very important for production routing.
+
+Directly open and refresh routes such as:
+
+/login
+/register
+/privacy
+/terms
+/dashboard
+/platform-admin
+
+Verify there is no server 404 caused by SPA fallback/routing configuration.
+
+==================================================
+32. RESPONSIVE SMOKE
+==================================================
+
+Browser test at minimum:
+
+1920x1080
+1366x768
+390x844
+
+Test:
+
+Landing Page
+Login
+Registration
+Dashboard
+Patient File
+Platform Admin
+
+No horizontal overflow.
+
+No unusable dialog.
+
+==================================================
+33. GLOBAL DIALOG CHECK
+==================================================
+
+Open representative dialogs in Arabic and English.
+
+Verify every standard modal remains centered against the full viewport.
+
+Test desktop + mobile.
+
+==================================================
+34. LOCALIZATION SMOKE
+==================================================
+
+Switch:
+
+Arabic → English
+English → Arabic
+
+Check:
+
+Landing
+Login
+Registration
+Dashboard
+Patient
+Statistics
+Settings
+Platform Admin
+
+No raw translation keys such as:
+
+register.localeArabic
+common.*
+auth.*
+
+No unintended language leaks except brand/user-entered content.
+
+==================================================
+35. PERFORMANCE SANITY
+==================================================
+
+Perform a reasonable production sanity check.
+
+Look for:
+
+- huge unnecessary JS assets
+- broken lazy loading
+- oversized Landing media
+- image loading errors
+- obvious render loops
+- repeated API storms
+
+Do not perform premature large-scale optimization.
+
+Fix only obvious production problems.
+
+==================================================
+36. CLEANUP SMOKE DATA
+==================================================
+
+After successful validation:
+
+delete ONLY the temporary smoke tenants/users/records created specifically for this test.
+
+Do NOT run:
+
+cleanup:screenshot-data
+
+unless explicitly requested.
+
+Do NOT remove the current approved screenshot/demo dataset.
+
+Do not alter Dr. Humam's intended data.
+
+==================================================
+37. CUSTOM DOMAIN READINESS
+==================================================
+
+Prepare the app for:
+
+https://ghars.digitaltclinic.com
+
+But DO NOT modify DNS yet.
+
+Verify there is no application-level reason the new Host header/origin would fail.
+
+Report any external allow-list/callback configuration that will need the production domain after DNS is connected.
+
+==================================================
+38. REPLIT DEPLOYMENT TYPE
+==================================================
+
+Recommend the appropriate production deployment type:
+
+AUTOSCALE
+or
+RESERVED VM
+
+based on the ACTUAL:
+
+- backend behavior
+- session architecture
+- storage architecture
+- long-running process needs
+
+Do not choose solely based on cost.
+
+==================================================
+39. FINAL GO / NO-GO
+==================================================
+
+Print exactly:
+
+FULL TEST SUITE: PASS / FAIL
+LANDING SMOKE: PASS / FAIL
+REGISTRATION: PASS / FAIL
+AUTH: PASS / FAIL
+TENANT ISOLATION: PASS / FAIL
+CLINICAL WORKFLOWS: PASS / FAIL
+FINANCE CONSISTENCY: PASS / FAIL
+COMMERCIAL LIFECYCLE: PASS / FAIL
+PLATFORM ADMIN: PASS / FAIL
+LOCALIZATION: PASS / FAIL
+RESPONSIVE UI: PASS / FAIL
+PRODUCTION ROUTING: PASS / FAIL
+PRODUCTION SESSION STORE: PASS / BLOCKED
+PRODUCTION FILE STORAGE: PASS / BLOCKED / NOT APPLICABLE
+DATABASE MIGRATIONS: PASS / FAIL
+DATABASE BACKUPS: PASS / NEED EXTERNAL VERIFICATION / BLOCKED
+PRODUCTION SUPPORT CONTACTS: PASS / NEED CONFIGURATION
+SECURITY SMOKE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+CUSTOM DOMAIN READINESS: PASS / FAIL
+
+Then:
+
+RELEASE DECISION:
+GO / NO-GO
+
+GO is allowed only if there are no critical FAIL/BLOCKED items.
+
+If NO-GO:
+list the exact blocking items and fix them where they can safely be fixed in code.
+
+==================================================
+40. FINAL REPORT
+==================================================
+
+Report:
+
+1. Temporary deployment URL tested
+2. Production deployment type recommendation
+3. Tests executed
+4. Temporary smoke data created/removed
+5. Any bugs discovered
+6. Bugs fixed
+7. Remaining blockers
+8. Session store architecture
+9. File storage architecture
+10. Database/migration status
+11. Backup status
+12. Support contact status
+13. Custom-domain readiness
+14. GO / NO-GO
+15. Exact checkpoint/commit hash
+
+DO NOT CONNECT DNS.
+DO NOT MODIFY HOSTINGER.
+DO NOT PUBLISH THE FINAL DOMAIN.
+
+Create a stable checkpoint and STOP.

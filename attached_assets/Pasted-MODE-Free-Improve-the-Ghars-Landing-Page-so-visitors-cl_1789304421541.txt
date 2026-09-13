@@ -1,0 +1,358 @@
+MODE: Free
+
+Improve the Ghars Landing Page so visitors clearly understand the REAL clinical scope of the system.
+
+CURRENT ISSUE:
+
+The Landing Page currently explains Ghars mainly as a general management platform.
+
+It is not clear enough that Ghars supports the actual dental implant treatment journey, including:
+
+- Dental implant cases
+- Bone grafting
+- Sinus lift procedures
+- Inferior alveolar nerve repositioning
+- Adjunct surgical procedures
+- Temporary prosthetics
+- Final prosthetics
+- Follow-ups
+- Appointments
+- Communications
+- Payments / finance
+- Statistics and reporting
+
+The Landing Page must communicate this clearly and professionally.
+
+IMPORTANT:
+
+Do NOT redesign the whole Landing Page.
+
+Do NOT add fake clinical modules.
+
+Use ONLY functionality that actually exists in Ghars.
+
+==================================================
+1. IMPROVE "WHAT IS GHARS?" COPY
+==================================================
+
+Update the section:
+
+ما هو غرس؟
+
+Arabic copy:
+
+غرس منصة متخصصة لتنظيم وإدارة رحلة علاج حالات الزراعة والإجراءات الجراحية المصاحبة، من تسجيل المريض وتوثيق الزرعات، إلى زراعة العظم ورفع الجيب الفكي والإجراءات الجراحية والتركيبات والمتابعات، مع إدارة المواعيد والدفعات والتقارير من مكان واحد.
+
+Keep the text concise and elegant.
+
+Do NOT turn this into a huge paragraph.
+
+English equivalent:
+
+Ghars is a specialized platform for managing the complete treatment journey of implant cases and related surgical procedures — from patient records and implant documentation to bone grafting, sinus lift procedures, adjunct surgery, prosthetics, follow-ups, appointments, payments, and reporting.
+
+Use the existing i18n system.
+
+==================================================
+2. ADD A NEW CLINICAL CAPABILITIES SECTION
+==================================================
+
+Add a new section immediately after:
+
+ما هو غرس؟
+
+or in the most natural position before:
+
+لماذا غرس؟
+
+Arabic eyebrow:
+
+الرحلة السريرية
+
+Main heading:
+
+من الجراحة إلى التركيب والمتابعة
+
+Supporting text:
+
+يوثّق غرس مراحل العلاج والإجراءات المصاحبة في ملف واحد مترابط، لتبقى حالة المريض واضحة من أول إجراء حتى آخر متابعة.
+
+English:
+
+Clinical Workflow
+
+From surgery to prosthetics and follow-up
+
+Ghars keeps treatment stages and related procedures connected in one patient record, from the first procedure through the final follow-up.
+
+==================================================
+3. CLINICAL CAPABILITY CARDS
+==================================================
+
+Create a clean premium grid of SIX cards.
+
+Do NOT make the cards oversized.
+
+Use simple professional line icons.
+
+CARD 1
+Arabic:
+حالات الزراعة
+
+Description:
+إدارة الزرعات ومواقعها وأنظمتها ومراحلها العلاجية داخل ملف المريض.
+
+English:
+Implant Cases
+
+CARD 2
+Arabic:
+زراعة العظم
+
+Description:
+توثيق إجراءات زراعة العظم والمواد والأغشية والمتابعة المرتبطة بها.
+
+English:
+Bone Grafting
+
+CARD 3
+Arabic:
+رفع الجيب الفكي
+
+Description:
+تسجيل إجراءات رفع الجيب الفكي وربطها بالحالة والزرعات والمتابعات.
+
+English:
+Sinus Lift
+
+CARD 4
+Arabic:
+الإجراءات الجراحية المصاحبة
+
+Description:
+توثيق الإجراءات الجراحية مثل إعادة تموضع العصب والإجراءات المساندة للحالة.
+
+English:
+Adjunct Surgical Procedures
+
+CARD 5
+Arabic:
+التركيبات
+
+Description:
+متابعة مراحل التركيب المؤقت والنهائي وربطها بحالة الزرعات.
+
+English:
+Prosthetics
+
+CARD 6
+Arabic:
+المتابعات
+
+Description:
+تنظيم المتابعات والمواعيد وحالة كل متابعة ضمن رحلة علاج المريض.
+
+English:
+Follow-ups
+
+==================================================
+4. SECONDARY OPERATIONAL STRIP
+==================================================
+
+Below the six clinical cards, add a compact secondary row showing that Ghars also manages the operational side.
+
+Use 4 small items only:
+
+المالية والمدفوعات
+Finance & Payments
+
+التواصل مع المرضى
+Patient Communication
+
+الإحصائيات والتقارير
+Analytics & Reports
+
+المستخدمون والصلاحيات
+Users & Permissions
+
+These should be visually secondary to the clinical workflow cards.
+
+The message should be:
+
+Ghars handles BOTH the clinical journey and the operational management around it.
+
+==================================================
+5. VISUAL STYLE
+==================================================
+
+Use the existing Ghars design system.
+
+Deep Navy:
+#0D1B3D
+
+Existing teal:
+small accent only
+
+Background:
+white / subtle pale blue-gray
+
+Cards:
+white
+light border
+very subtle shadow
+
+Avoid:
+
+- gradients
+- glowing cards
+- 3D implants
+- AI-style graphics
+- random decorative shapes
+- exaggerated medical illustrations
+
+This section must look like real premium healthcare software.
+
+==================================================
+6. ICON STYLE
+==================================================
+
+Use simple consistent line icons.
+
+Possible concepts:
+
+Implant Cases:
+tooth / implant icon
+
+Bone Grafting:
+bone / layers icon
+
+Sinus Lift:
+sinus / upper jaw concept
+
+Adjunct Surgery:
+surgical/medical icon
+
+Prosthetics:
+crown/tooth icon
+
+Follow-ups:
+calendar/check icon
+
+Do not use cartoon illustrations.
+
+==================================================
+7. CARD CONTENT
+==================================================
+
+Keep each description to approximately:
+
+1–2 short lines on desktop.
+
+Do not create long paragraphs.
+
+All cards should have visually consistent height.
+
+==================================================
+8. RESPONSIVE
+==================================================
+
+Desktop:
+3 cards × 2 rows
+
+Tablet:
+2 columns
+
+Mobile:
+1 column or compact 2-column layout only if readability remains good.
+
+No horizontal overflow.
+
+==================================================
+9. DO NOT DUPLICATE THE FEATURES SECTION
+==================================================
+
+This new section is specifically about:
+
+CLINICAL WORKFLOW CAPABILITIES.
+
+The existing Features section can continue focusing on broader system benefits such as:
+
+- patient file
+- finance
+- reports
+- alerts
+- permissions
+- bilingual support
+
+Avoid repeating identical cards twice.
+
+If necessary, lightly adjust existing feature copy to remove duplication.
+
+==================================================
+10. HERO CONSISTENCY
+==================================================
+
+Keep the approved Hero message aligned with this scope:
+
+أدر رحلة العلاج كاملة
+من الجراحة إلى التركيب والمتابعة
+
+Do not revert to wording that makes Ghars sound like it manages only implant placement.
+
+==================================================
+11. IMPORTANT CLINICAL ACCURACY
+==================================================
+
+Do not imply Ghars:
+
+- performs procedures
+- recommends treatment
+- makes clinical decisions
+- replaces the dentist
+
+Ghars manages and documents workflows.
+
+Use wording such as:
+
+إدارة
+توثيق
+متابعة
+تنظيم
+ربط
+
+not:
+
+تشخيص
+اقتراح علاج
+اتخاذ قرار طبي
+
+==================================================
+12. VERIFY
+==================================================
+
+Browser verify:
+
+Arabic RTL
+English LTR
+desktop
+mobile
+
+Confirm that within a few seconds of viewing this section, a visitor can clearly understand that Ghars supports:
+
+- implants
+- bone grafting
+- sinus lift
+- adjunct surgery
+- prosthetics
+- follow-ups
+
+while also covering:
+
+- finance
+- communications
+- analytics
+- permissions
+
+Do not publish.
+
+Create a checkpoint and stop.
