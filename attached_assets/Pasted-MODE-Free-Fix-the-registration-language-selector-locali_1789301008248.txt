@@ -1,0 +1,128 @@
+MODE: Free
+
+Fix the registration language selector localization bug.
+
+CURRENT BUG:
+
+On the Ghars registration page, the Preferred Language selector is rendering raw i18n keys such as:
+
+register.localeArabic
+register.localeEnglish
+
+instead of human-readable language labels.
+
+This is a localization rendering bug.
+
+==================================================
+1. EXPECTED LABELS
+==================================================
+
+Arabic UI:
+
+العربية
+English
+
+English UI:
+
+Arabic
+English
+
+The selected value displayed inside the Select must also show the translated human-readable label.
+
+Never display raw translation keys.
+
+==================================================
+2. USE EXISTING I18N SYSTEM
+==================================================
+
+Inspect the existing localization resources.
+
+Either:
+
+A. Add the missing keys if they do not exist
+
+register.localeArabic
+register.localeEnglish
+
+with proper Arabic/English values
+
+OR
+
+B. Reuse existing canonical language-label translation keys if the project already has them.
+
+Do NOT create duplicate translation architecture.
+
+==================================================
+3. SELECT OPTION RENDERING
+==================================================
+
+Audit the registration language Select.
+
+The stored machine values may remain something like:
+
+ar
+en
+
+But the UI labels must be rendered through i18n.
+
+Conceptually:
+
+value="ar"
+label=t("register.localeArabic")
+
+value="en"
+label=t("register.localeEnglish")
+
+Do NOT store translated labels as the locale value.
+
+==================================================
+4. FALLBACK SAFETY
+==================================================
+
+Do not allow raw translation keys to appear if a translation is missing.
+
+Use the existing i18n fallback conventions.
+
+==================================================
+5. VERIFY BOTH LOCALES
+==================================================
+
+Arabic registration page:
+
+لغة العرض المفضلة
+→ العربية
+→ English
+
+English registration page:
+
+Preferred Display Language
+→ Arabic
+→ English
+
+Verify:
+
+- dropdown list
+- selected value
+- initial/default value
+- form submission
+- locale persistence
+
+==================================================
+6. AUDIT REGISTRATION FOR OTHER RAW KEYS
+==================================================
+
+Search the registration/auth pages for any other visible strings matching patterns like:
+
+register.*
+auth.*
+common.*
+
+and fix any raw-key leakage found.
+
+Do not redesign the form.
+
+Do not change registration logic.
+
+Do not publish.
+
+Create a checkpoint and stop.
