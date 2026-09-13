@@ -497,8 +497,8 @@ export default function LandingPage() {
               <h1 className={`mb-5 text-[2.2rem] font-bold leading-[1.2] text-[#0D1B3D] sm:text-[2.5rem] animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRTL ? "lg:text-[clamp(3rem,3.35vw,3.375rem)] lg:leading-[1.18]" : "lg:text-[clamp(3rem,3.35vw,3.375rem)] lg:leading-[1.18]"}`}>
                 {usesApprovedHeroTitle ? (
                   <>
-                    <span className="block">{t.hero.titleLine1}</span>
-                    <span className="relative inline-block max-w-full">
+                    <span className={`block lg:whitespace-nowrap ${isRTL ? "" : "lg:text-2xl lg:leading-[1.3] 2xl:text-[1.8rem]"}`}>{t.hero.titleLine1}</span>
+                    <span className={`relative inline-block max-w-full lg:whitespace-nowrap lg:leading-[1.35] ${isRTL ? "lg:text-[clamp(1.75rem,2.05vw,2.15rem)]" : "lg:text-xl 2xl:text-[1.625rem]"}`}>
                       <span className="relative z-10">{t.hero.titleLine2}</span>
                       <span className="absolute inset-x-0 bottom-0.5 -z-0 h-1.5 rounded-full bg-[#1FA9B8]/25" aria-hidden="true"></span>
                     </span>
