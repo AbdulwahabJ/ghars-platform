@@ -1,0 +1,212 @@
+MODE: Free
+
+Refine ONLY the Landing Page HERO copy and typography.
+
+The current Hero wording is too narrow because Ghars is not limited to dental implants only.
+
+Ghars also manages:
+
+- Implant cases
+- Bone grafting
+- Sinus lift procedures
+- Adjunct surgical procedures
+- Prosthetics
+- Follow-ups
+- Appointments
+- Payments
+- Reporting
+
+Do NOT redesign the Hero layout.
+Do NOT change the left-side product screenshot.
+Do NOT change CTA behavior.
+Do NOT modify other Landing Page sections.
+
+==================================================
+1. NEW ARABIC HERO HEADLINE
+==================================================
+
+Replace the current headline with:
+
+أدر رحلة العلاج كاملة
+من الجراحة إلى التركيب والمتابعة
+
+Keep it to TWO deliberate lines on desktop.
+
+Do not break it randomly into 3 or 4 lines.
+
+Visually emphasize the second line:
+
+من الجراحة إلى التركيب والمتابعة
+
+using only a subtle Ghars teal underline or accent.
+
+No gradient.
+No glow.
+No AI-style effects.
+
+==================================================
+2. NEW ARABIC SUPPORTING COPY
+==================================================
+
+Use:
+
+غرس يجمع حالات الزراعة، زراعة العظم، رفع الجيب الفكي، الإجراءات الجراحية، التركيبات، المتابعات، المواعيد والمدفوعات في نظام واحد مصمم لعيادات الأسنان.
+
+Keep the paragraph concise and readable.
+
+Recommended max width:
+
+520–600px
+
+Use comfortable line-height.
+
+==================================================
+3. ENGLISH HERO HEADLINE
+==================================================
+
+Use:
+
+Manage the entire treatment journey
+from surgery to prosthetics and follow-up
+
+Keep this as two intentional lines on desktop.
+
+==================================================
+4. ENGLISH SUPPORTING COPY
+==================================================
+
+Use:
+
+Ghars brings implant cases, bone grafting, sinus lift procedures, adjunct surgical procedures, prosthetics, follow-ups, appointments, and payments together in one system built for dental clinics.
+
+==================================================
+5. TYPOGRAPHY
+==================================================
+
+The Hero headline should feel strong but not oversized.
+
+Desktop target:
+
+48–54px
+
+font-weight:
+Bold / ExtraBold using existing Ghars typography
+
+line-height:
+approximately 1.15–1.25
+
+Tablet:
+scale naturally
+
+Mobile:
+approximately 34–40px depending on width
+
+Do not let the headline overpower the product screenshot.
+
+==================================================
+6. VISUAL HIERARCHY
+==================================================
+
+Right-side Hero order should remain:
+
+Headline
+↓
+Supporting copy
+↓
+CTA buttons
+↓
+Compact feature list
+
+Do not add another large logo block above the headline.
+
+The navbar already carries the Ghars brand.
+
+==================================================
+7. CTA
+==================================================
+
+Keep:
+
+ابدأ تجربتك المجانية
+Start Free Trial
+
+and:
+
+تواصل معنا عبر واتساب
+Contact Us on WhatsApp
+
+Do not change routing or behavior.
+
+==================================================
+8. LEFT SIDE
+==================================================
+
+Do not modify the approved real Ghars Dashboard screenshot on the left.
+
+Do not generate a fake dashboard.
+
+Do not alter the real product UI.
+
+==================================================
+9. MOBILE
+==================================================
+
+On mobile:
+
+headline
+description
+CTA buttons
+product screenshot
+
+must remain readable and balanced.
+
+No horizontal overflow.
+
+Do not force desktop line breaks on mobile if they make the text awkward.
+
+==================================================
+10. DO NOT CHANGE OTHER SECTIONS
+==================================================
+
+Do not modify:
+
+- Navbar
+- Features
+- Why Ghars
+- How It Works
+- Screenshots gallery
+- FAQ
+- Footer
+- Commercial flow
+- Registration
+- Support settings
+
+This task is HERO COPY + TYPOGRAPHY ONLY.
+
+==================================================
+11. VERIFY
+==================================================
+
+Browser verify:
+
+Arabic:
+1920x1080
+1366x768
+390x844
+
+English:
+desktop + mobile
+
+Confirm:
+
+- headline is balanced
+- second line accent is subtle
+- text clearly represents more than implant placement alone
+- paragraph remains easy to read
+- CTA works
+- no localization leak
+- no overflow
+
+Do not publish.
+
+Create a checkpoint and stop.

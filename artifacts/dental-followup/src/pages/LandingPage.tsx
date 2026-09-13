@@ -43,11 +43,10 @@ const CONTENT = {
       dashboard: "لوحة التحكم"
     },
     hero: {
-      title: "كل ما تحتاجه لإدارة زراعة الأسنان من مكان واحد",
-      titleLine1: "كل ما تحتاجه لإدارة",
-      titleLine2: "زراعة الأسنان",
-      titleAccent: "من مكان واحد",
-      subtitle: "غرس يساعد عيادات زراعة الأسنان على إدارة المرضى وحالات الزراعة والمتابعات والمواعيد والمدفوعات والتقارير من نظام واحد متكامل.",
+      title: "أدر رحلة العلاج كاملة من الجراحة إلى التركيب والمتابعة",
+      titleLine1: "أدر رحلة العلاج كاملة",
+      titleLine2: "من الجراحة إلى التركيب والمتابعة",
+      subtitle: "غرس يجمع حالات الزراعة، زراعة العظم، رفع الجيب الفكي، الإجراءات الجراحية، التركيبات، المتابعات، المواعيد والمدفوعات في نظام واحد مصمم لعيادات الأسنان.",
       ctaPrimary: "ابدأ تجربتك المجانية",
       ctaSecondary: "تواصل معنا عبر واتساب",
       badges: ["متابعة حالات الزراعة", "تنظيم المرضى", "المالية والمدفوعات", "الإحصائيات والتقارير"]
@@ -149,11 +148,10 @@ const CONTENT = {
       dashboard: "Go to Dashboard"
     },
     hero: {
-      title: "Everything you need to manage dental implants, in one place",
-      titleLine1: "Everything you need",
-      titleLine2: "to manage dental implants",
-      titleAccent: "in one place",
-      subtitle: "Ghars helps dental implant clinics manage patients, implant cases, follow-ups, appointments, payments, and reports from one integrated system.",
+      title: "Manage the entire treatment journey from surgery to prosthetics and follow-up",
+      titleLine1: "Manage the entire treatment journey",
+      titleLine2: "from surgery to prosthetics and follow-up",
+      subtitle: "Ghars brings implant cases, bone grafting, sinus lift procedures, adjunct surgical procedures, prosthetics, follow-ups, appointments, and payments together in one system built for dental clinics.",
       ctaPrimary: "Start Free Trial",
       ctaSecondary: "Contact Us on WhatsApp",
       badges: ["Implant Cases", "Patient Management", "Finance & Payments", "Analytics & Reports"]
@@ -496,19 +494,18 @@ export default function LandingPage() {
             </div>
 
             <div className="order-1 relative z-10 text-center lg:order-2 lg:text-start" dir={isRTL ? "rtl" : "ltr"}>
-              <h1 className={`mb-5 text-[2.2rem] font-bold leading-[1.18] text-[#0D1B3D] sm:text-[2.75rem] animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRTL ? "lg:text-[clamp(2.55rem,3.15vw,3.6rem)]" : "lg:text-[2.7rem] lg:leading-[1.12]"}`}>
+              <h1 className={`mb-5 text-[2.2rem] font-bold leading-[1.2] text-[#0D1B3D] sm:text-[2.5rem] animate-in fade-in slide-in-from-bottom-4 duration-700 ${isRTL ? "lg:text-[clamp(3rem,3.35vw,3.375rem)] lg:leading-[1.18]" : "lg:text-[clamp(3rem,3.35vw,3.375rem)] lg:leading-[1.18]"}`}>
                 {usesApprovedHeroTitle ? (
                   <>
                     <span className="block">{t.hero.titleLine1}</span>
-                    <span className="block text-[40px]">{t.hero.titleLine2}</span>
-                    <span className="relative mt-0.5 inline-block">
-                      <span className="relative z-10">{t.hero.titleAccent}</span>
-                      <span className="absolute inset-x-0 bottom-1 -z-0 h-1.5 rounded-full bg-[#1FA9B8]/25" aria-hidden="true"></span>
+                    <span className="relative inline-block max-w-full">
+                      <span className="relative z-10">{t.hero.titleLine2}</span>
+                      <span className="absolute inset-x-0 bottom-0.5 -z-0 h-1.5 rounded-full bg-[#1FA9B8]/25" aria-hidden="true"></span>
                     </span>
                   </>
                 ) : heroTitle}
               </h1>
-              <p className="mx-auto mb-6 max-w-[34rem] text-[15px] leading-7 text-[#64748B] sm:text-base lg:mx-0 lg:max-w-[31rem] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+              <p className="mx-auto mb-6 max-w-[36rem] text-[15px] leading-7 text-[#64748B] sm:text-base lg:mx-0 lg:max-w-[36rem] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                 {heroSubtitle}
               </p>
               <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">

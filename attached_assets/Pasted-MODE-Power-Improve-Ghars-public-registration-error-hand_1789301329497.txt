@@ -1,0 +1,276 @@
+MODE: Power
+
+Improve Ghars public registration error handling so users receive clear, safe, localized reasons when account creation fails.
+
+CURRENT PROBLEM:
+
+The registration page currently shows only a generic error:
+
+Arabic:
+تعذر إنشاء الحساب بهذه البيانات.
+
+This is too vague.
+
+The user cannot tell whether the problem is:
+
+- username
+- phone number
+- password
+- organization data
+- validation
+- trial eligibility
+- rate limiting
+- another known registration condition
+
+DO NOT expose raw database errors, stack traces, SQL errors, or sensitive security information.
+
+==================================================
+1. INSPECT THE CURRENT FAILURE FIRST
+==================================================
+
+Reproduce the exact registration attempt shown by the current form and determine the REAL backend reason.
+
+Report the root cause before changing behavior.
+
+Do not guess.
+
+Inspect:
+
+- API response
+- structured error code
+- validation result
+- server logs safely
+- uniqueness checks
+- phone/trial-abuse checks
+
+Do NOT log or expose plaintext passwords.
+
+==================================================
+2. STRUCTURED SAFE ERROR CODES
+==================================================
+
+Registration API should return safe machine-readable error codes for expected failures.
+
+Examples:
+
+USERNAME_UNAVAILABLE
+PHONE_UNAVAILABLE
+INVALID_PHONE
+INVALID_USERNAME
+WEAK_PASSWORD
+PASSWORDS_DO_NOT_MATCH
+INVALID_ORGANIZATION_NAME
+INVALID_OWNER_NAME
+INVALID_CITY
+TRIAL_NOT_ELIGIBLE
+RATE_LIMITED
+REGISTRATION_VALIDATION_FAILED
+
+Use existing error architecture if already present.
+
+Do NOT create duplicate error systems.
+
+==================================================
+3. USER-FRIENDLY ARABIC MESSAGES
+==================================================
+
+Map expected errors to clear Arabic messages.
+
+Examples:
+
+USERNAME_UNAVAILABLE:
+اسم المستخدم غير متاح، جرّب اسمًا آخر.
+
+INVALID_USERNAME:
+اسم المستخدم غير صالح. استخدم أحرفًا وأرقامًا فقط وفق الشروط المسموحة.
+
+INVALID_PHONE:
+رقم الجوال غير صحيح. تأكد من الرقم ورمز الدولة.
+
+PHONE_UNAVAILABLE:
+لا يمكن استخدام رقم الجوال هذا لإنشاء حساب جديد. يرجى استخدام رقم آخر أو التواصل مع الدعم.
+
+WEAK_PASSWORD:
+كلمة المرور لا تستوفي متطلبات الأمان.
+
+PASSWORDS_DO_NOT_MATCH:
+كلمتا المرور غير متطابقتين.
+
+TRIAL_NOT_ELIGIBLE:
+لا يمكن بدء تجربة مجانية جديدة بهذه البيانات. تواصل مع دعم غرس للمساعدة.
+
+RATE_LIMITED:
+تم إجراء محاولات كثيرة. يرجى المحاولة لاحقًا.
+
+Keep a generic fallback ONLY for unexpected/internal failures:
+
+تعذر إنشاء الحساب حاليًا. حاول مرة أخرى، وإذا استمرت المشكلة تواصل مع الدعم.
+
+==================================================
+4. ENGLISH MESSAGES
+==================================================
+
+Provide equivalent English messages through the existing i18n system.
+
+Do not hardcode Arabic and English directly in components.
+
+==================================================
+5. FIELD-LEVEL ERRORS
+==================================================
+
+When the error belongs to a specific field, show it directly below that field.
+
+Examples:
+
+username error
+→ below Username
+
+phone error
+→ below Phone
+
+password error
+→ below Password
+
+confirm-password error
+→ below Confirm Password
+
+Do not show every validation problem only in the top red banner.
+
+The top banner may remain for form-level errors.
+
+==================================================
+6. PRESERVE SECURITY
+==================================================
+
+Do NOT expose:
+
+- whether a specific person already owns an account
+- internal tenant IDs
+- database constraint names
+- hashes
+- tokens
+- stack traces
+- anti-abuse rules in detail
+
+Use wording such as:
+
+"اسم المستخدم غير متاح"
+
+instead of revealing unnecessary account information.
+
+For anti-abuse/trial restrictions, use a safe support-oriented message.
+
+==================================================
+7. HTTP STATUS CONSISTENCY
+==================================================
+
+Use appropriate existing HTTP semantics consistently.
+
+Examples conceptually:
+
+400 / 422:
+validation
+
+409:
+safe uniqueness/business conflict
+
+429:
+rate limiting
+
+500:
+unexpected internal failure
+
+Do not change statuses unnecessarily if the current API architecture already has a standard convention.
+
+==================================================
+8. DO NOT BREAK REGISTRATION
+==================================================
+
+Preserve:
+
+- immediate 72-hour trial creation
+- atomic tenant + first Tenant Admin creation
+- username authentication
+- phone normalization
+- tenant isolation
+- password hashing
+- commercial lifecycle
+
+Do not reintroduce email verification.
+
+==================================================
+9. VALIDATION UX
+==================================================
+
+Before submit, catch obvious client-side validation such as:
+
+- empty required fields
+- password mismatch
+- malformed phone format
+- invalid username format
+
+Server remains authoritative.
+
+==================================================
+10. TEST THIS EXACT CASE
+==================================================
+
+Reproduce the registration attempt currently producing:
+
+تعذر إنشاء الحساب بهذه البيانات.
+
+After the fix, confirm that the user sees the ACTUAL safe reason.
+
+Document what that reason was.
+
+==================================================
+11. TEST CASES
+==================================================
+
+Test at minimum:
+
+- valid new registration → success
+- unavailable username
+- invalid username
+- duplicate/restricted phone
+- invalid phone
+- weak password
+- password mismatch
+- missing required field
+- trial eligibility rejection
+- rate limit
+- unexpected server error fallback
+
+Arabic + English.
+
+==================================================
+12. FINAL REPORT
+==================================================
+
+Report:
+
+1. Exact root cause of the currently observed registration failure
+2. Previous API behavior
+3. New structured error code returned
+4. Arabic message displayed
+5. English message displayed
+6. Field-level validation result
+7. Security/enumeration review
+8. Registration success regression
+9. Full tests
+10. Production build
+11. Exact checkpoint hash
+
+Final flags:
+
+REGISTRATION ERROR CLARITY: PASS / FAIL
+FIELD VALIDATION UX: PASS / FAIL
+AUTH SECURITY PRESERVED: PASS / FAIL
+ARABIC LOCALIZATION: PASS / FAIL
+ENGLISH LOCALIZATION: PASS / FAIL
+VALID REGISTRATION FLOW: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+Do not publish.
+
+Create a checkpoint and stop.
