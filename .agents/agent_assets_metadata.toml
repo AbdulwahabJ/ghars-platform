@@ -56,3 +56,17 @@ mtime_ms = 1789318478918
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/07c6fb5a-9540-4445-8e2b-4d1c0f835e5b/5a93b082-cf28-4c30-aabe-f7c579d0362c"
 storage_version_token = "1789318521407405"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "pObrFaRpf4dszrX7kdoJn"
+uri = "file://docs/production-reconciliation/CLEAN_PREPRODUCTION_READINESS.md"
+type = "text"
+title = "تقرير جاهزية غرس قبل إنشاء Production"
+description = "نتائج تنظيف Development، صحة المخطط والهجرات، bootstrap الافتراضي، الاختبارات والبناء، وأعلام الجاهزية النهائية."
+logical_id = "25783d8c-9926-445c-b93f-72a8cb5ef51a"
+content_hash = "sha256:3ec683054020481e48d31d276943cdc2773675bf95d82749bb1884660b6d901b"
+size = 7044
+mtime_ms = 1789320811227
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/25783d8c-9926-445c-b93f-72a8cb5ef51a/939e31c5-43af-4eb2-b8dd-0422fc727e92"
+storage_version_token = "1789320862989620"
+content_type = "text/markdown"

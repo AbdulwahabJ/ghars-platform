@@ -1,0 +1,205 @@
+MODE: Power
+
+The old Production Database has now been deleted successfully by the owner.
+
+Current Replit Database UI shows only:
+
+Development Database
+
+DO NOT PUBLISH YET.
+
+Proceed with the CLEAN PRE-PRODUCTION preparation.
+
+==================================================
+1. CLEAN DEVELOPMENT / TEST DATA
+==================================================
+
+Delete all disposable demo/test/screenshot DATABASE DATA from Development.
+
+This includes:
+
+- screenshot/demo patients
+- screenshot/demo implant cases
+- screenshot/demo implants
+- demo payments
+- demo follow-ups
+- demo communications
+- demo charges
+- demo discounts
+- temporary smoke-test tenants
+- temporary test users
+- screenshot seed batches including:
+  ghars-screenshot-2026-09-12-v1
+
+Use existing cleanup tooling where possible.
+
+The owner explicitly authorizes deletion of test/demo database data.
+
+DO NOT delete source code.
+
+==================================================
+2. KEEP LANDING PAGE ASSETS
+==================================================
+
+Do NOT delete:
+
+- landing screenshots already stored as static/repository assets
+- brand/logo assets
+- landing page files
+- migrations
+- application source code
+
+The marketing screenshots may remain even though the source demo database rows are deleted.
+
+==================================================
+3. DATABASE STATE AFTER CLEANUP
+==================================================
+
+Development should contain no disposable clinical/demo records.
+
+Report counts for:
+
+- tenants
+- users
+- patients
+- implant cases
+- implants
+- payments
+- follow-ups
+- communications
+- case charges
+- discounts
+- installment plans
+- installments
+- prosthetic events
+- surgical procedures
+
+Clearly distinguish required system/admin records from demo/test records.
+
+==================================================
+4. CURRENT SCHEMA / MIGRATIONS
+==================================================
+
+Verify Development matches the CURRENT canonical Ghars schema.
+
+Check:
+
+- all migration files
+- Drizzle migration journal
+- tenant-aware schema
+- application_settings current structure
+- tenant memberships
+- platform admin architecture
+- implant/list lookup architecture
+- WhatsApp templates architecture
+
+No legacy production reconciliation is needed anymore.
+
+==================================================
+5. DEFAULT MANAGED LISTS
+==================================================
+
+Complete and validate the approved default managed-list bootstrap.
+
+Requirements:
+
+- new tenants automatically receive all actively used default list categories
+- tenant scoped
+- idempotent
+- no duplicates
+- custom tenant values remain editable/deactivatable
+- do not duplicate canonical enum values unnecessarily
+
+Audit all actual categories in code.
+
+==================================================
+6. DEFAULT WHATSAPP TEMPLATES
+==================================================
+
+Complete and validate the approved default WhatsApp template bootstrap.
+
+Requirements:
+
+- new tenant automatically receives default templates
+- tenant scoped
+- idempotent
+- manual WhatsApp sending only
+- no automated sending
+- safe placeholders only
+- no demo communication history
+
+==================================================
+7. NEW TENANT BOOTSTRAP
+==================================================
+
+Verify a brand-new registration creates:
+
+- tenant
+- first Tenant Admin
+- tenant membership
+- 72-hour trial
+- default managed lists
+- default WhatsApp templates
+
+No patient/demo clinical data should be created automatically.
+
+==================================================
+8. PLATFORM SUPER ADMIN
+==================================================
+
+Verify the secure first platform_super_admin bootstrap method.
+
+Do not hardcode or print passwords.
+
+Confirm how the production Platform Super Admin will be created after the new Production DB exists.
+
+==================================================
+9. BUILD AND TEST
+==================================================
+
+Run:
+
+- TypeScript
+- full API tests
+- auth tests
+- tenant isolation tests
+- commercial lifecycle tests
+- managed-list bootstrap tests
+- WhatsApp template bootstrap tests
+- production frontend build
+- production backend build
+
+==================================================
+10. DO NOT CREATE PRODUCTION YET
+==================================================
+
+Do not publish.
+
+Do not recreate Production yet.
+
+We first want a clean Development state and a validated current schema.
+
+==================================================
+11. FINAL REPORT
+==================================================
+
+Report:
+
+DEVELOPMENT DEMO DATA CLEANED: PASS / FAIL
+SCREENSHOT SEED REMOVED: PASS / FAIL
+LANDING ASSETS PRESERVED: PASS / FAIL
+CURRENT SCHEMA VALID: PASS / FAIL
+MIGRATION JOURNAL VALID: PASS / FAIL
+DEFAULT LIST CATALOG: PASS / FAIL
+DEFAULT WHATSAPP TEMPLATES: PASS / FAIL
+NEW TENANT BOOTSTRAP: PASS / FAIL
+PLATFORM SUPER ADMIN BOOTSTRAP: PASS / FAIL
+TENANT ISOLATION: PASS / FAIL
+FULL TEST SUITE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+READY TO CREATE FRESH PRODUCTION DATABASE: YES / NO
+
+Create a checkpoint and STOP.
+
+DO NOT PUBLISH.
