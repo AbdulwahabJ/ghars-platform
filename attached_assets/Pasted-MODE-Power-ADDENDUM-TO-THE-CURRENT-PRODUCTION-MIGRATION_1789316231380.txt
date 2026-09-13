@@ -1,0 +1,520 @@
+MODE: Power
+
+ADDENDUM TO THE CURRENT PRODUCTION MIGRATION / RELEASE TASK:
+
+After the production schema reconciliation is proven SAFE, also initialize ALL Ghars tenant-managed default lists in a production-safe way.
+
+IMPORTANT:
+
+This is DEFAULT CONFIGURATION DATA ONLY.
+
+DO NOT copy any screenshot/demo dataset from development.
+
+DO NOT copy:
+- demo patients
+- demo implant cases
+- demo implants
+- demo procedures
+- demo follow-ups
+- demo communications
+- demo payments
+- demo charges
+- demo discounts
+- screenshot seed records
+
+Only initialize the canonical managed-list configuration required for Ghars to be usable immediately after registration.
+
+==================================================
+1. ORDER OF OPERATIONS
+==================================================
+
+Do NOT mix unsafe list seeding into the schema-repair step.
+
+Required order:
+
+1. Resolve production schema drift safely.
+2. Validate production migrations.
+3. Confirm production data preservation.
+4. Only then initialize missing managed-list defaults.
+5. Run full validation again.
+
+If schema reconciliation is not safe:
+STOP before list initialization.
+
+==================================================
+2. AUDIT EVERY EXISTING MANAGED-LIST CATEGORY
+==================================================
+
+Inspect the CURRENT Ghars codebase, database schema, Settings → Lists UI, forms, APIs, and canonical list registry.
+
+Find EVERY tenant-managed list category currently implemented.
+
+Do not populate only the categories visible in one screenshot.
+
+Audit all categories used by:
+
+- implant cases
+- implants
+- adjunct surgical procedures
+- bone grafting
+- sinus lift
+- nerve repositioning
+- prosthetic workflows
+- follow-ups
+- communications
+- patient/case forms
+- finance
+- any other existing Ghars workflow
+
+Do NOT invent new settings categories unless the application already supports them.
+
+==================================================
+3. KNOWN LIST CATEGORIES TO VERIFY
+==================================================
+
+At minimum verify the current implementation of categories such as:
+
+- Implant Systems
+- Q Implants
+- Former Implants
+- Graft Implants
+- Procedure Tags
+- Bone Graft Procedure Types
+- Bone Graft Materials
+- Bone Graft Membranes
+- Bone Graft Procedure Statuses
+
+and ANY additional existing categories discovered in the codebase.
+
+IMPORTANT:
+
+For legacy-looking names such as:
+
+Q Implants
+Former Implants
+Graft Implants
+
+do NOT guess their meaning.
+
+Inspect where each category is consumed and seed values that match its REAL current semantics.
+
+==================================================
+4. NEW TENANTS MUST NEVER START EMPTY
+==================================================
+
+Every newly registered commercial tenant must automatically receive the complete default Ghars managed-list catalog.
+
+After registration, Tenant Admin should be able to immediately use:
+
+- patient workflows
+- implant workflows
+- surgical procedure workflows
+- follow-ups
+- finance
+
+without first manually creating basic list options.
+
+==================================================
+5. EXISTING PRODUCTION TENANTS
+==================================================
+
+Safely backfill existing production tenants.
+
+Rules:
+
+If category is empty:
+→ add complete defaults.
+
+If category already contains custom values:
+→ preserve all existing values.
+
+If some baseline defaults are missing:
+→ add only clearly missing values where safe.
+
+Do NOT:
+- overwrite custom values
+- rename tenant values
+- delete values
+- reactivate intentionally disabled values
+- create duplicates
+
+==================================================
+6. USER CUSTOMIZATION ALWAYS WINS
+==================================================
+
+Default values are BOOTSTRAP DATA only.
+
+After initialization, Tenant Admin may:
+
+- add
+- edit where supported
+- deactivate
+- remove unused options where safe
+
+Do NOT restore deleted/deactivated defaults automatically on app startup.
+
+Do NOT force every tenant to keep the original default catalog forever.
+
+==================================================
+7. IMPLANT SYSTEM DEFAULTS
+==================================================
+
+For the Implant Systems category, if compatible with the current field semantics, provide a professional starter catalog such as:
+
+- Straumann
+- Nobel Biocare
+- Dentium
+- Osstem
+- MegaGen
+- Neobiotech
+- BioHorizons
+- Zimmer Biomet
+- MIS
+- DIO
+
+If existing Ghars defaults already exist, preserve/merge rather than blindly replacing them.
+
+==================================================
+8. PROCEDURE TAGS
+==================================================
+
+If Procedure Tags are actively used, initialize practical values such as:
+
+- زراعة سن
+- زراعة متعددة
+- كشف الغطاء
+- زراعة عظم
+- رفع الجيب الفكي
+- إعادة تموضع العصب
+- تركيب مؤقت
+- تركيب نهائي
+- متابعة جراحية
+- متابعة التئام
+- إزالة غرز
+
+Use normal tenant-editable values.
+
+Do not convert canonical machine statuses into editable tags.
+
+==================================================
+9. BONE GRAFT PROCEDURE TYPES
+==================================================
+
+If actively used, initialize clinically sensible starter values such as:
+
+- ترقيع عظمي موضعي
+- ترقيع أفقي
+- ترقيع عمودي
+- حفظ الحفرة السنخية
+- إعادة بناء الحافة السنخية
+
+Keep the list concise and professionally useful.
+
+==================================================
+10. BONE GRAFT MATERIALS
+==================================================
+
+IMPORTANT:
+
+Ghars currently supports free-text clinical material fields.
+
+Do NOT remove free-text functionality.
+
+If the managed list is used as suggestions/presets, provide defaults such as:
+
+- Xenograft
+- Allograft
+- Autogenous Bone
+- Synthetic Graft
+- Mixed Graft
+
+The clinician must still be able to enter custom free text if that is current Ghars behavior.
+
+==================================================
+11. BONE GRAFT MEMBRANES
+==================================================
+
+If used as suggestions/presets, initialize:
+
+- Resorbable Collagen Membrane
+- Non-resorbable Membrane
+- PTFE Membrane
+- Titanium-reinforced Membrane
+- No Membrane
+
+Preserve free-text capability where currently supported.
+
+==================================================
+12. BONE GRAFT PROCEDURE STATUSES
+==================================================
+
+Audit carefully.
+
+If these are user-managed clinical descriptors:
+seed useful defaults.
+
+If they duplicate canonical system workflow statuses:
+DO NOT create editable duplicates.
+
+Canonical machine states must remain system controlled.
+
+==================================================
+13. SINUS LIFT LISTS
+==================================================
+
+Audit all existing sinus-lift-related configurable categories.
+
+If managed categories already exist:
+populate them with practical starter values.
+
+If they do not exist:
+do NOT invent new list categories just for this task.
+
+==================================================
+14. NERVE REPOSITIONING LISTS
+==================================================
+
+Same rule:
+
+Populate existing configurable categories only.
+
+Do not introduce unnecessary architecture.
+
+==================================================
+15. PROSTHETIC LISTS
+==================================================
+
+Audit prosthetic forms for tenant-managed lists.
+
+Populate existing optional catalogs where appropriate.
+
+Do NOT convert canonical:
+
+temporary
+final
+
+prosthetic event types into tenant-editable values if they are system machine states.
+
+==================================================
+16. FOLLOW-UP LISTS
+==================================================
+
+If Ghars currently has configurable follow-up purpose/type lists, initialize practical values such as:
+
+- مراجعة بعد الزراعة
+- فحص الالتئام
+- متابعة زراعة العظم
+- متابعة رفع الجيب الفكي
+- كشف الغطاء
+- تقييم قبل التركيب
+- متابعة التركيب المؤقت
+- متابعة التركيب النهائي
+- إزالة الغرز
+
+Do not duplicate canonical follow-up status codes.
+
+==================================================
+17. COMMUNICATION LISTS
+==================================================
+
+If communication types are tenant-managed, initialize only supported values such as:
+
+- اتصال هاتفي
+- واتساب
+- تأكيد موعد
+- تذكير موعد
+- متابعة المريض
+
+If communication types are system-controlled enums, leave them system-controlled.
+
+==================================================
+18. FINANCE LISTS
+==================================================
+
+Audit existing finance-managed lists.
+
+If tenant-configurable, initialize useful values for categories such as:
+
+Payment Methods:
+- نقدي
+- بطاقة / شبكة
+- تحويل بنكي
+
+Possible charge categories only if already supported:
+- زرعة إضافية
+- زراعة عظم
+- رفع الجيب الفكي
+- تركيبات
+- رسوم أخرى
+
+Possible discount reasons only if currently configurable.
+
+Do NOT duplicate fixed finance enums.
+
+==================================================
+19. NO EMPTY ACTIVE CATEGORY
+==================================================
+
+After initialization, open:
+
+Settings → Lists
+
+for an existing normal production tenant.
+
+No actively used managed category should show:
+
+"لا توجد خيارات في هذه الفئة بعد"
+
+unless the category is confirmed obsolete/not used anywhere.
+
+If an obsolete legacy category exists:
+do NOT fill it with nonsense just to avoid an empty screen.
+
+Report it as obsolete/unused.
+
+==================================================
+20. HISTORICAL RECORD SAFETY
+==================================================
+
+If a list value is referenced by existing records:
+
+do NOT allow destructive hard deletion that breaks historical data.
+
+Use deactivate/archive behavior.
+
+Inactive values:
+
+- disappear from new selections
+- remain visible in historical records
+
+==================================================
+21. DUPLICATE PREVENTION
+==================================================
+
+Default initialization must be idempotent.
+
+Normalize safely for duplicate detection:
+
+- case
+- whitespace
+- obvious equivalent values
+
+Do not create repeated values on every deployment.
+
+Running the initializer multiple times must not duplicate records.
+
+==================================================
+22. DO NOT USE APP STARTUP AS A SEED LOOP
+==================================================
+
+Do NOT run full default seeding blindly every time the application starts.
+
+Use a controlled tenant bootstrap/version mechanism or idempotent initialization flow.
+
+New tenant:
+initialize once.
+
+Existing tenant:
+safe backfill once / versioned upgrade.
+
+==================================================
+23. TENANT ISOLATION
+==================================================
+
+All managed list values must remain tenant-scoped.
+
+Tenant A cannot read/edit Tenant B lists.
+
+Backend derives tenant from authenticated session.
+
+Never trust frontend tenantId.
+
+==================================================
+24. PLATFORM ADMIN
+==================================================
+
+Platform Super Admin must not accidentally own customer clinical lists.
+
+Default catalog is copied into each customer tenant.
+
+The customer Tenant Admin then controls their own copy.
+
+==================================================
+25. PRODUCTION DATA RULE
+==================================================
+
+Again:
+
+DO NOT COPY DEVELOPMENT DATA INTO PRODUCTION.
+
+Only copy CODE-DEFINED DEFAULT CONFIGURATION VALUES.
+
+No screenshot/demo clinical data may be transferred.
+
+==================================================
+26. TESTS
+==================================================
+
+Test:
+
+A. New tenant
+→ every required active category populated.
+
+B. Existing tenant with empty lists
+→ defaults added.
+
+C. Existing tenant with custom values
+→ preserved.
+
+D. Deactivated default value
+→ stays deactivated.
+
+E. Rerun bootstrap
+→ no duplicates.
+
+F. Referenced old value
+→ historical record remains intact.
+
+G. Tenant A vs Tenant B
+→ isolated.
+
+H. Production migration
+→ no demo records introduced.
+
+==================================================
+27. FINAL REPORT
+==================================================
+
+After schema repair + list initialization report:
+
+1. Every managed-list category discovered
+2. Active vs obsolete category
+3. Exact defaults added for each active category
+4. Existing values preserved
+5. New-tenant bootstrap behavior
+6. Existing-tenant backfill behavior
+7. Duplicate prevention
+8. Historical-reference protection
+9. Tenant isolation
+10. Confirmation that ZERO screenshot/demo clinical records were copied to production
+11. Migration validation
+12. Full tests
+13. Production build
+
+Final flags:
+
+PRODUCTION SCHEMA DRIFT: RESOLVED / NOT RESOLVED
+DEFAULT LIST CATALOG: PASS / FAIL
+NEW TENANT LIST BOOTSTRAP: PASS / FAIL
+EXISTING TENANT LIST BACKFILL: PASS / FAIL
+USER CUSTOMIZATION PRESERVED: PASS / FAIL
+HISTORICAL REFERENCES PROTECTED: PASS / FAIL
+NO DEMO DATA COPIED TO PRODUCTION: PASS / FAIL
+TENANT ISOLATION: PASS / FAIL
+MIGRATION VALIDATION: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+SAFE TO REPUBLISH: YES / NO
+
+DO NOT PUBLISH.
+
+STOP after validation and create a stable checkpoint.

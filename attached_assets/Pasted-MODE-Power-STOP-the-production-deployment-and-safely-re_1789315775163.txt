@@ -1,0 +1,308 @@
+MODE: Power
+
+STOP the production deployment and safely resolve the DEVELOPMENT → PRODUCTION database migration conflict before publishing Ghars.
+
+CRITICAL:
+
+DO NOT copy the development database data into production.
+DO NOT reset the production database.
+DO NOT drop production tables.
+DO NOT delete production customer data.
+DO NOT run screenshot/demo seed data in production.
+DO NOT publish until migration validation passes.
+
+The current Replit publishing validation failed.
+
+Observed failure:
+
+ALTER TABLE "application_settings"
+ADD CONSTRAINT "application_settings_tenant_id_key_pk"
+PRIMARY KEY ("tenant_id","key");
+
+Error:
+column "tenant_id" of relation "application_settings" does not exist
+
+Replit also warns that multiple populated production tables are about to receive NOT NULL tenant_id columns without defaults/backfill.
+
+==================================================
+1. DIAGNOSE SCHEMA DRIFT FIRST
+==================================================
+
+Compare, READ-ONLY first:
+
+A. Current development schema
+B. Current production schema
+C. Drizzle migration files
+D. drizzle.__drizzle_migrations in both environments
+
+Determine exactly:
+
+- which migrations exist in code
+- which migrations production believes are applied
+- which schema changes exist in development but not production
+- whether migration journal drift exists
+- why application_settings is receiving a composite PK before tenant_id exists
+- which populated legacy tables are missing tenant_id
+
+Do not modify production during diagnosis.
+
+==================================================
+2. PRESERVE ALL PRODUCTION DATA
+==================================================
+
+Production may contain existing Ghars data.
+
+All migration work must be FORWARD-ONLY and data preserving.
+
+Do not:
+
+- recreate production from development
+- truncate
+- drop/recreate populated tables
+- reset migrations
+- overwrite production with screenshot/demo data
+
+==================================================
+3. FIX MIGRATION ORDER
+==================================================
+
+The correct safe sequence must be conceptually:
+
+1. Add required columns as nullable where legacy rows exist.
+2. Create/find the correct tenant used for legacy production records.
+3. Backfill tenant_id for all existing rows.
+4. Validate there are ZERO null/unassigned tenant IDs.
+5. Add foreign keys.
+6. Change tenant_id to NOT NULL.
+7. Only then add composite unique/primary constraints that depend on tenant_id.
+
+Do not create:
+
+PRIMARY KEY (tenant_id, key)
+
+before tenant_id exists and has been safely populated.
+
+==================================================
+4. APPLICATION_SETTINGS
+==================================================
+
+Audit application_settings carefully.
+
+The target tenant-aware structure may require:
+
+tenant_id
+key
+
+as a composite key/unique identity.
+
+But preserve current production settings.
+
+Safe migration must:
+
+- add tenant_id first
+- identify the correct owner/system tenant for existing settings
+- backfill all rows
+- verify no duplicate (tenant_id, key) conflicts
+- only then change PK/unique constraints
+
+Never lose Support WhatsApp, Support Phone, Support Email, trial hours, or other existing settings.
+
+==================================================
+5. TENANT BACKFILL
+==================================================
+
+Audit every warning where Replit says:
+
+"add not-null tenant_id column ... contains N items"
+
+For EVERY populated table:
+
+determine the correct tenant relationship through existing parent records whenever possible.
+
+Examples conceptually:
+
+implant → case → patient/tenant
+payment → case → tenant
+followup → patient/case → tenant
+
+Prefer relational derivation.
+
+Do NOT blindly assign everything to an arbitrary tenant if correct ownership can be inferred.
+
+For genuine legacy single-tenant/system rows where no relational owner exists:
+
+use the existing approved legacy/Internal/system tenant architecture.
+
+Do not use tenant name string matching if canonical is_system metadata exists.
+
+==================================================
+6. PRODUCTION INTERNAL / LEGACY TENANT
+==================================================
+
+If production has pre-multi-tenant legacy data:
+
+preserve it under the canonical existing system/Internal tenant.
+
+Do NOT create duplicate Internal tenants.
+
+Use the current canonical system-tenant marker.
+
+==================================================
+7. MIGRATION JOURNAL
+==================================================
+
+Do not simply mark migrations as applied to silence Replit unless their effects are already proven to exist.
+
+If the migration journal is inconsistent:
+
+repair it only after comparing actual schema state.
+
+Document exactly what was corrected.
+
+==================================================
+8. ENUMS
+==================================================
+
+The generated migration also attempts CREATE TYPE statements.
+
+Check whether production already contains any of these enums.
+
+Do not run duplicate CREATE TYPE operations.
+
+Make migrations compatible with the actual production state.
+
+==================================================
+9. PRIMARY KEYS / CONSTRAINTS
+==================================================
+
+Replit warns that application_settings primary key is changing.
+
+Before altering any PK:
+
+- inspect current PK
+- ensure new columns exist
+- ensure values are unique
+- ensure dependent foreign keys are safe
+- ensure no table is left temporarily without a valid intended key due to a failed statement
+
+Use transactional migration where PostgreSQL permits.
+
+==================================================
+10. CREATE A SAFE FORWARD MIGRATION
+==================================================
+
+Do NOT rewrite historical migrations that may already have been applied differently across environments unless absolutely necessary.
+
+Prefer creating a NEW reconciliation migration that safely moves the real production schema to the current intended schema.
+
+It must be:
+
+- deterministic
+- idempotent where practical
+- forward-only
+- data preserving
+
+==================================================
+11. TEST AGAINST A PRODUCTION-LIKE COPY
+==================================================
+
+Before touching actual production:
+
+test the reconciliation migration against an isolated copy/snapshot/schema matching the current production structure and populated-row conditions.
+
+Validate:
+
+- migrations complete
+- no data loss
+- tenant relationships correct
+- constraints valid
+- app starts successfully
+
+==================================================
+12. DEMO DATA MUST NOT ENTER PRODUCTION
+==================================================
+
+The development database contains screenshot/demo records.
+
+Confirm none of the following are copied into production by this migration:
+
+ghars screenshot dataset
+demo patients
+demo payments
+demo follow-ups
+demo implant cases
+
+Migrations may change schema and backfill existing PRODUCTION records only.
+
+==================================================
+13. POST-MIGRATION DATA CHECKS
+==================================================
+
+After the isolated migration test, validate:
+
+- zero orphan tenant references
+- zero NULL tenant_id where NOT NULL required
+- tenant isolation queries still work
+- application_settings intact
+- Platform Settings intact
+- user memberships intact
+- audit records intact
+- finance records intact
+- patient/implant data intact
+
+==================================================
+14. PRODUCTION MIGRATION SAFETY
+==================================================
+
+Before actual deployment report:
+
+- tables to alter
+- rows requiring backfill
+- tenant chosen/derived for each legacy dataset
+- PK/constraint changes
+- estimated downtime/locking risk
+
+If a migration could lock a large table or cause meaningful downtime, state it explicitly.
+
+==================================================
+15. FULL VALIDATION AFTER FIX
+==================================================
+
+Run:
+
+- drizzle migration validation
+- full TypeScript
+- full API tests
+- tenant isolation tests
+- auth tests
+- commercial lifecycle tests
+- production build
+
+Then re-run Replit publishing migration validation.
+
+Expected:
+
+NO migration validation failure.
+
+==================================================
+16. FINAL FLAGS
+==================================================
+
+Report:
+
+PRODUCTION SCHEMA DRIFT: RESOLVED / NOT RESOLVED
+PRODUCTION DATA PRESERVATION: PASS / FAIL
+TENANT BACKFILL: PASS / FAIL
+APPLICATION_SETTINGS MIGRATION: PASS / FAIL
+MIGRATION JOURNAL: PASS / FAIL
+DEMO DATA EXCLUDED: PASS / FAIL
+MIGRATION VALIDATION: PASS / FAIL
+FULL TEST SUITE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+SAFE TO REPUBLISH: YES / NO
+
+Provide the exact migration file(s) created/changed and checkpoint commit hash.
+
+DO NOT PUBLISH.
+
+STOP after producing a validated safe migration and report.

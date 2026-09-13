@@ -1,0 +1,312 @@
+MODE: Free
+
+Fix patient navigation from follow-up/review notifications and dashboard follow-up surfaces.
+
+CURRENT PROBLEM:
+
+When the user clicks:
+
+- فتح الملف from an overdue follow-up
+- a follow-up notification
+- a review/follow-up item
+- a notification related to a patient follow-up
+
+Ghars currently opens the patient's default tab:
+
+بيانات المريض
+Patient Data
+
+This is contextually wrong.
+
+==================================================
+1. REQUIRED DESTINATION
+==================================================
+
+For ANY navigation originating from a follow-up/review context, open:
+
+Patient File
+→ إجراءات المريض
+→ المتابعات وسجل التواصل
+
+Arabic:
+
+إجراءات المريض
+ثم:
+المتابعات وسجل التواصل
+
+English:
+
+Patient Procedures
+then:
+Follow-ups & Communication Log
+
+Do NOT open the Patient Data tab for these actions.
+
+==================================================
+2. CREATE A CANONICAL DEEP-LINK
+==================================================
+
+Do not implement separate hacks in every component.
+
+Create/reuse one canonical patient deep-link mechanism.
+
+Conceptually use something like:
+
+/patients/{patientId}?tab=procedures&section=followups
+
+And when a specific follow-up exists:
+
+/patients/{patientId}?tab=procedures&section=followups&followupId={followupId}
+
+The exact route/query format may follow the current routing architecture.
+
+Do NOT introduce a second Patient File route.
+
+==================================================
+3. PATIENT FILE BEHAVIOR
+==================================================
+
+When Patient File loads with:
+
+tab=procedures
+
+automatically activate:
+
+إجراءات المريض
+
+When:
+
+section=followups
+
+after the procedures content is rendered:
+
+scroll smoothly to:
+
+المتابعات وسجل التواصل
+
+Account for the sticky Ghars header so the section title is not hidden underneath it.
+
+==================================================
+4. SPECIFIC FOLLOW-UP TARGET
+==================================================
+
+If followupId is present:
+
+1. Open إجراءات المريض
+2. Scroll to المتابعات وسجل التواصل
+3. Find the corresponding follow-up record
+4. Scroll it into visible position
+5. Apply a subtle temporary highlight for approximately 1.5–2.5 seconds
+
+Use a restrained Ghars-style highlight.
+
+Do NOT:
+- flash aggressively
+- use animation loops
+- change the follow-up status
+
+If the follow-up no longer exists:
+fall back gracefully to the Follow-ups section.
+
+==================================================
+5. SURFACES TO FIX
+==================================================
+
+Audit ALL navigation sources related to follow-ups/reviews, including at minimum:
+
+Home Dashboard:
+- المتابعات المتأخرة
+- حالات المراجعة
+- today's/upcoming follow-up items
+
+Notification bell:
+- follow-up due
+- overdue follow-up
+- appointment/review related notifications where the target is a patient follow-up
+
+Patient-related follow-up lists:
+- فتح الملف
+- Open Patient/File actions
+
+Any other existing notification whose semantic target is a follow-up.
+
+All should use the SAME deep-link helper.
+
+==================================================
+6. DO NOT CHANGE OTHER PATIENT LINKS
+==================================================
+
+Important:
+
+Not every patient link should open Procedures.
+
+Keep normal patient navigation unchanged.
+
+Examples:
+
+Clicking a patient from:
+قائمة المرضى
+Patients List
+
+may continue opening the normal/default Patient File state.
+
+Only FOLLOW-UP / REVIEW CONTEXT should deep-link to the follow-up section.
+
+==================================================
+7. REVIEW VS FOLLOW-UP CONTEXT
+==================================================
+
+Inspect the current data model.
+
+If "حالات المراجعة" records are actually canonical follow-up records:
+deep-link to the exact follow-up.
+
+If a review item maps to a different canonical entity but its intended action is patient follow-up:
+open Patient Procedures → Follow-ups section.
+
+Do not create duplicate follow-up records.
+
+==================================================
+8. URL STATE
+==================================================
+
+The selected tab/section should be represented safely in URL state so:
+
+- browser refresh preserves the destination
+- copying the link works
+- Back/Forward navigation behaves correctly
+
+Do not rely only on transient React state.
+
+==================================================
+9. EXISTING TWO-TAB ARCHITECTURE
+==================================================
+
+Do NOT change the approved Patient File architecture.
+
+Patient File remains exactly:
+
+1. بيانات المريض
+2. إجراءات المريض
+
+This task only improves deep-link navigation.
+
+==================================================
+10. PERMISSIONS
+==================================================
+
+Preserve all existing permissions.
+
+If the current user cannot view follow-ups:
+do not bypass permissions through a deep-link.
+
+Use existing authorization behavior.
+
+==================================================
+11. MOBILE
+==================================================
+
+Verify on mobile that:
+
+- إجراءات المريض becomes selected
+- page scrolls to Follow-ups section
+- target is not hidden under sticky headers
+- no horizontal overflow
+
+==================================================
+12. ARABIC / ENGLISH
+==================================================
+
+Deep-link behavior must be independent of locale.
+
+Do NOT put translated tab names in routing logic.
+
+Use canonical internal values such as:
+
+procedures
+followups
+
+Arabic/English labels should come from existing i18n.
+
+==================================================
+13. REGRESSION TESTS
+==================================================
+
+Add focused tests for:
+
+A. Dashboard overdue follow-up
+→ Open File
+→ Procedures tab
+→ Follow-ups section
+
+B. Notification follow-up
+→ exact patient
+→ Procedures
+→ exact follow-up highlighted
+
+C. Review item
+→ correct patient
+→ Follow-ups section
+
+D. Patient List
+→ normal/default Patient File behavior unchanged
+
+E. Refresh deep-linked URL
+→ destination preserved
+
+F. Missing followupId
+→ graceful fallback to Follow-ups section
+
+==================================================
+14. BROWSER VERIFICATION
+==================================================
+
+Test in Arabic:
+
+Dashboard overdue follow-up
+→ click فتح الملف
+
+Expected:
+إجراءات المريض selected
++
+المتابعات وسجل التواصل visible
+
+Then test notification bell follow-up.
+
+Then test English.
+
+Also test desktop and mobile.
+
+==================================================
+15. DO NOT CHANGE
+==================================================
+
+Do not modify:
+
+- follow-up business logic
+- notification generation
+- patient data
+- finance
+- clinical workflows
+- Patient File layout
+- follow-up statuses
+
+Only fix contextual navigation/deep-link UX.
+
+Do not publish.
+
+Create a checkpoint and stop.
+
+Final report:
+
+1. Deep-link format implemented
+2. Shared navigation helper used
+3. Dashboard sources fixed
+4. Notification sources fixed
+5. Exact follow-up targeting result
+6. Refresh/back-forward behavior
+7. Arabic result
+8. English result
+9. Mobile result
+10. TypeScript/build result
+11. Exact checkpoint hash

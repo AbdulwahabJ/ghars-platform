@@ -1,0 +1,526 @@
+MODE: Power
+
+We have confirmed a REAL production database schema drift and publishing is currently BLOCKED.
+
+DO NOT REPUBLISH.
+DO NOT COPY DEVELOPMENT DATABASE TO PRODUCTION.
+DO NOT TRUNCATE OR RESET PRODUCTION.
+DO NOT COPY SCREENSHOT/DEMO DATA.
+DO NOT RUN DDL FROM APP STARTUP OR BUILD.
+
+The previous audit found:
+
+- Production drizzle.__drizzle_migrations records only migrations 0000–0005.
+- Actual production schema contains:
+  0006 present
+  0007 present
+  0008 present
+  0009 partially present
+  0010 present
+  0011–0021 absent
+- Replit Publish attempts destructive schema convergence and proposes truncating populated tables.
+- Production currently contains existing patient/clinical/finance/settings/template data that MUST be preserved.
+
+The purpose of this task is to create and, only when safely authorized and backed up, execute a controlled PRODUCTION DATABASE RECONCILIATION.
+
+==================================================
+1. FIRST: DETERMINE AVAILABLE PRODUCTION DB ACCESS
+==================================================
+
+Determine whether you have authorized direct SQL access to the ACTUAL production database through Replit's supported production database tooling.
+
+If you DO NOT have authorized production SQL access:
+
+STOP after generating the reconciliation package and exact operator instructions.
+
+Do NOT fake completion.
+
+If you DO have authorized access:
+
+continue only after the backup requirement below is satisfied.
+
+==================================================
+2. PRODUCTION BACKUP IS MANDATORY
+==================================================
+
+Before any production write:
+
+confirm a restorable production database backup/snapshot exists.
+
+Record:
+
+- backup/snapshot timestamp
+- database/environment identity
+- recovery mechanism
+
+Do NOT expose credentials.
+
+If a verifiable restorable backup cannot be confirmed:
+
+STOP.
+
+Final flag:
+
+PRODUCTION BACKUP: BLOCKED
+
+No production DDL is allowed without a backup.
+
+==================================================
+3. CREATE AN EXACT SCHEMA INVENTORY
+==================================================
+
+Inspect production READ-ONLY and generate a precise inventory for migrations:
+
+0006
+0007
+0008
+0009
+0010
+0011
+0012
+0013
+0014
+0015
+0016
+0017
+0018
+0019
+0020
+0021
+
+For each migration classify every operation as:
+
+PRESENT
+PARTIALLY PRESENT
+MISSING
+CONFLICTING
+
+Check:
+
+- tables
+- columns
+- column types
+- nullable constraints
+- defaults
+- indexes
+- foreign keys
+- primary keys
+- unique constraints
+- enums
+- data backfills
+- bootstrap rows
+
+Do NOT infer solely from drizzle.__drizzle_migrations.
+
+Actual production schema is authoritative for reconciliation.
+
+==================================================
+4. DO NOT BLINDLY RE-RUN 0006–0010
+==================================================
+
+Because migrations 0006–0010 have effects already present in production, do NOT blindly execute their original files.
+
+For each already-present effect:
+
+verify it exactly matches the intended current schema.
+
+For partially present effects:
+
+generate only the missing safe operations.
+
+Migration 0009 requires special attention because its schema exists partially while expected option/bootstrap data is incomplete.
+
+==================================================
+5. CREATE A PRODUCTION RECONCILIATION SQL PACKAGE
+==================================================
+
+Generate a dedicated operator-controlled reconciliation script/package.
+
+This is NOT a normal app migration executed at application startup.
+
+The script must be:
+
+- forward-only
+- data preserving
+- explicit
+- reviewable
+- transactional where PostgreSQL permits
+- safe against the actual current production schema
+
+Use guards/checks where practical.
+
+Do not modify historical migration files merely to hide drift.
+
+==================================================
+6. TENANT MIGRATION MUST FOLLOW SAFE ORDER
+==================================================
+
+For every populated table requiring tenant_id:
+
+A. add tenant_id as NULLABLE first
+B. backfill tenant_id
+C. verify ZERO unresolved rows
+D. create foreign key
+E. set NOT NULL
+F. add indexes/unique/PK constraints afterward
+
+Never add tenant_id NOT NULL to a populated table before backfill.
+
+==================================================
+7. BACKFILL OWNERSHIP CORRECTLY
+==================================================
+
+Derive tenant ownership through existing relationships wherever possible.
+
+Examples conceptually:
+
+implant
+→ implant case
+→ patient/case tenant
+
+payment
+→ case
+→ tenant
+
+follow-up
+→ patient/case
+→ tenant
+
+installment
+→ case
+→ tenant
+
+Do not assign rows arbitrarily when ownership can be inferred.
+
+For genuine pre-multi-tenant legacy records with no relational owner:
+
+use the existing canonical Internal/System tenant.
+
+Do NOT create another Internal tenant.
+
+Do NOT identify it by name string if canonical is_system/system metadata exists.
+
+==================================================
+8. APPLICATION_SETTINGS
+==================================================
+
+Production currently uses the old application_settings structure.
+
+Migrate safely.
+
+Required order:
+
+1. inspect existing 8 setting rows
+2. add tenant_id nullable
+3. determine their correct owner/system scope
+4. backfill
+5. verify no duplicate (tenant_id, key)
+6. preserve ALL current values
+7. add required tenant relationship
+8. only then move to intended composite key/unique structure
+
+Never lose:
+
+- Support WhatsApp
+- Support Phone
+- Support Email
+- Default Trial Hours
+- any existing settings
+
+==================================================
+9. WHATSAPP TEMPLATES
+==================================================
+
+Production currently contains 6 WhatsApp templates.
+
+Preserve all six.
+
+Do NOT replace them with development/demo templates.
+
+Any tenant_id migration must preserve content and ownership.
+
+Default template bootstrap will be handled only AFTER schema reconciliation.
+
+==================================================
+10. MANAGED LIST / LOOKUP DATA
+==================================================
+
+Production currently contains populated implant/list/lookup options.
+
+Preserve all existing values.
+
+Migration 0009 has incomplete expected option data.
+
+Do not overwrite custom production options.
+
+After schema reconciliation succeeds, missing DEFAULT configuration may be added through the approved idempotent bootstrap.
+
+Do not solve schema drift by copying development lookup data wholesale.
+
+==================================================
+11. ENUM RECONCILIATION
+==================================================
+
+Before CREATE TYPE:
+
+check whether the enum already exists and whether its values match the intended schema.
+
+Do NOT execute duplicate CREATE TYPE statements.
+
+If an enum exists with missing values:
+
+use a safe forward PostgreSQL enum evolution strategy.
+
+==================================================
+12. VALIDATE BEFORE CONSTRAINTS
+==================================================
+
+Before applying any:
+
+NOT NULL
+PRIMARY KEY
+UNIQUE
+FOREIGN KEY
+
+run explicit validation queries proving the constraint will succeed.
+
+Examples:
+
+- null count = 0
+- duplicate key count = 0
+- orphan FK count = 0
+
+If validation fails:
+
+STOP that operation and report the offending rows safely.
+
+Do not delete data automatically.
+
+==================================================
+13. DRIZZLE MIGRATION JOURNAL REPAIR
+==================================================
+
+Only AFTER the actual production schema/data effects are verified:
+
+repair drizzle.__drizzle_migrations so it accurately represents the current migration state.
+
+Do NOT simply mark 0006–0021 applied before their intended effects exist.
+
+Use the exact hashes/metadata expected by the current migration files/framework.
+
+Document every journal entry added/repaired.
+
+==================================================
+14. TEST ON A PRODUCTION-LIKE COPY FIRST
+==================================================
+
+Before actual production execution:
+
+run the reconciliation against an isolated clone/snapshot/schema that matches the current production state and populated-row counts.
+
+Verify:
+
+- zero data loss
+- all 12 existing patients preserved
+- all 11 implant cases preserved
+- all 8 implants preserved
+- all 10 payments preserved
+- all 11 follow-ups preserved
+- all installment plans/installments preserved
+- implant systems/lookups preserved
+- all 8 application settings preserved
+- all 6 WhatsApp templates preserved
+- ADMIN account preserved
+
+Counts may legitimately change only if the current schema itself creates required bootstrap/system rows.
+
+No clinical row may disappear.
+
+==================================================
+15. NO DEMO DATA
+==================================================
+
+Explicitly verify:
+
+ZERO records from:
+
+ghars-screenshot-2026-09-12-v1
+
+or any other screenshot/demo seed batch
+
+are copied to production.
+
+Do NOT copy:
+
+- demo patients
+- demo cases
+- demo implants
+- demo payments
+- demo follow-ups
+- demo communications
+- demo charges
+- demo discounts
+
+==================================================
+16. EXECUTE PRODUCTION ONLY AFTER DRY-RUN PASS
+==================================================
+
+If:
+
+backup confirmed
++
+production-like reconciliation test PASS
++
+SQL review PASS
+
+then execute the controlled reconciliation against production using authorized DB tooling.
+
+Do not use Replit schema auto-sync for this exceptional repair.
+
+Capture safe execution results.
+
+==================================================
+17. POST-RECONCILIATION VALIDATION
+==================================================
+
+Immediately verify production:
+
+- all expected migrations represented accurately
+- zero unresolved tenant_id NULLs
+- zero orphan references
+- zero duplicate application_settings keys
+- users/memberships valid
+- application settings preserved
+- WhatsApp templates preserved
+- clinical counts preserved
+- finance counts preserved
+- tenant isolation structurally valid
+
+==================================================
+18. DEFAULT LISTS — ONLY AFTER SCHEMA IS HEALTHY
+==================================================
+
+After production schema reconciliation is fully PASS:
+
+run the previously approved idempotent DEFAULT MANAGED LIST bootstrap.
+
+This is configuration data only.
+
+Rules:
+
+- populate all actively used managed-list categories
+- preserve existing production values
+- add missing defaults only
+- do not overwrite customization
+- do not reactivate disabled defaults
+- do not duplicate values
+- new tenants receive complete defaults automatically
+
+Do NOT copy development list rows wholesale.
+
+==================================================
+19. DEFAULT WHATSAPP TEMPLATES — ONLY AFTER SCHEMA IS HEALTHY
+==================================================
+
+After schema reconciliation:
+
+run the previously approved tenant-scoped default WhatsApp template bootstrap.
+
+Preserve the existing 6 production templates.
+
+Add only clearly missing baseline templates.
+
+Do not overwrite customized templates.
+
+Do not copy demo communication history.
+
+No automatic WhatsApp sending.
+
+==================================================
+20. REPLIT PUBLISH VALIDATION
+==================================================
+
+After reconciliation and bootstrap:
+
+rerun the Replit publish/schema validation WITHOUT actually publishing.
+
+Expected:
+
+- no table truncation warnings caused by schema drift
+- no application_settings tenant_id error
+- no unsafe NOT NULL tenant_id additions
+- no destructive convergence proposal
+
+If Replit still proposes truncation:
+
+SAFE TO REPUBLISH remains NO.
+
+==================================================
+21. FULL APPLICATION REGRESSION
+==================================================
+
+Run:
+
+- full TypeScript
+- full API suite
+- auth tests
+- tenant isolation tests
+- finance tests
+- commercial lifecycle tests
+- managed-list bootstrap tests
+- WhatsApp template bootstrap tests
+- production builds
+
+==================================================
+22. FINAL REPORT
+==================================================
+
+Report exact before/after production counts for:
+
+users
+patients
+implant cases
+implants
+payments
+follow-ups
+installment plans
+installments
+implant systems
+lookup/options
+application settings
+WhatsApp templates
+
+Report:
+
+- production backup status
+- reconciliation SQL/package used
+- migrations reconciled
+- migration journal result
+- tenant backfill result
+- application_settings result
+- existing data preservation
+- default lists result
+- default WhatsApp template result
+- Replit schema validation result
+- tests
+- production builds
+
+Final flags:
+
+PRODUCTION BACKUP: PASS / BLOCKED
+PRODUCTION SCHEMA DRIFT: RESOLVED / NOT RESOLVED
+PRODUCTION DATA PRESERVATION: PASS / FAIL
+TENANT BACKFILL: PASS / FAIL
+APPLICATION_SETTINGS MIGRATION: PASS / FAIL
+MIGRATION JOURNAL: PASS / FAIL
+NO DEMO DATA COPIED: PASS / FAIL
+DEFAULT LIST CATALOG: PASS / FAIL / NOT RUN
+DEFAULT WHATSAPP TEMPLATES: PASS / FAIL / NOT RUN
+REPLIT PUBLISH VALIDATION: PASS / FAIL
+FULL TEST SUITE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+SAFE TO REPUBLISH: YES / NO
+
+DO NOT REPUBLISH automatically.
+
+STOP and wait for explicit approval.

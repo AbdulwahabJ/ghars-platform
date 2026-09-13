@@ -1,0 +1,44 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "9Mdb5JExMA8ETdDvK1bN3"
+uri = "file://docs/production-reconciliation/PRODUCTION_RECONCILIATION_READINESS.md"
+type = "text"
+title = "تقرير جاهزية مصالحة قاعدة الإنتاج"
+description = "جرد إنتاج قرائي، تصنيف الهجرات 0006–0021، العدادات المحمية، بوابات التوقف، ومسار التصعيد الآمن."
+logical_id = "09ec56b5-06dd-4fa8-b8fe-7c1c4a10e5c5"
+content_hash = "sha256:f119c628e545d68dcdd35fc943ac169f1aafb01b58f33b6cb4e93ba9bafbcbfd"
+size = 12875
+mtime_ms = 1789317801730
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/09ec56b5-06dd-4fa8-b8fe-7c1c4a10e5c5/21bf9be5-6dbc-497c-89cd-fb5c3731ae27"
+storage_version_token = "1789317827327515"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "BDcvnrYo8xB7b9oT30P--"
+uri = "file://docs/production-reconciliation/production-readonly-audit.sql"
+type = "unspecified"
+title = "تدقيق الإنتاج القرائي"
+description = "استعلامات SELECT فقط لجرد مخطط الإنتاج والعدادات والسلامة دون أي كتابة."
+logical_id = "7d96e1ea-911b-4487-a320-648320f8f932"
+content_hash = "sha256:c014d63c47109e8bd2538f4a14ea8c6892ef6bab69a2c67ca2d12a2d88fcff94"
+size = 5920
+mtime_ms = 1789317560606
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/7d96e1ea-911b-4487-a320-648320f8f932/8f4c1ba3-886d-4c16-82a6-fac605a38bc7"
+storage_version_token = "1789317828785747"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "izC6y6hLC_xt9tbUewaSr"
+uri = "file://docs/production-reconciliation/clone-post-tenancy-validation.sql"
+type = "unspecified"
+title = "تحقق النسخة المعزولة بعد التعددية"
+description = "استعلامات SELECT فقط للتحقق من tenant_id والعلاقات والتكرارات والعدادات على نسخة معزولة."
+logical_id = "26c729ae-b5b8-4172-aa02-0abf380e530c"
+content_hash = "sha256:4df93446608c71128404c03e9700da15150a1e1ebfbf014c7c7b9c4785ae6e89"
+size = 12116
+mtime_ms = 1789317751231
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/26c729ae-b5b8-4172-aa02-0abf380e530c/0556f8af-4d40-45b3-8d29-903e30227a17"
+storage_version_token = "1789317830158180"
+content_type = "application/octet-stream"
