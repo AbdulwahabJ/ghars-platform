@@ -109,12 +109,10 @@ export default function Dashboard() {
   const statistics = useStatistics(reportFilters);
   const report = useOperationalReport(reportFilters);
 
-  const [prevSearch, setPrevSearch] = useState(debouncedSearch);
-  if (prevSearch !== debouncedSearch) {
-    setPrevSearch(debouncedSearch);
+  useEffect(() => {
     setIsSearchOpen(debouncedSearch.length > 0);
     setHighlightIndex(-1);
-  }
+  }, [debouncedSearch]);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {

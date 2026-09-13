@@ -77,15 +77,15 @@ export function KpiCards({ data }: { data: DashboardResponse }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 md:grid-cols-[repeat(3,minmax(0,1fr))] lg:grid-cols-[repeat(5,minmax(0,1fr))]">
       {cards.map((c) => (
-        <Card key={c.id} data-testid={`kpi-${c.id}`} className="shadow-sm">
+        <Card key={c.id} data-testid={`kpi-${c.id}`} className="min-w-0 shadow-sm">
           <CardContent className="p-4 flex flex-col h-full justify-between gap-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-primary/5 text-primary rounded-md shrink-0">
                 <c.icon className="w-4 h-4" />
               </div>
-              <p className="text-sm font-semibold text-foreground leading-snug">
+              <p className="min-w-0 break-words text-sm font-semibold leading-snug text-foreground">
                 {c.label}
               </p>
               {c.systemNames && (

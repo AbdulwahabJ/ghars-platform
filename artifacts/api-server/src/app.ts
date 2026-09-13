@@ -4,7 +4,6 @@ import express, {
   type Request,
   type Response,
 } from "express";
-import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -37,7 +36,6 @@ app.use(
     },
   }),
 );
-app.use(cors());
 // 5 MB budget: the Admin legacy-data import sends CSV file content and the
 // clinic-logo setting sends a small base64 data URL in JSON bodies.
 app.use(express.json({ limit: "5mb" }));
