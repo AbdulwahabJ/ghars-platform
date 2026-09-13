@@ -18,6 +18,8 @@ export default {
     passwordPlaceholder: "••••••••",
     confirmPassword: "تأكيد كلمة المرور",
     locale: "لغة العرض المفضلة",
+    localeArabic: "العربية",
+    localeEnglish: "English",
     submit: "إنشاء الحساب",
     submitting: "جاري إنشاء الحساب...",
     success: "تم إنشاء حسابك وبدأت تجربتك المجانية لمدة 72 ساعة.",

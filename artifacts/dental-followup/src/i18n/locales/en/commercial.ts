@@ -18,6 +18,8 @@ export default {
     passwordPlaceholder: "••••••••",
     confirmPassword: "Confirm Password",
     locale: "Preferred Display Language",
+    localeArabic: "Arabic",
+    localeEnglish: "English",
     submit: "Create Account",
     submitting: "Creating account...",
     success: "Your account was created and your 72-hour trial has started.",

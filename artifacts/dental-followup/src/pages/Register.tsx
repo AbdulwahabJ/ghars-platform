@@ -258,7 +258,7 @@ export default function Register() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-[14px]">{t("register.locale")}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="h-[52px] rounded-[7px] border-slate-300 text-[15px]">
                               <SelectValue />
