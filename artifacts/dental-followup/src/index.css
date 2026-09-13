@@ -480,6 +480,44 @@
   .btn-ghost {
     @apply h-[46px] rounded-[10px] px-6 py-2 bg-transparent hover:bg-muted text-foreground font-medium flex items-center justify-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
+
+  .landing-primary-action {
+    @apply cursor-pointer transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-12px_rgba(13,27,61,0.55)] active:translate-y-0 motion-reduce:transform-none;
+  }
+
+  .landing-whatsapp-action {
+    @apply cursor-pointer transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#25D366]/60 hover:bg-[#25D366]/10 hover:shadow-[0_10px_24px_-14px_rgba(37,211,102,0.5)] active:translate-y-0 motion-reduce:transform-none;
+  }
+
+  .landing-nav-link {
+    @apply relative cursor-pointer rounded-sm py-1 text-[#64748B] transition-colors duration-200 hover:text-[#0D1B3D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] focus-visible:ring-offset-2;
+  }
+
+  .landing-nav-link::after {
+    content: "";
+    @apply absolute inset-x-0 -bottom-0.5 h-0.5 origin-center scale-x-0 rounded-full bg-[#0F766E] transition-transform duration-200;
+  }
+
+  .landing-nav-link:hover::after,
+  .landing-nav-link:focus-visible::after {
+    @apply scale-x-100;
+  }
+
+  .landing-language-toggle {
+    @apply cursor-pointer rounded-lg px-3 py-2 text-[#64748B] transition-colors duration-200 hover:bg-[#0F766E]/[0.08] hover:text-[#0D1B3D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] focus-visible:ring-offset-2;
+  }
+
+  .landing-footer-link {
+    @apply cursor-pointer rounded-sm transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1B3D];
+  }
+
+  .landing-gallery-item {
+    @apply cursor-pointer transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-white/30 hover:shadow-[0_14px_30px_-18px_rgba(31,169,184,0.5)] motion-reduce:transform-none;
+  }
+
+  .landing-faq-trigger {
+    @apply cursor-pointer transition-colors duration-200 hover:bg-[#0F766E]/[0.05] focus-visible:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0F766E];
+  }
 }
 
 /* Hide the progress counter on the final guided-tour screen */

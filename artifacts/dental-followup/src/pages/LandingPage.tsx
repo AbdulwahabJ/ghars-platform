@@ -439,27 +439,27 @@ export default function LandingPage() {
 
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-8 text-[#64748B] font-medium">
-            <button data-testid="btn-scroll" onClick={() => scrollTo("features")} className="hover:text-[#0F766E] transition-colors">{t.nav.features}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("why")} className="hover:text-[#0F766E] transition-colors">{t.nav.why}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("how-it-works")} className="hover:text-[#0F766E] transition-colors">{t.nav.howItWorks}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("gallery")} className="hover:text-[#0F766E] transition-colors">{t.nav.gallery}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("faq")} className="hover:text-[#0F766E] transition-colors">{t.nav.faq}</button>
+            <button data-testid="btn-scroll" onClick={() => scrollTo("features")} className="landing-nav-link">{t.nav.features}</button>
+            <button data-testid="btn-scroll" onClick={() => scrollTo("why")} className="landing-nav-link">{t.nav.why}</button>
+            <button data-testid="btn-scroll" onClick={() => scrollTo("how-it-works")} className="landing-nav-link">{t.nav.howItWorks}</button>
+            <button data-testid="btn-scroll" onClick={() => scrollTo("gallery")} className="landing-nav-link">{t.nav.gallery}</button>
+            <button data-testid="btn-scroll" onClick={() => scrollTo("faq")} className="landing-nav-link">{t.nav.faq}</button>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <button data-testid="btn-toggle-lang" onClick={toggleLanguage} className="text-[#64748B] hover:text-[#0D1B3D] font-medium px-2">
+            <button data-testid="btn-toggle-lang" onClick={toggleLanguage} className="landing-language-toggle font-medium">
               {lang === 'ar' ? 'English' : 'العربية'}
             </button>
             {user ? (
-              <Link data-testid="link-dashboard" href="/dashboard" className="btn-primary bg-[#0D1B3D] text-white hover:bg-[#0D1B3D]/90 h-10 text-sm px-6">
+              <Link data-testid="link-dashboard" href="/dashboard" className="btn-primary landing-primary-action bg-[#0D1B3D] text-white hover:bg-[#0D1B3D]/90 h-10 text-sm px-6">
                 {t.nav.dashboard}
               </Link>
             ) : (
               <>
-                <Link data-testid="link-login" href="/login" className="text-[#0D1B3D] font-semibold hover:text-[#0F766E] transition-colors">
+                <Link data-testid="link-login" href="/login" className="landing-nav-link text-[#0D1B3D] font-semibold">
                   {t.nav.login}
                 </Link>
-                <Link data-testid="link-register" href="/register" className="btn-primary bg-[#0D1B3D] text-white hover:bg-[#0D1B3D]/90 h-10 text-sm px-6">
+                <Link data-testid="link-register" href="/register" className="btn-primary landing-primary-action bg-[#0D1B3D] text-white hover:bg-[#0D1B3D]/90 h-10 text-sm px-6">
                   {t.nav.startTrial}
                 </Link>
               </>
@@ -484,13 +484,13 @@ export default function LandingPage() {
           className={`md:hidden absolute top-full left-0 right-0 bg-white border-b border-border shadow-lg py-4 px-4 flex flex-col gap-4 transition-all duration-300 ${mobileMenuOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
           aria-hidden={!mobileMenuOpen}
         >
-            <button data-testid="btn-scroll" onClick={() => scrollTo("features")} className="text-[#64748B] font-medium text-start py-2 border-b border-gray-100">{t.nav.features}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("why")} className="text-[#64748B] font-medium text-start py-2 border-b border-gray-100">{t.nav.why}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("how-it-works")} className="text-[#64748B] font-medium text-start py-2 border-b border-gray-100">{t.nav.howItWorks}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("gallery")} className="text-[#64748B] font-medium text-start py-2 border-b border-gray-100">{t.nav.gallery}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("faq")} className="text-[#64748B] font-medium text-start py-2 border-b border-gray-100">{t.nav.faq}</button>
+             <button data-testid="btn-scroll" onClick={() => scrollTo("features")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.features}</button>
+             <button data-testid="btn-scroll" onClick={() => scrollTo("why")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.why}</button>
+             <button data-testid="btn-scroll" onClick={() => scrollTo("how-it-works")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.howItWorks}</button>
+             <button data-testid="btn-scroll" onClick={() => scrollTo("gallery")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.gallery}</button>
+             <button data-testid="btn-scroll" onClick={() => scrollTo("faq")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.faq}</button>
             <div className="flex flex-col gap-3 mt-2">
-              <button data-testid="btn-toggle-lang" onClick={toggleLanguage} className="text-[#64748B] font-medium text-start py-2 border-b border-gray-100">
+               <button data-testid="btn-toggle-lang" onClick={toggleLanguage} className="landing-language-toggle border-b border-gray-100 text-start font-medium">
                 {lang === 'ar' ? 'Switch to English' : 'التبديل للعربية'}
               </button>
               {user ? (
@@ -554,11 +554,11 @@ export default function LandingPage() {
                 {heroSubtitle}
               </p>
               <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                <Link data-testid="link-register" href="/register" className="btn-primary h-[52px] w-full bg-[#0D1B3D] px-7 text-base text-white shadow-lg shadow-[#0D1B3D]/15 hover:bg-[#142A59] sm:w-auto">
+                <Link data-testid="link-register" href="/register" className="btn-primary landing-primary-action h-[52px] w-full bg-[#0D1B3D] px-7 text-base text-white shadow-lg shadow-[#0D1B3D]/15 hover:bg-[#142A59] sm:w-auto">
                   {t.hero.ctaPrimary}
                 </Link>
                 {supportWhatsappHref ? (
-                  <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline h-[52px] w-full border-[#0D1B3D]/15 bg-white/80 px-6 text-base text-[#0D1B3D] hover:bg-white sm:w-auto">
+                  <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline landing-whatsapp-action h-[52px] w-full border-[#0D1B3D]/15 bg-white/80 px-6 text-base text-[#0D1B3D] sm:w-auto">
                     <MessageCircle className="me-2 text-[#25D366]" size={19} />
                     {t.hero.ctaSecondary}
                   </a>
@@ -758,7 +758,7 @@ export default function LandingPage() {
             {galleryItems.map((item, i) => (
               <div
                 key={i}
-                className="group relative rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-white/30 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
+                className="landing-gallery-item group relative rounded-xl overflow-hidden bg-white/5 border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
                 onClick={() => setLightboxImage(item.img)}
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && setLightboxImage(item.img)}
@@ -817,13 +817,13 @@ export default function LandingPage() {
               return (
                 <div key={i} className="bg-white border border-border rounded-xl overflow-hidden transition-all duration-300">
                   <button
-                    className="w-full px-6 py-5 flex items-center justify-between text-start focus-visible:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0F766E]"
+                    className="landing-faq-trigger group w-full px-6 py-5 flex items-center justify-between text-start"
                     onClick={() => setOpenFaq(isOpen ? null : i)}
                     aria-expanded={isOpen}
                     aria-controls={`faq-answer-${i}`}
                   >
                     <span className="font-bold text-lg text-[#0D1B3D]">{item.q}</span>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[#F0F4F6] text-[#0F766E] transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180' : ''}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[#F0F4F6] text-[#0F766E] transition-[transform,background-color,color] duration-300 shrink-0 group-hover:bg-[#0F766E] group-hover:text-white ${isOpen ? 'rotate-180' : ''}`}>
                       <ChevronDown size={20} />
                     </div>
                   </button>
@@ -850,11 +850,11 @@ export default function LandingPage() {
           <p className="text-white/80 text-xl mb-10 max-w-2xl mx-auto">{t.trial.subtitle}</p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link data-testid="link-register-footer" href="/register" className="btn-primary bg-[#0F766E] hover:bg-[#0F766E]/90 text-white border-none text-lg h-14 px-8 w-full sm:w-auto shadow-xl">
+            <Link data-testid="link-register-footer" href="/register" className="btn-primary landing-primary-action bg-[#0F766E] hover:bg-[#0F766E]/90 text-white border-none text-lg h-14 px-8 w-full sm:w-auto shadow-xl">
               {t.trial.cta}
             </Link>
             {supportWhatsappHref ? (
-              <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline border-white/20 text-white hover:bg-white/10 text-lg h-14 px-8 w-full sm:w-auto">
+              <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline landing-whatsapp-action border-white/20 text-white text-lg h-14 px-8 w-full sm:w-auto">
                 <MessageCircle className="me-2 text-[#25D366]" size={20} />
                 {t.trial.whatsapp}
               </a>
@@ -889,11 +889,11 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-lg mb-6 text-start">{t.footer.quickLinks}</h4>
               <ul className="space-y-3 flex flex-col items-start">
-                <li><button onClick={() => scrollTo("features")} className="text-white/60 hover:text-white transition-colors">{t.nav.features}</button></li>
-                <li><button onClick={() => scrollTo("why")} className="text-white/60 hover:text-white transition-colors">{t.nav.why}</button></li>
-                <li><button onClick={() => scrollTo("how-it-works")} className="text-white/60 hover:text-white transition-colors">{t.nav.howItWorks}</button></li>
-                <li><button onClick={() => scrollTo("gallery")} className="text-white/60 hover:text-white transition-colors">{t.nav.gallery}</button></li>
-                <li><button onClick={() => scrollTo("faq")} className="text-white/60 hover:text-white transition-colors">{t.nav.faq}</button></li>
+                <li><button onClick={() => scrollTo("features")} className="landing-footer-link text-white/60">{t.nav.features}</button></li>
+                <li><button onClick={() => scrollTo("why")} className="landing-footer-link text-white/60">{t.nav.why}</button></li>
+                <li><button onClick={() => scrollTo("how-it-works")} className="landing-footer-link text-white/60">{t.nav.howItWorks}</button></li>
+                <li><button onClick={() => scrollTo("gallery")} className="landing-footer-link text-white/60">{t.nav.gallery}</button></li>
+                <li><button onClick={() => scrollTo("faq")} className="landing-footer-link text-white/60">{t.nav.faq}</button></li>
               </ul>
             </div>
 
@@ -902,7 +902,7 @@ export default function LandingPage() {
               <ul className="space-y-3 flex flex-col items-start">
                 {supportWhatsappHref && (
                   <li>
-                    <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors flex items-center gap-2">
+                    <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="landing-footer-link text-white/60 flex items-center gap-2">
                       <MessageCircle size={18} />
                       <span dir="ltr">{supportContacts?.whatsapp}</span>
                     </a>
@@ -910,7 +910,7 @@ export default function LandingPage() {
                 )}
                 {supportPhone && (
                   <li>
-                    <a href={`tel:${supportPhone}`} className="text-white/60 hover:text-white transition-colors flex items-center gap-2" dir="ltr">
+                    <a href={`tel:${supportPhone}`} className="landing-footer-link text-white/60 flex items-center gap-2" dir="ltr">
                       <Headset size={18} />
                       {supportPhone}
                     </a>
@@ -918,7 +918,7 @@ export default function LandingPage() {
                 )}
                 {supportEmail && (
                   <li>
-                    <a href={`mailto:${supportEmail}`} className="text-white/60 hover:text-white transition-colors flex items-center gap-2 break-all" dir="ltr">
+                    <a href={`mailto:${supportEmail}`} className="landing-footer-link text-white/60 flex items-center gap-2 break-all" dir="ltr">
                       <Globe size={18} />
                       {supportEmail}
                     </a>
@@ -934,8 +934,8 @@ export default function LandingPage() {
           <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-white/40 text-sm">{t.footer.rights}</p>
             <div className="flex gap-6 text-sm">
-              <Link href="/privacy" className="text-white/40 hover:text-white transition-colors">{t.footer.privacy}</Link>
-              <Link href="/terms" className="text-white/40 hover:text-white transition-colors">{t.footer.terms}</Link>
+              <Link href="/privacy" className="landing-footer-link text-white/40">{t.footer.privacy}</Link>
+              <Link href="/terms" className="landing-footer-link text-white/40">{t.footer.terms}</Link>
             </div>
           </div>
         </div>
