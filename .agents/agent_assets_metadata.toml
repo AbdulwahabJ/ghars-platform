@@ -42,3 +42,17 @@ mtime_ms = 1789317751231
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/26c729ae-b5b8-4172-aa02-0abf380e530c/0556f8af-4d40-45b3-8d29-903e30227a17"
 storage_version_token = "1789317830158180"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "bGUUOM4X8vlQsZYn3ZD_m"
+uri = "file://docs/production-reconciliation/CLEAN_PRODUCTION_RESET_HANDOFF.md"
+type = "text"
+title = "تسليم إعادة إنشاء قاعدة الإنتاج النظيفة"
+description = "الإجراء الرسمي المطلوب من المالك، حدود التوقف الحالية، مراحل الاستئناف، وأعلام جاهزية الإصدار."
+logical_id = "07c6fb5a-9540-4445-8e2b-4d1c0f835e5b"
+content_hash = "sha256:7fb5d92df26d534ee3c6303d270b066a5c3d12947ec440ecbf5841982cbfe7c0"
+size = 4401
+mtime_ms = 1789318478918
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/07c6fb5a-9540-4445-8e2b-4d1c0f835e5b/5a93b082-cf28-4c30-aabe-f7c579d0362c"
+storage_version_token = "1789318521407405"
+content_type = "text/markdown"

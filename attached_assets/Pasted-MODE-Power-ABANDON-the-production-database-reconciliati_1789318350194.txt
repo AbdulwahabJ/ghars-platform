@@ -1,0 +1,457 @@
+MODE: Power
+
+ABANDON the production database reconciliation plan.
+
+The owner has explicitly confirmed:
+
+ALL existing database data in BOTH:
+- development/test environment
+- production environment
+
+may be deleted.
+
+There is NO need to preserve:
+
+- patients
+- implant cases
+- implants
+- payments
+- follow-ups
+- communications
+- installment plans
+- installments
+- clinical procedures
+- prosthetic events
+- audit history
+- existing tenant/customer records
+- existing managed-list rows
+- existing WhatsApp templates
+- existing application settings
+
+We want a CLEAN FIRST PRODUCTION RELEASE.
+
+IMPORTANT:
+DO NOT delete source code.
+DO NOT delete Landing Page assets/screenshots used by the website.
+DO NOT delete brand assets.
+DO NOT change the approved application architecture.
+
+==================================================
+1. NEW STRATEGY
+==================================================
+
+Do NOT attempt to reconcile the old production schema.
+
+Do NOT repair the old drizzle migration journal.
+
+Do NOT preserve old production rows.
+
+Instead:
+
+RESET / RECREATE the production database using the officially supported Replit production database workflow.
+
+The resulting production database must be EMPTY of customer/clinical data and built cleanly from the CURRENT Ghars schema.
+
+==================================================
+2. DO NOT COPY DEVELOPMENT DATA TO PRODUCTION
+==================================================
+
+CRITICAL:
+
+Do NOT use a workflow that copies the current development DATABASE DATA into production.
+
+Development currently contains screenshot/demo/test records.
+
+Production must receive:
+
+SCHEMA
++
+required system bootstrap/configuration
+
+ONLY.
+
+Do NOT copy:
+
+- demo patients
+- screenshot patients
+- demo implant cases
+- demo implants
+- demo payments
+- demo follow-ups
+- demo communications
+- demo charges
+- demo discounts
+- screenshot seed batches
+
+==================================================
+3. CLEAN DEVELOPMENT / TEST DATA
+==================================================
+
+The owner also authorizes deletion of all test/demo database records in the development/test environment.
+
+Remove all synthetic screenshot/demo/test clinical data.
+
+This includes the existing screenshot seed batch and any temporary smoke-test tenants/data.
+
+Use the existing safe cleanup tooling where possible.
+
+After cleanup, development/test should contain no disposable clinical/demo data.
+
+Do NOT delete:
+
+- code
+- migrations
+- brand assets
+- Landing Page image assets stored in the repository
+- configuration needed for development
+- required admin/bootstrap capability
+
+==================================================
+4. CURRENT SCHEMA ONLY
+==================================================
+
+Build the fresh production database from the CURRENT canonical Ghars schema/migration set.
+
+Production should start at the latest intended schema version.
+
+All migrations must be represented correctly.
+
+Expected final migration state:
+latest current migration applied with no schema drift.
+
+No legacy reconciliation is needed because the database is intentionally reset.
+
+==================================================
+5. PLATFORM SUPER ADMIN
+==================================================
+
+After clean database initialization, ensure there is a secure method to bootstrap the FIRST:
+
+platform_super_admin
+
+Do NOT hardcode a production password in source code.
+
+Use the existing secure bootstrap mechanism or production environment secrets.
+
+If an existing Platform Super Admin bootstrap mechanism exists:
+reuse it.
+
+Report exactly how the first Platform Super Admin is created/login is established.
+
+Do not print production passwords in logs or the final report.
+
+==================================================
+6. NO CUSTOMER TENANTS BY DEFAULT
+==================================================
+
+Fresh production should NOT contain:
+
+- fake customer tenants
+- demo clinic
+- Dr. Humam demo tenant
+- screenshot tenant
+- sample patients
+
+Initial commercial customer count should be zero.
+
+System/Internal tenant may exist ONLY if the current architecture genuinely requires it.
+
+If required:
+create exactly one canonical system/internal tenant.
+
+Do not treat it as a commercial customer.
+
+==================================================
+7. DEFAULT MANAGED LIST CATALOG
+==================================================
+
+Implement the previously approved DEFAULT MANAGED LIST bootstrap.
+
+Every NEW customer tenant must automatically receive all actively used Ghars managed lists.
+
+Audit all existing managed-list categories and populate useful defaults.
+
+Preserve the rule:
+
+defaults are bootstrap data only.
+
+Tenant Admin can later:
+- add
+- edit
+- deactivate
+- remove unused values safely
+
+Do not force deleted/deactivated defaults back.
+
+==================================================
+8. DEFAULT WHATSAPP TEMPLATES
+==================================================
+
+Implement the previously approved DEFAULT WHATSAPP TEMPLATE bootstrap.
+
+Every new tenant should receive useful templates such as:
+
+- Appointment Confirmation
+- Appointment Reminder
+- Post-Implant Follow-up
+- Bone Graft Follow-up
+- Sinus Lift Follow-up
+- Post-Surgical Follow-up
+- Temporary Prosthetic Appointment
+- Final Prosthetic Appointment
+- Prosthetic Follow-up
+- Missed Appointment
+- Rescheduling
+- General Patient Communication
+
+Arabic + English where appropriate.
+
+Manual WhatsApp sending only.
+
+Do NOT add automated WhatsApp sending.
+
+==================================================
+9. PLATFORM SETTINGS
+==================================================
+
+Initialize required global/platform configuration safely.
+
+At minimum:
+
+Default Trial Hours:
+72
+
+Support WhatsApp
+Support Phone
+Support Email
+
+must use Platform Settings architecture.
+
+If real support contacts are already configured through deployment secrets/config:
+use them.
+
+Otherwise mark them as needing configuration.
+
+Do not invent real contact information.
+
+==================================================
+10. COMMERCIAL MODEL
+==================================================
+
+Fresh production must preserve the approved model:
+
+Registration
+→ 72-hour trial
+→ Expired
+→ Contact Ghars Support
+→ Manual payment outside Ghars
+→ Platform Super Admin activation
+→ ACTIVE permanently
+
+No subscription plans.
+No recurring billing.
+No payment gateway.
+
+==================================================
+11. NEW TENANT BOOTSTRAP
+==================================================
+
+Test that a brand-new customer registration atomically creates:
+
+- tenant
+- first Tenant Admin
+- 72-hour trial
+- tenant membership
+- default managed lists
+- default WhatsApp templates
+
+No empty required lists.
+
+No demo patient data.
+
+==================================================
+12. PRODUCTION DATABASE VALIDATION
+==================================================
+
+After clean initialization verify:
+
+- schema matches current code
+- migration journal is current
+- no pending schema drift
+- Replit Publish no longer proposes table truncation due to legacy drift
+- application_settings has intended current structure
+- tenant-aware constraints are correct
+- all FKs/indexes/PKs valid
+
+==================================================
+13. EXPECTED CLEAN PRODUCTION COUNTS
+==================================================
+
+Before creating a smoke-test tenant, production should conceptually contain:
+
+Patients:
+0
+
+Implant Cases:
+0
+
+Implants:
+0
+
+Payments:
+0
+
+Follow-ups:
+0
+
+Communications:
+0
+
+Customer Tenants:
+0
+
+Screenshot/Demo Seed Rows:
+0
+
+Only required platform/system/bootstrap records may exist.
+
+==================================================
+14. PRE-PUBLISH SMOKE TENANT
+==================================================
+
+After the database is clean and schema validation passes:
+
+create ONE disposable isolated smoke-test tenant.
+
+Test:
+
+- registration
+- login
+- 72-hour trial
+- patient creation
+- implant case
+- implant
+- bone graft
+- sinus lift
+- follow-up
+- payment
+- default lists
+- WhatsApp templates
+- Platform Admin visibility
+- permanent activation
+- suspension/reactivation
+
+Then DELETE the temporary smoke tenant and all of its data.
+
+Production must return to zero commercial customers before final launch.
+
+==================================================
+15. TENANT ISOLATION
+==================================================
+
+During smoke testing create a second temporary tenant only if required for isolation testing.
+
+Verify no cross-tenant access.
+
+Remove both temporary tenants after testing.
+
+==================================================
+16. LANDING PAGE
+==================================================
+
+Do NOT delete existing Landing Page visual assets from the repository.
+
+The public Landing Page must continue working.
+
+The product screenshots currently used for marketing may remain as static/repository assets even though their source demo database is deleted.
+
+Do not require screenshot demo patients to exist in production.
+
+==================================================
+17. FILE STORAGE
+==================================================
+
+Re-check durable production file storage separately.
+
+If Landing media uploads/user uploads depend on ephemeral filesystem:
+
+report:
+
+PRODUCTION FILE STORAGE: BLOCKED
+
+Do not hide this issue.
+
+Database reset does not solve file-storage persistence.
+
+==================================================
+18. SESSION STORE
+==================================================
+
+Confirm production session architecture is safe for the selected Replit deployment type.
+
+No unsafe MemoryStore in production.
+
+==================================================
+19. FULL TESTS
+==================================================
+
+Run:
+
+- frontend TypeScript
+- backend/shared TypeScript
+- full API tests
+- auth tests
+- tenant isolation tests
+- commercial lifecycle tests
+- default managed-list tests
+- WhatsApp template tests
+- production frontend build
+- production backend build
+- production schema/publish validation
+
+==================================================
+20. FINAL RELEASE FLAGS
+==================================================
+
+Report:
+
+OLD PRODUCTION DATA REMOVED: PASS / FAIL
+DEVELOPMENT TEST DATA CLEANED: PASS / FAIL
+DEMO DATA IN PRODUCTION: ZERO / FOUND
+FRESH PRODUCTION SCHEMA: PASS / FAIL
+MIGRATION JOURNAL CURRENT: PASS / FAIL
+DEFAULT LIST CATALOG: PASS / FAIL
+DEFAULT WHATSAPP TEMPLATES: PASS / FAIL
+PLATFORM SUPER ADMIN BOOTSTRAP: PASS / FAIL
+NEW TENANT BOOTSTRAP: PASS / FAIL
+TENANT ISOLATION: PASS / FAIL
+COMMERCIAL LIFECYCLE: PASS / FAIL
+PRODUCTION SESSION STORE: PASS / BLOCKED
+PRODUCTION FILE STORAGE: PASS / BLOCKED / NOT APPLICABLE
+REPLIT PUBLISH VALIDATION: PASS / FAIL
+FULL TEST SUITE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+SAFE TO REPUBLISH: YES / NO
+
+==================================================
+21. IMPORTANT
+==================================================
+
+If Replit Agent itself cannot reset/recreate the production database because production access is read-only:
+
+DO NOT return to the old reconciliation plan.
+
+Instead identify the exact official Replit UI action needed to:
+
+RESET / RECREATE / REPLACE the empty production database
+
+without copying development data.
+
+Give the operator exact UI instructions.
+
+The owner explicitly authorizes complete deletion of the old production database contents.
+
+Do not publish until the fresh database is initialized and validated.
+
+Create a checkpoint and STOP.
