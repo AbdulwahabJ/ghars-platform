@@ -378,7 +378,6 @@ export default function LandingPage() {
 
   return (
     <div className={`min-h-screen max-w-full overflow-x-hidden bg-background font-sans ${isRTL ? "font-brand-arabic" : "font-brand-latin"}`} dir={isRTL ? "rtl" : "ltr"}>
-
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/90 backdrop-blur-md border-b border-border shadow-sm py-3" : "bg-transparent py-5"}`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -468,7 +467,6 @@ export default function LandingPage() {
             </div>
         </div>
       </nav>
-
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-[#F7FAFC] pt-24 sm:pt-28 lg:pt-28 lg:min-h-[780px]">
         <div className="absolute inset-x-0 top-0 h-px bg-white"></div>
@@ -502,7 +500,7 @@ export default function LandingPage() {
                 {usesApprovedHeroTitle ? (
                   <>
                     <span className="block">{t.hero.titleLine1}</span>
-                    <span className="block">{t.hero.titleLine2}</span>
+                    <span className="block text-[40px]">{t.hero.titleLine2}</span>
                     <span className="relative mt-0.5 inline-block">
                       <span className="relative z-10">{t.hero.titleAccent}</span>
                       <span className="absolute inset-x-0 bottom-1 -z-0 h-1.5 rounded-full bg-[#1FA9B8]/25" aria-hidden="true"></span>
@@ -561,7 +559,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* Intro Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -574,7 +571,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* Features Section */}
       <section id="features" className="py-24 bg-[#F5F8FA]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -597,7 +593,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* Why Ghars Section */}
       <section id="why" className="py-24 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -623,7 +618,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* How it Works */}
       <section id="how-it-works" className="relative scroll-mt-24 overflow-hidden bg-[#F5F8FA] py-20 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -657,7 +651,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* Gallery Section */}
       <section id="gallery" className="py-24 bg-[#0D1B3D] text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -693,7 +686,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* Lightbox */}
       {lightboxImage && (
         <div
@@ -717,7 +709,6 @@ export default function LandingPage() {
           />
         </div>
       )}
-
       {/* FAQ Section */}
       <section id="faq" className="py-24 bg-[#F5F8FA]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -756,7 +747,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* Final CTA */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-[#0D1B3D]"></div>
@@ -784,7 +774,6 @@ export default function LandingPage() {
           <p className="text-white/60 text-sm mt-8 max-w-lg mx-auto leading-relaxed bg-white/5 p-4 rounded-lg border border-white/10">{t.trial.note}</p>
         </div>
       </section>
-
       {/* Footer */}
       <footer className="bg-[#0D1B3D] text-white pt-16 pb-8 border-t border-white/10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
