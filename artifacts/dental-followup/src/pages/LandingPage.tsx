@@ -17,7 +17,12 @@ import {
   Headset,
   X as CloseIcon,
   ChevronDown,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Bone,
+  Layers,
+  Syringe,
+  Crown,
+  CalendarCheck2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -54,7 +59,27 @@ const CONTENT = {
     intro: {
       badge: "عن غرس",
       title: "ما هو غرس؟",
-      desc: "نظام سحابي متخصص صُمم بعناية لتلبية احتياجات عيادات زراعة الأسنان. يهدف غرس إلى تنظيم رحلة المريض منذ الزيارة الأولى وحتى إتمام التركيبات والمتابعة الدورية، مع ربط كامل للجانب المالي والإحصائي للعيادة."
+      desc: "غرس منصة متخصصة لتنظيم وإدارة رحلة علاج حالات الزراعة والإجراءات الجراحية المصاحبة، من تسجيل المريض وتوثيق الزرعات، إلى زراعة العظم ورفع الجيب الفكي والإجراءات الجراحية والتركيبات والمتابعات، مع إدارة المواعيد والدفعات والتقارير من مكان واحد."
+    },
+    clinical: {
+      badge: "الرحلة السريرية",
+      title: "من الجراحة إلى التركيب والمتابعة",
+      subtitle: "يوثّق غرس مراحل العلاج والإجراءات المصاحبة في ملف واحد مترابط، لتبقى حالة المريض واضحة من أول إجراء حتى آخر متابعة.",
+      items: [
+        { title: "حالات الزراعة", desc: "إدارة الزرعات ومواقعها وأنظمتها ومراحلها العلاجية داخل ملف المريض.", icon: Stethoscope },
+        { title: "زراعة العظم", desc: "توثيق إجراءات زراعة العظم والمواد والأغشية والمتابعة المرتبطة بها.", icon: Bone },
+        { title: "رفع الجيب الفكي", desc: "تسجيل إجراءات رفع الجيب الفكي وربطها بالحالة والزرعات والمتابعات.", icon: Layers },
+        { title: "الإجراءات الجراحية المصاحبة", desc: "توثيق الإجراءات الجراحية مثل إعادة تموضع العصب والإجراءات المساندة للحالة.", icon: Syringe },
+        { title: "التركيبات", desc: "متابعة مراحل التركيب المؤقت والنهائي وربطها بحالة الزرعات.", icon: Crown },
+        { title: "المتابعات", desc: "تنظيم المتابعات والمواعيد وحالة كل متابعة ضمن رحلة علاج المريض.", icon: CalendarCheck2 }
+      ],
+      operationsMessage: "يدير غرس الرحلة السريرية والجانب التشغيلي المحيط بها في مكان واحد.",
+      operations: [
+        { title: "المالية والمدفوعات", icon: Wallet },
+        { title: "التواصل مع المرضى", icon: MessageCircle },
+        { title: "الإحصائيات والتقارير", icon: LineChart },
+        { title: "المستخدمون والصلاحيات", icon: Users }
+      ]
     },
     features: {
       badge: "مزايا غرس",
@@ -159,7 +184,27 @@ const CONTENT = {
     intro: {
       badge: "About Ghars",
       title: "What is Ghars?",
-      desc: "A specialized cloud system carefully designed to meet the needs of dental implant clinics. Ghars aims to organize the patient's journey from the first visit to the completion of prosthetics and periodic follow-ups, with full integration of the clinic's financial and statistical aspects."
+      desc: "Ghars is a specialized platform for managing the complete treatment journey of implant cases and related surgical procedures — from patient records and implant documentation to bone grafting, sinus lift procedures, adjunct surgery, prosthetics, follow-ups, appointments, payments, and reporting."
+    },
+    clinical: {
+      badge: "Clinical Workflow",
+      title: "From surgery to prosthetics and follow-up",
+      subtitle: "Ghars keeps treatment stages and related procedures connected in one patient record, from the first procedure through the final follow-up.",
+      items: [
+        { title: "Implant Cases", desc: "Manage implants, sites, systems, and treatment stages inside the patient record.", icon: Stethoscope },
+        { title: "Bone Grafting", desc: "Document bone grafting procedures, materials, membranes, and related follow-up.", icon: Bone },
+        { title: "Sinus Lift", desc: "Record sinus lift procedures and connect them to the case, implants, and follow-ups.", icon: Layers },
+        { title: "Adjunct Surgical Procedures", desc: "Document procedures such as nerve repositioning and other supporting surgery.", icon: Syringe },
+        { title: "Prosthetics", desc: "Track temporary and final prosthetic stages and connect them to implant status.", icon: Crown },
+        { title: "Follow-ups", desc: "Organize follow-ups, appointments, and each follow-up status across the journey.", icon: CalendarCheck2 }
+      ],
+      operationsMessage: "Ghars handles both the clinical journey and the operational management around it.",
+      operations: [
+        { title: "Finance & Payments", icon: Wallet },
+        { title: "Patient Communication", icon: MessageCircle },
+        { title: "Analytics & Reports", icon: LineChart },
+        { title: "Users & Permissions", icon: Users }
+      ]
     },
     features: {
       badge: "Ghars Features",
@@ -565,6 +610,58 @@ export default function LandingPage() {
             <p className="text-lg text-[#64748B] leading-relaxed">
               {t.intro.desc}
             </p>
+          </div>
+        </div>
+      </section>
+      {/* Clinical Workflow Section */}
+      <section id="clinical-workflow" className="bg-[#F5F8FA] py-20 md:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-12 max-w-2xl text-center">
+            <span className="mb-3 block text-sm font-bold uppercase tracking-wider text-[#0F766E]">
+              {t.clinical.badge}
+            </span>
+            <h2 className="mb-4 text-3xl font-bold text-[#0D1B3D] md:text-4xl">
+              {t.clinical.title}
+            </h2>
+            <p className="text-base leading-7 text-[#64748B] md:text-lg">
+              {t.clinical.subtitle}
+            </p>
+          </div>
+
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {t.clinical.items.map((item) => (
+              <article
+                key={item.title}
+                className="flex min-h-[190px] flex-col rounded-2xl border border-[#DDE7EC] bg-white p-6 shadow-[0_10px_30px_-26px_rgba(13,27,61,0.55)]"
+              >
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF7F5] text-[#0F766E]">
+                  <item.icon size={22} strokeWidth={1.8} aria-hidden="true" />
+                </div>
+                <h3 className="mb-2 text-lg font-bold leading-snug text-[#0D1B3D]">
+                  {item.title}
+                </h3>
+                <p className="text-sm leading-6 text-[#64748B]">
+                  {item.desc}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mx-auto mt-10 max-w-6xl border-t border-[#DDE7EC] pt-8">
+            <p className="mb-5 text-center text-sm font-semibold text-[#0D1B3D] md:text-start">
+              {t.clinical.operationsMessage}
+            </p>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {t.clinical.operations.map((item) => (
+                <div
+                  key={item.title}
+                  className="flex items-center gap-2.5 rounded-xl border border-[#DDE7EC] bg-white px-3 py-3 text-sm font-medium text-[#334155]"
+                >
+                  <item.icon className="shrink-0 text-[#0F766E]" size={18} strokeWidth={1.8} aria-hidden="true" />
+                  <span>{item.title}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
