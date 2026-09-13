@@ -1,0 +1,269 @@
+MODE: Power
+
+Ghars is now ready for a FRESH production database.
+
+Current verified state:
+
+- Old Production Database has been deleted.
+- Development demo/test clinical data has been cleaned.
+- Current schema is valid through migration 0024.
+- All 25 migrations 0000–0024 are represented correctly in Drizzle.
+- Default managed lists PASS.
+- Default WhatsApp templates PASS.
+- New tenant bootstrap PASS.
+- Platform Super Admin bootstrap PASS.
+- Tenant isolation PASS.
+- Full tests PASS: 246/246.
+- Frontend and backend production builds PASS.
+- READY TO CREATE FRESH PRODUCTION DATABASE: YES.
+
+We are now performing the FINAL PRODUCTION RELEASE PREFLIGHT.
+
+DO NOT copy Development database data into Production.
+DO NOT restore the deleted legacy Production database.
+DO NOT publish automatically.
+
+==================================================
+1. FRESH PRODUCTION DATABASE
+==================================================
+
+Prepare for Replit to create a brand-new Production Database using the CURRENT canonical Ghars schema.
+
+Production must start with:
+
+- zero commercial tenants
+- zero patients
+- zero implant cases
+- zero implants
+- zero payments
+- zero follow-ups
+- zero demo/screenshot data
+
+Only required platform/system/bootstrap records may exist.
+
+Do NOT copy Development rows.
+
+==================================================
+2. SESSION STORE — RELEASE BLOCKER
+==================================================
+
+Inspect the actual production session configuration.
+
+Confirm that production does NOT use an unsafe in-memory session store such as MemoryStore.
+
+It must be suitable for the selected Replit production deployment and multiple instances/restarts.
+
+Report:
+
+PRODUCTION SESSION STORE: PASS / BLOCKED
+
+If BLOCKED:
+do not approve publishing.
+
+==================================================
+3. FILE / MEDIA STORAGE — RELEASE BLOCKER
+==================================================
+
+Audit all runtime file uploads, including:
+
+- Landing Page media uploads
+- patient/user uploads if any
+- any server-side generated persistent files
+
+Determine whether they use:
+
+- durable storage
+OR
+- ephemeral local runtime filesystem
+
+Static repository assets are fine.
+
+But user-uploaded persistent assets must survive deployment/restarts.
+
+Report:
+
+PRODUCTION FILE STORAGE: PASS / BLOCKED / NOT APPLICABLE
+
+If persistent uploads currently rely on ephemeral runtime storage:
+SAFE TO PUBLISH must remain NO.
+
+==================================================
+4. SUPPORT CONTACTS
+==================================================
+
+Verify Platform Settings production values for:
+
+- Support WhatsApp
+- Support Phone
+- Support Email if used
+- Default Trial Hours = 72
+
+Do not invent contact information.
+
+If the real support contacts are not configured yet:
+report exactly which values the owner must enter before launch.
+
+==================================================
+5. PLATFORM SUPER ADMIN
+==================================================
+
+Verify the production first-admin setup flow:
+
+POST /api/auth/setup
+
+Requirements:
+
+- INITIAL_SETUP_KEY comes from production secret/environment configuration
+- no secret hardcoded in source
+- setup works only when no Platform Admin exists
+- rate limited
+- timing-safe comparison
+- setup becomes unavailable after first Platform Admin exists
+
+Do NOT print INITIAL_SETUP_KEY.
+
+Provide exact operator steps to configure the secret and create the first Platform Super Admin AFTER the fresh Production DB exists.
+
+==================================================
+6. PRODUCTION ENVIRONMENT VARIABLES
+==================================================
+
+Audit required production secrets/config.
+
+Report only variable NAMES and status.
+
+Never reveal secret values.
+
+Classify:
+
+CONFIGURED
+MISSING
+NOT REQUIRED
+
+Include all runtime-critical values such as:
+
+- database configuration
+- session secret/config
+- INITIAL_SETUP_KEY
+- storage configuration
+- any other required Ghars production secrets
+
+==================================================
+7. CUSTOM DOMAIN
+==================================================
+
+Verify application configuration is compatible with:
+
+https://ghars.digitaltclinic.com
+
+Check:
+
+- secure cookies
+- proxy/trust proxy behavior
+- HTTPS
+- auth redirects
+- CORS/origin assumptions
+- CSRF behavior
+- absolute links if any
+
+Do not modify DNS.
+
+==================================================
+8. FRESH PRODUCTION MIGRATION EXPECTATION
+==================================================
+
+Because Production is new and empty:
+
+verify that migrations 0000–0024 can initialize an empty PostgreSQL database sequentially without legacy reconciliation.
+
+Test this against a disposable empty database if possible.
+
+Expected:
+
+0000
+→ ...
+→ 0024
+
+PASS
+
+No truncation.
+No schema drift.
+No legacy backfill problem.
+
+==================================================
+9. PRODUCTION BOOTSTRAP EXPECTATION
+==================================================
+
+After the fresh DB is created, expected pre-customer state:
+
+commercial tenants = 0
+patients = 0
+implant cases = 0
+implants = 0
+payments = 0
+follow-ups = 0
+communications = 0
+
+Then:
+
+1. create first Platform Super Admin securely
+2. configure Platform Settings
+3. create one temporary customer tenant
+4. verify 72-hour trial
+5. verify default lists
+6. verify default WhatsApp templates
+7. verify login
+8. verify clinical workflow
+9. verify finance
+10. verify manual permanent activation
+11. verify suspend/reactivate
+12. verify tenant isolation
+13. delete temporary smoke tenant
+
+Production should return to zero commercial customer data after smoke testing.
+
+==================================================
+10. FINAL PUBLISH UI INSTRUCTIONS
+==================================================
+
+Since the Agent must NOT publish automatically:
+
+inspect the current Replit deployment configuration and provide the owner with the exact UI steps needed to create the fresh Production database and publish.
+
+CRITICAL:
+
+If Replit offers any option equivalent to:
+
+COPY DEVELOPMENT DATABASE DATA TO PRODUCTION
+
+the owner must NOT select it.
+
+We want fresh production schema/bootstrap only.
+
+If the UI requires an option that would copy Development data:
+STOP and report it.
+
+Do not guess.
+
+==================================================
+11. FINAL FLAGS
+==================================================
+
+Report:
+
+EMPTY DB MIGRATION TEST: PASS / FAIL
+PRODUCTION SESSION STORE: PASS / BLOCKED
+PRODUCTION FILE STORAGE: PASS / BLOCKED / NOT APPLICABLE
+SUPPORT CONTACTS: PASS / ACTION REQUIRED
+PLATFORM SUPER ADMIN SETUP: PASS / FAIL
+PRODUCTION SECRETS: PASS / ACTION REQUIRED
+CUSTOM DOMAIN CONFIG: PASS / FAIL
+FRESH PRODUCTION CREATION PATH: READY / BLOCKED
+FULL TEST SUITE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+READY FOR OWNER TO CREATE FRESH PRODUCTION: YES / NO
+SAFE TO PUBLISH AFTER CREATION: YES / NO
+
+Do not publish.
+Create a checkpoint and STOP.
