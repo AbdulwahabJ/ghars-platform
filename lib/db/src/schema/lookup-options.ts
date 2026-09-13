@@ -23,6 +23,8 @@ export const lookupOptionsTable = pgTable(
       .references(() => tenantsTable.id),
     category: text("category").notNull(),
     value: text("value").notNull(),
+    /** Stable identity for a value provisioned by tenant bootstrap. */
+    bootstrapKey: text("bootstrap_key"),
     isActive: boolean("is_active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -34,6 +36,10 @@ export const lookupOptionsTable = pgTable(
       table.tenantId,
       table.category,
       table.value,
+    ),
+    uniqueIndex("UQ_lookup_options_tenant_bootstrap_key").on(
+      table.tenantId,
+      table.bootstrapKey,
     ),
   ],
 );

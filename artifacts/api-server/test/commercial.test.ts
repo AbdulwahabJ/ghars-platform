@@ -1,7 +1,13 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { vi } from "vitest";
-import { db } from "@workspace/db";
+import { db, tenantsTable } from "@workspace/db";
 import app from "../src/app";
+import {
+  bootstrapTenantDefaults,
+  DEFAULT_IMPLANT_SYSTEMS,
+  DEFAULT_LOOKUP_OPTIONS,
+  DEFAULT_WHATSAPP_TEMPLATES,
+} from "../src/lib/tenant-bootstrap";
 import { registrationUniqueConflict } from "../src/routes/auth";
 import { agentFor, freshAdminSession, makePool, truncateAll } from "./helpers";
 
@@ -19,6 +25,17 @@ const registration = {
   tenantName: "Clinic", ownerName: "Owner", username: "owner",
   phone: "0551234567", city: "Riyadh",
   password: "Passw0rd1234", confirmPassword: "Passw0rd1234", locale: "en",
+};
+
+const EXPECTED_LOOKUP_DEFAULTS: Record<string, string[]> = {
+  q_value: ["0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "70", "75", "80"],
+  former_value: ["N", "Y", "M17", "M30", "MST", "ST", "MU15", "MU17", "MU30", "MUST"],
+  graft_value: ["N", "Y", "ALLO"],
+  procedure_tag: ["DIRECT", "IMMED", "FLAPLESS", "Sas101", "R.R", "F", "مؤقت", "مخصص"],
+  bone_graft_procedure_type: ["ترقيع عظمي", "رفع جيب أنفي", "توسيع العظم"],
+  bone_graft_material: ["عظم ذاتي", "عظم صناعي", "عظم بشري معالج"],
+  bone_graft_membrane: ["غشاء كولاجين", "غشاء غير ممتص"],
+  bone_graft_status: ["مخطط", "تم", "ملغى"],
 };
 
 let registrationIp = 1;
@@ -57,6 +74,230 @@ describe("commercial lifecycle", () => {
     expect(tenant.rows[0].status).toBe("TRIAL");
     expect(tenant.rows[0].contact_phone).toBe("966551234567");
     expect(new Date(tenant.rows[0].trial_ends_at).getTime() - new Date(tenant.rows[0].trial_started_at).getTime()).toBe(72 * 60 * 60 * 1000);
+  });
+
+  it("bootstraps the exact tenant defaults without clinical/demo rows", async () => {
+    expect((await postRegistration(registration)).status).toBe(201);
+    const tenant = await pool.query<{ id: string }>(
+      "SELECT id FROM tenants WHERE contact_phone = '966551234567'",
+    );
+    const tenantId = tenant.rows[0].id;
+
+    const [membership, systems, lookups, templates, clinicalCounts] = await Promise.all([
+      pool.query<{ role: string }>(
+        "SELECT role FROM tenant_memberships WHERE tenant_id = $1",
+        [tenantId],
+      ),
+      pool.query<{ name: string }>(
+        "SELECT name FROM implant_system_options WHERE tenant_id = $1 ORDER BY sort_order",
+        [tenantId],
+      ),
+      pool.query<{ category: string; value: string }>(
+        "SELECT category, value FROM lookup_options WHERE tenant_id = $1 ORDER BY category, sort_order",
+        [tenantId],
+      ),
+      pool.query<{ name: string; body: string; is_approved: boolean }>(
+        "SELECT name, body, is_approved FROM whatsapp_templates WHERE tenant_id = $1 ORDER BY sort_order",
+        [tenantId],
+      ),
+      pool.query<{ table_name: string; count: number }>(`
+        SELECT 'patients' AS table_name, count(*)::int AS count FROM patients WHERE tenant_id = $1
+        UNION ALL SELECT 'implant_cases', count(*)::int FROM implant_cases WHERE tenant_id = $1
+        UNION ALL SELECT 'implants', count(*)::int FROM implants WHERE tenant_id = $1
+        UNION ALL SELECT 'followups', count(*)::int FROM followups WHERE tenant_id = $1
+        UNION ALL SELECT 'communications', count(*)::int FROM communications WHERE tenant_id = $1
+      `, [tenantId]),
+    ]);
+
+    expect(membership.rows).toEqual([{ role: "ADMIN" }]);
+    expect(systems.rows.map((row) => row.name)).toEqual([...DEFAULT_IMPLANT_SYSTEMS]);
+    expect(lookups.rows).toHaveLength(46);
+    expect(new Set(lookups.rows.map((row) => row.category))).toEqual(
+      new Set(Object.keys(EXPECTED_LOOKUP_DEFAULTS)),
+    );
+    for (const [category, expectedValues] of Object.entries(EXPECTED_LOOKUP_DEFAULTS)) {
+      expect(lookups.rows.filter((row) => row.category === category).map((row) => row.value))
+        .toEqual(expectedValues);
+    }
+    expect(DEFAULT_LOOKUP_OPTIONS).toHaveLength(46);
+    const keyStats = await pool.query<{
+      systems: number;
+      lookups: number;
+      templates: number;
+      distinct_keys: number;
+    }>(
+      `SELECT
+         (SELECT count(*)::int FROM implant_system_options WHERE tenant_id = $1 AND bootstrap_key IS NOT NULL) AS systems,
+         (SELECT count(*)::int FROM lookup_options WHERE tenant_id = $1 AND bootstrap_key IS NOT NULL) AS lookups,
+         (SELECT count(*)::int FROM whatsapp_templates WHERE tenant_id = $1 AND bootstrap_key IS NOT NULL) AS templates,
+         (SELECT count(DISTINCT bootstrap_key)::int
+            FROM (
+              SELECT bootstrap_key FROM implant_system_options WHERE tenant_id = $1
+              UNION ALL SELECT bootstrap_key FROM lookup_options WHERE tenant_id = $1
+              UNION ALL SELECT bootstrap_key FROM whatsapp_templates WHERE tenant_id = $1
+            ) AS all_defaults) AS distinct_keys`,
+      [tenantId],
+    );
+    expect(keyStats.rows[0]).toEqual({
+      systems: 10,
+      lookups: 46,
+      templates: 12,
+      distinct_keys: 68,
+    });
+    expect(templates.rows.map(({ name, body }) => ({ name, body }))).toEqual(
+      DEFAULT_WHATSAPP_TEMPLATES.map(({ name, body }) => ({ name, body })),
+    );
+    expect(templates.rows.every((row) => row.is_approved)).toBe(true);
+    expect(templates.rows).toHaveLength(12);
+    for (const row of templates.rows) {
+      expect(row.body).toContain("Hello");
+      expect(row.body).toContain("مرحبًا");
+      expect(row.body).not.toMatch(/مجمع|د\.\s*همام|مبلغ|clinic|doctor|balance/i);
+      expect([...row.body.matchAll(/\{\{\s*([^{}]*?)\s*\}\}/g)].every(
+        (match) => ["patientName", "date", "time"].includes(match[1] ?? ""),
+      )).toBe(true);
+    }
+    expect(clinicalCounts.rows.every((row) => row.count === 0)).toBe(true);
+  });
+
+  it("keeps tenant bootstrap idempotent under repeated concurrent calls", async () => {
+    expect((await postRegistration(registration)).status).toBe(201);
+    const tenant = await pool.query<{ id: string }>(
+      "SELECT id FROM tenants WHERE contact_phone = '966551234567'",
+    );
+    const tenantId = tenant.rows[0].id;
+
+    await Promise.all([
+      db.transaction((tx) => bootstrapTenantDefaults(tx, tenantId)),
+      db.transaction((tx) => bootstrapTenantDefaults(tx, tenantId)),
+      db.transaction((tx) => bootstrapTenantDefaults(tx, tenantId)),
+    ]);
+    await db.transaction((tx) => bootstrapTenantDefaults(tx, tenantId));
+
+    const counts = await pool.query<{ systems: number; lookups: number; templates: number }>(
+      `SELECT
+         (SELECT count(*)::int FROM implant_system_options WHERE tenant_id = $1) AS systems,
+         (SELECT count(*)::int FROM lookup_options WHERE tenant_id = $1) AS lookups,
+         (SELECT count(*)::int FROM whatsapp_templates WHERE tenant_id = $1) AS templates`,
+      [tenantId],
+    );
+    expect(counts.rows[0]).toEqual({ systems: 10, lookups: 46, templates: 12 });
+  });
+
+  it("keeps default edits and deactivation isolated to their tenant", async () => {
+    expect((await postRegistration(registration)).status).toBe(201);
+    const tenantA = agentFor(app);
+    expect((await tenantA.post("/api/auth/login").send({
+      username: registration.username,
+      password: registration.password,
+    })).status).toBe(200);
+    const templatesA = await tenantA.get("/api/admin/whatsapp-templates");
+    expect(templatesA.status).toBe(200);
+    const firstA = templatesA.body.templates[0];
+    expect(
+      (await tenantA.patch(`/api/admin/whatsapp-templates/${firstA.id}`).send({
+        name: "My Appointment Confirmation",
+        body: "مرحبًا {{patientName}}، تم تعديل الرسالة.\nHello {{patientName}}, updated.",
+      })).status,
+    ).toBe(200);
+    expect(
+      (await tenantA.post(`/api/admin/whatsapp-templates/${firstA.id}/deactivate`)).status,
+    ).toBe(200);
+    const lookupsA = await tenantA.get("/api/admin/lookups");
+    const qOptionA = lookupsA.body.options.find(
+      (option: { category: string }) => option.category === "q_value",
+    );
+    const systemOptionA = lookupsA.body.options.find(
+      (option: { category: string }) => option.category === "implant_system",
+    );
+    expect(
+      (await tenantA.patch(`/api/admin/lookups/q_value/${qOptionA.id}`).send({
+        value: "Q edited by tenant A",
+      })).status,
+    ).toBe(204);
+    expect(
+      (await tenantA.post(`/api/admin/lookups/q_value/${qOptionA.id}/deactivate`)).status,
+    ).toBe(204);
+    expect(
+      (await tenantA.patch(`/api/admin/lookups/implant_system/${systemOptionA.id}`).send({
+        value: "System edited by tenant A",
+      })).status,
+    ).toBe(204);
+    expect(
+      (await tenantA.post(`/api/admin/lookups/implant_system/${systemOptionA.id}/deactivate`)).status,
+    ).toBe(204);
+
+    const tenantARow = await pool.query<{ id: string }>(
+      "SELECT id FROM tenants WHERE contact_phone = '966551234567'",
+    );
+    await Promise.all([
+      db.transaction((tx) => bootstrapTenantDefaults(tx, tenantARow.rows[0].id)),
+      db.transaction((tx) => bootstrapTenantDefaults(tx, tenantARow.rows[0].id)),
+    ]);
+
+    const second = {
+      ...registration,
+      tenantName: "Second Clinic",
+      username: "second-owner",
+      phone: "0551234568",
+    };
+    expect((await postRegistration(second)).status).toBe(201);
+    const tenantB = agentFor(app);
+    expect((await tenantB.post("/api/auth/login").send({
+      username: second.username,
+      password: second.password,
+    })).status).toBe(200);
+    const templatesB = await tenantB.get("/api/admin/whatsapp-templates");
+    expect(templatesB.status).toBe(200);
+    expect(templatesB.body.templates).toHaveLength(12);
+    expect(templatesB.body.templates.map((template: { name: string }) => template.name))
+      .toContain("Appointment Confirmation");
+    expect(templatesB.body.templates.map((template: { id: string }) => template.id))
+      .not.toContain(firstA.id);
+
+    const templatesAAfter = await tenantA.get("/api/admin/whatsapp-templates");
+    const editedA = templatesAAfter.body.templates.find(
+      (template: { id: string }) => template.id === firstA.id,
+    );
+    expect(editedA).toMatchObject({
+      name: "My Appointment Confirmation",
+      isApproved: false,
+    });
+    const lookupsAAfter = await tenantA.get("/api/admin/lookups");
+    expect(lookupsAAfter.body.options.find(
+      (option: { id: string }) => option.id === qOptionA.id,
+    )).toMatchObject({ value: "Q edited by tenant A", isActive: false });
+    expect(lookupsAAfter.body.options.find(
+      (option: { id: string }) => option.id === systemOptionA.id,
+    )).toMatchObject({ value: "System edited by tenant A", isActive: false });
+    expect(lookupsAAfter.body.options.map((option: { value: string }) => option.value))
+      .not.toContain(qOptionA.value);
+    expect(lookupsAAfter.body.options.map((option: { value: string }) => option.value))
+      .not.toContain(systemOptionA.value);
+  });
+
+  it("rolls back the tenant and defaults when bootstrap fails", async () => {
+    const referenceCode = `rollback-${Date.now()}`;
+    await expect(
+      db.transaction(async (tx) => {
+        await tx.insert(tenantsTable).values({
+          referenceCode,
+          name: "Rollback tenant",
+          status: "TRIAL",
+          trialStartedAt: new Date(),
+          trialEndsAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+        });
+        // The invalid tenant id makes the first bootstrap insert fail with
+        // the tenant foreign key, exercising registration-style atomicity.
+        await bootstrapTenantDefaults(tx, "00000000-0000-4000-8000-000000000099");
+      }),
+    ).rejects.toBeDefined();
+
+    const rolledBack = await pool.query(
+      "SELECT id FROM tenants WHERE reference_code = $1",
+      [referenceCode],
+    );
+    expect(rolledBack.rowCount).toBe(0);
   });
 
   it("returns safe field-level codes for unavailable usernames and phones", async () => {

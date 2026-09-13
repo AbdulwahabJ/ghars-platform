@@ -1252,21 +1252,27 @@ async function cleanup(): Promise<void> {
   }
 
   await db.transaction(async (tx) => {
-    // Children first: payments reference installments; everything else
-    // references cases/patients. Every predicate is tenant-scoped.
-    await tx.delete(paymentsTable).where(and(eq(paymentsTable.tenantId, context.tenantId), inArray(paymentsTable.id, data.ids.paymentIds)));
-    await tx.delete(installmentsTable).where(and(eq(installmentsTable.tenantId, context.tenantId), inArray(installmentsTable.id, data.ids.installmentIds)));
-    await tx.delete(installmentPlansTable).where(and(eq(installmentPlansTable.tenantId, context.tenantId), inArray(installmentPlansTable.id, data.ids.planIds)));
-    await tx.delete(auditLogsTable).where(and(eq(auditLogsTable.tenantId, context.tenantId), inArray(auditLogsTable.entityId, [...data.ids.prostheticIds, ...data.ids.implantIds])));
-    await tx.delete(communicationsTable).where(and(eq(communicationsTable.tenantId, context.tenantId), inArray(communicationsTable.id, data.ids.communicationIds)));
-    await tx.delete(followupsTable).where(and(eq(followupsTable.tenantId, context.tenantId), inArray(followupsTable.id, data.ids.followupIds)));
-    await tx.delete(prostheticEventsTable).where(and(eq(prostheticEventsTable.tenantId, context.tenantId), inArray(prostheticEventsTable.id, data.ids.prostheticIds)));
-    await tx.delete(boneGraftProceduresTable).where(and(eq(boneGraftProceduresTable.tenantId, context.tenantId), inArray(boneGraftProceduresTable.id, data.ids.adjunctIds)));
-    await tx.delete(caseChargesTable).where(and(eq(caseChargesTable.tenantId, context.tenantId), inArray(caseChargesTable.id, data.ids.chargeIds)));
-    await tx.delete(caseDiscountsTable).where(and(eq(caseDiscountsTable.tenantId, context.tenantId), inArray(caseDiscountsTable.id, data.ids.discountIds)));
-    await tx.delete(implantsTable).where(and(eq(implantsTable.tenantId, context.tenantId), inArray(implantsTable.id, data.ids.implantIds)));
-    await tx.delete(implantCasesTable).where(and(eq(implantCasesTable.tenantId, context.tenantId), inArray(implantCasesTable.id, data.ids.caseIds)));
-    await tx.delete(patientsTable).where(and(eq(patientsTable.tenantId, context.tenantId), inArray(patientsTable.id, data.ids.patientIds)));
+    // The pinned tenant is dedicated to screenshot/demo use. Delete every
+    // tenant-owned clinical/financial row so manually-added screenshot smoke
+    // records cannot keep deterministic parents alive through foreign keys.
+    // Children remain first and every predicate remains tenant-scoped.
+    await tx.delete(paymentsTable).where(eq(paymentsTable.tenantId, context.tenantId));
+    await tx.delete(installmentsTable).where(eq(installmentsTable.tenantId, context.tenantId));
+    await tx.delete(installmentPlansTable).where(eq(installmentPlansTable.tenantId, context.tenantId));
+    await tx.delete(auditLogsTable).where(eq(auditLogsTable.tenantId, context.tenantId));
+    await tx.delete(communicationsTable).where(eq(communicationsTable.tenantId, context.tenantId));
+    await tx.delete(followupsTable).where(eq(followupsTable.tenantId, context.tenantId));
+    await tx.delete(prostheticEventsTable).where(
+      eq(prostheticEventsTable.tenantId, context.tenantId),
+    );
+    await tx.delete(boneGraftProceduresTable).where(
+      eq(boneGraftProceduresTable.tenantId, context.tenantId),
+    );
+    await tx.delete(caseChargesTable).where(eq(caseChargesTable.tenantId, context.tenantId));
+    await tx.delete(caseDiscountsTable).where(eq(caseDiscountsTable.tenantId, context.tenantId));
+    await tx.delete(implantsTable).where(eq(implantsTable.tenantId, context.tenantId));
+    await tx.delete(implantCasesTable).where(eq(implantCasesTable.tenantId, context.tenantId));
+    await tx.delete(patientsTable).where(eq(patientsTable.tenantId, context.tenantId));
     if (ownsSystemOptions) {
       await tx.delete(implantSystemOptionsTable).where(
         and(

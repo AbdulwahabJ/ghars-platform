@@ -1,5 +1,9 @@
 # Ghars Clean Production Database Reset — Operator Handoff
 
+> **COMPLETED.** The owner confirmed removal of the old production database on
+> 2026-09-13. Clean pre-production preparation is documented in
+> `CLEAN_PREPRODUCTION_READINESS.md`.
+
 **Recorded:** 2026-09-13  
 **Status:** BLOCKED ON OWNER-OPERATED REPLIT DATABASE REMOVAL  
 **Publishing:** PROHIBITED UNTIL THE CLEAN DATABASE PATH IS COMPLETED AND VALIDATED

@@ -19,6 +19,8 @@ export const implantSystemOptionsTable = pgTable(
       .notNull()
       .references(() => tenantsTable.id),
     name: text("name").notNull(),
+    /** Stable identity for a system provisioned by tenant bootstrap. */
+    bootstrapKey: text("bootstrap_key"),
     isActive: boolean("is_active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -30,6 +32,10 @@ export const implantSystemOptionsTable = pgTable(
     uniqueIndex("UQ_implant_system_options_tenant_name").on(
       table.tenantId,
       table.name,
+    ),
+    uniqueIndex("UQ_implant_system_options_tenant_bootstrap_key").on(
+      table.tenantId,
+      table.bootstrapKey,
     ),
   ],
 );

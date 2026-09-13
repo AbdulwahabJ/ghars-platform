@@ -1,10 +1,10 @@
 ---
 name: Production database replacement
-description: The owner abandoned legacy reconciliation and approved a clean production database replacement through Replit's supported UI.
+description: The owner abandoned legacy reconciliation, removed the old production database, and approved a clean schema-only release without development data.
 ---
 
-Do not reconcile the legacy production database or repair its Drizzle journal. The owner authorized deleting all development/test and production database data for a clean first release. Production must be replaced through Replit's supported Database UI, then provisioned from the current schema without copying development data.
+Do not return to legacy production reconciliation or journal repair. The owner removed the old production database and authorized a clean first release. The fresh production database must receive the current schema and required system bootstrap only, never development records.
 
-**Why:** Existing data no longer needs preservation, but the agent's production access remains read-only. Replit's supported path is owner-operated removal of the production database followed by a later controlled Publish that provisions a fresh database.
+**Why:** Existing legacy data was intentionally discarded. Development can contain test/control-plane state, so copying its data would reintroduce demo tenants, users, or clinical records into the clean release.
 
-**How to apply:** Never bypass read-only production access. Stop until the owner removes the production database in Database → production → Settings → Remove database. Then clean development demo/test rows, validate the canonical schema, bootstraps, storage, sessions, builds, and tests. Publish only from a non-destructive fresh-schema preview, never selecting development-data copy. Preserve source, migrations, Landing Page screenshots, and brand assets.
+**How to apply:** Never bypass read-only production access. Before Publish, require clean Development, exact migration hashes, passing bootstraps/tests/builds, and a fresh-schema preview. Never select development-data copy. After creation, bootstrap the first Platform Super Admin through the guarded setup route and verify zero customer/clinical rows. Preserve source, migrations, Landing Page screenshots, and brand assets.

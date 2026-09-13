@@ -39,6 +39,7 @@ import {
   sendVerificationEmail,
 } from "../lib/verification-email";
 import { toPublicUser } from "../lib/permissions";
+import { bootstrapTenantDefaults } from "../lib/tenant-bootstrap";
 import { parseOrRespond } from "../lib/validation";
 import {
   loadUserTenantContext,
@@ -373,6 +374,7 @@ router.post("/auth/register", registrationLimiter, async (req, res, next) => {
       }).returning();
       await tx.insert(tenantMembershipsTable).values({ tenantId: tenant.id, userId: user.id, role: "ADMIN" });
       await tx.insert(userPreferencesTable).values({ userId: user.id, locale: input.locale });
+      await bootstrapTenantDefaults(tx, tenant.id);
       await writeAudit({
         tenantId: tenant.id,
         userId: user.id,

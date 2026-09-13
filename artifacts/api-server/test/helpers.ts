@@ -17,6 +17,18 @@ export async function truncateAll(pool: pg.Pool): Promise<void> {
   await pool.query(
     'TRUNCATE TABLE "system_errors", "platform_settings", "audit_logs", "sessions", "user_preferences", "patients", "users" CASCADE',
   );
+  // Tenant defaults intentionally reference tenants without ON DELETE CASCADE:
+  // remove disposable test-tenant rows before removing those tenants.
+  await pool.query(`
+    DELETE FROM whatsapp_templates
+    WHERE tenant_id IN (SELECT id FROM tenants WHERE reference_code <> 'internal');
+    DELETE FROM implant_system_options
+    WHERE tenant_id IN (SELECT id FROM tenants WHERE reference_code <> 'internal');
+    DELETE FROM lookup_options
+    WHERE tenant_id IN (SELECT id FROM tenants WHERE reference_code <> 'internal');
+    DELETE FROM application_settings
+    WHERE tenant_id IN (SELECT id FROM tenants WHERE reference_code <> 'internal');
+  `);
   await pool.query(`DELETE FROM tenants WHERE reference_code <> 'internal'`);
   await pool.query(
     `UPDATE tenants
