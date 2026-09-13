@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { PublicBackToHome } from "@/components/layout/PublicBackToHome";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
@@ -116,6 +117,7 @@ export default function Login() {
         <div className="absolute top-8 end-8">
           <LanguageSwitcher />
         </div>
+        <PublicBackToHome className="absolute top-8 start-8" />
 
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="flex md:hidden flex-col items-center mb-10">

@@ -1,0 +1,199 @@
+MODE: Free
+
+Add a consistent "Back to Home" action across ALL Ghars public authentication pages.
+
+CURRENT ISSUE:
+
+When a visitor enters an authentication page from the Landing Page, such as:
+
+- Login
+- Create Account / Registration
+- Forgot Password / Support Recovery
+- Access Status
+- Trial Expired
+- Suspended Account
+- any other public auth-related screen
+
+there is no clear way to return to the Ghars Landing Page.
+
+Fix this globally and consistently.
+
+==================================================
+1. SHARED AUTH NAVIGATION
+==================================================
+
+Do NOT patch every page independently if they already share an auth/public layout.
+
+Update the shared Public/Auth shell or layout.
+
+Add a visible button/link:
+
+Arabic:
+العودة للرئيسية
+
+English:
+Back to Home
+
+with a simple back arrow icon.
+
+==================================================
+2. DESTINATION
+==================================================
+
+Clicking the button must navigate to:
+
+/
+
+which is the public Ghars Landing Page.
+
+Do NOT rely only on:
+
+window.history.back()
+
+because users may open an auth page directly.
+
+The destination must always safely be the Landing Page.
+
+==================================================
+3. POSITION
+==================================================
+
+Place the Back to Home action in the top area of auth pages.
+
+Recommended:
+
+Arabic RTL:
+top-right or the natural side opposite the language selector, depending on the current approved layout.
+
+English LTR:
+mirror appropriately.
+
+Keep it visually balanced with the existing language switcher.
+
+Do not overlap the logo or form.
+
+==================================================
+4. DESIGN
+==================================================
+
+Use the existing Ghars UI language.
+
+Style:
+
+- subtle outline/ghost button
+- small arrow icon
+- Deep Navy text/icon
+- compact
+- professional
+
+It should be noticeable but not compete with the main Sign In / Create Account CTA.
+
+==================================================
+5. AUTH PAGES TO AUDIT
+==================================================
+
+Verify at minimum:
+
+- /login
+- registration / create account
+- forgot-password support screen
+- forced password change
+- access-status
+- expired trial
+- suspended tenant
+- any other public auth shell page
+
+If a page is an authenticated security flow where "Back to Home" would be unsafe or confusing, use the correct safe destination instead and report it.
+
+Do not break authentication state.
+
+==================================================
+6. DO NOT CHANGE AUTH LOGIC
+==================================================
+
+Do NOT modify:
+
+- login logic
+- registration logic
+- password reset security
+- trial logic
+- tenant status
+- session behavior
+- commercial activation flow
+
+This is navigation/UX only.
+
+==================================================
+7. MOBILE
+==================================================
+
+Verify at:
+
+390x844
+
+The button must remain visible and not collide with:
+
+- language selector
+- Ghars branding
+- form fields
+
+No horizontal overflow.
+
+==================================================
+8. LOCALIZATION
+==================================================
+
+Use the existing i18n system.
+
+Arabic:
+العودة للرئيسية
+
+English:
+Back to Home
+
+Do NOT hardcode both languages directly inside the component.
+
+==================================================
+9. BROWSER VERIFICATION
+==================================================
+
+Test:
+
+Landing Page
+→ Create Account
+→ Back to Home
+
+Landing Page
+→ Login
+→ Back to Home
+
+Landing Page
+→ Forgot Password / Support
+→ Back to Home
+
+Verify Arabic and English.
+
+Also test direct navigation to /login:
+Back to Home must still correctly open /.
+
+==================================================
+10. FINAL
+==================================================
+
+Prefer ONE shared implementation for all public auth pages.
+
+Do not redesign the auth pages.
+
+Do not publish.
+
+Create a checkpoint and stop.
+
+Report:
+
+1. Shared component/layout changed
+2. Pages covered
+3. Arabic result
+4. English result
+5. Mobile result
+6. TypeScript/build result
+7. Exact checkpoint hash

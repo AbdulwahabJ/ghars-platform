@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { ME_QUERY_KEY } from "@/hooks/use-auth";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { PublicBackToHome } from "@/components/layout/PublicBackToHome";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ export default function ChangePassword() {
       <div className="absolute end-6 top-6">
         <LanguageSwitcher />
       </div>
+      <PublicBackToHome className="absolute start-6 top-6" />
       <div className="mx-auto flex min-h-[calc(100dvh-2rem)] max-w-md items-center">
         <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-7 text-center">

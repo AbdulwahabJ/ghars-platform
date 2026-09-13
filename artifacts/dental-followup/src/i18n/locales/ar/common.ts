@@ -24,6 +24,7 @@ const common = {
     edit: "تعديل",
     add: "إضافة",
     back: "عودة",
+    backToHome: "العودة للرئيسية",
     next: "التالي",
     previous: "السابق",
     search: "بحث",

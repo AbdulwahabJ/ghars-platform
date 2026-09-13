@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import gharsLogo from "@/assets/ghars-logo.png";
 import { Loader2 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { PublicBackToHome } from "@/components/layout/PublicBackToHome";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
@@ -83,6 +84,7 @@ export default function Setup() {
         <div className="absolute top-4 end-4">
           <LanguageSwitcher />
         </div>
+        <PublicBackToHome className="absolute top-4 start-4" />
         {/* Subtle decorative background elements */}
         <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none" />
         <div className="absolute bottom-0 start-0 w-24 h-24 bg-accent/5 rounded-tr-full pointer-events-none" />

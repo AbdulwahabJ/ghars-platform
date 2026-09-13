@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import gharsSymbol from "@/assets/ghars-symbol-transparent.png";
 import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { PublicBackToHome } from "@/components/layout/PublicBackToHome";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
@@ -42,6 +43,7 @@ export default function VerifyEmail() {
       <div className="absolute top-8 end-8">
         <LanguageSwitcher />
       </div>
+      <PublicBackToHome className="absolute top-8 start-8" />
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
         <img src={gharsSymbol} alt={t("common:brand.latin")} className="h-20 w-20 mx-auto mb-6 object-contain" />

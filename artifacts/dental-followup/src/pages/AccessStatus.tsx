@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { LogOut, Loader2, Mail, Phone, MessageCircle, AlertCircle, Building2, ShieldAlert } from "lucide-react";
 import gharsSymbol from "@/assets/ghars-symbol-transparent.png";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { PublicBackToHome } from "@/components/layout/PublicBackToHome";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
@@ -75,6 +76,7 @@ export default function AccessStatus() {
           </span>
         </div>
         <div className="flex items-center gap-1 sm:gap-4">
+          <PublicBackToHome className="px-2 sm:px-3" />
           <LanguageSwitcher />
           <Button variant="ghost" onClick={handleLogout} className="text-muted-foreground">
             <LogOut className="h-4 w-4 sm:me-2" />

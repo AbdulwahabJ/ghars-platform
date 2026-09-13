@@ -621,33 +621,33 @@ export default function LandingPage() {
       {/* How it Works */}
       <section id="how-it-works" className="relative scroll-mt-24 overflow-hidden bg-[#F5F8FA] py-20 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto mb-10 max-w-2xl text-center md:mb-12">
+          <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
             <span className="mb-2.5 block text-sm font-bold tracking-wider text-[#0F766E] uppercase">{t.howItWorks.badge}</span>
             <h2 className="mb-3 text-3xl font-bold text-[#0D1B3D] md:text-4xl">{t.howItWorks.title}</h2>
             <p className="mx-auto max-w-xl text-base leading-7 text-[#64748B] md:text-lg">{t.howItWorks.subtitle}</p>
           </div>
 
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
-            {t.howItWorks.steps.map((step, i) => {
-              const StepIcon = [FileText, Stethoscope, ShieldCheck][i];
-              return (
+          <div className="relative mx-auto max-w-[820px]" dir={isRTL ? "rtl" : "ltr"}>
+            <span
+              className={`pointer-events-none absolute top-8 bottom-8 z-0 w-px bg-[#1FA9B8]/20 ${isRTL ? "right-[42px]" : "left-[42px]"}`}
+              aria-hidden="true"
+            ></span>
+            <div className="relative z-10 space-y-4">
+              {t.howItWorks.steps.map((step) => (
                 <article
                   key={step.step}
-                  className="flex h-full flex-col rounded-2xl border border-[#0D1B3D]/[0.08] bg-white p-6 text-start shadow-[0_14px_35px_-28px_rgba(13,27,61,0.35)] transition-transform duration-300 hover:-translate-y-1 sm:p-7"
+                  className="relative flex items-start gap-4 rounded-2xl border border-[#0D1B3D]/[0.08] bg-white p-5 text-start shadow-[0_10px_26px_-24px_rgba(13,27,61,0.4)] sm:gap-5 sm:p-6"
                 >
-                  <div className="mb-6 flex items-center justify-between">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF7F5] text-sm font-bold text-[#0D1B3D] ring-1 ring-inset ring-[#1FA9B8]/20">
-                      {step.step}
-                    </span>
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F5F8FA] text-[#0F766E]" aria-hidden="true">
-                      <StepIcon size={20} strokeWidth={1.7} />
-                    </span>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#1FA9B8]/25 bg-white text-sm font-bold text-[#0D1B3D] shadow-[0_6px_18px_-14px_rgba(13,27,61,0.7)]">
+                    {step.step}
+                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <h3 className="mb-2 text-xl font-bold leading-snug text-[#0D1B3D] sm:text-[22px]">{step.title}</h3>
+                    <p className="text-[15px] leading-7 text-[#64748B] sm:text-base">{step.desc}</p>
                   </div>
-                  <h3 className="mb-3 text-xl font-bold text-[#0D1B3D]">{step.title}</h3>
-                  <p className="text-[15px] leading-7 text-[#64748B]">{step.desc}</p>
                 </article>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
       </section>

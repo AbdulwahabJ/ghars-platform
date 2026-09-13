@@ -24,6 +24,7 @@ const common = {
     edit: "Edit",
     add: "Add",
     back: "Back",
+    backToHome: "Back to Home",
     next: "Next",
     previous: "Previous",
     search: "Search",
