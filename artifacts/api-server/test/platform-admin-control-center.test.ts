@@ -183,6 +183,11 @@ describe("platform admin control center", () => {
       status: "healthy",
       messageCode: "storageDatabaseBacked",
     });
+    expect(health.body.components.schema).toMatchObject({
+      status: "healthy",
+      messageCode: "schemaCurrentJournalReadable",
+      value: 25,
+    });
     for (const component of Object.values(health.body.components) as Array<Record<string, unknown>>) {
       expect(component.messageCode).toEqual(expect.any(String));
       expect(component).not.toHaveProperty("message");

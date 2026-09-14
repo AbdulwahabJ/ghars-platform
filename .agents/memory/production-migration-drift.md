@@ -1,10 +1,10 @@
 ---
-name: Production database replacement
-description: The owner abandoned legacy reconciliation, removed the old production database, and approved a clean schema-only release without development data.
+name: Production database lifecycle
+description: Production was clean-created without development data and is now live with real trial users; preserve it and account for Replit schema-sync journal behavior.
 ---
 
-Do not return to legacy production reconciliation or journal repair. The owner removed the old production database and authorized a clean first release. The fresh production database must receive the current schema and required system bootstrap only, never development records.
+Do not return to legacy production reconciliation or migration-journal repair. Production was clean-created and is now live with real trial users and potentially clinical data. Preserve all records and use only read-only investigation unless the supported Publish flow explicitly applies a reviewed schema change.
 
-**Why:** Existing legacy data was intentionally discarded. Development can contain test/control-plane state, so copying its data would reintroduce demo tenants, users, or clinical records into the clean release.
+**Why:** Existing legacy data was intentionally discarded, but the replacement Production database is no longer empty. Replit's Publish schema synchronization can create a fully current Production schema without populating `drizzle.__drizzle_migrations`; a missing journal alone is not schema drift and must not be “repaired.”
 
-**How to apply:** Never bypass read-only production access. Before Publish, require clean Development, exact migration hashes, passing bootstraps/tests/builds, and a fresh-schema preview. Never select development-data copy. After creation, bootstrap the first Platform Super Admin through the guarded setup route and verify zero customer/clinical rows. Preserve source, migrations, Landing Page screenshots, and brand assets.
+**How to apply:** Never bypass read-only Production access, reset data, copy Development rows, or run migrations directly. Verify schema state through read-only structural checks; treat journal absence separately from drift. Future schema changes go only through the reviewed Replit Publish diff, with no overwrite-data option.

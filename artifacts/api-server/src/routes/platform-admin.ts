@@ -41,6 +41,10 @@ import {
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
 import { loadPlatformSettings } from "../lib/platform-settings";
+import {
+  inspectSchemaHealth,
+  type SchemaQueryExecutor,
+} from "../lib/schema-health";
 import { parseOrRespond } from "../lib/validation";
 
 const router: IRouter = Router();
@@ -579,22 +583,29 @@ router.get("/platform-admin/health", async (_req, res) => {
   components.email = process.env.SUPPORT_EMAIL
     ? { status: "warning", messageCode: "emailSupportOnly" }
     : { status: "warning", messageCode: "emailDisabled" };
-  const [errors] = await db.select({ count: sql<number>`count(*)::int` }).from(systemErrorsTable)
-    .where(and(eq(systemErrorsTable.isResolved, false), gte(systemErrorsTable.occurredAt, new Date(Date.now() - 3600000))));
-  components.recentErrors = Number(errors?.count ?? 0) > 0
-    ? { status: "warning", messageCode: "recentErrorsOpen", value: Number(errors?.count ?? 0) }
-    : { status: "healthy", messageCode: "recentErrorsNone", value: 0 };
-  try {
-    const result = await db.execute<{ count: number }>(
-      sql`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`,
-    );
-    components.schema = {
-      status: "healthy",
-      messageCode: "schemaRecorded",
-      value: Number(result.rows[0]?.count ?? 0),
+  if (databaseAvailable) {
+    try {
+      const [errors] = await db.select({ count: sql<number>`count(*)::int` }).from(systemErrorsTable)
+        .where(and(eq(systemErrorsTable.isResolved, false), gte(systemErrorsTable.occurredAt, new Date(Date.now() - 3600000))));
+      components.recentErrors = Number(errors?.count ?? 0) > 0
+        ? { status: "warning", messageCode: "recentErrorsOpen", value: Number(errors?.count ?? 0) }
+        : { status: "healthy", messageCode: "recentErrorsNone", value: 0 };
+    } catch {
+      components.recentErrors = { status: "unavailable", messageCode: "recentErrorsUnavailable" };
+    }
+
+    const executeSchemaQuery: SchemaQueryExecutor = async (query) => {
+      const result = await db.execute(query);
+      return { rows: result.rows as Array<Record<string, unknown>> };
     };
-  } catch {
-    components.schema = { status: "warning", messageCode: "schemaUnknown" };
+    components.schema = await inspectSchemaHealth(executeSchemaQuery);
+    if (components.schema.messageCode === "schemaDatabaseUnavailable") {
+      components.database = { status: "unavailable", messageCode: "databaseUnavailable" };
+      components.storage = { status: "unavailable", messageCode: "storageDatabaseUnavailable" };
+    }
+  } else {
+    components.recentErrors = { status: "unavailable", messageCode: "recentErrorsUnavailable" };
+    components.schema = { status: "unavailable", messageCode: "schemaDatabaseUnavailable" };
   }
   const statuses = Object.values(components).map((component) => component.status);
   const overall = statuses.includes("unavailable") ? "unavailable" : statuses.includes("warning") ? "warning" : "healthy";

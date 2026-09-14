@@ -21,5 +21,5 @@
 - [Tenantless platform preferences](tenantless-platform-preferences.md) — identity preferences must work without a clinic tenant; avoid locale feedback loops and tenant audit assumptions.
 - [Permanent activation invariant](permanent-activation-invariant.md) — use activation history, not current status, to block trial actions and preserve permanent access through suspension.
 - [Immutable media promotion](immutable-media-promotion.md) — validate and copy the exact same staging generation into a create-only canonical object; one final object belongs to one record.
-- [Production database replacement](production-migration-drift.md) — legacy reconciliation is abandoned and old prod DB removed; future release must create a clean schema without copying dev data.
+- [Production database lifecycle](production-migration-drift.md) — live real-user DB must be preserved; Replit schema sync may leave no Drizzle journal, which alone is not drift.
 - [Wouter query state](wouter-query-state.md) — useSearch, not useLocation alone, must drive URL-query UI state and Back/Forward behavior.
