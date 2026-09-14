@@ -647,22 +647,6 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="mx-auto mt-10 max-w-6xl border-t border-[#DDE7EC] pt-8">
-            <p className="mb-5 text-center text-sm font-semibold text-[#0D1B3D] md:text-start">
-              {t.clinical.operationsMessage}
-            </p>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {t.clinical.operations.map((item) => (
-                <div
-                  key={item.title}
-                  className="flex items-center gap-2.5 rounded-xl border border-[#DDE7EC] bg-white px-3 py-3 text-sm font-medium text-[#334155]"
-                >
-                  <item.icon className="shrink-0 text-[#0F766E]" size={18} strokeWidth={1.8} aria-hidden="true" />
-                  <span>{item.title}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
       {/* Features Section */}
