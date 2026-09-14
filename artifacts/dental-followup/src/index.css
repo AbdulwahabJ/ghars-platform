@@ -489,6 +489,14 @@
     @apply cursor-pointer transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#25D366]/60 hover:bg-[#25D366]/10 hover:shadow-[0_10px_24px_-14px_rgba(37,211,102,0.5)] active:translate-y-0 motion-reduce:transform-none;
   }
 
+  .btn-outline.landing-whatsapp-action-dark {
+    @apply border-[#25D366]/70 bg-white/5 text-white;
+  }
+
+  .btn-outline.landing-whatsapp-action-dark:hover {
+    @apply border-[#25D366] bg-[#25D366]/20 text-white;
+  }
+
   .landing-nav-link {
     @apply relative cursor-pointer rounded-sm py-1 text-[#64748B] transition-colors duration-200 hover:text-[#0D1B3D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] focus-visible:ring-offset-2;
   }

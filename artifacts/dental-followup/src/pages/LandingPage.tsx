@@ -838,7 +838,7 @@ export default function LandingPage() {
               {t.trial.cta}
             </Link>
             {supportWhatsappHref ? (
-              <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline landing-whatsapp-action border-white/20 text-white text-lg h-14 px-8 w-full sm:w-auto">
+              <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" className="btn-outline landing-whatsapp-action landing-whatsapp-action-dark text-lg h-14 px-8 w-full sm:w-auto">
                 <MessageCircle className="me-2 text-[#25D366]" size={20} />
                 {t.trial.whatsapp}
               </a>
