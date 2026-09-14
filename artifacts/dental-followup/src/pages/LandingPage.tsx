@@ -58,8 +58,8 @@ const CONTENT = {
     },
     intro: {
       badge: "عن غرس",
-      title: "ما هو غرس؟",
-      desc: "غرس منصة متخصصة لتنظيم وإدارة رحلة علاج حالات الزراعة والإجراءات الجراحية المصاحبة، من تسجيل المريض وتوثيق الزرعات، إلى زراعة العظم ورفع الجيب الفكي والإجراءات الجراحية والتركيبات والمتابعات، مع إدارة المواعيد والدفعات والتقارير من مكان واحد."
+      title: "من الجراحة إلى التركيب والمتابعة.",
+      desc: "غرس نظام متخصص لإدارة حالات زراعة الأسنان والإجراءات المصاحبة لها، من زراعة العظم ورفع الجيب الفكي إلى التركيبات والمتابعة، بملف موحّد وواضح لكل مريض."
     },
     clinical: {
       badge: "الرحلة السريرية",
@@ -183,8 +183,8 @@ const CONTENT = {
     },
     intro: {
       badge: "About Ghars",
-      title: "What is Ghars?",
-      desc: "Ghars is a specialized platform for managing the complete treatment journey of implant cases and related surgical procedures — from patient records and implant documentation to bone grafting, sinus lift procedures, adjunct surgery, prosthetics, follow-ups, appointments, payments, and reporting."
+      title: "From surgery to prosthetics and follow-up.",
+      desc: "Ghars is a specialized system for managing dental implant cases and their related procedures, from bone grafting and sinus lift to prosthetics and follow-up, with one clear unified patient record."
     },
     clinical: {
       badge: "Clinical Workflow",
@@ -604,10 +604,10 @@ export default function LandingPage() {
       {/* Intro Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center">
+          <div className="mx-auto max-w-2xl text-center">
             <span className="text-[#0F766E] font-bold text-sm tracking-wider uppercase mb-3 block">{t.intro.badge}</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#0D1B3D] mb-6">{t.intro.title}</h2>
-            <p className="text-lg text-[#64748B] leading-relaxed">
+            <h2 className="mb-5 text-3xl font-bold text-[#0D1B3D] md:text-4xl">{t.intro.title}</h2>
+            <p className="mx-auto max-w-[700px] text-base font-medium leading-8 text-[#64748B] md:text-lg">
               {t.intro.desc}
             </p>
           </div>
