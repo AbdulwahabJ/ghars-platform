@@ -4,6 +4,20 @@ import { LoginInput, SetupInput, SwitchTenantInput } from "@workspace/shared";
 
 export const ME_QUERY_KEY = ["me"];
 export const SETUP_STATUS_QUERY_KEY = ["setup-status"];
+export const IMPERSONATION_RETURN_PATH_KEY = "ghars.impersonation.returnPath";
+
+type ImpersonationState = { startedAt: string } | null;
+type AuthMeWithImpersonation = {
+  impersonation?: ImpersonationState;
+};
+
+function clearTenantScopedQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.removeQueries({
+    predicate: (query) =>
+      !ME_QUERY_KEY.includes(query.queryKey[0] as string) &&
+      !SETUP_STATUS_QUERY_KEY.includes(query.queryKey[0] as string),
+  });
+}
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -61,12 +75,32 @@ export function useAuth() {
     },
   });
 
+  const startImpersonationMutation = useMutation({
+    mutationFn: ({ tenantId, userId, reason }: { tenantId: string; userId: string; reason: string }) =>
+      api.platformImpersonateUser(tenantId, userId, reason),
+    onSuccess: async () => {
+      clearTenantScopedQueries(queryClient);
+      await queryClient.refetchQueries({ queryKey: ME_QUERY_KEY, type: "active" });
+    },
+  });
+
+  const exitImpersonationMutation = useMutation({
+    mutationFn: () => api.exitImpersonation(),
+    onSuccess: async () => {
+      clearTenantScopedQueries(queryClient);
+      await queryClient.refetchQueries({ queryKey: ME_QUERY_KEY, type: "active" });
+    },
+  });
+
+  const meData = meQuery.data as unknown as AuthMeWithImpersonation | undefined;
+
   return {
     user: meQuery.data?.user,
     preferences: meQuery.data?.preferences,
     currentTenant: meQuery.data?.currentTenant,
     memberships: meQuery.data?.memberships ?? [],
     isPlatformAdmin: meQuery.data?.isPlatformAdmin ?? false,
+    impersonation: meData?.impersonation ?? null,
     isLoading: meQuery.isLoading,
     isError: meQuery.isError,
     setupStatus: setupStatusQuery.data,
@@ -74,5 +108,7 @@ export function useAuth() {
     logout: logoutMutation,
     setup: setupMutation,
     switchTenant: switchTenantMutation,
+    startImpersonation: startImpersonationMutation,
+    exitImpersonation: exitImpersonationMutation,
   };
 }

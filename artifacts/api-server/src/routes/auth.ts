@@ -42,6 +42,11 @@ import { toPublicUser } from "../lib/permissions";
 import { bootstrapTenantDefaults } from "../lib/tenant-bootstrap";
 import { parseOrRespond } from "../lib/validation";
 import {
+  captureImpersonation,
+  destroySession,
+  endImpersonation,
+} from "../lib/impersonation";
+import {
   loadUserTenantContext,
   requireAuth,
   toTenantSummary,
@@ -56,6 +61,10 @@ const PASSWORD_RESET_GENERIC_MESSAGE =
   "إذا كانت بيانات الحساب مطابقة ويوجد بريد إلكتروني مسجل، فسيصل رابط إعادة التعيين خلال دقائق.";
 const VERIFICATION_TOKEN_TTL_MS = 30 * 60 * 1000;
 import { loadPlatformSettings } from "../lib/platform-settings";
+const UNAUTHENTICATED = {
+  error: "يجب تسجيل الدخول للمتابعة.",
+  code: "UNAUTHENTICATED",
+};
 
 /** Constant-cost comparison target when the username does not exist. */
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
@@ -621,6 +630,13 @@ router.post(
 );
 
 router.post("/auth/change-password", requireAuth, async (req, res) => {
+  if (req.session.originalPlatformAdminId) {
+    res.status(403).json({
+      error: "لا يمكن تغيير كلمة المرور أثناء انتحال الهوية.",
+      code: "IMPERSONATION_PASSWORD_CHANGE_BLOCKED",
+    });
+    return;
+  }
   const input = parseOrRespond(changeOwnPasswordInputSchema, req.body, res);
   if (!input) return;
   const user = req.currentUser!;
@@ -655,6 +671,13 @@ router.post("/auth/change-password", requireAuth, async (req, res) => {
 });
 
 router.post("/auth/forced-password-change", requireAuth, async (req, res) => {
+  if (req.session.originalPlatformAdminId) {
+    res.status(403).json({
+      error: "لا يمكن تغيير كلمة المرور أثناء انتحال الهوية.",
+      code: "IMPERSONATION_PASSWORD_CHANGE_BLOCKED",
+    });
+    return;
+  }
   const input = parseOrRespond(forcedPasswordChangeInputSchema, req.body, res);
   if (!input) return;
   const user = req.currentUser!;
@@ -689,8 +712,21 @@ router.post("/auth/forced-password-change", requireAuth, async (req, res) => {
 });
 
 router.post("/auth/logout", async (req, res) => {
+  const impersonation = captureImpersonation(req);
   const userId = req.session.userId;
   const tenantId = req.session.tenantId;
+  if (impersonation) {
+    try {
+      await endImpersonation(req, impersonation, "LOGOUT", false);
+    } catch {
+      res.clearCookie("dfs.sid", { path: "/" });
+      res.status(500).json({
+        error: "تعذر تسجيل انتهاء جلسة الدعم بأمان.",
+        code: "IMPERSONATION_TERMINATION_FAILED",
+      });
+      return;
+    }
+  }
   if (userId) {
     await writeAudit({
       tenantId: tenantId ?? null,
@@ -701,7 +737,9 @@ router.post("/auth/logout", async (req, res) => {
       summary: "تسجيل خروج",
     });
   }
-  await new Promise<void>((resolve) => req.session.destroy(() => resolve()));
+  if (!impersonation) {
+    await destroySession(req);
+  }
   res.clearCookie("dfs.sid", { path: "/" });
   res.status(204).end();
 });
@@ -724,10 +762,74 @@ router.get("/auth/me", requireAuth, async (req, res) => {
       : null,
     memberships: req.tenantMemberships ?? [],
     isPlatformAdmin: req.isPlatformAdmin ?? false,
+    impersonation: req.session.originalPlatformAdminId
+      ? { startedAt: req.session.impersonationStartedAt! }
+      : null,
   });
 });
 
+router.post("/auth/impersonation/exit", async (req, res) => {
+  if (!req.session.userId) {
+    res.status(401).json(UNAUTHENTICATED);
+    return;
+  }
+  const snapshot = captureImpersonation(req);
+  if (!snapshot) {
+    res.status(409).json({ error: "لا توجد جلسة انتحال نشطة.", code: "IMPERSONATION_NOT_ACTIVE" });
+    return;
+  }
+
+  const [originalAdmin] = await db
+    .select({ id: usersTable.id, isActive: usersTable.isActive })
+    .from(usersTable)
+    .innerJoin(platformAdminsTable, eq(platformAdminsTable.userId, usersTable.id))
+    .where(and(eq(usersTable.id, snapshot.originalAdminId), eq(usersTable.isActive, true)))
+    .limit(1);
+  if (!originalAdmin) {
+    try {
+      await endImpersonation(req, snapshot, "ORIGINAL_PLATFORM_ADMIN_INVALID", false);
+    } catch {
+      res.clearCookie("dfs.sid", { path: "/" });
+      res.status(500).json({
+        error: "تعذر تسجيل انتهاء جلسة الدعم بأمان.",
+        code: "IMPERSONATION_TERMINATION_FAILED",
+      });
+      return;
+    }
+    res.clearCookie("dfs.sid", { path: "/" });
+    res.status(401).json({ error: "لم يعد حساب مسؤول المنصة صالحًا.", code: "IMPERSONATION_ORIGINAL_ADMIN_INVALID" });
+    return;
+  }
+
+  try {
+    const restored = await endImpersonation(req, snapshot, "USER_EXIT", true);
+    if (!restored) {
+      res.clearCookie("dfs.sid", { path: "/" });
+      res.status(500).json({
+        error: "تعذر استعادة جلسة مسؤول المنصة بأمان.",
+        code: "IMPERSONATION_RESTORE_FAILED",
+      });
+      return;
+    }
+  } catch {
+    res.clearCookie("dfs.sid", { path: "/" });
+    res.status(500).json({
+      error: "تعذر تسجيل انتهاء جلسة الدعم بأمان.",
+      code: "IMPERSONATION_TERMINATION_FAILED",
+    });
+    return;
+  }
+  res.json({ ok: true });
+});
+
 router.post("/auth/tenant", requireAuth, async (req, res) => {
+  if (req.session.originalPlatformAdminId) {
+    res.status(403).json({
+      error: "لا يمكن تغيير العيادة أثناء انتحال الهوية.",
+      code: "IMPERSONATION_TENANT_SWITCH_BLOCKED",
+    });
+    return;
+  }
   const input = parseOrRespond(switchTenantInputSchema, req.body, res);
   if (!input) return;
 

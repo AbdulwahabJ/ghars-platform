@@ -15,6 +15,10 @@ import type {
   TenantSummary,
   UserRole,
 } from "@workspace/shared";
+import {
+  captureImpersonation,
+  endImpersonation,
+} from "../lib/impersonation";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -42,6 +46,63 @@ const PASSWORD_CHANGE_ALLOWLIST = new Set([
   "POST /auth/forced-password-change",
 ]);
 
+async function isActivePlatformAdmin(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .innerJoin(platformAdminsTable, eq(platformAdminsTable.userId, usersTable.id))
+    .where(and(eq(usersTable.id, userId), eq(usersTable.isActive, true)))
+    .limit(1);
+  return !!row;
+}
+
+async function terminateImpersonation(
+  req: Request,
+  reason: string,
+  originalAdminValid: boolean,
+): Promise<boolean> {
+  const snapshot = captureImpersonation(req);
+  if (!snapshot) return false;
+  return endImpersonation(req, snapshot, reason, originalAdminValid);
+}
+
+async function terminateAndRespond(
+  req: Request,
+  res: Response,
+  reason: string,
+  originalAdminValid: boolean,
+): Promise<void> {
+  let restoredOriginalAdmin = false;
+  try {
+    restoredOriginalAdmin = await terminateImpersonation(
+      req,
+      reason,
+      originalAdminValid,
+    );
+  } catch {
+    if (!originalAdminValid) {
+      res.clearCookie("dfs.sid", { path: "/" });
+    }
+    res.status(500).json({
+      error: "تعذر تسجيل انتهاء جلسة الدعم بأمان.",
+      code: "IMPERSONATION_TERMINATION_FAILED",
+    });
+    return;
+  }
+  if (!restoredOriginalAdmin) {
+    res.clearCookie("dfs.sid", { path: "/" });
+  }
+  res.status(401).json({
+    error: "انتهت جلسة الدعم ويجب تسجيل الدخول مجددًا.",
+    code: "IMPERSONATION_TERMINATED",
+    terminationReason:
+      !restoredOriginalAdmin && originalAdminValid
+        ? `${reason}_RESTORE_FAILED`
+        : reason,
+    restoredOriginalAdmin,
+  });
+}
+
 /** Authorization is enforced here on the backend, never only in the UI. */
 export async function requireAuth(
   req: Request,
@@ -54,6 +115,22 @@ export async function requireAuth(
     return;
   }
 
+  const impersonating = Boolean(req.session.originalPlatformAdminId);
+  if (impersonating) {
+    const originalAdminValid = await isActivePlatformAdmin(
+      req.session.originalPlatformAdminId!,
+    );
+    if (!originalAdminValid) {
+      await terminateAndRespond(
+        req,
+        res,
+        "ORIGINAL_PLATFORM_ADMIN_INVALID",
+        false,
+      );
+      return;
+    }
+  }
+
   const [user] = await db
     .select()
     .from(usersTable)
@@ -61,13 +138,37 @@ export async function requireAuth(
     .limit(1);
 
   if (!user || !user.isActive) {
+    if (impersonating) {
+      await terminateAndRespond(req, res, "TARGET_USER_INACTIVE", true);
+      return;
+    }
     req.session.destroy(() => {
       res.status(401).json(UNAUTHENTICATED);
     });
     return;
   }
 
-  const context = await loadUserTenantContext(user.id, req.session.tenantId);
+  const effectiveTenantId = impersonating
+    ? req.session.impersonationTargetTenantId
+    : req.session.tenantId;
+  const context = await loadUserTenantContext(user.id, effectiveTenantId);
+
+  // An impersonated session is pinned to the tenant selected at start. Do not
+  // silently fall back to another membership if it was removed meanwhile.
+  if (impersonating && (
+    !req.session.impersonationTargetUserId ||
+    req.session.impersonationTargetUserId !== user.id ||
+    !context.current ||
+    context.current.tenant.id !== req.session.impersonationTargetTenantId
+  )) {
+    await terminateAndRespond(
+      req,
+      res,
+      "TARGET_MEMBERSHIP_INACTIVE_OR_SESSION_MISMATCH",
+      true,
+    );
+    return;
+  }
 
   if (context.current) {
     req.session.tenantId = context.current.tenant.id;
@@ -78,7 +179,9 @@ export async function requireAuth(
   }
 
   req.currentUser = user;
-  req.isPlatformAdmin = context.isPlatformAdmin;
+  // Platform authority belongs to the original actor, never to the effective
+  // impersonated user. This also prevents access to /platform-admin routes.
+  req.isPlatformAdmin = impersonating ? false : context.isPlatformAdmin;
   req.tenantMemberships = context.memberships.map(({ membership, tenant }) => ({
     role: membership.role,
     isActive: membership.isActive,

@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
+import rateLimit from "express-rate-limit";
 import {
   and,
   asc,
@@ -38,8 +39,13 @@ import {
   resolvePlatformErrorInputSchema,
   updateActivationWorkflowInputSchema,
   updatePlatformSettingsInputSchema,
+  impersonateUserInputSchema,
 } from "@workspace/shared";
-import { writeAudit } from "../lib/audit";
+import { writeAudit, writeAuditRequired } from "../lib/audit";
+import {
+  restoreOriginalAdmin,
+  type ImpersonationSnapshot,
+} from "../lib/impersonation";
 import { loadPlatformSettings } from "../lib/platform-settings";
 import {
   inspectSchemaHealth,
@@ -50,6 +56,14 @@ import { parseOrRespond } from "../lib/validation";
 const router: IRouter = Router();
 const APP_VERSION = process.env.APP_VERSION ?? "development";
 const ENVIRONMENT = process.env.NODE_ENV ?? "development";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const impersonationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "عدد محاولات انتحال الهوية كبير. يرجى المحاولة لاحقًا.", code: "RATE_LIMITED" },
+});
 
 const requestDto = (row: typeof tenantActivationRequestsTable.$inferSelect) => ({
   id: row.id,
@@ -133,6 +147,149 @@ function tenantSearch(query?: string): SQL | undefined {
     )`,
   );
 }
+
+router.post(
+  "/platform-admin/tenants/:tenantId/users/:userId/impersonate",
+  impersonationLimiter,
+  async (req, res) => {
+    if (req.session.originalPlatformAdminId) {
+      res.status(403).json({
+        error: "لا يمكن بدء انتحال هوية داخل جلسة انتحال أخرى.",
+        code: "IMPERSONATION_NESTED",
+      });
+      return;
+    }
+    const input = parseOrRespond(impersonateUserInputSchema, req.body, res);
+    if (!input) return;
+
+    const tenantId = String(req.params.tenantId);
+    const targetUserId = String(req.params.userId);
+    if (!UUID_PATTERN.test(tenantId) || !UUID_PATTERN.test(targetUserId)) {
+      res.status(404).json({ error: "المستخدم أو العميل غير موجود.", code: "IMPERSONATION_TARGET_INVALID" });
+      return;
+    }
+    const [tenant] = await db
+      .select({ id: tenantsTable.id })
+      .from(tenantsTable)
+      .where(and(eq(tenantsTable.id, tenantId), eq(tenantsTable.isInternal, false)))
+      .limit(1);
+    if (!tenant) {
+      res.status(404).json({ error: "العميل غير موجود.", code: "TENANT_NOT_FOUND" });
+      return;
+    }
+
+    const [target] = await db
+      .select({
+        id: usersTable.id,
+        isActive: usersTable.isActive,
+        mustChangePassword: usersTable.mustChangePassword,
+        membershipActive: tenantMembershipsTable.isActive,
+      })
+      .from(usersTable)
+      .innerJoin(
+        tenantMembershipsTable,
+        and(
+          eq(tenantMembershipsTable.userId, usersTable.id),
+          eq(tenantMembershipsTable.tenantId, tenantId),
+        ),
+      )
+      .where(eq(usersTable.id, targetUserId))
+      .limit(1);
+    if (!target || !target.isActive || !target.membershipActive) {
+      res.status(404).json({
+        error: "المستخدم غير موجود أو لا يملك عضوية نشطة في هذه العيادة.",
+        code: "IMPERSONATION_TARGET_INVALID",
+      });
+      return;
+    }
+    if (target.mustChangePassword) {
+      res.status(403).json({
+        error: "لا يمكن انتحال هوية حساب يتطلب تغيير كلمة المرور.",
+        code: "IMPERSONATION_TARGET_PASSWORD_CHANGE_REQUIRED",
+      });
+      return;
+    }
+    const [targetPlatformAdmin] = await db
+      .select({ userId: platformAdminsTable.userId })
+      .from(platformAdminsTable)
+      .where(eq(platformAdminsTable.userId, targetUserId))
+      .limit(1);
+    if (targetPlatformAdmin) {
+      res.status(403).json({
+        error: "لا يمكن انتحال هوية مسؤول منصة.",
+        code: "IMPERSONATION_PLATFORM_ADMIN_TARGET",
+      });
+      return;
+    }
+
+    const originalAdminId = req.currentUser!.id;
+    const originalAdminTenantId = req.session.tenantId;
+    const startedAt = new Date().toISOString();
+    const lifecycle: ImpersonationSnapshot = {
+      originalAdminId,
+      originalTenantId: originalAdminTenantId,
+      targetUserId,
+      targetTenantId: tenantId,
+      startedAt,
+      reason: input.reason,
+    };
+    try {
+      await new Promise<void>((resolve, reject) =>
+        req.session.regenerate((err) => (err ? reject(err) : resolve())),
+      );
+      req.session.userId = targetUserId;
+      req.session.tenantId = tenantId;
+      req.session.originalPlatformAdminId = originalAdminId;
+      if (originalAdminTenantId) {
+        req.session.originalPlatformAdminTenantId = originalAdminTenantId;
+      }
+      req.session.impersonationTargetUserId = targetUserId;
+      req.session.impersonationTargetTenantId = tenantId;
+      req.session.impersonationStartedAt = startedAt;
+      req.session.impersonationReason = input.reason;
+      await new Promise<void>((resolve, reject) =>
+        req.session.save((err) => (err ? reject(err) : resolve())),
+      );
+    } catch {
+      await restoreOriginalAdmin(req, lifecycle);
+      res.status(500).json({
+        error: "تعذر إنشاء جلسة الدعم بأمان.",
+        code: "IMPERSONATION_START_FAILED",
+      });
+      return;
+    }
+    try {
+      await writeAuditRequired({
+        tenantId,
+        userId: originalAdminId,
+        action: "IMPERSONATION_STARTED",
+        entityType: "user",
+        entityId: targetUserId,
+        summary: "بدء انتحال هوية مستخدم",
+        details: {
+          originalPlatformAdminId: originalAdminId,
+          targetUserId,
+          targetTenantId: tenantId,
+          reason: input.reason,
+          startedAt,
+          requestIp: req.ip,
+          ip: req.ip,
+          userAgent: req.get("user-agent") ?? null,
+        },
+      });
+    } catch {
+      // The support session was never acknowledged without its START audit.
+      // Restore the captured original context, or destroy if restoration fails.
+      await restoreOriginalAdmin(req, lifecycle);
+      res.status(500).json({
+        error: "تعذر تسجيل بدء جلسة الدعم بأمان.",
+        code: "IMPERSONATION_START_FAILED",
+      });
+      return;
+    }
+    res.json({ ok: true });
+  },
+);
 
 router.get("/platform-admin/overview", async (_req, res) => {
   const now = new Date();

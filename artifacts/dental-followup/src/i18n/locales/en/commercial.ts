@@ -258,6 +258,8 @@ export default {
       approveRequest: "Approve Request",
       rejectRequest: "Reject Request",
       resetPassword: "Reset Password",
+      loginAsUser: "Login as User",
+      confirmLoginAsUser: "Start support session",
     },
     stats: {
       users: "Users",
@@ -277,8 +279,23 @@ export default {
       generateHint: "Leave blank to generate a secure password.",
       temporaryPasswordNotice: "Copy this password now and share it manually. It cannot be viewed again after closing this dialog.",
       copyPassword: "Copy password",
+      impersonateTitle: "Login as user",
+      impersonateDescription: "You are about to start a secure support session. You will see the tenant app as this user. No password will be shown or changed.",
+      tenant: "Tenant",
+      user: "Full name",
+      username: "Username",
+      supportReason: "Support reason",
+      supportReasonPlaceholder: "Describe why access is needed...",
+      supportReasonHint: "This reason is recorded in the support audit trail.",
     },
-    users: { title: "Organization Users", name: "Name", username: "Username", role: "Role", status: "Status", lastLogin: "Last Login", active: "Active", disabled: "Disabled" }
+    users: { title: "Organization Users", name: "Name", username: "Username", role: "Role", status: "Status", lastLogin: "Last Login", active: "Active", disabled: "Disabled" },
+  },
+  impersonation: {
+    bannerTitle: "Secure support session active",
+    bannerDescription: "You are viewing {{name}}’s account in {{tenant}}.",
+    unknownTenant: "the current tenant",
+    exit: "Exit Support Session",
+    exitFailed: "Could not end support session",
   },
   statuses: {
     PENDING_VERIFICATION: "Pending Verification",

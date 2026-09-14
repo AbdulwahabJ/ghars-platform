@@ -79,8 +79,14 @@ export const meResponseSchema = z.object({
   currentTenant: tenantSummarySchema.nullable(),
   memberships: z.array(tenantMembershipSummarySchema),
   isPlatformAdmin: z.boolean(),
+  impersonation: z.object({ startedAt: z.string() }).nullable(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
+
+export const impersonateUserInputSchema = z.object({
+  reason: z.string().trim().min(3, "سبب انتحال الهوية مطلوب.").max(500, "سبب انتحال الهوية طويل جدًا."),
+});
+export type ImpersonateUserInput = z.infer<typeof impersonateUserInputSchema>;
 
 export const switchTenantInputSchema = z.object({
   tenantId: z.string().uuid(),

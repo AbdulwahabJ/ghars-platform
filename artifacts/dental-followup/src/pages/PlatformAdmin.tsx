@@ -13,16 +13,16 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function PlatformAdmin() {
-  const { isPlatformAdmin } = useAuth();
+  const { isPlatformAdmin, impersonation } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isPlatformAdmin) {
+    if (!isPlatformAdmin || impersonation) {
       setLocation("/dashboard");
     }
-  }, [isPlatformAdmin, setLocation]);
+  }, [isPlatformAdmin, impersonation, setLocation]);
 
-  if (!isPlatformAdmin) {
+  if (!isPlatformAdmin || impersonation) {
     return null;
   }
 

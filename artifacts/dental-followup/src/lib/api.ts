@@ -149,6 +149,10 @@ export class ApiError extends Error {
   }
 }
 
+export const IMPERSONATION_TERMINATED_EVENT = "ghars:impersonation-terminated";
+export const IMPERSONATION_TERMINATED_CODE = "IMPERSONATION_TERMINATED";
+export const IMPERSONATION_ORIGINAL_ADMIN_INVALID_CODE = "IMPERSONATION_ORIGINAL_ADMIN_INVALID";
+
 interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   json?: unknown;
@@ -173,10 +177,28 @@ async function request<T>(
     let data: unknown;
     try {
       data = await response.json();
-      const body = data as { error?: string; code?: string; field?: string };
+      const body = data as {
+        error?: string;
+        code?: string;
+        field?: string;
+        restoredOriginalAdmin?: boolean;
+      };
       code = body.code;
       field = body.field;
       message = localizeApiErrorMessage(code, body.error);
+      if (
+        typeof window !== "undefined" &&
+        (code === IMPERSONATION_TERMINATED_CODE ||
+          code === IMPERSONATION_ORIGINAL_ADMIN_INVALID_CODE)
+      ) {
+        window.dispatchEvent(
+          new CustomEvent(IMPERSONATION_TERMINATED_EVENT, {
+            detail: {
+              restoredOriginalAdmin: body.restoredOriginalAdmin === true,
+            },
+          }),
+        );
+      }
     } catch {
       // Non-JSON error body — keep the localized generic message.
     }
@@ -241,6 +263,13 @@ export const api = {
     }),
   switchTenant: (input: SwitchTenantInput) =>
     request<MeResponse>("/auth/tenant", { method: "POST", json: input }),
+  platformImpersonateUser: (tenantId: string, userId: string, reason: string) =>
+    request<{ ok: true }>(
+      `/platform-admin/tenants/${tenantId}/users/${userId}/impersonate`,
+      { method: "POST", json: { reason } },
+    ),
+  exitImpersonation: () =>
+    request<{ ok: true }>("/auth/impersonation/exit", { method: "POST" }),
 
   // Commercial Lifecycle
   getCommercialStatus: () => request<CommercialStatus>("/commercial/status"),

@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import { buildSupportWhatsappLink } from "@/lib/support";
+import { ImpersonationBanner } from "@/components/layout/ImpersonationBanner";
 
 export default function AccessStatus() {
   const [, setLocation] = useLocation();
@@ -84,6 +85,7 @@ export default function AccessStatus() {
           </Button>
         </div>
       </header>
+      <ImpersonationBanner />
 
       <main className="flex-1 flex items-center justify-center p-3 sm:p-6">
         <div className="w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

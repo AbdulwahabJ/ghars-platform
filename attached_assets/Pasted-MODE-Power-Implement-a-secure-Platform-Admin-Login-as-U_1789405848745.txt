@@ -1,0 +1,257 @@
+MODE: Power
+
+Implement a secure Platform Admin "Login as User" / impersonation feature.
+
+IMPORTANT:
+Do NOT expose, decrypt, display, store, or retrieve customer passwords.
+
+Passwords must remain one-way hashed only.
+
+==================================================
+1. PLATFORM ADMIN ACTION
+==================================================
+
+On:
+
+Platform Admin
+→ Customers
+→ Customer Details
+→ Users
+
+Add an action for each eligible tenant user:
+
+Arabic:
+الدخول كمستخدم
+
+English:
+Login as User
+
+Only platform_super_admin may use this feature.
+
+==================================================
+2. CONFIRMATION DIALOG
+==================================================
+
+Before impersonation, show a confirmation dialog containing:
+
+- customer/tenant name
+- target user's name
+- target username
+- required reason field
+
+Arabic example:
+
+"أنت على وشك الدخول إلى حساب هذا المستخدم لأغراض الدعم الفني أو التحقق من مشكلة."
+
+Require a support reason before proceeding.
+
+==================================================
+3. SECURE IMPERSONATION SESSION
+==================================================
+
+Create a dedicated server-side impersonation mechanism.
+
+Do NOT:
+- reveal password
+- reset password
+- change password
+- create fake credentials
+- reuse customer's password
+
+The Platform Admin should receive a temporary authenticated session acting as the selected user.
+
+Store in session:
+
+- original_platform_admin_id
+- impersonated_user_id
+- tenant_id
+- impersonation_started_at
+- support_reason
+
+==================================================
+4. VISIBLE IMPERSONATION BANNER
+==================================================
+
+While impersonating, show a persistent banner at the top of the application.
+
+Arabic:
+
+"أنت الآن داخل حساب [اسم المستخدم] لأغراض الدعم"
+
+Include:
+
+"إنهاء جلسة الدعم"
+
+English equivalent:
+
+"You are viewing this account in support mode"
+
+The admin must always know they are impersonating.
+
+==================================================
+5. EXIT IMPERSONATION
+==================================================
+
+Clicking:
+
+إنهاء جلسة الدعم
+Exit Support Session
+
+must:
+
+- terminate the impersonated session
+- restore the original Platform Super Admin session
+- return to Platform Admin
+
+Do not require another login if the original secure session is still valid.
+
+==================================================
+6. AUDIT LOG
+==================================================
+
+Every impersonation event must be audited.
+
+Record:
+
+- platform admin ID
+- target tenant ID
+- target user ID
+- reason
+- start timestamp
+- end timestamp
+- IP if already available in audit infrastructure
+- user agent if already available
+
+Events:
+
+IMPERSONATION_STARTED
+IMPERSONATION_ENDED
+
+Never log passwords or secrets.
+
+==================================================
+7. PERMISSION SAFETY
+==================================================
+
+During impersonation:
+
+the effective permissions must be exactly the target user's permissions.
+
+Do NOT retain Platform Super Admin privileges inside the tenant UI.
+
+The impersonated session must NOT be able to access Platform Admin routes.
+
+==================================================
+8. HIGH-RISK ACTIONS
+==================================================
+
+For especially sensitive actions, preserve existing application authorization.
+
+Do not create any hidden bypass.
+
+If practical, mark audit events performed during impersonation with:
+
+performed_via_impersonation = true
+
+so later audits clearly distinguish support activity from customer activity.
+
+==================================================
+9. TARGET USERS
+==================================================
+
+Allow impersonation of:
+
+- Tenant Admin
+- normal tenant users
+
+Do NOT allow impersonating another platform_super_admin.
+
+Do not allow disabled/suspended users unless there is an explicit safe support reason and current architecture permits it.
+
+Prefer blocking disabled users by default.
+
+==================================================
+10. SECURITY
+==================================================
+
+Use:
+
+- requireAuth
+- require platform_super_admin
+- CSRF protection
+- server-derived tenant/user identity
+- rate limiting if appropriate
+- secure server-side session handling
+
+Never trust tenantId/userId ownership from the frontend without server validation.
+
+==================================================
+11. CUSTOMER PASSWORD DISPLAY
+==================================================
+
+Explicitly confirm:
+
+CUSTOMER PASSWORD VISIBILITY: DISABLED
+
+There must be no endpoint, UI, API, database column, admin tool, or debug utility capable of showing a customer's current password.
+
+Existing password reset functionality may remain separate.
+
+==================================================
+12. UI
+==================================================
+
+In the customer users table add actions such as:
+
+- إعادة تعيين كلمة المرور
+- الدخول كمستخدم
+
+Keep the UI compact and professional.
+
+Use an icon such as:
+LogIn / UserRoundCog
+
+No security-danger styling unless appropriate.
+
+==================================================
+13. TESTS
+==================================================
+
+Test:
+
+A. Platform Super Admin can impersonate Tenant Admin
+B. Platform Super Admin can impersonate normal employee
+C. Tenant Admin cannot impersonate anyone
+D. normal user cannot call impersonation endpoint
+E. impersonated session has only target permissions
+F. Platform Admin routes blocked during impersonation
+G. exit restores original admin session
+H. start/end audit events created
+I. reason required
+J. customer password remains unrecoverable
+
+==================================================
+14. DO NOT PUBLISH
+==================================================
+
+Run:
+
+- TypeScript
+- auth tests
+- tenant isolation tests
+- audit tests
+- production build
+
+Create checkpoint and STOP.
+
+Final report:
+
+IMPERSONATION FEATURE: PASS / FAIL
+PASSWORD VISIBILITY: DISABLED / UNSAFE
+AUDIT LOGGING: PASS / FAIL
+PERMISSION ISOLATION: PASS / FAIL
+SESSION RESTORE: PASS / FAIL
+TESTS: PASS / FAIL
+BUILD: PASS / FAIL
+
+Do not publish.

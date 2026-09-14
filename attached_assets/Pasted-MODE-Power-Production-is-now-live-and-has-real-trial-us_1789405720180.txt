@@ -1,0 +1,153 @@
+MODE: Power
+
+Production is now live and has real trial users.
+
+The Platform Admin System Health page currently shows:
+
+Database Schema:
+"Unable to measure the database migration journal / requires follow-up"
+
+IMPORTANT:
+The application itself is working.
+At least 3 real trial users have registered successfully in Production.
+
+DO NOT:
+- reset the production database
+- delete any data
+- modify production schema blindly
+- re-run migrations blindly
+- repair the migration journal without proof
+- copy Development data to Production
+- publish automatically
+
+Investigate this issue READ-ONLY first.
+
+==================================================
+1. VERIFY PRODUCTION DATABASE HEALTH
+==================================================
+
+Confirm in Production:
+
+- database connectivity works
+- normal reads work
+- normal writes work
+- tenant registration works
+- users/tenants created by the recent trial registrations exist correctly
+
+Do not expose personal data in the report.
+
+==================================================
+2. INSPECT MIGRATION JOURNAL
+==================================================
+
+Read-only inspect:
+
+- whether drizzle.__drizzle_migrations exists
+- its row count
+- latest migration represented
+- whether migrations 0000–0024 are represented
+- whether hashes/metadata match current migration files where applicable
+
+Also inspect whether Replit's fresh Production initialization uses the same migration journal format expected by our health check.
+
+==================================================
+3. INSPECT THE HEALTH CHECK IMPLEMENTATION
+==================================================
+
+Find the exact backend code that produces the warning:
+
+"Database Schema"
+
+Determine exactly what query/check fails.
+
+Report:
+
+- SQL/query used
+- expected result
+- actual result/error
+- whether this is a REAL schema problem or only a HEALTH-CHECK OBSERVABILITY problem
+
+Do not expose credentials.
+
+==================================================
+4. VERIFY ACTUAL SCHEMA
+==================================================
+
+Independently verify the important current Production schema exists:
+
+- tenants
+- tenant_memberships
+- patients
+- implant_cases
+- implants
+- followups
+- communications
+- payments
+- application_settings
+- whatsapp_templates
+- managed lists
+- platform admin tables
+- trial/commercial lifecycle fields
+
+Check key tenant_id columns and constraints.
+
+==================================================
+5. DO NOT MODIFY IF SCHEMA IS ALREADY CORRECT
+==================================================
+
+If Production schema is current and the only problem is that the health check cannot correctly read the migration journal:
+
+FIX ONLY THE HEALTH CHECK.
+
+Do not mutate Production migration history unnecessarily.
+
+The System Health card should accurately distinguish:
+
+A. Schema current / journal readable
+B. Schema current / journal unavailable
+C. Schema drift detected
+D. Database unavailable
+
+Do not show an alarming schema warning if the database is healthy and schema is current but journal visibility is limited.
+
+==================================================
+6. REAL USERS MUST BE PRESERVED
+==================================================
+
+There are now real trial registrations in Production.
+
+Preserve all existing:
+
+- users
+- tenants
+- memberships
+- trial timestamps
+- managed lists
+- WhatsApp templates
+- settings
+- any patient/clinical data they may have entered
+
+ZERO destructive operations.
+
+==================================================
+7. FINAL REPORT
+==================================================
+
+Report:
+
+PRODUCTION DATABASE CONNECTIVITY: PASS / FAIL
+PRODUCTION READS: PASS / FAIL
+PRODUCTION WRITES: PASS / FAIL
+RECENT TRIAL REGISTRATIONS: VALID / ISSUE
+MIGRATION JOURNAL EXISTS: YES / NO
+MIGRATION JOURNAL CURRENT: YES / NO / NOT MEASURABLE
+ACTUAL PRODUCTION SCHEMA CURRENT: YES / NO
+SCHEMA DRIFT DETECTED: YES / NO
+HEALTH CHECK BUG: YES / NO
+DATA PRESERVATION: PASS / FAIL
+
+Then explain the exact root cause.
+
+If a code-only health-check fix is sufficient, implement it, run tests/build, create a checkpoint, and STOP.
+
+DO NOT PUBLISH.

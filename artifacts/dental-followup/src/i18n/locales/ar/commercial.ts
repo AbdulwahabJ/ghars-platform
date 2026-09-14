@@ -257,6 +257,8 @@ export default {
       approveRequest: "قبول الطلب",
       rejectRequest: "رفض الطلب",
       resetPassword: "إعادة تعيين كلمة المرور",
+      loginAsUser: "تسجيل الدخول كمستخدم",
+      confirmLoginAsUser: "بدء جلسة الدعم",
     },
     stats: {
       users: "المستخدمين",
@@ -276,8 +278,23 @@ export default {
       generateHint: "اترك الحقل فارغًا لتوليد كلمة مرور آمنة.",
       temporaryPasswordNotice: "انسخ كلمة المرور الآن وأرسلها يدويًا. لن يمكن عرضها مجددًا بعد إغلاق النافذة.",
       copyPassword: "نسخ كلمة المرور",
+      impersonateTitle: "تسجيل الدخول كمستخدم",
+      impersonateDescription: "أنت على وشك بدء جلسة دعم آمنة. ستتمكن من رؤية تطبيق المنشأة بصفته هذا المستخدم. لن يتم عرض كلمة المرور أو تغييرها.",
+      tenant: "المنشأة",
+      user: "الاسم الكامل",
+      username: "اسم المستخدم",
+      supportReason: "سبب الدعم",
+      supportReasonPlaceholder: "اكتب سبب الحاجة إلى الدخول...",
+      supportReasonHint: "سيتم تسجيل هذا السبب في سجل تدقيق الدعم.",
     },
-    users: { title: "مستخدمو المنشأة", name: "الاسم", username: "اسم المستخدم", role: "الدور", status: "الحالة", lastLogin: "آخر دخول", active: "نشط", disabled: "موقوف" }
+    users: { title: "مستخدمو المنشأة", name: "الاسم", username: "اسم المستخدم", role: "الدور", status: "الحالة", lastLogin: "آخر دخول", active: "نشط", disabled: "موقوف" },
+  },
+  impersonation: {
+    bannerTitle: "جلسة دعم آمنة نشطة",
+    bannerDescription: "أنت تشاهد حساب {{name}} في {{tenant}}.",
+    unknownTenant: "المنشأة الحالية",
+    exit: "إنهاء جلسة الدعم",
+    exitFailed: "تعذر إنهاء جلسة الدعم",
   },
   statuses: {
     PENDING_VERIFICATION: "بانتظار التفعيل",

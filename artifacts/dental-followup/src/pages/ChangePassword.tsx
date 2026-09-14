@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImpersonationBanner } from "@/components/layout/ImpersonationBanner";
 
 export default function ChangePassword() {
   const { t } = useTranslation("auth");
@@ -48,6 +49,7 @@ export default function ChangePassword() {
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 p-4">
+      <ImpersonationBanner />
       <div className="absolute end-6 top-6">
         <LanguageSwitcher />
       </div>

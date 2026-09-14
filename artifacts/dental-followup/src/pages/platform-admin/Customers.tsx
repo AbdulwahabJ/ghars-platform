@@ -17,12 +17,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowRight, CheckCircle2, ShieldAlert, Loader2, FileText, Settings2, Calendar, Copy, KeyRound, MapPin, Phone } from "lucide-react";
+import { Search, ArrowRight, CheckCircle2, ShieldAlert, Loader2, FileText, Settings2, Calendar, Copy, KeyRound, MapPin, Phone, LogIn } from "lucide-react";
 import type { PlatformTenantListInput } from "@workspace/shared";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { useAuth, IMPERSONATION_RETURN_PATH_KEY } from "@/hooks/use-auth";
 
 export default function Customers() {
   const [query, setQuery] = useState("");
@@ -166,6 +167,8 @@ function StatusBadge({ status }: { status: string }) {
 export function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const { data: detailData, isLoading } = usePlatformTenant(id);
   const { t } = useTranslation(["commercial", "common"]);
+  const [location, setLocation] = useLocation();
+  const { startImpersonation } = useAuth();
 
   const activateMutation = usePlatformActivateTenant();
   const suspendMutation = usePlatformSuspendTenant();
@@ -182,6 +185,33 @@ export function TenantDetail({ id, onBack }: { id: string; onBack: () => void })
   const [resetUser, setResetUser] = useState<{ id: string; fullName: string } | null>(null);
   const [manualPassword, setManualPassword] = useState("");
   const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [impersonationUser, setImpersonationUser] = useState<{ id: string; fullName: string; username: string } | null>(null);
+  const [impersonationReason, setImpersonationReason] = useState("");
+
+  const closeImpersonationDialog = () => {
+    if (startImpersonation.isPending) return;
+    setImpersonationUser(null);
+    setImpersonationReason("");
+    startImpersonation.reset();
+  };
+
+  const handleStartImpersonation = () => {
+    if (!impersonationUser || !impersonationReason.trim()) return;
+    sessionStorage.setItem(
+      IMPERSONATION_RETURN_PATH_KEY,
+      location.startsWith("/platform-admin") ? location : `/platform-admin/customers/${id}`,
+    );
+    startImpersonation.mutate(
+      { tenantId: id, userId: impersonationUser.id, reason: impersonationReason.trim() },
+      {
+        onSuccess: () => {
+          setImpersonationUser(null);
+          setImpersonationReason("");
+          setLocation("/dashboard");
+        },
+      },
+    );
+  };
 
   if (isLoading || !detailData) {
     return (
@@ -343,22 +373,43 @@ export function TenantDetail({ id, onBack }: { id: string; onBack: () => void })
                         {tenantUser.lastLoginAt ? formatSaudiDateTime(tenantUser.lastLoginAt) : "—"}
                       </TableCell>
                       <TableCell>
-                        {tenantUser.role === "ADMIN" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-2"
-                            onClick={() => {
-                              setResetUser({ id: tenantUser.id, fullName: tenantUser.fullName });
-                              setManualPassword("");
-                              setTemporaryPassword("");
-                              resetPasswordMutation.reset();
-                            }}
-                          >
-                            <KeyRound className="h-4 w-4" />
-                            {t("platformAdmin.actions.resetPassword", "Reset Password")}
-                          </Button>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {tenantUser.isActive && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5 border-amber-300 text-amber-800 hover:bg-amber-50"
+                              onClick={() => {
+                                setImpersonationUser({
+                                  id: tenantUser.id,
+                                  fullName: tenantUser.fullName,
+                                  username: tenantUser.username,
+                                });
+                                setImpersonationReason("");
+                                startImpersonation.reset();
+                              }}
+                            >
+                              <LogIn className="h-3.5 w-3.5" />
+                              {t("platformAdmin.actions.loginAsUser", "Login as User")}
+                            </Button>
+                          )}
+                          {tenantUser.role === "ADMIN" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-2"
+                              onClick={() => {
+                                setResetUser({ id: tenantUser.id, fullName: tenantUser.fullName });
+                                setManualPassword("");
+                                setTemporaryPassword("");
+                                resetPasswordMutation.reset();
+                              }}
+                            >
+                              <KeyRound className="h-4 w-4" />
+                              {t("platformAdmin.actions.resetPassword", "Reset Password")}
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -558,6 +609,73 @@ export function TenantDetail({ id, onBack }: { id: string; onBack: () => void })
                 <Button onClick={handlePasswordReset} disabled={resetPasswordMutation.isPending} className="btn-primary">
                   {resetPasswordMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
                   {t("platformAdmin.actions.resetPassword", "Reset Password")}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!impersonationUser}
+        onOpenChange={(open) => !open && closeImpersonationDialog()}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("platformAdmin.dialogs.impersonateTitle", "Login as user")}</DialogTitle>
+          </DialogHeader>
+          {impersonationUser && (
+            <>
+              <p className="text-sm leading-relaxed text-slate-600">
+                {t("platformAdmin.dialogs.impersonateDescription", "You are about to start a secure support session. You will see the tenant app as this user. No password will be shown or changed.")}
+              </p>
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <span className="text-slate-500">{t("platformAdmin.dialogs.tenant", "Tenant")}</span>
+                  <span className="text-end font-semibold text-slate-900">{tenant.name}</span>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <span className="text-slate-500">{t("platformAdmin.dialogs.user", "Full name")}</span>
+                  <span className="text-end font-semibold text-slate-900">{impersonationUser.fullName}</span>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <span className="text-slate-500">{t("platformAdmin.dialogs.username", "Username")}</span>
+                  <span dir="ltr" className="text-end font-mono text-slate-900">{impersonationUser.username}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="impersonation-reason" className="block text-sm font-medium text-slate-900">
+                  {t("platformAdmin.dialogs.supportReason", "Support reason")} <span className="text-red-600">*</span>
+                </label>
+                <Textarea
+                  id="impersonation-reason"
+                  value={impersonationReason}
+                  onChange={(event) => setImpersonationReason(event.target.value)}
+                  placeholder={t("platformAdmin.dialogs.supportReasonPlaceholder", "Describe why access is needed...")}
+                  rows={4}
+                  maxLength={1000}
+                  className="resize-none"
+                  autoFocus
+                  required
+                />
+                <p className="text-xs text-slate-500">{t("platformAdmin.dialogs.supportReasonHint", "This reason is recorded in the support audit trail.")}</p>
+              </div>
+              {startImpersonation.isError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{localizeErrorMessage(startImpersonation.error)}</AlertDescription>
+                </Alert>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={closeImpersonationDialog} disabled={startImpersonation.isPending}>
+                  {t("platformAdmin.dialogs.cancel", "Cancel")}
+                </Button>
+                <Button
+                  onClick={handleStartImpersonation}
+                  disabled={!impersonationReason.trim() || startImpersonation.isPending}
+                  className="bg-amber-700 text-white hover:bg-amber-800"
+                >
+                  {startImpersonation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                  {t("platformAdmin.actions.confirmLoginAsUser", "Start support session")}
                 </Button>
               </DialogFooter>
             </>

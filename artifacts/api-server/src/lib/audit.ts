@@ -42,3 +42,19 @@ export async function writeAudit(
     logger.error({ err, action: entry.action }, "failed to write audit log");
   }
 }
+
+/** Lifecycle audits must never be silently dropped. */
+export async function writeAuditRequired(
+  entry: AuditEntry,
+  dbi: DbOrTx = db,
+): Promise<void> {
+  await dbi.insert(auditLogsTable).values({
+    tenantId: entry.tenantId ?? null,
+    userId: entry.userId ?? null,
+    action: entry.action,
+    entityType: entry.entityType ?? null,
+    entityId: entry.entityId ?? null,
+    summary: entry.summary ?? null,
+    details: entry.details ?? null,
+  });
+}

@@ -42,7 +42,7 @@ interface HeaderProps {
 
 export function Header({ user }: HeaderProps) {
   const [location, setLocation] = useLocation();
-  const { logout, currentTenant, memberships, isPlatformAdmin, switchTenant } = useAuth();
+  const { logout, currentTenant, memberships, isPlatformAdmin, impersonation, switchTenant } = useAuth();
   const { settings } = useAppSettings();
   const { data: notifications } = useNotifications();
   const { t } = useTranslation(["common", "commercial"]);
@@ -298,7 +298,7 @@ export function Header({ user }: HeaderProps) {
                 </>
               )}
 
-              {isPlatformAdmin && (
+              {isPlatformAdmin && !impersonation && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setLocation("/platform-admin")} className="cursor-pointer gap-2 text-emerald-600 focus:bg-emerald-50 focus:text-emerald-700">

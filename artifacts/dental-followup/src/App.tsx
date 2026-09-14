@@ -22,6 +22,7 @@ import Terms from '@/pages/legal/Terms';
 import Privacy from '@/pages/legal/Privacy';
 import NotFound from '@/pages/not-found';
 import { LocaleProvider } from '@/i18n/LocaleProvider';
+import { ImpersonationLifecycleHandler } from '@/components/ImpersonationLifecycleHandler';
 
 const queryClient = new QueryClient();
 
@@ -34,7 +35,7 @@ function RemovedSettingsTabRedirect() {
 }
 
 function ProtectedRoute({ component: Component, path }: { component: any; path: string }) {
-  const { user, currentTenant, isPlatformAdmin, isLoading } = useAuth();
+  const { user, currentTenant, isPlatformAdmin, impersonation, isLoading } = useAuth();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -46,6 +47,12 @@ function ProtectedRoute({ component: Component, path }: { component: any; path: 
 
   if (!user) {
     return <Redirect to="/login" replace />;
+  }
+
+  // A support session must never be able to access platform-admin screens,
+  // even if the impersonated user's account retains the platform-admin flag.
+  if (impersonation && path.startsWith("/platform-admin")) {
+    return <Redirect to="/dashboard" replace />;
   }
 
   if (user.mustChangePassword && path !== "/change-password") {
@@ -154,6 +161,7 @@ function App() {
       <LocaleProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <ImpersonationLifecycleHandler />
             <Router />
           </WouterRouter>
           <Toaster />
