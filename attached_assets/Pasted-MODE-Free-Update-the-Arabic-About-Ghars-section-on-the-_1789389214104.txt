@@ -1,0 +1,83 @@
+MODE: Free
+
+Update the Arabic "About Ghars" section on the Landing Page to make it shorter, more premium, and more professional.
+
+CURRENT ISSUE:
+The current section is too wordy and feels descriptive rather than polished/marketing-focused.
+
+Do NOT redesign the entire Landing Page.
+Do NOT change the section structure drastically.
+Only refine this section's copy and typography.
+
+==================================================
+ARABIC CONTENT
+==================================================
+
+Eyebrow:
+عن غرس
+
+Replace the current main heading:
+
+ما هو غرس؟
+
+with:
+
+من الجراحة إلى التركيب والمتابعة.
+
+Replace the current long paragraph with:
+
+غرس نظام متخصص لإدارة حالات زراعة الأسنان والإجراءات المصاحبة لها، من زراعة العظم ورفع الجيب الفكي إلى التركيبات والمتابعة، بملف موحّد وواضح لكل مريض.
+
+==================================================
+ENGLISH CONTENT
+==================================================
+
+Use an equivalent concise professional message.
+
+Suggested:
+
+Eyebrow:
+About Ghars
+
+Heading:
+From surgery to prosthetics and follow-up.
+
+Body:
+Ghars is a specialized system for managing dental implant cases and their related procedures, from bone grafting and sinus lift to prosthetics and follow-up, with one clear unified patient record.
+
+==================================================
+VISUAL REFINEMENT
+==================================================
+
+Keep the section clean and premium.
+
+- Limit the body text width to approximately 650–700px on desktop.
+- Body should visually fit within about 2 lines on desktop where possible.
+- Increase body text weight slightly compared with the current thin appearance.
+- Improve line-height and readability.
+- Keep generous whitespace.
+- Preserve existing Ghars colors and typography.
+- Do not add icons, cards, glow effects, illustrations, gradients, or AI-looking decorative elements.
+- Keep Arabic RTL and English LTR correct.
+- Use existing i18n architecture.
+- Do not hardcode Arabic only.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do not modify:
+- Hero section
+- Feature sections
+- How It Works
+- pricing/commercial messaging
+- navigation
+- screenshots
+- CTA buttons
+
+Only update this About Ghars section.
+
+Verify desktop and mobile.
+
+Do not publish.
+Create a checkpoint and stop.
