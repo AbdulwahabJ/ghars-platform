@@ -7,4 +7,4 @@ Fontsource Cairo ships Arabic and Latin as separate WOFF subsets. A PDF renderer
 
 **Why:** Structural PDF tests initially passed because Arabic and the Latin footer were searchable, but visual inspection and body-text extraction exposed lost English cell text, LTR column ordering, and missing-glyph boxes around localized dates and currency.
 
-**How to apply:** Select the Cairo subset from each text value's script, strip bidi control characters before drawing, replace unsupported ASCII punctuation in Arabic-formatted output, use localized metadata labels, and reverse physical table-column order for RTL PDFs. Validate with both `pdftotext` and a rendered-page image.
+**How to apply:** Select the Cairo subset from each text value's script, strip bidi control characters before drawing, replace unsupported ASCII punctuation in Arabic-formatted output, use localized metadata labels, and reverse physical table-column order for RTL PDFs. Keep PDFKit external in the API bundle because its `#standard-fonts/*` package imports break when esbuild inlines it. Validate with both `pdftotext`, a rendered-page image, and the production-style API bundle.

@@ -29,6 +29,9 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // PDFKit resolves built-in font assets through package-internal
+      // `#standard-fonts/*` imports. Bundling it breaks those imports at runtime.
+      "pdfkit",
       "sharp",
       "better-sqlite3",
       "sqlite3",
