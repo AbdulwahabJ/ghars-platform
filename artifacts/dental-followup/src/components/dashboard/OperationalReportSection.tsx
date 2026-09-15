@@ -51,7 +51,7 @@ export function OperationalReportSection({
         <div className="flex gap-2 print:hidden">
           <ExportMenu
             getUrl={(format) => operationalExportUrl(filters, format)}
-            formats={["pdf", "xlsx", "csv"]}
+            formats={["pdf", "xlsx"]}
             disabled={!data || data.rows.length === 0}
             data-testid="button-export-operational"
           />

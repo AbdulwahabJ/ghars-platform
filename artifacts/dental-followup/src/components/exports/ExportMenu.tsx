@@ -4,7 +4,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -85,8 +84,7 @@ export function ExportMenu({
     }
   };
 
-  const primaryFormats = formats.filter((format) => format !== "csv");
-  const csv = formats.includes("csv");
+  const availableFormats = formats.filter((format) => format !== "csv");
   const label = busyFormat ? t("exports.preparing") : t("actions.export");
 
   return (
@@ -116,7 +114,7 @@ export function ExportMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {primaryFormats.map((format) => (
+        {availableFormats.map((format) => (
           <DropdownMenuItem
             key={format}
             disabled={Boolean(busyFormat)}
@@ -135,21 +133,6 @@ export function ExportMenu({
             {busyFormat === format ? <Loader2 className="ms-auto h-4 w-4 animate-spin" /> : null}
           </DropdownMenuItem>
         ))}
-        {csv && primaryFormats.length > 0 ? <DropdownMenuSeparator /> : null}
-        {csv ? (
-          <DropdownMenuItem
-            disabled={Boolean(busyFormat)}
-            onSelect={(event) => {
-              event.preventDefault();
-              void download("csv");
-            }}
-            data-testid={`${testId}-csv`}
-          >
-            <Download className="h-4 w-4" />
-            <span>{t("exports.formats.csv")}</span>
-            {busyFormat === "csv" ? <Loader2 className="ms-auto h-4 w-4 animate-spin" /> : null}
-          </DropdownMenuItem>
-        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -21,7 +21,7 @@ export function ExportTab() {
               <span className="truncate text-sm">{t(`export.entities.${entity}`)}</span>
               <ExportMenu
                 getUrl={(format) => dataExportUrl(entity, format)}
-                formats={["pdf", "xlsx", "csv"]}
+                formats={["pdf", "xlsx"]}
                 data-testid={`button-export-${entity}`}
               />
             </div>

@@ -115,7 +115,7 @@ export function AuditLogTab() {
         <CardTitle>{t("audit.title")}</CardTitle>
         <ExportMenu
           getUrl={(format) => auditExportUrl(filters, format)}
-          formats={["pdf", "xlsx", "csv"]}
+          formats={["pdf", "xlsx"]}
           disabled={isLoading || !data}
           data-testid="button-audit-export"
         />

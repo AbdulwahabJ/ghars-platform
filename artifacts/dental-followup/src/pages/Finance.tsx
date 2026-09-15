@@ -204,7 +204,7 @@ export default function Finance() {
           <div className="flex items-center gap-2">
             <ExportMenu
               getUrl={(format) => financeExportUrl(filters, format)}
-              formats={["pdf", "xlsx", "csv"]}
+              formats={["pdf", "xlsx"]}
               disabled={!data}
               data-testid="button-export-finance"
             />
