@@ -40,6 +40,13 @@ const common = {
     yes: "Yes",
     no: "No",
   },
+  exports: {
+    menuLabel: "Export options",
+    preparing: "Preparing...",
+    success: "Export downloaded",
+    error: "Export failed",
+    formats: { pdf: "PDF", xlsx: "Excel", csv: "CSV" },
+  },
   labels: {
     optional: "Optional",
     loading: "Loading...",

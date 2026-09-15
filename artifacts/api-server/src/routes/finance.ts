@@ -53,6 +53,12 @@ import {
   type Payment,
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
+import {
+  renderPdf,
+  renderXlsx,
+  type ReportDefinition,
+  type ReportLocale,
+} from "../lib/export";
 import { effectivePermissions } from "../lib/permissions";
 import { parseOrRespond } from "../lib/validation";
 import { requireAuth } from "../middlewares/auth";
@@ -282,7 +288,7 @@ function installmentStatus(args: {
   return "مجدول";
 }
 
-function buildInstallmentPlanDto(args: {
+export function buildInstallmentPlanDto(args: {
   plan: InstallmentPlanRow;
   installments: InstallmentRow[];
   payments: PaymentRow[];
@@ -329,7 +335,7 @@ function buildInstallmentPlanDto(args: {
   };
 }
 
-function buildSummary(args: {
+export function buildSummary(args: {
   implantCaseId: string;
   caseStatus: string;
   baseTreatmentAmount: number;
@@ -1287,6 +1293,183 @@ async function computeOverview(
   };
 }
 
+const FINANCE_EXPORT_LABELS: Record<"ar" | "en", {
+  title: string;
+  subtitle: string;
+  kpiSummary: string;
+  metric: string;
+  value: string;
+  payments: string;
+  date: string;
+  patient: string;
+  fileNumber: string;
+  caseNumber: string;
+  paymentLabel: string;
+  amount: string;
+  paymentMethod: string;
+  createdBy: string;
+  collectedInPeriod: string;
+  caseValueInPeriod: string;
+  chargesInPeriod: string;
+  discountsInPeriod: string;
+  totalOutstanding: string;
+  paymentsCount: string;
+  patientsWithBalanceCount: string;
+  from: string;
+  to: string;
+  patientName: string;
+  implantSystem: string;
+  paymentStatus: string;
+}> = {
+  ar: {
+    title: "تقرير المالية",
+    subtitle: "ملخص مؤشرات المالية وسجل الدفعات",
+    kpiSummary: "ملخص المؤشرات",
+    metric: "المؤشر",
+    value: "القيمة",
+    payments: "الدفعات",
+    date: "التاريخ",
+    patient: "المريض",
+    fileNumber: "رقم الملف",
+    caseNumber: "رقم الحالة",
+    paymentLabel: "وصف الدفعة",
+    amount: "المبلغ",
+    paymentMethod: "طريقة الدفع",
+    createdBy: "المستخدم",
+    collectedInPeriod: "المحصل خلال الفترة",
+    caseValueInPeriod: "قيمة الحالات خلال الفترة",
+    chargesInPeriod: "الرسوم خلال الفترة",
+    discountsInPeriod: "الخصومات خلال الفترة",
+    totalOutstanding: "إجمالي المتبقي",
+    paymentsCount: "عدد الدفعات",
+    patientsWithBalanceCount: "عدد المرضى ذوي الرصيد",
+    from: "من",
+    to: "إلى",
+    patientName: "المريض",
+    implantSystem: "نظام الزرعة",
+    paymentStatus: "حالة السداد",
+  },
+  en: {
+    title: "Finance Report",
+    subtitle: "Financial KPI summary and payment ledger",
+    kpiSummary: "KPI Summary",
+    metric: "Metric",
+    value: "Value",
+    payments: "Payments",
+    date: "Date",
+    patient: "Patient",
+    fileNumber: "File number",
+    caseNumber: "Case number",
+    paymentLabel: "Payment description",
+    amount: "Amount",
+    paymentMethod: "Payment method",
+    createdBy: "Recorded by",
+    collectedInPeriod: "Collected in period",
+    caseValueInPeriod: "Case value in period",
+    chargesInPeriod: "Charges in period",
+    discountsInPeriod: "Discounts in period",
+    totalOutstanding: "Total outstanding",
+    paymentsCount: "Payments count",
+    patientsWithBalanceCount: "Patients with balance",
+    from: "From",
+    to: "To",
+    patientName: "Patient",
+    implantSystem: "Implant system",
+    paymentStatus: "Payment status",
+  },
+};
+
+function exportLocale(
+  req: Request,
+  res: Response,
+): Exclude<ReportLocale, "mixed"> | undefined {
+  const raw = req.query.locale;
+  const locale = raw === undefined ? "ar" : String(raw);
+  if (locale !== "ar" && locale !== "en") {
+    res.status(400).json({
+      error: "اللغة غير صحيحة. استخدم ar أو en.",
+      code: "VALIDATION_ERROR",
+    });
+    return undefined;
+  }
+  return locale;
+}
+
+function financeExportReport(
+  overview: FinanceOverview,
+  filters: ReturnType<typeof financeFiltersSchema.parse>,
+  locale: "ar" | "en",
+  clinicName: string,
+): ReportDefinition {
+  const labels = FINANCE_EXPORT_LABELS[locale];
+  const kpiRows = [
+    [labels.collectedInPeriod, overview.kpis.collectedInPeriod],
+    [labels.caseValueInPeriod, overview.kpis.caseValueInPeriod],
+    [labels.chargesInPeriod, overview.kpis.chargesInPeriod],
+    [labels.discountsInPeriod, overview.kpis.discountsInPeriod],
+    [labels.totalOutstanding, overview.kpis.totalOutstanding],
+    [labels.paymentsCount, overview.kpis.paymentsCount],
+    [labels.patientsWithBalanceCount, overview.kpis.patientsWithBalanceCount],
+  ].map(([metric, value]) => ({ metric, value }));
+
+  const reportFilters: Record<string, string> = {
+    [labels.from]: filters.from,
+    [labels.to]: filters.to,
+  };
+  if (filters.patientName) reportFilters[labels.patientName] = filters.patientName;
+  if (filters.fileNumber) reportFilters[labels.fileNumber] = filters.fileNumber;
+  if (filters.paymentMethod) reportFilters[labels.paymentMethod] = filters.paymentMethod;
+  if (filters.paymentStatus) reportFilters[labels.paymentStatus] = filters.paymentStatus;
+  if (filters.implantSystem) reportFilters[labels.implantSystem] = filters.implantSystem;
+
+  return {
+    metadata: {
+      title: labels.title,
+      subtitle: labels.subtitle,
+      clinicName,
+      generatedAt: new Date(),
+      filters: reportFilters,
+      filename: `finance-${filters.from}-${filters.to}`,
+      locale,
+      direction: locale === "ar" ? "rtl" : "ltr",
+      orientation: "landscape",
+    },
+    sections: [
+      {
+        title: labels.kpiSummary,
+        columns: [
+          { key: "metric", header: labels.metric, type: "text", width: 240 },
+          { key: "value", header: labels.value, type: "number", width: 120, align: "right" },
+        ],
+        rows: kpiRows,
+      },
+      {
+        title: labels.payments,
+        columns: [
+          { key: "paymentDate", header: labels.date, type: "date", width: 75 },
+          { key: "patientName", header: labels.patient, type: "text", width: 125 },
+          { key: "fileNumber", header: labels.fileNumber, type: "text", width: 65 },
+          { key: "implantCaseId", header: labels.caseNumber, type: "text", width: 75 },
+          { key: "paymentLabel", header: labels.paymentLabel, type: "text", width: 110 },
+          { key: "amount", header: labels.amount, type: "currency", width: 80, align: "right" },
+          { key: "paymentMethod", header: labels.paymentMethod, type: "text", width: 85 },
+          { key: "createdByName", header: labels.createdBy, type: "text", width: 100 },
+        ],
+        rows: overview.payments.map((payment) => ({
+          paymentDate: new Date(`${payment.paymentDate}T00:00:00.000Z`),
+          patientName: payment.patientName,
+          fileNumber: payment.fileNumber,
+          implantCaseId: payment.implantCaseId.slice(0, 8),
+          paymentLabel: payment.paymentLabel,
+          amount: payment.amount,
+          paymentMethod: payment.paymentMethod,
+          createdByName: payment.createdByName,
+        })),
+      },
+    ],
+  };
+}
+
 router.get("/finance/overview", requireFinanceView, async (req, res) => {
   const filters = parseOrRespond(financeFiltersSchema, req.query, res);
   if (!filters) return;
@@ -1334,6 +1517,7 @@ router.get("/finance/export.csv", requireFinanceView, async (req, res) => {
     action: "finance_export",
     entityType: "finance",
     summary: `تصدير تقرير الدفعات (${overview.payments.length} دفعة) للفترة ${filters.from} إلى ${filters.to}`,
+    details: { format: "csv", filters, rowCount: overview.payments.length },
   });
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader(
@@ -1341,6 +1525,64 @@ router.get("/finance/export.csv", requireFinanceView, async (req, res) => {
     `attachment; filename="payments-${filters.from}-${filters.to}.csv"`,
   );
   res.send(csv);
+});
+
+router.get("/finance/export.pdf", requireFinanceView, async (req, res) => {
+  const tenantId = req.currentTenant!.id;
+  const filters = parseOrRespond(financeFiltersSchema, req.query, res);
+  if (!filters) return;
+  const locale = exportLocale(req, res);
+  if (!locale) return;
+  const overview = await computeOverview(filters, tenantId);
+  const report = await renderPdf(
+    financeExportReport(overview, filters, locale, req.currentTenant!.name),
+    {
+    locale,
+    direction: locale === "ar" ? "rtl" : "ltr",
+    orientation: "landscape",
+    },
+  );
+
+  await writeAudit({
+    tenantId,
+    userId: req.currentUser!.id,
+    action: "finance_export",
+    entityType: "finance",
+    summary: `تصدير تقرير الدفعات بصيغة PDF (${overview.payments.length} دفعة) للفترة ${filters.from} إلى ${filters.to}`,
+    details: { format: "pdf", filters, rowCount: overview.payments.length },
+  });
+  res.setHeader("Content-Type", report.contentType);
+  res.setHeader("Content-Disposition", `attachment; filename="${report.filename}"`);
+  res.send(report.data);
+});
+
+router.get("/finance/export.xlsx", requireFinanceView, async (req, res) => {
+  const tenantId = req.currentTenant!.id;
+  const filters = parseOrRespond(financeFiltersSchema, req.query, res);
+  if (!filters) return;
+  const locale = exportLocale(req, res);
+  if (!locale) return;
+  const overview = await computeOverview(filters, tenantId);
+  const report = await renderXlsx(
+    financeExportReport(overview, filters, locale, req.currentTenant!.name),
+    {
+    locale,
+    direction: locale === "ar" ? "rtl" : "ltr",
+    orientation: "landscape",
+    },
+  );
+
+  await writeAudit({
+    tenantId,
+    userId: req.currentUser!.id,
+    action: "finance_export",
+    entityType: "finance",
+    summary: `تصدير تقرير الدفعات بصيغة XLSX (${overview.payments.length} دفعة) للفترة ${filters.from} إلى ${filters.to}`,
+    details: { format: "xlsx", filters, rowCount: overview.payments.length },
+  });
+  res.setHeader("Content-Type", report.contentType);
+  res.setHeader("Content-Disposition", `attachment; filename="${report.filename}"`);
+  res.send(report.data);
 });
 
 export default router;

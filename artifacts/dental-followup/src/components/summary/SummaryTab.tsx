@@ -10,6 +10,8 @@ import { formatMoney } from "@/lib/money";
 import { bucketFollowups } from "@/components/followups/followup-utils";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { useEnumTranslation } from "@/i18n/use-enum-translation";
+import { ExportMenu } from "@/components/exports/ExportMenu";
+import { patientExportUrl } from "@/lib/api";
 import type {
   Followup,
   ImplantCaseWithImplants,
@@ -345,6 +347,13 @@ export function SummaryTab({
             <Printer className="ms-1.5 h-4 w-4" />
              {t("summary.printFile")}
           </Button>
+          <ExportMenu
+            getUrl={(format) =>
+              patientExportUrl(patient.id, format, { includeArchived: showArchived })
+            }
+            formats={["pdf", "xlsx"]}
+            data-testid="button-export-summary"
+          />
         </div>
       </div>
 

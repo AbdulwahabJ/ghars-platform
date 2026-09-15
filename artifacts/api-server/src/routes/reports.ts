@@ -21,6 +21,14 @@ import {
   type StatisticsResponse,
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
+import { renderPdf } from "../lib/export/pdf";
+import { renderXlsx } from "../lib/export/xlsx";
+import type {
+  ReportColumn,
+  ReportDefinition,
+  ReportLocale,
+  ReportRow,
+} from "../lib/export/types";
 import { effectivePermissions } from "../lib/permissions";
 import { parseOrRespond } from "../lib/validation";
 import { requireAuth } from "../middlewares/auth";
@@ -1019,11 +1027,12 @@ async function buildStatisticsHub(
 /* GET /statistics — filtered clinical statistics                      */
 /* ------------------------------------------------------------------ */
 
-router.get("/statistics", async (req, res) => {
-  const filters = parseOrRespond(reportFiltersSchema, req.query, res);
-  if (!filters) return;
+async function buildStatisticsReport(
+  filters: ReportFilters,
+  includeFinance: boolean,
+  tenantId: string,
+): Promise<StatisticsResponse> {
   const grouping = rangeGrouping(filters);
-  const tenantId = req.currentTenant!.id;
   const where = caseFilterFragment(filters, tenantId);
   const bucketExpr =
     grouping === "day"
@@ -1113,7 +1122,7 @@ router.get("/statistics", async (req, res) => {
           AND ic.tenant_id = ${tenantId}
         ORDER BY 1
       `),
-      buildStatisticsHub(filters, where, grouping, financeViewAllowed(req), tenantId),
+      buildStatisticsHub(filters, where, grouping, includeFinance, tenantId),
     ]);
 
   const bucketMap = new Map<string, { cases: number; implants: number }>();
@@ -1130,7 +1139,7 @@ router.get("/statistics", async (req, res) => {
   const findCount = (name: string) =>
     implantStatusCounts.find((c) => c.name === name)?.count ?? 0;
 
-  const response: StatisticsResponse = {
+  return {
     overTime: [...bucketMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([bucket, v]) => ({ bucket, ...v })),
@@ -1151,8 +1160,433 @@ router.get("/statistics", async (req, res) => {
     ),
     hub,
   };
+}
+
+router.get("/statistics", async (req, res) => {
+  const filters = parseOrRespond(reportFiltersSchema, req.query, res);
+  if (!filters) return;
+  const response = await buildStatisticsReport(
+    filters,
+    financeViewAllowed(req),
+    req.currentTenant!.id,
+  );
   res.json(response);
 });
+
+type ExportLocale = Exclude<ReportLocale, "mixed">;
+
+function exportLocale(req: { query: unknown }, res: {
+  status: (code: number) => { json: (body: unknown) => unknown };
+}): ExportLocale | undefined {
+  const value = (req.query as Record<string, unknown>).locale;
+  if (value === undefined) return "ar";
+  if (typeof value !== "string" || (value !== "ar" && value !== "en")) {
+    res.status(400).json({ message: "locale must be ar or en" });
+    return undefined;
+  }
+  return value;
+}
+
+const exportLabels = {
+  ar: {
+    statistics: "التقرير الإحصائي",
+    operational: "التقرير التشغيلي",
+    overview: "الملخص العام",
+    overTime: "الاتجاه الزمني",
+    implantSystems: "أنظمة الزرعات",
+    caseStatuses: "حالات الحالات",
+    implantStatuses: "حالات الزرعات",
+    graftTypes: "أنواع إجراءات زراعة العظم",
+    graftStatuses: "حالات إجراءات زراعة العظم",
+    followupOutcomes: "نتائج المتابعة",
+    financials: "البيانات المالية",
+    doctors: "مؤشرات الأطباء",
+    metric: "المؤشر",
+    value: "القيمة",
+    bucket: "الفترة",
+    cases: "الحالات",
+    implants: "الزرعات",
+    name: "الاسم",
+    count: "العدد",
+    patients: "المرضى",
+    implantedPatients: "المرضى ذوو الزرعات",
+    boneGraftProcedures: "إجراءات زراعة العظم",
+    systems: "الأنظمة",
+    prostheticPatients: "مرضى التركيبات",
+    prostheticEvents: "أحداث التركيبات",
+    followups: "المتابعات",
+    overdueFollowups: "المتابعات المتأخرة",
+    failedImplants: "الزرعات الفاشلة",
+    needsRedoImplants: "زرعات تحتاج إعادة",
+    treatmentValue: "قيمة العلاج",
+    collected: "المحصل",
+    remaining: "المتبقي",
+    charges: "الرسوم",
+    discounts: "الخصومات",
+    payments: "الدفعات",
+    treatingDoctor: "الطبيب المعالج",
+    patient: "المريض",
+    fileNumber: "رقم الملف",
+    caseStatus: "حالة الحالة",
+    procedureDate: "تاريخ العملية",
+    implantCount: "عدد الزرعات",
+    boneGraftProcedureCount: "عدد إجراءات زراعة العظم",
+    boneGraftProcedureTypes: "أنواع إجراءات زراعة العظم",
+    adjunctProcedures: "الإجراءات الإضافية",
+    nextFollowup: "المتابعة القادمة",
+    overdue: "متأخرة",
+    ready: "جاهزة للتركيب",
+    finalTotal: "الإجمالي النهائي",
+    paid: "المدفوع",
+    paymentStatus: "حالة السداد",
+    from: "من",
+    to: "إلى",
+    search: "بحث",
+    doctor: "الطبيب",
+    system: "النظام",
+    implantStatus: "حالة الزرعة",
+  },
+  en: {
+    statistics: "Statistics report",
+    operational: "Operational report",
+    overview: "Overview",
+    overTime: "Time series",
+    implantSystems: "Implant systems",
+    caseStatuses: "Case statuses",
+    implantStatuses: "Implant statuses",
+    graftTypes: "Bone graft procedure types",
+    graftStatuses: "Bone graft procedure statuses",
+    followupOutcomes: "Follow-up outcomes",
+    financials: "Financials",
+    doctors: "Doctor metrics",
+    metric: "Metric",
+    value: "Value",
+    bucket: "Period",
+    cases: "Cases",
+    implants: "Implants",
+    name: "Name",
+    count: "Count",
+    patients: "Patients",
+    implantedPatients: "Patients with implants",
+    boneGraftProcedures: "Bone graft procedures",
+    systems: "Systems",
+    prostheticPatients: "Prosthetic patients",
+    prostheticEvents: "Prosthetic events",
+    followups: "Follow-ups",
+    overdueFollowups: "Overdue follow-ups",
+    failedImplants: "Failed implants",
+    needsRedoImplants: "Implants needing redo",
+    treatmentValue: "Treatment value",
+    collected: "Collected",
+    remaining: "Remaining",
+    charges: "Charges",
+    discounts: "Discounts",
+    payments: "Payments",
+    treatingDoctor: "Treating doctor",
+    patient: "Patient",
+    fileNumber: "File number",
+    caseStatus: "Case status",
+    procedureDate: "Procedure date",
+    implantCount: "Implant count",
+    boneGraftProcedureCount: "Bone graft procedure count",
+    boneGraftProcedureTypes: "Bone graft procedure types",
+    adjunctProcedures: "Adjunct procedures",
+    nextFollowup: "Next follow-up",
+    overdue: "Overdue",
+    ready: "Ready",
+    finalTotal: "Final total",
+    paid: "Paid",
+    paymentStatus: "Payment status",
+    from: "From",
+    to: "To",
+    search: "Search",
+    doctor: "Doctor",
+    system: "System",
+    implantStatus: "Implant status",
+  },
+} as const;
+
+function filterMetadata(filters: ReportFilters, locale: ExportLocale) {
+  const labels = exportLabels[locale];
+  return {
+    [`${labels.from} / ${labels.to}`]: `${filters.from} – ${filters.to}`,
+    ...(filters.search ? { [labels.search]: filters.search } : {}),
+    ...(filters.treatingDoctor ? { [labels.doctor]: filters.treatingDoctor } : {}),
+    ...(filters.implantSystem ? { [labels.system]: filters.implantSystem } : {}),
+    ...(filters.implantStatus ? { [labels.implantStatus]: filters.implantStatus } : {}),
+    ...(filters.caseStatus ? { [labels.caseStatus]: filters.caseStatus } : {}),
+  };
+}
+
+function countSection(
+  title: string,
+  counts: Array<{ name: string; count: number }>,
+  labels: (typeof exportLabels)[ExportLocale],
+): { title: string; columns: ReportColumn[]; rows: ReportRow[] } {
+  return {
+    title,
+    columns: [
+      { key: "name", header: labels.name, type: "text" },
+      { key: "count", header: labels.count, type: "number", align: "right" },
+    ],
+    rows: counts.map((item) => ({ name: item.name, count: item.count })),
+  };
+}
+
+function statisticsDefinition(
+  report: StatisticsResponse,
+  filters: ReportFilters,
+  locale: ExportLocale,
+  clinicName: string,
+): ReportDefinition {
+  const labels = exportLabels[locale];
+  const overview = report.hub.overview;
+  const overviewLabels: Array<[keyof typeof overview, string]> = [
+    ["patients", labels.patients],
+    ["implantedPatients", labels.implantedPatients],
+    ["cases", labels.cases],
+    ["implants", labels.implants],
+    ["boneGraftProcedures", labels.boneGraftProcedures],
+    ["systems", labels.systems],
+    ["prostheticPatients", labels.prostheticPatients],
+    ["prostheticEvents", labels.prostheticEvents],
+    ["followups", labels.followups],
+    ["overdueFollowups", labels.overdueFollowups],
+    ["failedImplants", labels.failedImplants],
+    ["needsRedoImplants", labels.needsRedoImplants],
+  ];
+  const sections: NonNullable<ReportDefinition["sections"]> = [
+    {
+      title: labels.overview,
+      columns: [
+        { key: "metric", header: labels.metric, type: "text" },
+        { key: "value", header: labels.value, type: "number", align: "right" },
+      ],
+      rows: overviewLabels.map(([key, name]) => ({ metric: name, value: overview[key] })),
+    },
+    {
+      title: labels.overTime,
+      columns: [
+        { key: "bucket", header: labels.bucket, type: "text" },
+        { key: "cases", header: labels.cases, type: "number", align: "right" },
+        { key: "implants", header: labels.implants, type: "number", align: "right" },
+      ],
+      rows: report.overTime,
+    },
+    countSection(labels.implantSystems, report.implantSystems, labels),
+    countSection(labels.caseStatuses, report.caseStatuses, labels),
+    countSection(labels.implantStatuses, report.implantStatuses, labels),
+    countSection(labels.graftTypes, report.boneGraftProcedureTypes, labels),
+    countSection(labels.graftStatuses, report.boneGraftProcedureStatuses, labels),
+    countSection(labels.followupOutcomes, report.followupOutcomes, labels),
+    {
+      title: labels.doctors,
+      columns: [
+        { key: "name", header: labels.treatingDoctor, type: "text" },
+        { key: "patients", header: labels.patients, type: "number" },
+        { key: "cases", header: labels.cases, type: "number" },
+        { key: "implants", header: labels.implants, type: "number" },
+        { key: "prosthetics", header: labels.prostheticEvents, type: "number" },
+        { key: "followups", header: labels.followups, type: "number" },
+      ],
+      rows: report.hub.doctors,
+    },
+  ];
+  if (report.hub.financials) {
+    const finance = report.hub.financials;
+    sections.push({
+      title: labels.financials,
+      columns: [
+        { key: "metric", header: labels.metric, type: "text" },
+        { key: "value", header: labels.value, type: "currency", align: "right" },
+      ],
+      rows: [
+        { metric: labels.treatmentValue, value: finance.treatmentValue },
+        { metric: labels.collected, value: finance.collected },
+        { metric: labels.remaining, value: finance.remaining },
+        { metric: labels.charges, value: finance.charges },
+        { metric: labels.discounts, value: finance.discounts },
+      ],
+    });
+    sections.push({
+      title: `${labels.financials} — ${labels.payments}`,
+      columns: [
+        { key: "metric", header: labels.metric, type: "text" },
+        { key: "value", header: labels.value, type: "number", align: "right" },
+      ],
+      rows: [{ metric: labels.payments, value: finance.payments }],
+    });
+  }
+  return {
+    metadata: {
+      title: labels.statistics,
+      subtitle: `${filters.from} – ${filters.to}`,
+      clinicName,
+      generatedAt: new Date(),
+      filters: filterMetadata(filters, locale),
+      filename: `statistics-report-${filters.from}-${filters.to}`,
+      locale,
+      direction: locale === "ar" ? "rtl" : "ltr",
+      orientation: "landscape",
+    },
+    sections,
+  };
+}
+
+function operationalDefinition(
+  rows: OperationalRow[],
+  filters: ReportFilters,
+  includeFinance: boolean,
+  locale: ExportLocale,
+  clinicName: string,
+): ReportDefinition {
+  const labels = exportLabels[locale];
+  const dateValue = (value: string | null): Date | null =>
+    value ? new Date(`${value.slice(0, 10)}T12:00:00+03:00`) : null;
+  const columns: ReportColumn[] = [
+    { key: "patientName", header: labels.patient, type: "text" },
+    { key: "fileNumber", header: labels.fileNumber, type: "text" },
+    { key: "caseStatus", header: labels.caseStatus, type: "text" },
+    { key: "treatingDoctor", header: labels.treatingDoctor, type: "text" },
+    { key: "procedureDate", header: labels.procedureDate, type: "date" },
+    { key: "implantCount", header: labels.implantCount, type: "number" },
+    { key: "implantSystems", header: labels.implantSystems, type: "text" },
+    { key: "implantStatuses", header: labels.implantStatuses, type: "text" },
+    { key: "boneGraftProcedureCount", header: labels.boneGraftProcedureCount, type: "number" },
+    { key: "boneGraftProcedureTypes", header: labels.boneGraftProcedureTypes, type: "text" },
+    { key: "adjunctProcedures", header: labels.adjunctProcedures, type: "text" },
+    { key: "nextFollowup", header: labels.nextFollowup, type: "date" },
+    { key: "isOverdue", header: labels.overdue, type: "boolean" },
+    { key: "isReady", header: labels.ready, type: "boolean" },
+  ];
+  if (includeFinance) {
+    columns.push(
+      { key: "finalTotal", header: labels.finalTotal, type: "currency" },
+      { key: "paid", header: labels.paid, type: "currency" },
+      { key: "remaining", header: labels.remaining, type: "currency" },
+      { key: "paymentStatus", header: labels.paymentStatus, type: "text" },
+    );
+  }
+  return {
+    metadata: {
+      title: labels.operational,
+      subtitle: `${filters.from} – ${filters.to}`,
+      clinicName,
+      generatedAt: new Date(),
+      filters: filterMetadata(filters, locale),
+      filename: `operational-report-${filters.from}-${filters.to}`,
+      locale,
+      direction: locale === "ar" ? "rtl" : "ltr",
+      orientation: "landscape",
+    },
+    columns,
+    rows: rows.map((row) => ({
+      patientName: row.patientName,
+      fileNumber: row.fileNumber,
+      caseStatus: row.caseStatus,
+      treatingDoctor: row.treatingDoctor,
+      procedureDate: dateValue(row.procedureDate),
+      implantCount: row.implantCount,
+      implantSystems: row.implantSystems.join("، "),
+      implantStatuses: row.implantStatuses.join("، "),
+      boneGraftProcedureCount: row.boneGraftProcedureCount,
+      boneGraftProcedureTypes: row.boneGraftProcedureTypes.join("، "),
+      adjunctProcedures: row.adjunctProcedureTypes.join("، "),
+      nextFollowup: dateValue(row.nextFollowupAt),
+      isOverdue: row.isOverdue,
+      isReady: row.isReady,
+      ...(includeFinance && row.finance
+        ? {
+            finalTotal: row.finance.finalTotal,
+            paid: row.finance.paid,
+            remaining: row.finance.remaining,
+            paymentStatus: row.finance.paymentStatus,
+          }
+        : {}),
+    })),
+  };
+}
+
+function exportRowCount(report: ReportDefinition): number {
+  return (report.sections ?? [{ rows: report.rows ?? [], columns: report.columns ?? [] }])
+    .reduce((count, section) => count + section.rows.length, 0);
+}
+
+async function sendReportExport(
+  req: {
+    query: unknown;
+    currentTenant?: { id: string };
+    currentUser?: { id: string };
+  },
+  res: {
+    setHeader: (name: string, value: string) => unknown;
+    send: (body: Buffer) => unknown;
+  },
+  format: "pdf" | "xlsx",
+  filters: ReportFilters,
+  report: ReportDefinition,
+  includeFinance: boolean,
+): Promise<void> {
+  const rendered = format === "pdf"
+    ? await renderPdf(report)
+    : await renderXlsx(report);
+  await auditExport(req, format, filters, exportRowCount(report), includeFinance);
+  res.setHeader("Content-Type", rendered.contentType);
+  res.setHeader("Content-Disposition", `attachment; filename="${rendered.filename}"`);
+  res.send(rendered.data);
+}
+
+router.get("/statistics/export.pdf", async (req, res) => {
+  const filters = parseOrRespond(reportFiltersSchema, req.query, res);
+  if (!filters) return;
+  const locale = exportLocale(req, res);
+  if (!locale) return;
+  const includeFinance = financeViewAllowed(req);
+  const data = await buildStatisticsReport(filters, includeFinance, req.currentTenant!.id);
+  await sendReportExport(
+    req,
+    res,
+    "pdf",
+    filters,
+    statisticsDefinition(data, filters, locale, req.currentTenant!.name),
+    includeFinance,
+  );
+});
+
+router.get("/statistics/export.xlsx", async (req, res) => {
+  const filters = parseOrRespond(reportFiltersSchema, req.query, res);
+  if (!filters) return;
+  const locale = exportLocale(req, res);
+  if (!locale) return;
+  const includeFinance = financeViewAllowed(req);
+  const data = await buildStatisticsReport(filters, includeFinance, req.currentTenant!.id);
+  await sendReportExport(
+    req,
+    res,
+    "xlsx",
+    filters,
+    statisticsDefinition(data, filters, locale, req.currentTenant!.name),
+    includeFinance,
+  );
+});
+
+async function auditExport(
+  req: { currentTenant?: { id: string }; currentUser?: { id: string } },
+  format: "pdf" | "xlsx" | "csv",
+  filters: ReportFilters,
+  rowCount: number,
+  includeFinance: boolean,
+  summary = `تصدير التقرير (${format}) (${filters.from} إلى ${filters.to}) — ${rowCount} صف`,
+): Promise<void> {
+  await writeAudit({
+    tenantId: req.currentTenant!.id,
+    userId: req.currentUser?.id,
+    action: "report_export",
+    entityType: "report",
+    summary,
+    details: { format, filters, rowCount, includeFinance },
+  });
+}
 
 /* ------------------------------------------------------------------ */
 /* Operational report (rows + CSV export)                              */
@@ -1282,6 +1716,52 @@ router.get("/reports/operational", async (req, res) => {
   res.json(response);
 });
 
+router.get("/reports/operational/export.pdf", async (req, res) => {
+  const filters = parseOrRespond(reportFiltersSchema, req.query, res);
+  if (!filters) return;
+  const locale = exportLocale(req, res);
+  if (!locale) return;
+  const includeFinance = financeViewAllowed(req);
+  const rows = await buildOperationalRows(filters, includeFinance, req.currentTenant!.id);
+  await sendReportExport(
+    req,
+    res,
+    "pdf",
+    filters,
+    operationalDefinition(
+      rows,
+      filters,
+      includeFinance,
+      locale,
+      req.currentTenant!.name,
+    ),
+    includeFinance,
+  );
+});
+
+router.get("/reports/operational/export.xlsx", async (req, res) => {
+  const filters = parseOrRespond(reportFiltersSchema, req.query, res);
+  if (!filters) return;
+  const locale = exportLocale(req, res);
+  if (!locale) return;
+  const includeFinance = financeViewAllowed(req);
+  const rows = await buildOperationalRows(filters, includeFinance, req.currentTenant!.id);
+  await sendReportExport(
+    req,
+    res,
+    "xlsx",
+    filters,
+    operationalDefinition(
+      rows,
+      filters,
+      includeFinance,
+      locale,
+      req.currentTenant!.name,
+    ),
+    includeFinance,
+  );
+});
+
 const csvEscape = (value: string): string =>
   /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 
@@ -1338,14 +1818,14 @@ router.get("/reports/operational/export.csv", async (req, res) => {
   );
   const csv = "\uFEFF" + [headers.join(","), ...lines].join("\r\n");
 
-  await writeAudit({
-    tenantId: req.currentTenant!.id,
-    userId: req.currentUser?.id,
-    action: "report_export",
-    entityType: "report",
-    summary: `تصدير التقرير التشغيلي (${filters.from} إلى ${filters.to}) — ${rows.length} صف`,
-    details: { filters, rowCount: rows.length, includeFinance },
-  });
+  await auditExport(
+    req,
+    "csv",
+    filters,
+    rows.length,
+    includeFinance,
+    `تصدير التقرير التشغيلي (${filters.from} إلى ${filters.to}) — ${rows.length} صف`,
+  );
 
   res
     .setHeader("Content-Type", "text/csv; charset=utf-8")

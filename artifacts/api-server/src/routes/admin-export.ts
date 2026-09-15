@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import {
   caseChargesTable,
   caseDiscountsTable,
@@ -12,11 +12,17 @@ import {
   usersTable,
   whatsappTemplatesTable,
 } from "@workspace/db";
-import { EXPORT_ENTITIES, type ExportEntity } from "@workspace/shared";
+import {
+  EXPORT_ENTITIES,
+  EXPORT_ENTITY_LABELS,
+  type ExportEntity,
+} from "@workspace/shared";
 import { asc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { writeAudit } from "../lib/audit";
 import { sendCsv, toCsv } from "../lib/csv";
+import { renderPdf, renderXlsx } from "../lib/export/index.js";
+import type { ReportColumn, ReportDefinition, ReportRow } from "../lib/export/index.js";
 import { requireAuth, requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -24,6 +30,136 @@ const router: IRouter = Router();
 router.use("/admin/export", requireAuth, requireRole("ADMIN"));
 
 const iso = (d: Date | null | undefined) => (d ? d.toISOString() : "");
+
+type ExportLocale = "ar" | "en";
+
+const ENTITY_ENGLISH_LABELS: Record<ExportEntity, string> = {
+  patients: "Patients",
+  cases: "Implant cases",
+  implants: "Implants",
+  payments: "Payments",
+  charges: "Additional charges",
+  discounts: "Discounts",
+  followups: "Follow-ups",
+  communications: "Communications",
+};
+
+const ENGLISH_HEADERS: Record<ExportEntity, string[]> = {
+  patients: [
+    "File number", "Full name", "Mobile number", "Age", "Administrative note",
+    "Added at", "Archived at",
+  ],
+  cases: [
+    "Patient file number", "Patient name", "Procedure date", "Treating doctor",
+    "Referring doctor", "Case status", "Pros", "Expected prosthetic date",
+    "Base treatment amount", "General note", "Legacy financial note",
+    "Reimplantation", "Reimplantation reason", "Archived at",
+  ],
+  implants: [
+    "Patient file number", "Procedure date", "Site", "System", "Diameter",
+    "Length", "Q", "Former", "Graft", "Graft type", "Graft note",
+    "Procedure tags", "Implant status", "Note", "Archived at",
+  ],
+  payments: [
+    "Patient file number", "Procedure date", "Amount", "Payment date",
+    "Payment description", "Payment method", "Reference number", "Note",
+    "Recorded by", "Voided at", "Voided by", "Void reason",
+  ],
+  charges: [
+    "Patient file number", "Procedure date", "Charge type", "Description",
+    "Amount", "Charge date", "Note",
+  ],
+  discounts: [
+    "Patient file number", "Procedure date", "Amount", "Discount date",
+    "Reason", "Approved by", "Entered at",
+  ],
+  followups: [
+    "Patient file number", "Procedure date", "Follow-up type", "Follow-up time",
+    "Status", "Requires contact", "Contact due", "Next appointment",
+    "Assigned to", "Note",
+  ],
+  communications: [
+    "Patient file number", "Communication reason", "Template", "Sent message",
+    "Opened at", "Result", "Result note", "User", "Entered at",
+  ],
+};
+
+/** The fields with intrinsic numeric/date types in each canonical export. */
+const COLUMN_TYPES: Record<ExportEntity, Record<number, ReportColumn["type"]>> = {
+  patients: { 3: "number", 5: "date", 6: "date" },
+  cases: { 2: "date", 7: "date", 8: "currency", 13: "date" },
+  implants: { 1: "date", 14: "date" },
+  payments: { 1: "date", 2: "currency", 3: "date", 9: "date" },
+  charges: { 1: "date", 4: "currency", 5: "date" },
+  discounts: { 1: "date", 2: "currency", 3: "date", 6: "date" },
+  followups: { 1: "date", 3: "date", 6: "date", 7: "date" },
+  communications: { 4: "date", 8: "date" },
+};
+
+function requestedLocale(req: Request, res: Response): ExportLocale | undefined {
+  const value = req.query.locale;
+  if (value === undefined) return "ar";
+  if (typeof value !== "string" || (value !== "ar" && value !== "en")) {
+    res.status(400).json({
+      error: "اللغة غير صحيحة. استخدم ar أو en.",
+      code: "VALIDATION_ERROR",
+    });
+    return undefined;
+  }
+  return value;
+}
+
+function toReport(
+  entity: ExportEntity,
+  headers: string[],
+  rows: unknown[][],
+  locale: ExportLocale,
+  clinicName: string,
+): ReportDefinition {
+  const englishHeaders = ENGLISH_HEADERS[entity];
+  const types = COLUMN_TYPES[entity];
+  const columns: ReportColumn[] = headers.map((header, index) => ({
+    key: `column_${index}`,
+    // Keep both labels available in either locale so exported files remain
+    // useful when shared between Arabic- and English-speaking staff.
+    header: `${header} / ${englishHeaders[index] ?? ""}`,
+    type: types[index],
+    width: types[index] === "date" ? 18 : types[index] === "currency" ? 16 : undefined,
+  }));
+  const reportRows: ReportRow[] = rows.map((values) => {
+    const row: ReportRow = {};
+    values.forEach((value, index) => {
+      const type = types[index];
+      if (
+        (type === "number" || type === "currency") &&
+        value !== null &&
+        value !== undefined &&
+        value !== ""
+      ) {
+        const number = typeof value === "number" ? value : Number(value);
+        row[`column_${index}`] = Number.isFinite(number) ? number : String(value);
+      } else {
+        row[`column_${index}`] = value as ReportRow[string];
+      }
+    });
+    return row;
+  });
+  return {
+    metadata: {
+      title: `${EXPORT_ENTITY_LABELS[entity]} / ${ENTITY_ENGLISH_LABELS[entity]} — ${
+        locale === "ar" ? "تصدير البيانات" : "Data export"
+      }`,
+      subtitle: `${EXPORT_ENTITY_LABELS[entity]} / ${ENTITY_ENGLISH_LABELS[entity]}`,
+      clinicName,
+      locale,
+      direction: locale === "ar" ? "rtl" : "ltr",
+      orientation: columns.length >= 8 ? "landscape" : "portrait",
+      filename: entity,
+    },
+    columns,
+    rows: reportRows,
+  };
+}
 
 /**
  * Complete operational data export — one CSV per entity. User references are
@@ -417,9 +553,55 @@ router.get("/admin/export/:entity.csv", async (req, res) => {
     action: "data_export",
     entityType: entity,
     summary: `تصدير بيانات ${entity} (${rows.length} سجلًا)`,
-    details: { entity, rowCount: rows.length },
+    details: { entity, format: "csv", rowCount: rows.length },
   });
   sendCsv(res, `${entity}.csv`, toCsv(headers, rows));
+});
+
+async function sendBinaryExport(
+  req: Request,
+  res: Response,
+  format: "pdf" | "xlsx",
+): Promise<void> {
+  const entity = req.params.entity as ExportEntity;
+  if (!EXPORT_ENTITIES.includes(entity)) {
+    res.status(400).json({ error: "نوع التصدير غير معروف.", code: "VALIDATION_ERROR" });
+    return;
+  }
+  const locale = requestedLocale(req, res);
+  if (!locale) return;
+  const tenantId = req.currentTenant!.id;
+  const { headers, rows } = await buildExport(entity, tenantId);
+  const report = toReport(
+    entity,
+    headers,
+    rows,
+    locale,
+    req.currentTenant!.name,
+  );
+  const exported = format === "pdf"
+    ? await renderPdf(report, { locale, direction: locale === "ar" ? "rtl" : "ltr" })
+    : await renderXlsx(report, { locale, direction: locale === "ar" ? "rtl" : "ltr" });
+
+  await writeAudit({
+    tenantId,
+    userId: req.currentUser!.id,
+    action: "data_export",
+    entityType: entity,
+    summary: `تصدير بيانات ${entity} بصيغة ${format} (${rows.length} سجلًا)`,
+    details: { entity, format, rowCount: rows.length },
+  });
+  res.setHeader("Content-Type", exported.contentType);
+  res.setHeader("Content-Disposition", `attachment; filename="${exported.filename}"`);
+  res.send(exported.data);
+}
+
+router.get("/admin/export/:entity.pdf", async (req, res) => {
+  await sendBinaryExport(req, res, "pdf");
+});
+
+router.get("/admin/export/:entity.xlsx", async (req, res) => {
+  await sendBinaryExport(req, res, "xlsx");
 });
 
 export default router;

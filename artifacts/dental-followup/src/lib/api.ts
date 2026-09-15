@@ -742,13 +742,32 @@ export function auditQs(filters: Partial<AuditFilters>): string {
 }
 
 /** URL for the audit log CSV export (browser download). */
-export function auditExportUrl(filters: Partial<AuditFilters>): string {
-  return `${API_BASE}/admin/audit-logs/export.csv?${auditQs(filters)}`;
+export function auditExportUrl(
+  filters: Partial<AuditFilters>,
+  format: ExportFormat = "csv",
+): string {
+  const { page: _page, limit: _limit, ...exportFilters } = filters;
+  return `${API_BASE}/admin/audit-logs/export.${format}?${exportQs(auditQs(exportFilters))}`;
 }
 
 /** URL for a full-data CSV export of one entity (browser download). */
-export function dataExportUrl(entity: ExportEntity): string {
-  return `${API_BASE}/admin/export/${entity}.csv`;
+export type ExportFormat = "pdf" | "xlsx" | "csv";
+
+function exportLocale(): "ar" | "en" {
+  return i18n.language.startsWith("ar") ? "ar" : "en";
+}
+
+function exportQs(query: string): string {
+  const params = new URLSearchParams(query);
+  params.set("locale", exportLocale());
+  return params.toString();
+}
+
+export function dataExportUrl(
+  entity: ExportEntity,
+  format: ExportFormat = "csv",
+): string {
+  return `${API_BASE}/admin/export/${entity}.${format}?${exportQs("")}`;
 }
 
 /** URL for an import CSV template download. */
@@ -769,8 +788,18 @@ export function reportQs(filters: ReportFilters): string {
 }
 
 /** URL for the operational report CSV export (browser download). */
-export function operationalExportUrl(filters: ReportFilters): string {
-  return `${API_BASE}/reports/operational/export.csv?${reportQs(filters)}`;
+export function operationalExportUrl(
+  filters: ReportFilters,
+  format: ExportFormat = "csv",
+): string {
+  return operationalExportUrlForFormat(filters, format);
+}
+
+export function operationalExportUrlForFormat(
+  filters: ReportFilters,
+  format: ExportFormat,
+): string {
+  return `${API_BASE}/reports/operational/export.${format}?${exportQs(reportQs(filters))}`;
 }
 
 export function financeQs(filters: FinanceFilters): string {
@@ -786,6 +815,35 @@ export function financeQs(filters: FinanceFilters): string {
 }
 
 /** URL for the CSV export (opened directly so the browser downloads it). */
-export function financeExportUrl(filters: FinanceFilters): string {
-  return `${API_BASE}/finance/export.csv?${financeQs(filters)}`;
+export function financeExportUrl(
+  filters: FinanceFilters,
+  format: ExportFormat = "csv",
+): string {
+  return financeExportUrlForFormat(filters, format);
+}
+
+export function financeExportUrlForFormat(
+  filters: FinanceFilters,
+  format: ExportFormat,
+): string {
+  return `${API_BASE}/finance/export.${format}?${exportQs(financeQs(filters))}`;
+}
+
+export function statisticsExportUrl(
+  filters: ReportFilters,
+  format: ExportFormat,
+): string {
+  return `${API_BASE}/statistics/export.${format}?${exportQs(reportQs(filters))}`;
+}
+
+export function patientExportUrl(
+  patientId: string,
+  format: ExportFormat,
+  filters: { includeArchived?: boolean } = {},
+): string {
+  const params = new URLSearchParams();
+  if (filters.includeArchived !== undefined) {
+    params.set("includeArchived", String(filters.includeArchived));
+  }
+  return `${API_BASE}/patients/${encodeURIComponent(patientId)}/export.${format}?${exportQs(params.toString())}`;
 }

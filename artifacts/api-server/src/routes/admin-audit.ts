@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import {
   auditLogsTable,
   db,
@@ -6,10 +6,16 @@ import {
   tenantMembershipsTable,
   usersTable,
 } from "@workspace/db";
-import { auditFiltersSchema, type AuditLogResponse } from "@workspace/shared";
+import {
+  auditFiltersSchema,
+  type AuditFilters,
+  type AuditLogResponse,
+} from "@workspace/shared";
 import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import { writeAudit } from "../lib/audit";
 import { sendCsv, toCsv } from "../lib/csv";
+import { renderPdf, renderXlsx } from "../lib/export/index.js";
+import type { ReportColumn, ReportDefinition, ReportRow } from "../lib/export/index.js";
 import { parseOrRespond } from "../lib/validation";
 import { requireAuth, requireRole } from "../middlewares/auth";
 
@@ -75,6 +81,83 @@ const baseSelection = {
   summary: auditLogsTable.summary,
   userName: usersTable.fullName,
 };
+
+type ExportLocale = "ar" | "en";
+
+function requestedLocale(req: Request, res: Response): ExportLocale | undefined {
+  const value = req.query.locale;
+  if (value === undefined) return "ar";
+  if (typeof value !== "string" || (value !== "ar" && value !== "en")) {
+    res.status(400).json({
+      error: "اللغة غير صحيحة. استخدم ar أو en.",
+      code: "VALIDATION_ERROR",
+    });
+    return undefined;
+  }
+  return value;
+}
+
+async function queryAuditRows(
+  tenantId: string,
+  filters: AuditFilters,
+) {
+  const conditions = buildConditions(tenantId, filters);
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  return db
+    .select(baseSelection)
+    .from(auditLogsTable)
+    .leftJoin(usersTable, eq(usersTable.id, auditLogsTable.userId))
+    .where(where)
+    .orderBy(desc(auditLogsTable.createdAt))
+    .limit(10_000);
+}
+
+const AUDIT_COLUMNS: ReportColumn[] = [
+  { key: "createdAt", header: "التاريخ والوقت / Date and time", type: "date", width: 20 },
+  { key: "userName", header: "المستخدم / User", type: "text", width: 18 },
+  { key: "action", header: "الإجراء / Action", type: "text", width: 20 },
+  { key: "entityType", header: "نوع السجل / Entity", type: "text", width: 18 },
+  { key: "entityId", header: "معرّف السجل / Record ID", type: "text", width: 25 },
+  { key: "summary", header: "الملخص / Summary", type: "text", width: 35 },
+];
+
+function auditReport(
+  rows: Awaited<ReturnType<typeof queryAuditRows>>,
+  locale: ExportLocale,
+  filters: AuditFilters,
+  clinicName: string,
+): ReportDefinition {
+  const reportRows: ReportRow[] = rows.map((row) => ({
+    createdAt: row.createdAt,
+    userName: row.userName ?? "",
+    action: row.action,
+    entityType: row.entityType ?? "",
+    entityId: row.entityId ?? "",
+    summary: row.summary ?? "",
+  }));
+  const filterValues: Record<string, string | number> = {};
+  if (filters.from) filterValues["من / From"] = filters.from;
+  if (filters.to) filterValues["إلى / To"] = filters.to;
+  if (filters.userId) filterValues["المستخدم / User"] = filters.userId;
+  if (filters.action) filterValues["الإجراء / Action"] = filters.action;
+  if (filters.entityType) filterValues["نوع السجل / Entity"] = filters.entityType;
+  if (filters.fileNumber) filterValues["رقم الملف / File number"] = filters.fileNumber;
+  return {
+    metadata: {
+      title: "سجل النشاط / Audit log",
+      subtitle: `عدد السجلات: ${rows.length} / Rows: ${rows.length}`,
+      clinicName,
+      generatedBy: "Ghars",
+      filters: filterValues,
+      locale,
+      direction: locale === "ar" ? "rtl" : "ltr",
+      orientation: "landscape",
+      filename: "audit-log",
+    },
+    columns: AUDIT_COLUMNS,
+    rows: reportRows,
+  };
+}
 
 router.get("/admin/audit-logs", async (req, res) => {
   const filters = parseOrRespond(auditFiltersSchema, req.query, res);
@@ -147,16 +230,7 @@ router.get("/admin/audit-logs/export.csv", async (req, res) => {
   if (!filters) return;
 
   const tenantId = req.currentTenant!.id;
-  const conditions = buildConditions(tenantId, filters);
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const rows = await db
-    .select(baseSelection)
-    .from(auditLogsTable)
-    .leftJoin(usersTable, eq(usersTable.id, auditLogsTable.userId))
-    .where(where)
-    .orderBy(desc(auditLogsTable.createdAt))
-    .limit(10_000);
+  const rows = await queryAuditRows(tenantId, filters);
 
   const csv = toCsv(
     ["التاريخ والوقت", "المستخدم", "الإجراء", "نوع السجل", "معرّف السجل", "الملخص"],
@@ -176,9 +250,56 @@ router.get("/admin/audit-logs/export.csv", async (req, res) => {
     action: "audit_export",
     entityType: "audit_log",
     summary: "تصدير سجل النشاط إلى CSV",
-    details: { rowCount: rows.length },
+    details: {
+      entity: "audit_log",
+      format: "csv",
+      filters,
+      rowCount: rows.length,
+    },
   });
   sendCsv(res, "audit-log.csv", csv);
+});
+
+async function sendAuditBinaryExport(
+  req: Request,
+  res: Response,
+  format: "pdf" | "xlsx",
+): Promise<void> {
+  const filters = parseOrRespond(auditFiltersSchema, req.query, res);
+  if (!filters) return;
+  const locale = requestedLocale(req, res);
+  if (!locale) return;
+  const tenantId = req.currentTenant!.id;
+  const rows = await queryAuditRows(tenantId, filters);
+  const report = auditReport(rows, locale, filters, req.currentTenant!.name);
+  const exported = format === "pdf"
+    ? await renderPdf(report, { locale, direction: locale === "ar" ? "rtl" : "ltr" })
+    : await renderXlsx(report, { locale, direction: locale === "ar" ? "rtl" : "ltr" });
+
+  await writeAudit({
+    tenantId,
+    userId: req.currentUser!.id,
+    action: "audit_export",
+    entityType: "audit_log",
+    summary: `تصدير سجل النشاط إلى ${format.toUpperCase()} (${rows.length} سجلًا)`,
+    details: {
+      entity: "audit_log",
+      format,
+      filters: { ...filters, locale },
+      rowCount: rows.length,
+    },
+  });
+  res.setHeader("Content-Type", exported.contentType);
+  res.setHeader("Content-Disposition", `attachment; filename="${exported.filename}"`);
+  res.send(exported.data);
+}
+
+router.get("/admin/audit-logs/export.pdf", async (req, res) => {
+  await sendAuditBinaryExport(req, res, "pdf");
+});
+
+router.get("/admin/audit-logs/export.xlsx", async (req, res) => {
+  await sendAuditBinaryExport(req, res, "xlsx");
 });
 
 export default router;

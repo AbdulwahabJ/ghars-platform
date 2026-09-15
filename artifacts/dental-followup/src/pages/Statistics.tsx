@@ -13,8 +13,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, Download, Loader2, Printer, TrendingDown, TrendingUp } from "lucide-react";
-import type { ReportFilters, StatCount, StatisticsHub } from "@workspace/shared";
+import { Activity, Loader2, Printer, TrendingDown, TrendingUp } from "lucide-react";
+import type { ReportFilters, StatCount } from "@workspace/shared";
 import { Shell } from "@/components/layout/Shell";
 import {
   ALL,
@@ -29,6 +29,8 @@ import { formatMoney, todayIso } from "@/lib/money";
 import { reportPeriodRange } from "@/lib/report-periods";
 import { useTranslation } from "react-i18next";
 import { type EnumCategory, useEnumTranslation } from "@/i18n/use-enum-translation";
+import { ExportMenu } from "@/components/exports/ExportMenu";
+import { statisticsExportUrl } from "@/lib/api";
 
 const CHART_COLORS = ["#1d7a8c", "#295c9b", "#d78b30", "#7a5cc7", "#517176", "#b95353"];
 const countFormat = new Intl.NumberFormat("ar-SA-u-nu-latn");
@@ -120,63 +122,6 @@ function ChartFrame({
   );
 }
 
-function csvCell(value: string | number) {
-  return `"${String(value).replaceAll('"', '""')}"`;
-}
-
-function downloadCsv(
-  hub: StatisticsHub,
-  from: string,
-  to: string,
-  t: (key: string, options?: Record<string, unknown>) => string,
-) {
-  const rows: Array<Array<string | number>> = [
-    [t("csv.title"), t("csv.from"), from, t("csv.to"), to],
-    [],
-    [t("csv.metric"), t("csv.value")],
-    [t("csv.patientsInCases"), hub.overview.patients],
-    [t("csv.implantCases"), hub.overview.cases],
-    [t("csv.implants"), hub.overview.implants],
-    [t("csv.documentedProsthetics"), hub.overview.prostheticEvents],
-    [t("csv.followups"), hub.overview.followups],
-    [t("csv.overdueFollowups"), hub.overview.overdueFollowups],
-    [t("csv.failedImplants"), hub.overview.failedImplants],
-    [t("csv.needsRedoImplants"), hub.overview.needsRedoImplants],
-    [],
-    [t("csv.system"), t("csv.implantCount")],
-    ...hub.prosthetics.byDoctor.map((item) => [item.name, item.count]),
-    [],
-    [t("csv.doctor"), t("csv.patients"), t("csv.cases"), t("csv.implants"), t("csv.prosthetics"), t("csv.followups")],
-    ...hub.doctors.map((doctor) => [
-      doctor.name,
-      doctor.patients,
-      doctor.cases,
-      doctor.implants,
-      doctor.prosthetics,
-      doctor.followups,
-    ]),
-  ];
-  if (hub.financials) {
-    rows.push(
-      [],
-      [t("csv.financialMetrics"), t("csv.value")],
-      [t("csv.treatmentValue"), hub.financials.treatmentValue],
-      [t("csv.collected"), hub.financials.collected],
-      [t("csv.remaining"), hub.financials.remaining],
-    );
-  }
-  const blob = new Blob(
-    [`\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`],
-    { type: "text/csv;charset=utf-8;" },
-  );
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `statistics-${from}-to-${to}.csv`;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function Statistics() {
   const { t, i18n } = useTranslation("statistics");
   const { enumLabel } = useEnumTranslation();
@@ -248,14 +193,11 @@ export default function Statistics() {
               <Printer className={isRtl ? "ms-2 h-4 w-4" : "me-2 h-4 w-4"} />
               {t("print")}
             </Button>
-            <Button
-              onClick={() => hub && downloadCsv(hub, filters.from, filters.to, t)}
-              disabled={!hub}
-              data-testid="button-export-statistics"
-            >
-              <Download className={isRtl ? "ms-2 h-4 w-4" : "me-2 h-4 w-4"} />
-              {t("exportCsv")}
-            </Button>
+             <ExportMenu
+               getUrl={(format) => statisticsExportUrl(filters, format)}
+               disabled={!hub}
+               data-testid="button-export-statistics"
+             />
           </div>
         </header>
 

@@ -72,9 +72,13 @@ describe("admin access control", () => {
       ["get", "/api/admin/whatsapp-templates"],
       ["get", "/api/admin/audit-logs"],
       ["get", "/api/admin/audit-logs/export.csv"],
+      ["get", "/api/admin/audit-logs/export.pdf"],
+      ["get", "/api/admin/audit-logs/export.xlsx"],
       ["post", "/api/admin/import/preview"],
       ["post", "/api/admin/import/commit"],
       ["get", "/api/admin/export/patients.csv"],
+      ["get", "/api/admin/export/patients.pdf"],
+      ["get", "/api/admin/export/patients.xlsx"],
       ["patch", "/api/admin/settings"],
     ];
     for (const [method, url] of endpoints) {
@@ -471,6 +475,20 @@ describe("audit log viewer", () => {
     expect(csv.text).not.toContain("$2");
   });
 
+  it("exports filtered audit logs as PDF and XLSX", async () => {
+    for (const extension of ["pdf", "xlsx"]) {
+      const response = await admin.get(
+        `/api/admin/audit-logs/export.${extension}?action=user_create&locale=en`,
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers["content-disposition"]).toMatch(/attachment/);
+      expect(response.headers["content-type"]).toContain(
+        extension === "pdf" ? "application/pdf" : "spreadsheetml",
+      );
+      expect(Number(response.headers["content-length"])).toBeGreaterThan(100);
+    }
+  });
+
   it("never exposes password hashes through the JSON API", async () => {
     const res = await admin.get("/api/admin/audit-logs");
     expect(JSON.stringify(res.body)).not.toContain("$2");
@@ -716,6 +734,29 @@ describe("full data export", () => {
     }
     const bad = await admin.get("/api/admin/export/users.csv");
     expect(bad.status).toBe(400);
+  });
+
+  it("exports every entity as PDF and XLSX with bilingual headings", async () => {
+    for (const entity of [
+      "patients",
+      "cases",
+      "implants",
+      "payments",
+      "charges",
+      "discounts",
+      "followups",
+      "communications",
+    ]) {
+      const pdf = await admin.get(`/api/admin/export/${entity}.pdf?locale=ar`);
+      expect(pdf.status, `${entity} PDF`).toBe(200);
+      expect(pdf.headers["content-type"]).toContain("application/pdf");
+      expect(pdf.body.length).toBeGreaterThan(100);
+
+      const xlsx = await admin.get(`/api/admin/export/${entity}.xlsx?locale=en`);
+      expect(xlsx.status, `${entity} XLSX`).toBe(200);
+      expect(xlsx.headers["content-type"]).toContain("spreadsheetml");
+      expect(Number(xlsx.headers["content-length"])).toBeGreaterThan(100);
+    }
   });
 });
 

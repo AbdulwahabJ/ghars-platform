@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Lock, Printer } from "lucide-react";
+import { Loader2, Lock, Printer } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -44,6 +44,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useFinanceOverview } from "@/hooks/use-finance";
 import { useImplantOptions } from "@/hooks/use-implant-cases";
 import { financeExportUrl } from "@/lib/api";
+import { ExportMenu } from "@/components/exports/ExportMenu";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney, todayIso } from "@/lib/money";
 import { useTranslation } from "react-i18next";
@@ -201,15 +202,12 @@ export default function Finance() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
           <h1 className="text-2xl font-bold text-foreground">{t("finance.title")}</h1>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => window.open(financeExportUrl(filters), "_blank")}
+            <ExportMenu
+              getUrl={(format) => financeExportUrl(filters, format)}
+              formats={["pdf", "xlsx", "csv"]}
               disabled={!data}
-              data-testid="button-export-csv"
-            >
-              <Download className="h-4 w-4 ms-1" />
-              {t("finance.exportCsv")}
-            </Button>
+              data-testid="button-export-finance"
+            />
             <Button
               variant="outline"
               onClick={() => window.print()}

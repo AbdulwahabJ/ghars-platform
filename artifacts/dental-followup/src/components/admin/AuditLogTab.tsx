@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { AuditFilters } from "@workspace/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import { useAuditLogs } from "@/hooks/use-admin";
 import { auditExportUrl } from "@/lib/api";
 import { formatSaudiDateTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
+import { ExportMenu } from "@/components/exports/ExportMenu";
 
 const ALL = "__all__";
 
@@ -112,12 +113,12 @@ export function AuditLogTab() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
         <CardTitle>{t("audit.title")}</CardTitle>
-        <Button variant="outline" asChild>
-          <a href={auditExportUrl(filters)} data-testid="link-audit-export">
-            <Download className="h-4 w-4 ms-1" />
-            <span>{t("audit.exportCsv")}</span>
-          </a>
-        </Button>
+        <ExportMenu
+          getUrl={(format) => auditExportUrl(filters, format)}
+          formats={["pdf", "xlsx", "csv"]}
+          disabled={isLoading || !data}
+          data-testid="button-audit-export"
+        />
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

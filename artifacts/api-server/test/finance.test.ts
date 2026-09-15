@@ -412,6 +412,37 @@ describe("finance page and export", () => {
     expect(forbidden.status).toBe(403);
   });
 
+  it("exports PDF with the active filters and bilingual labels", async () => {
+    const res = await admin.get(
+      "/api/finance/export.pdf?from=2026-08-01&to=2026-08-31&paymentMethod=شبكة&locale=en",
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("application/pdf");
+    expect(res.headers["content-disposition"]).toMatch(
+      /^attachment; filename="finance-2026-08-01-2026-08-31\.pdf"$/,
+    );
+    expect(Number(res.headers["content-length"])).toBeGreaterThan(0);
+
+    const forbidden = await assistantPay.get(
+      "/api/finance/export.pdf?from=2026-08-01&to=2026-08-31",
+    );
+    expect(forbidden.status).toBe(403);
+  });
+
+  it("exports XLSX with the active filters and a safe filename", async () => {
+    const res = await admin.get(
+      "/api/finance/export.xlsx?from=2026-08-01&to=2026-08-31&paymentMethod=شبكة&locale=ar",
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    expect(res.headers["content-disposition"]).toMatch(
+      /^attachment; filename="finance-2026-08-01-2026-08-31\.xlsx"$/,
+    );
+    expect(Number(res.headers["content-length"])).toBeGreaterThan(0);
+  });
+
   it("creates a schedule, links partial payments, and prevents installment overpayment", async () => {
     const patient = await admin.post("/api/patients").send({
       fileNumber: "9019",

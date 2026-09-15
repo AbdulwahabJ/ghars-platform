@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
-import { Download, Loader2, Plus, Printer, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Calendar, CalendarCheck2, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard, Archive } from "lucide-react";
+import { Loader2, Plus, Printer, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Calendar, CalendarCheck2, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { operationalExportUrl } from "@/lib/api";
+import { ExportMenu } from "@/components/exports/ExportMenu";
 import { formatSaudiDate, formatSaudiDateTime } from "@/lib/datetime";
 import { formatMoney, todayIso } from "@/lib/money";
 import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment, ProstheticEventType, BoneGraftProcedure } from "@workspace/shared";
@@ -2902,16 +2903,12 @@ export function OperationalTable({
             <Plus className="h-4 w-4" />
             <span>{t("dashboard.addRecord")}</span>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
+          <ExportMenu
+            getUrl={(format) => operationalExportUrl(filters, format)}
+            formats={["pdf", "xlsx", "csv"]}
             disabled={!data || data.rows.length === 0}
-            onClick={() => window.open(operationalExportUrl(filters), "_blank")}
             data-testid="button-export-operational"
-          >
-            <Download className="h-4 w-4" />
-            <span>{t("dashboard.exportCsv")}</span>
-          </Button>
+          />
           <Button
             variant="outline"
             size="sm"

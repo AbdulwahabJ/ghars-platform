@@ -1,4 +1,4 @@
-import { Download, Loader2, Printer } from "lucide-react";
+import { Loader2, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import {
 import { Link } from "wouter";
 import { buildPatientFollowupsPath, buildPatientPath } from "@/lib/patient-links";
 import { operationalExportUrl } from "@/lib/api";
+import { ExportMenu } from "@/components/exports/ExportMenu";
 import { formatSaudiDate } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
 import type {
@@ -48,16 +49,12 @@ export function OperationalReportSection({
           {t("dashboard.operationalReport", { count: data?.rows.length ?? 0 })}
         </CardTitle>
         <div className="flex gap-2 print:hidden">
-          <Button
-            variant="outline"
-            size="sm"
+          <ExportMenu
+            getUrl={(format) => operationalExportUrl(filters, format)}
+            formats={["pdf", "xlsx", "csv"]}
             disabled={!data || data.rows.length === 0}
-            onClick={() => window.open(operationalExportUrl(filters), "_blank")}
             data-testid="button-export-operational"
-          >
-            <Download className="h-4 w-4" />
-            <span>{t("dashboard.exportCsv")}</span>
-          </Button>
+          />
           <Button
             variant="outline"
             size="sm"

@@ -40,6 +40,13 @@ const common = {
     yes: "نعم",
     no: "لا",
   },
+  exports: {
+    menuLabel: "خيارات التصدير",
+    preparing: "جارٍ التجهيز...",
+    success: "تم تنزيل التصدير",
+    error: "تعذر التصدير",
+    formats: { pdf: "PDF", xlsx: "Excel", csv: "CSV" },
+  },
   labels: {
     optional: "اختياري",
     loading: "جارٍ التحميل...",

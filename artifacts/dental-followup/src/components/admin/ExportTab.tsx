@@ -1,9 +1,8 @@
-import { Download } from "lucide-react";
 import { EXPORT_ENTITIES } from "@workspace/shared";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { dataExportUrl } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { ExportMenu } from "@/components/exports/ExportMenu";
 
 export function ExportTab() {
   const { t } = useTranslation("admin");
@@ -18,20 +17,14 @@ export function ExportTab() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {EXPORT_ENTITIES.map((entity) => (
-            <Button
-              key={entity}
-              variant="outline"
-              className="justify-start"
-              asChild
-            >
-              <a
-                href={dataExportUrl(entity)}
-                data-testid={`link-export-${entity}`}
-              >
-                <Download className="h-4 w-4 ms-2" />
-                <span>{t(`export.entities.${entity}`)}</span>
-              </a>
-            </Button>
+            <div key={entity} className="flex items-center justify-between gap-2 rounded-md border p-2">
+              <span className="truncate text-sm">{t(`export.entities.${entity}`)}</span>
+              <ExportMenu
+                getUrl={(format) => dataExportUrl(entity, format)}
+                formats={["pdf", "xlsx", "csv"]}
+                data-testid={`button-export-${entity}`}
+              />
+            </div>
           ))}
         </div>
       </CardContent>
