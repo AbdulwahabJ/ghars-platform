@@ -1,0 +1,465 @@
+MODE: Free
+
+Refine and restructure the Ghars Landing Page to make it shorter, more premium, more persuasive, and less repetitive.
+
+Use the CURRENT Landing Page as the base.
+
+IMPORTANT:
+- Do NOT rebuild the Landing Page from scratch.
+- Preserve the existing Ghars visual identity.
+- Preserve existing responsive behavior, Arabic/English localization, SEO, routing, CTA functionality, screenshots/media architecture, and Platform Admin landing-content architecture.
+- Do NOT change the product application itself.
+- Do NOT publish.
+
+A REAL professional photo of Dr. Humam Al-Kayyal may be attached with this task.
+
+If a real photo is attached:
+use that exact photo.
+
+Do NOT generate or substitute an AI doctor image.
+
+==================================================
+1. FINAL SECTION ORDER
+==================================================
+
+Restructure the Landing Page into this exact order:
+
+1. Hero
+2. Clinical credibility / Dr. Humam section
+3. Clinical journey
+4. Operational Ghars capabilities
+5. Product screenshots / system showcase
+6. How to get started
+7. FAQ
+8. Final CTA
+9. Footer
+
+Reduce unnecessary vertical length.
+
+==================================================
+2. HERO
+==================================================
+
+Keep the current approved Hero structure and real Ghars dashboard screenshot.
+
+Keep the current main headline:
+
+أدر رحلة العلاج كاملة
+من الجراحة إلى التركيب والمتابعة
+
+Do NOT redesign the Hero.
+
+Add only one subtle trust line below the supporting copy:
+
+Arabic:
+طُوّر بإشراف د. همام الكيال وبخبرة سريرية تتجاوز 5,000 حالة وإجراء.
+
+English:
+Developed under the supervision of Dr. Humam Al-Kayyal, drawing on experience across more than 5,000 clinical cases and procedures.
+
+This line must be visually secondary.
+Do not make it another large heading.
+
+==================================================
+3. REMOVE THE CURRENT "ABOUT GHARS" SECTION
+==================================================
+
+Remove the standalone section currently titled around:
+
+عن غرس
+من الجراحة إلى التركيب والمتابعة
+
+Reason:
+its message is already communicated in the Hero and causes repetition.
+
+Do not leave an empty spacing block.
+
+==================================================
+4. REDESIGN THE DR. HUMAM / CLINICAL CREDIBILITY SECTION
+==================================================
+
+The current section:
+
+"صُمم من واقع الممارسة… وليس من افتراضات تقنية"
+
+is strategically important but visually too plain.
+
+Redesign it into a premium editorial split layout.
+
+DESKTOP:
+- real Dr. Humam photo on one side
+- copy on the other side
+
+MOBILE:
+- image first
+- copy below
+- clean single-column layout
+
+Use a restrained premium medical design.
+No oversized cards.
+No AI visual effects.
+No gradients/glows.
+No generic dental stock photography.
+
+Arabic eyebrow:
+الخبرة وراء غرس
+
+Arabic heading:
+صُمم من واقع الممارسة… وليس من افتراضات تقنية
+
+Arabic body:
+
+تم تطوير غرس بإشراف د. همام الكيال، وبالاستناد إلى خبرة سريرية تتجاوز 5,000 حالة وإجراء في زراعة الأسنان وجراحات وتجميل الوجه والفكين.
+
+هذه الخبرة انعكست على تفاصيل النظام، ليكون غرس أداة عملية مبنية حول سير العمل الحقيقي للطبيب والعيادة، من الجراحة وحتى التركيب والمتابعة.
+
+English:
+
+Eyebrow:
+The experience behind Ghars
+
+Heading:
+Built from real clinical practice.
+
+Body:
+Ghars was developed under the supervision of Dr. Humam Al-Kayyal, drawing on clinical experience across more than 5,000 cases and procedures in dental implantology, oral and maxillofacial surgery, and facial aesthetics.
+
+That experience shaped Ghars around the real workflow of doctors and dental clinics, from surgery to prosthetics and follow-up.
+
+==================================================
+5. CLINICAL CREDIBILITY METRICS
+==================================================
+
+Inside the same Dr. Humam section, show ONLY three elegant credibility items.
+
+Do NOT make them SaaS-style statistic cards.
+
+Arabic:
+
++5,000
+حالة وإجراء سريري
+
+خبرة تخصصية
+في الزراعة وجراحات الوجه والفكين
+
+من واقع الممارسة
+تصميم مبني على احتياجات العمل اليومية
+
+English equivalent.
+
+Use:
+- subtle separators
+- strong typography
+- existing Ghars navy/teal
+- plenty of whitespace
+
+==================================================
+6. CLINICAL JOURNEY SECTION
+==================================================
+
+Keep the existing clinical journey section because it explains the real treatment workflow.
+
+Heading:
+
+من الجراحة إلى التركيب والمتابعة
+
+But improve the visual hierarchy so it feels like an actual journey, not just six unrelated feature cards.
+
+Keep these six clinical steps:
+
+1. حالات زراعة الأسنان
+2. زراعة العظم
+3. رفع الجيب الفكي
+4. الإجراءات الجراحية المصاحبة
+5. التركيبات
+6. المتابعات
+
+Add subtle step numbering:
+
+01
+02
+03
+04
+05
+06
+
+Optionally use a very subtle visual connector on desktop if it remains clean.
+
+Do NOT create heavy timeline graphics.
+
+==================================================
+7. SIMPLIFY "GHARS FEATURES"
+==================================================
+
+The current page repeats several clinical features again under "مزايا غرس".
+
+Remove duplicate clinical items already explained in the Clinical Journey.
+
+The operational capabilities section should contain only these six areas:
+
+1. الملف الطبي للمريض
+2. المتابعات والتنبيهات
+3. المالية والمدفوعات
+4. الإحصائيات والتقارير
+5. المستخدمون والصلاحيات
+6. دعم اللغتين والعمل السحابي
+
+Suggested Arabic descriptions:
+
+الملف الطبي للمريض
+سجل موحّد يجمع البيانات السريرية وتاريخ الحالة والإجراءات في مكان واحد.
+
+المتابعات والتنبيهات
+تنظيم المراجعات والمتابعات والتنبيهات لتقليل فقدان متابعة الحالات.
+
+المالية والمدفوعات
+متابعة الرسوم والمدفوعات والخصومات وخطط التقسيط المرتبطة بالحالة.
+
+الإحصائيات والتقارير
+رؤية واضحة للحالات والزرعات والمتابعات والمؤشرات التشغيلية.
+
+المستخدمون والصلاحيات
+إدارة الفريق وتحديد الصلاحيات حسب دور كل مستخدم.
+
+دعم اللغتين والعمل السحابي
+واجهة عربية وإنجليزية مع إمكانية الوصول إلى النظام من أي مكان.
+
+Use existing i18n.
+
+==================================================
+8. REMOVE "WHY GHARS?" AS A SEPARATE SECTION
+==================================================
+
+Remove the standalone:
+
+لماذا غرس؟
+
+section.
+
+Its benefits are already communicated elsewhere.
+
+Do NOT lose the useful statistics/dashboard screenshot currently used there.
+
+Move that screenshot into the product showcase section.
+
+==================================================
+9. PRODUCT SHOWCASE — "شاهد النظام من الداخل"
+==================================================
+
+Keep this section but improve its visual hierarchy.
+
+Current layout treats all screenshots similarly.
+
+Change it to:
+
+- one large featured screenshot first:
+  Dashboard / لوحة التحكم
+
+Then below it:
+- Patient Records
+- Patient Medical Record
+- Procedures / Follow-up
+- Statistics
+- Finance
+- Cases
+
+Use only REAL existing Ghars screenshots.
+
+No fake UI.
+No generated dashboard mockups.
+
+Keep the dark navy showcase background if it works with the current brand.
+
+Improve:
+- spacing
+- screenshot sizes
+- captions
+- hover/focus behavior
+- mobile stacking
+
+Do not overuse shadows.
+
+==================================================
+10. HOW TO START
+==================================================
+
+Keep:
+
+ثلاث خطوات للانطلاق
+
+Use these three steps:
+
+1.
+تسجيل العيادة
+أنشئ حساب منشأتك وابدأ تجربة مجانية لمدة 3 أيام.
+
+2.
+ابدأ استخدام غرس
+أضف المرضى والحالات وابدأ تنظيم الإجراءات والمتابعات والبيانات من مكان واحد.
+
+3.
+فعّل حسابك
+بعد انتهاء التجربة يمكنك تفعيل غرس بشكل دائم والاستمرار ببياناتك دون انقطاع.
+
+English equivalent.
+
+==================================================
+11. FAQ
+==================================================
+
+Keep FAQ near the end.
+
+Do not redesign heavily.
+
+Only ensure:
+- spacing is clean
+- accordion hover/focus is obvious
+- Arabic RTL / English LTR works correctly
+
+==================================================
+12. FINAL CTA
+==================================================
+
+Replace the current generic final CTA:
+
+جاهز للارتقاء بعيادتك؟
+
+with:
+
+Arabic heading:
+جرّب غرس داخل عيادتك لمدة 3 أيام
+
+Arabic supporting text:
+ابدأ مجانًا، واختبر سير العمل الفعلي قبل اتخاذ قرار التفعيل.
+
+Primary CTA:
+ابدأ التجربة المجانية
+
+Secondary CTA:
+تواصل معنا عبر واتساب
+
+English:
+
+Try Ghars in your clinic for 3 days
+
+Start for free and experience the real workflow before deciding to activate.
+
+==================================================
+13. REMOVE REPETITION
+==================================================
+
+Audit the entire page after restructuring.
+
+No concept should be explained three times.
+
+Specifically avoid repeating:
+
+- implant management
+- bone graft
+- sinus lift
+- procedures
+- prosthetics
+- follow-up
+
+across multiple sections.
+
+Clinical Journey = clinical scope.
+
+Operational Capabilities = system/business capabilities.
+
+Dr. Humam section = clinical credibility.
+
+Hero = main value proposition.
+
+Each section must have ONE clear purpose.
+
+==================================================
+14. VISUAL QUALITY
+==================================================
+
+The page should feel:
+
+- premium
+- medical
+- trustworthy
+- modern
+- specialized
+- clean
+
+NOT:
+- AI-generated
+- template-like
+- overdecorated
+- startup-generic
+
+Use:
+- existing Cairo Arabic typography
+- existing English typography
+- Deep Navy
+- restrained teal accents
+- white / very light neutral sections
+
+Avoid:
+- glow
+- random gradients
+- floating dental implants
+- network graphics
+- excessive shadows
+- oversized icons
+- excessive rounded cards
+
+==================================================
+15. RESPONSIVE
+==================================================
+
+Verify:
+
+- desktop
+- tablet
+- mobile
+- Arabic RTL
+- English LTR
+
+Dr. Humam photo must crop professionally on mobile.
+
+No text overflow.
+No horizontal scrolling.
+
+==================================================
+16. DO NOT CHANGE
+==================================================
+
+Do NOT change:
+
+- registration/authentication flow
+- 3-day trial behavior
+- pricing/commercial backend
+- WhatsApp links
+- domain
+- app/dashboard UI
+- patient system
+- Platform Admin architecture
+- backend APIs
+- production data
+
+Landing Page only.
+
+==================================================
+17. FINAL VERIFICATION
+==================================================
+
+Report:
+
+- sections removed
+- sections reordered
+- Dr. Humam section result
+- screenshot showcase result
+- duplicate content removed
+- Arabic result
+- English result
+- mobile result
+- TypeScript/build result
+- exact checkpoint hash
+
+Do not publish.
+Create checkpoint and STOP.
