@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import {
-  CheckCircle2,
   ShieldCheck,
   Stethoscope,
   LineChart,
@@ -11,7 +10,6 @@ import {
   Menu,
   X,
   FileText,
-  Activity,
   Globe,
   MessageCircle,
   Headset,
@@ -101,8 +99,8 @@ const CONTENT = {
       subtitle: "ابدأ إدارة عيادتك بكل سهولة خلال خطوات بسيطة.",
       steps: [
         { step: "1", title: "تسجيل العيادة", desc: "أنشئ حساب منشأتك وابدأ تجربة مجانية لمدة 3 أيام." },
-        { step: "2", title: "ابدأ استخدام غرس", desc: "أضف المرضى، ووثّق الزرعات والإجراءات، وتابع المواعيد والدفعات من مكان واحد." },
-        { step: "3", title: "فعّل حسابك", desc: "بعد انتهاء التجربة، تواصل مع دعم غرس لتفعيل حسابك بشكل دائم." }
+         { step: "2", title: "ابدأ استخدام غرس", desc: "أضف المرضى والحالات وابدأ تنظيم الإجراءات والمتابعات والبيانات من مكان واحد." },
+         { step: "3", title: "فعّل حسابك", desc: "بعد انتهاء التجربة يمكنك تفعيل غرس بشكل دائم والاستمرار ببياناتك دون انقطاع." }
       ]
     },
     gallery: {
@@ -111,19 +109,17 @@ const CONTENT = {
       subtitle: "واجهة سهلة ومتكاملة مصممة لتناسب احتياجات عيادات زراعة الأسنان.",
       items: [
         { title: "لوحة التحكم", img: "/assets/dashboard.png" },
-        { title: "تسجيل الدخول", img: "/assets/login_screen.png" },
-        { title: "قائمة الحالات", img: "/assets/cases_list.png" },
-        { title: "ملف المريض", img: "/assets/patient_file.png" },
-        { title: "المالية والمدفوعات", img: "/assets/patient_finance.png" },
-        { title: "الرسوم البيانية", img: "/assets/statistics_charts.png" },
-        { title: "التقارير", img: "/assets/statistics_report.png" },
-        { title: "إدارة الموظفين", img: "/assets/settings_staff.png" },
-        { title: "إدارة المنصة", img: "/assets/settings_platform.png" },
+         { title: "سجلات المرضى", img: "/assets/cases_list.png" },
+         { title: "الملف الطبي للمريض", img: "/assets/patient_file.png" },
+         { title: "الإجراءات والمتابعات", img: "/assets/patient_file.png" },
+         { title: "الإحصائيات", img: "/assets/statistics_charts.png" },
+         { title: "المالية", img: "/assets/patient_finance.png" },
+         { title: "الحالات", img: "/assets/cases_list.png" },
       ]
     },
     trial: {
-      title: "جاهز للارتقاء بعيادتك؟",
-      subtitle: "انضم إلى عيادات زراعة الأسنان التي تثق في غرس. ابدأ تجربتك المجانية اليوم.",
+       title: "جرّب غرس داخل عيادتك لمدة 3 أيام",
+       subtitle: "ابدأ مجانًا، واختبر سير العمل الفعلي قبل اتخاذ قرار التفعيل.",
       cta: "ابدأ التجربة المجانية",
       whatsapp: "تواصل معنا عبر واتساب",
       support: "تواصل مع الدعم الفني",
@@ -151,8 +147,7 @@ const CONTENT = {
   en: {
     nav: {
       home: "Home",
-      features: "Features",
-      why: "Why Ghars",
+      features: "Ghars capabilities",
       gallery: "Gallery",
       howItWorks: "How it works",
       faq: "FAQ",
@@ -170,17 +165,12 @@ const CONTENT = {
       ctaSecondary: "Contact Us on WhatsApp",
       badges: ["Implant Cases", "Patient Management", "Finance & Payments", "Analytics & Reports"]
     },
-    intro: {
-      badge: "About Ghars",
-      title: "From surgery to prosthetics and follow-up.",
-      desc: "Ghars is a specialized system for managing dental implant cases and their related procedures, from bone grafting and sinus lift to prosthetics and follow-up, with one clear unified patient record."
-    },
      credibility: {
        eyebrow: "The experience behind Ghars",
        title: "Built from real clinical practice.",
        body: [
          "Ghars was developed under the supervision of Dr. Humam Al-Kayyal, drawing on clinical experience across more than 5,000 cases and procedures in dental implantology, oral and maxillofacial surgery, and facial aesthetics.",
-         "That experience shaped the system around real clinical workflows — from implant and surgical documentation, bone grafting and sinus lift procedures to prosthetics, follow-up, and financial management."
+          "That experience shaped Ghars around the real workflow of doctors and dental clinics, from surgery to prosthetics and follow-up."
        ],
        items: [
          { value: "+5,000", label: "Clinical cases and procedures" },
@@ -193,55 +183,35 @@ const CONTENT = {
       title: "From surgery to prosthetics and follow-up",
       subtitle: "Ghars keeps treatment stages and related procedures connected in one patient record, from the first procedure through the final follow-up.",
       items: [
-        { title: "Implant Cases", desc: "Manage implants, sites, systems, and treatment stages inside the patient record.", icon: Stethoscope },
+         { title: "Dental Implant Cases", desc: "Manage implants, sites, systems, and treatment stages inside the patient record.", icon: Stethoscope },
         { title: "Bone Grafting", desc: "Document bone grafting procedures, materials, membranes, and related follow-up.", icon: Bone },
         { title: "Sinus Lift", desc: "Record sinus lift procedures and connect them to the case, implants, and follow-ups.", icon: Layers },
         { title: "Adjunct Surgical Procedures", desc: "Document procedures such as nerve repositioning and other supporting surgery.", icon: Syringe },
         { title: "Prosthetics", desc: "Track temporary and final prosthetic stages and connect them to implant status.", icon: Crown },
         { title: "Follow-ups", desc: "Organize follow-ups, appointments, and each follow-up status across the journey.", icon: CalendarCheck2 }
       ],
-      operationsMessage: "Ghars handles both the clinical journey and the operational management around it.",
-      operations: [
-        { title: "Finance & Payments", icon: Wallet },
-        { title: "Patient Communication", icon: MessageCircle },
-        { title: "Analytics & Reports", icon: LineChart },
-        { title: "Users & Permissions", icon: Users }
-      ]
     },
-    features: {
-      badge: "Ghars Features",
-      title: "Everything you need in one place",
-      subtitle: "Ghars is specifically designed for dental implant clinics to provide you with an easy, organized, and professional management experience.",
-      items: [
-        { title: "Patient Medical File", desc: "Integrated medical record for each patient with photos and clinical notes.", icon: FileText },
-        { title: "Implant Case Tracking", desc: "Full management of implant cases and accurate documentation of all procedures.", icon: Stethoscope },
-        { title: "Surgical Procedures", desc: "Record details of bone grafting and sinus lifting with dates.", icon: Activity },
-        { title: "Finances & Payments", desc: "Track payments and dues, and issue clear installment plans.", icon: Wallet },
-        { title: "Follow-ups & Alerts", desc: "Never miss a follow-up with smart alerts and automated appointments.", icon: BellRing },
-        { title: "Statistics & Reports", desc: "Comprehensive reports to help you make better administrative and medical decisions.", icon: LineChart },
-        { title: "Users & Roles", desc: "Manage your team with precise role assignment for each user.", icon: Users },
-        { title: "Bilingual Support", desc: "Fully integrated interface supporting Arabic and English.", icon: Globe },
-      ]
-    },
-    why: {
-      badge: "Business Value",
-      title: "Why Ghars?",
-      items: [
-        "Organize workflow and reduce clinic chaos.",
-        "Improve continuous and accurate patient follow-up.",
-        "Clearer visibility of finances and overdue payments.",
-        "Facilitate follow-ups after surgeries and implants.",
-        "Enhance management decisions based on reliable statistics."
-      ]
-    },
+     features: {
+       badge: "Operational capabilities",
+       title: "One workflow for the whole clinic",
+       subtitle: "Ghars brings the daily details your doctors and clinic team rely on into one clear, connected workspace.",
+       items: [
+         { title: "Patient Medical Record", desc: "A unified record for clinical data, case history, and procedures in one place.", icon: FileText },
+         { title: "Follow-ups & Alerts", desc: "Organize reviews, follow-ups, and alerts so cases do not fall through the cracks.", icon: BellRing },
+         { title: "Finance & Payments", desc: "Track fees, payments, discounts, and installment plans linked to each case.", icon: Wallet },
+         { title: "Analytics & Reports", desc: "Clear visibility into cases, implants, follow-ups, and operational indicators.", icon: LineChart },
+         { title: "Users & Permissions", desc: "Manage your team and set permissions by each user's role.", icon: Users },
+         { title: "Bilingual & Cloud Access", desc: "Arabic and English support with access to the system from anywhere.", icon: Globe },
+       ]
+     },
     howItWorks: {
       badge: "Getting Started",
       title: "Three Steps to Get Started",
       subtitle: "Start managing your clinic with ease in a few simple steps.",
       steps: [
         { step: "1", title: "Register Your Clinic", desc: "Create your clinic account and start a free 3-day trial." },
-        { step: "2", title: "Start Using Ghars", desc: "Add patients, document implants and procedures, and manage appointments and payments from one place." },
-        { step: "3", title: "Activate Your Account", desc: "After the trial ends, contact Ghars Support to activate your account permanently." }
+         { step: "2", title: "Start Using Ghars", desc: "Add patients and cases, then organize procedures, follow-ups, and data from one place." },
+         { step: "3", title: "Activate Your Account", desc: "After the trial ends, activate Ghars permanently and continue with your data without interruption." }
       ]
     },
     gallery: {
@@ -250,19 +220,17 @@ const CONTENT = {
       subtitle: "An easy and integrated interface designed to fit the needs of dental implant clinics.",
       items: [
         { title: "Dashboard", img: "/assets/dashboard.png" },
-        { title: "Login", img: "/assets/login_screen.png" },
-        { title: "Cases List", img: "/assets/cases_list.png" },
-        { title: "Patient File", img: "/assets/patient_file.png" },
-        { title: "Finances", img: "/assets/patient_finance.png" },
-        { title: "Charts", img: "/assets/statistics_charts.png" },
-        { title: "Reports", img: "/assets/statistics_report.png" },
-        { title: "Staff Management", img: "/assets/settings_staff.png" },
-        { title: "Platform Management", img: "/assets/settings_platform.png" },
+         { title: "Patient Records", img: "/assets/cases_list.png" },
+         { title: "Patient Medical Record", img: "/assets/patient_file.png" },
+         { title: "Procedures / Follow-up", img: "/assets/patient_file.png" },
+         { title: "Statistics", img: "/assets/statistics_charts.png" },
+         { title: "Finance", img: "/assets/patient_finance.png" },
+         { title: "Cases", img: "/assets/cases_list.png" },
       ]
     },
     trial: {
-      title: "Ready to elevate your clinic?",
-      subtitle: "Join the dental implant clinics that trust Ghars. Start your free trial today.",
+       title: "Try Ghars in your clinic for 3 days",
+       subtitle: "Start for free and experience the real workflow before deciding to activate.",
       cta: "Start Free Trial",
       whatsapp: "Contact us via WhatsApp",
       support: "Contact Tech Support",
@@ -442,9 +410,8 @@ export default function LandingPage() {
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-8 text-[#64748B] font-medium">
             <button data-testid="btn-scroll" onClick={() => scrollTo("features")} className="landing-nav-link">{t.nav.features}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("why")} className="landing-nav-link">{t.nav.why}</button>
-            <button data-testid="btn-scroll" onClick={() => scrollTo("how-it-works")} className="landing-nav-link">{t.nav.howItWorks}</button>
             <button data-testid="btn-scroll" onClick={() => scrollTo("gallery")} className="landing-nav-link">{t.nav.gallery}</button>
+            <button data-testid="btn-scroll" onClick={() => scrollTo("how-it-works")} className="landing-nav-link">{t.nav.howItWorks}</button>
             <button data-testid="btn-scroll" onClick={() => scrollTo("faq")} className="landing-nav-link">{t.nav.faq}</button>
           </div>
 
@@ -487,9 +454,8 @@ export default function LandingPage() {
           aria-hidden={!mobileMenuOpen}
         >
              <button data-testid="btn-scroll" onClick={() => scrollTo("features")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.features}</button>
-             <button data-testid="btn-scroll" onClick={() => scrollTo("why")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.why}</button>
-             <button data-testid="btn-scroll" onClick={() => scrollTo("how-it-works")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.howItWorks}</button>
              <button data-testid="btn-scroll" onClick={() => scrollTo("gallery")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.gallery}</button>
+             <button data-testid="btn-scroll" onClick={() => scrollTo("how-it-works")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.howItWorks}</button>
              <button data-testid="btn-scroll" onClick={() => scrollTo("faq")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.faq}</button>
             <div className="flex flex-col gap-3 mt-2">
                <button data-testid="btn-toggle-lang" onClick={toggleLanguage} className="landing-language-toggle border-b border-gray-100 text-start font-medium">
@@ -606,60 +572,50 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      {/* Intro Section */}
-      <section className="py-20 bg-white">
+      {/* Clinical Credibility Section */}
+      <section id="clinical-credibility" className="scroll-mt-24 bg-white py-16 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="text-[#0F766E] font-bold text-sm tracking-wider uppercase mb-3 block">{t.intro.badge}</span>
-            <h2 className="mb-5 text-3xl font-bold text-[#0D1B3D] md:text-4xl">{t.intro.title}</h2>
-            <p className="mx-auto max-w-[700px] text-base font-medium leading-8 text-[#64748B] md:text-lg">
-              {t.intro.desc}
-            </p>
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(320px,0.86fr)_minmax(0,1.14fr)] lg:gap-16" dir={isRTL ? "rtl" : "ltr"}>
+            <div className="order-1 mx-auto w-full max-w-[480px] lg:mx-0">
+              <div className="relative overflow-hidden border border-[#DDE7EC] bg-[#EAF7F5]">
+                <img
+                  src={getAssetPath("/assets/dr-humam.png")}
+                  alt={lang === "ar" ? "د. همام الكيال" : "Dr. Humam Al-Kayyal"}
+                  className="aspect-[4/5] w-full object-cover object-top"
+                />
+              </div>
+            </div>
+
+            <div className="order-2 max-w-3xl">
+              <span className="mb-3 block text-sm font-bold uppercase tracking-wider text-[#0F766E]">
+                {t.credibility.eyebrow}
+              </span>
+              <h2 className="mb-6 max-w-2xl text-3xl font-bold leading-tight text-[#0D1B3D] md:text-4xl">
+                {t.credibility.title}
+              </h2>
+              <div className="max-w-2xl space-y-4 text-base leading-8 text-[#64748B] md:text-lg">
+                {t.credibility.body.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+              </div>
+
+              <div className="mt-8 grid border-y border-[#0D1B3D]/10 sm:grid-cols-3">
+                {t.credibility.items.map((item, index) => (
+                  <div
+                    key={item.value}
+                    className={`py-5 sm:px-5 sm:first:ps-0 sm:last:pe-0 ${index > 0 ? "border-t border-[#0D1B3D]/10 sm:border-t-0 sm:border-s" : ""}`}
+                  >
+                    <p className="text-xl font-bold leading-snug text-[#0D1B3D]">
+                      <bdi dir={item.value.startsWith("+") ? "ltr" : undefined}>{item.value}</bdi>
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[#64748B]">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
-       {/* Clinical Credibility Section */}
-       <section id="clinical-credibility" className="bg-white py-20 md:py-24">
-         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)] lg:gap-16" dir={isRTL ? "rtl" : "ltr"}>
-             <div className="max-w-2xl">
-               <span className="mb-3 block text-sm font-bold uppercase tracking-wider text-[#0F766E]">
-                 {t.credibility.eyebrow}
-               </span>
-               <h2 className="mb-6 text-3xl font-bold leading-tight text-[#0D1B3D] md:text-4xl">
-                 {t.credibility.title}
-               </h2>
-               <div className="space-y-4 text-base leading-8 text-[#64748B] md:text-lg">
-                 {t.credibility.body.map((paragraph) => (
-                   <p key={paragraph}>{paragraph}</p>
-                 ))}
-               </div>
-             </div>
-
-             <div className="rounded-[1.75rem] border border-[#DDE7EC] bg-[#F5F8FA] p-6 shadow-[0_18px_44px_-36px_rgba(13,27,61,0.7)] sm:p-8">
-               <div className="mb-6 flex items-center gap-3">
-                 <span className="h-px flex-1 bg-[#1FA9B8]/35"></span>
-                 <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0F766E]">
-                   Ghars
-                 </span>
-                 <span className="h-px flex-1 bg-[#1FA9B8]/35"></span>
-               </div>
-               <div className="divide-y divide-[#0D1B3D]/10">
-                 {t.credibility.items.map((item) => (
-                   <div key={item.value} className="py-5 first:pt-0 last:pb-0">
-                     <p className="text-xl font-bold leading-snug text-[#0D1B3D] sm:text-2xl">
-                       <bdi dir="ltr">{item.value}</bdi>
-                     </p>
-                     <p className="mt-1 text-sm leading-6 text-[#64748B]">
-                       {item.label}
-                     </p>
-                   </div>
-                 ))}
-               </div>
-             </div>
-           </div>
-         </div>
-       </section>
       {/* Clinical Workflow Section */}
       <section id="clinical-workflow" className="bg-[#F5F8FA] py-20 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -675,14 +631,20 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {t.clinical.items.map((item) => (
+          <div className="relative mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <span className="pointer-events-none absolute inset-x-[8%] top-8 hidden h-px bg-[#1FA9B8]/20 xl:block" aria-hidden="true" />
+            {t.clinical.items.map((item, index) => (
               <article
                 key={item.title}
-                className="flex min-h-[190px] flex-col rounded-2xl border border-[#DDE7EC] bg-white p-6 shadow-[0_10px_30px_-26px_rgba(13,27,61,0.55)]"
+                className="relative flex min-h-[190px] flex-col border border-[#DDE7EC] bg-white p-5"
               >
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF7F5] text-[#0F766E]">
-                  <item.icon size={22} strokeWidth={1.8} aria-hidden="true" />
+                <div className="relative z-10 mb-5 flex items-center justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1FA9B8]/25 bg-white text-[#0F766E]">
+                    <item.icon size={20} strokeWidth={1.8} aria-hidden="true" />
+                  </span>
+                  <bdi dir="ltr" className="text-sm font-bold tracking-[0.16em] text-[#1FA9B8]">
+                    {String(index + 1).padStart(2, "0")}
+                  </bdi>
                 </div>
                 <h3 className="mb-2 text-lg font-bold leading-snug text-[#0D1B3D]">
                   {item.title}
@@ -696,55 +658,86 @@ export default function LandingPage() {
 
         </div>
       </section>
-      {/* Features Section */}
-      <section id="features" className="py-24 bg-[#F5F8FA]">
+      {/* Operational Capabilities */}
+      <section id="features" className="scroll-mt-24 bg-white py-16 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
             <span className="text-[#0F766E] font-bold text-sm tracking-wider uppercase mb-3 block">{t.features.badge}</span>
             <h2 className="text-3xl md:text-4xl font-bold text-[#0D1B3D] mb-4">{t.features.title}</h2>
-            <p className="text-[#64748B] text-lg">{t.features.subtitle}</p>
+            <p className="text-[#64748B] text-base leading-7 md:text-lg">{t.features.subtitle}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 border-y border-[#0D1B3D]/10 md:grid-cols-2 lg:grid-cols-3">
             {t.features.items.map((feature, i) => (
-              <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-border hover:shadow-md transition-shadow group">
-                <div className="w-14 h-14 bg-[#ECF8F6] text-[#0F766E] rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-[#0F766E] group-hover:text-white transition-all duration-300">
-                  <feature.icon size={28} />
+              <article key={feature.title} className={`group p-6 md:p-7 ${i > 0 ? "border-t border-[#0D1B3D]/10 md:border-t-0" : ""} ${i % 2 === 1 ? "md:border-s" : ""} ${i >= 2 ? "md:border-t lg:border-t-0" : ""} ${i % 3 !== 0 ? "lg:border-s" : "lg:border-s-0"} ${i >= 3 ? "lg:border-t" : ""}`}>
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#ECF8F6] text-[#0F766E] transition-colors duration-300 group-hover:bg-[#0F766E] group-hover:text-white">
+                  <feature.icon size={22} strokeWidth={1.8} />
                 </div>
-                <h3 className="text-xl font-bold text-[#0D1B3D] mb-3">{feature.title}</h3>
-                <p className="text-[#64748B] leading-relaxed">{feature.desc}</p>
-              </div>
+                <h3 className="mb-2 text-xl font-bold text-[#0D1B3D]">{feature.title}</h3>
+                <p className="text-[15px] leading-7 text-[#64748B]">{feature.desc}</p>
+              </article>
             ))}
           </div>
         </div>
       </section>
-      {/* Why Ghars Section */}
-      <section id="why" className="py-24 bg-white">
+      {/* Gallery Section */}
+      <section id="gallery" className="scroll-mt-24 bg-[#0D1B3D] py-16 text-white md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <span className="text-[#1FA9B8] font-bold text-sm tracking-wider uppercase mb-3 block">{t.why.badge}</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#0D1B3D] mb-8">{t.why.title}</h2>
-              <ul className="space-y-6">
-                {t.why.items.map((item, i) => (
-                  <li key={i} className="flex items-start gap-4">
-                    <div className="mt-1 w-6 h-6 rounded-full bg-[#ECF8F6] text-[#0F766E] flex items-center justify-center shrink-0">
-                      <CheckCircle2 size={14} />
-                    </div>
-                    <span className="text-lg text-[#64748B]">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#0F766E]/5 rounded-3xl -rotate-6 scale-105"></div>
-              <img src={getAssetPath("/assets/patient_finance.png")} loading="lazy" alt={lang === "ar" ? "المالية والمدفوعات في غرس" : "Ghars finances and payments"} className="relative z-10 rounded-2xl shadow-xl border border-gray-100" />
-            </div>
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <span className="text-[#1FA9B8] font-bold text-sm tracking-wider uppercase mb-3 block">{t.gallery.badge}</span>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.gallery.title}</h2>
+            <p className="text-white/70 text-base leading-7 md:text-lg">{t.gallery.subtitle}</p>
+          </div>
+
+          {galleryItems[0] && (
+            <button
+              type="button"
+              className="landing-gallery-item group mb-6 block w-full overflow-hidden border border-white/15 bg-white/5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
+              onClick={() => setLightboxImage(galleryItems[0].img)}
+              aria-label={galleryItems[0].title}
+            >
+              <div className="overflow-hidden bg-white">
+                <img
+                  src={galleryItems[0].img}
+                  alt={galleryItems[0].title}
+                  className="aspect-[16/9] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.015]"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                <h3 className="text-lg font-bold text-white sm:text-xl">{galleryItems[0].title}</h3>
+                <ImageIcon size={20} className="shrink-0 text-[#1FA9B8]" />
+              </div>
+            </button>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {galleryItems.slice(1).map((item) => (
+              <button
+                type="button"
+                key={`${item.title}-${item.img}`}
+                className="landing-gallery-item group overflow-hidden border border-white/10 bg-white/5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
+                onClick={() => setLightboxImage(item.img)}
+                aria-label={item.title}
+              >
+                <div className="aspect-[4/3] overflow-hidden bg-white">
+                  <img
+                    src={item.img}
+                    alt={item.title}
+                    loading="lazy"
+                    className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.025]"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                  <h3 className="text-base font-bold text-white">{item.title}</h3>
+                  <ImageIcon size={17} className="shrink-0 text-[#1FA9B8]" />
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </section>
       {/* How it Works */}
-      <section id="how-it-works" className="relative scroll-mt-24 overflow-hidden bg-[#F5F8FA] py-20 md:py-24">
+      <section id="how-it-works" className="relative scroll-mt-24 overflow-hidden bg-[#F5F8FA] py-16 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
             <span className="mb-2.5 block text-sm font-bold tracking-wider text-[#0F766E] uppercase">{t.howItWorks.badge}</span>
@@ -761,9 +754,9 @@ export default function LandingPage() {
               {t.howItWorks.steps.map((step) => (
                 <article
                   key={step.step}
-                  className="relative flex items-start gap-4 rounded-2xl border border-[#0D1B3D]/[0.08] bg-white p-5 text-start shadow-[0_10px_26px_-24px_rgba(13,27,61,0.4)] sm:gap-5 sm:p-6"
+                  className="relative flex items-start gap-4 border border-[#0D1B3D]/[0.08] bg-white p-5 text-start sm:gap-5 sm:p-6"
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#1FA9B8]/25 bg-white text-sm font-bold text-[#0D1B3D] shadow-[0_6px_18px_-14px_rgba(13,27,61,0.7)]">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#1FA9B8]/25 bg-white text-sm font-bold text-[#0D1B3D]">
                     {step.step}
                   </span>
                   <div className="min-w-0 pt-0.5">
@@ -773,41 +766,6 @@ export default function LandingPage() {
                 </article>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-      {/* Gallery Section */}
-      <section id="gallery" className="py-24 bg-[#0D1B3D] text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-[#1FA9B8] font-bold text-sm tracking-wider uppercase mb-3 block">{t.gallery.badge}</span>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.gallery.title}</h2>
-            <p className="text-white/70 text-lg">{t.gallery.subtitle}</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {galleryItems.map((item, i) => (
-              <div
-                key={i}
-                className="landing-gallery-item group relative rounded-xl overflow-hidden bg-white/5 border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
-                onClick={() => setLightboxImage(item.img)}
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && setLightboxImage(item.img)}
-              >
-                <div className="aspect-[4/3] overflow-hidden">
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0D1B3D] via-[#0D1B3D]/50 to-transparent opacity-80"></div>
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <h3 className="text-xl font-bold text-white">{item.title}</h3>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -835,7 +793,7 @@ export default function LandingPage() {
         </div>
       )}
       {/* FAQ Section */}
-      <section id="faq" className="py-24 bg-[#F5F8FA]">
+      <section id="faq" className="scroll-mt-24 bg-[#F5F8FA] py-16 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-[#0F766E] font-bold text-sm tracking-wider uppercase mb-3 block">{t.faq.badge}</span>
@@ -873,9 +831,8 @@ export default function LandingPage() {
         </div>
       </section>
       {/* Final CTA */}
-      <section className="py-24 relative overflow-hidden">
+      <section className="relative overflow-hidden py-16 md:py-20">
         <div className="absolute inset-0 bg-[#0D1B3D]"></div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#0F766E]/20 to-transparent"></div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 max-w-3xl mx-auto">{t.trial.title}</h2>
           <p className="text-white/80 text-xl mb-10 max-w-2xl mx-auto">{t.trial.subtitle}</p>
@@ -921,9 +878,8 @@ export default function LandingPage() {
               <h4 className="font-bold text-lg mb-6 text-start">{t.footer.quickLinks}</h4>
               <ul className="space-y-3 flex flex-col items-start">
                 <li><button onClick={() => scrollTo("features")} className="landing-footer-link text-white/60">{t.nav.features}</button></li>
-                <li><button onClick={() => scrollTo("why")} className="landing-footer-link text-white/60">{t.nav.why}</button></li>
-                <li><button onClick={() => scrollTo("how-it-works")} className="landing-footer-link text-white/60">{t.nav.howItWorks}</button></li>
                 <li><button onClick={() => scrollTo("gallery")} className="landing-footer-link text-white/60">{t.nav.gallery}</button></li>
+                <li><button onClick={() => scrollTo("how-it-works")} className="landing-footer-link text-white/60">{t.nav.howItWorks}</button></li>
                 <li><button onClick={() => scrollTo("faq")} className="landing-footer-link text-white/60">{t.nav.faq}</button></li>
               </ul>
             </div>
