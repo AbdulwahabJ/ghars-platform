@@ -674,7 +674,7 @@ export default function LandingPage() {
                  {t.credibility.items.map((item) => (
                    <div key={item.value} className="py-5 first:pt-0 last:pb-0">
                      <p className="text-xl font-bold leading-snug text-[#0D1B3D] sm:text-2xl">
-                       {item.value}
+                       <bdi dir="ltr">{item.value}</bdi>
                      </p>
                      <p className="mt-1 text-sm leading-6 text-[#64748B]">
                        {item.label}
