@@ -297,7 +297,7 @@ export default function Register() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="username"
@@ -315,7 +315,58 @@ export default function Register() {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[14px]">{t("register.password")}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <LockKeyhole className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                              <Input
+                                placeholder={t("register.passwordPlaceholder")}
+                                type={showPassword ? "text" : "password"}
+                                {...field}
+                                dir="ltr"
+                                autoComplete="new-password"
+                                className="h-[52px] rounded-[7px] border-slate-300 ps-11 pe-11 text-start text-[15px]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword((v) => !v)}
+                                className="absolute end-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 hover:text-brand-navy"
+                              >
+                                {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[14px]">{t("register.confirmPassword")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t("register.passwordPlaceholder")}
+                            type={showPassword ? "text" : "password"}
+                            {...field}
+                            dir="ltr"
+                            autoComplete="new-password"
+                            className="h-[52px] rounded-[7px] border-slate-300 text-start text-[15px]"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField
@@ -437,60 +488,6 @@ export default function Register() {
                       );
                     }}
                   />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[14px]">{t("register.password")}</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <LockKeyhole className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                              <Input
-                                placeholder={t("register.passwordPlaceholder")}
-                                type={showPassword ? "text" : "password"}
-                                {...field}
-                                dir="ltr"
-                                autoComplete="new-password"
-                                className="h-[52px] rounded-[7px] border-slate-300 ps-11 pe-11 text-start text-[15px]"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword((v) => !v)}
-                                className="absolute end-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 hover:text-brand-navy"
-                              >
-                                {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
-                              </button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[14px]">{t("register.confirmPassword")}</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={t("register.passwordPlaceholder")}
-                              type={showPassword ? "text" : "password"}
-                              {...field}
-                              dir="ltr"
-                              autoComplete="new-password"
-                              className="h-[52px] rounded-[7px] border-slate-300 text-start text-[15px]"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
 
                   <FormField
                     control={form.control}
