@@ -28,6 +28,9 @@ import {
   setupInputSchema,
   switchTenantInputSchema,
   type Preferences,
+  cityDisplayNameFromInput,
+  normalizeCityName,
+  normalizeInternationalPhone,
 } from "@workspace/shared";
 import { writeAudit } from "../lib/audit";
 import {
@@ -138,6 +141,9 @@ type RegistrationField =
   | "ownerName"
   | "username"
   | "phone"
+  | "countryCode"
+  | "phoneCountryCode"
+  | "cityDisplayName"
   | "city"
   | "email"
   | "password"
@@ -172,6 +178,10 @@ function registrationValidationCode(field: RegistrationField | undefined): strin
       return "INVALID_USERNAME";
     case "phone":
       return "INVALID_PHONE";
+    case "countryCode":
+    case "phoneCountryCode":
+      return "INVALID_COUNTRY";
+    case "cityDisplayName":
     case "city":
       return "INVALID_CITY";
     case "password":
@@ -199,6 +209,9 @@ export function registrationUniqueConflict(err: unknown):
         return { code: "USERNAME_UNAVAILABLE", field: "username" };
       }
       if (candidate.constraint === "UQ_tenants_contact_phone") {
+        return { code: "PHONE_UNAVAILABLE", field: "phone" };
+      }
+      if (candidate.constraint === "UQ_tenants_phone_e164") {
         return { code: "PHONE_UNAVAILABLE", field: "phone" };
       }
       return undefined;
@@ -353,6 +366,18 @@ router.post("/auth/register", registrationLimiter, async (req, res, next) => {
     return;
   }
   const input = parsed.data;
+  const cityDisplayName = cityDisplayNameFromInput(input.cityDisplayName, input.city);
+  const phone = normalizeInternationalPhone(input.phone, input.phoneCountryCode);
+  // The schema performs this validation too; retain the guard here so all
+  // canonical fields remain server-derived if the parser changes later.
+  if (!phone.ok || !cityDisplayName) {
+    res.status(400).json({
+      error: "يرجى مراجعة بيانات التسجيل.",
+      code: !phone.ok ? "INVALID_PHONE" : "INVALID_CITY",
+      field: !phone.ok ? "phone" : "cityDisplayName",
+    });
+    return;
+  }
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
   const platformSettings = await loadPlatformSettings();
   const trialStartedAt = new Date();
@@ -364,7 +389,7 @@ router.post("/auth/register", registrationLimiter, async (req, res, next) => {
       const [existingPhone] = await tx
         .select({ id: tenantsTable.id })
         .from(tenantsTable)
-        .where(eq(tenantsTable.contactPhone, input.phone))
+          .where(eq(tenantsTable.contactPhone, phone.digitsOnly))
         .limit(1);
       if (existingPhone) {
         throw new RegistrationPolicyError("TRIAL_NOT_ELIGIBLE", "phone");
@@ -374,7 +399,14 @@ router.post("/auth/register", registrationLimiter, async (req, res, next) => {
       const [tenant] = await tx.insert(tenantsTable).values({
         referenceCode, name: input.tenantName, legalName: input.legalName ?? null,
         contactName: input.ownerName, contactEmail: input.email ?? null,
-        contactPhone: input.phone, city: input.city || null, locale: input.locale,
+         contactPhone: phone.digitsOnly,
+         city: cityDisplayName,
+         countryCode: input.countryCode,
+         cityNameNormalized: normalizeCityName(cityDisplayName),
+         cityDisplayName,
+         phoneE164: phone.e164,
+         phoneCountryCode: input.phoneCountryCode,
+         locale: input.locale,
         status: "TRIAL", trialStartedAt, trialEndsAt,
       }).returning();
       const [user] = await tx.insert(usersTable).values({
@@ -391,7 +423,7 @@ router.post("/auth/register", registrationLimiter, async (req, res, next) => {
         entityType: "tenant",
         entityId: tenant.id,
         summary: "إنشاء عيادة وبدء الفترة التجريبية",
-        details: { phone: input.phone, trialEndsAt: trialEndsAt.toISOString() },
+         details: { phone: phone.e164, trialEndsAt: trialEndsAt.toISOString() },
       }, tx);
     });
   } catch (err) {

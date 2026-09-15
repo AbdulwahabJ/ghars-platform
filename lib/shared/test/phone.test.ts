@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeMobile,
+  normalizeInternationalPhone,
   toEnglishDigits,
 } from "../src/phone";
 import { normalizeArabicSearchText } from "../src/arabic";
@@ -81,6 +82,32 @@ describe("normalizeMobile", () => {
     expect(empty.ok).toBe(false);
     if (!empty.ok) expect(empty.code).toBe("EMPTY");
     expect(normalizeMobile("abc").ok).toBe(false);
+  });
+});
+
+describe("normalizeInternationalPhone", () => {
+  it("normalizes Saudi national numbers to E.164", () => {
+    expect(normalizeInternationalPhone("0501234567", "SA")).toMatchObject({
+      ok: true,
+      e164: "+966501234567",
+      digitsOnly: "966501234567",
+      countryCode: "SA",
+    });
+  });
+
+  it("normalizes Arabic digits and UAE numbers", () => {
+    expect(normalizeInternationalPhone("٥٠١٢٣٤٥٦٧", "AE")).toMatchObject({
+      ok: true,
+      e164: "+971501234567",
+      countryCode: "AE",
+    });
+  });
+
+  it("validates selected country and rejects invalid numbers", () => {
+    expect(normalizeInternationalPhone("05123", "AE").ok).toBe(false);
+    expect(normalizeInternationalPhone("123", "SA").ok).toBe(false);
+    expect(normalizeInternationalPhone("501234567", "AE").ok).toBe(true);
+    expect(normalizeInternationalPhone("+966501234567", "AE").ok).toBe(false);
   });
 });
 

@@ -176,6 +176,13 @@
       "when": 1789320608733,
       "tag": "0024_correct_bootstrap_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789481032596,
+      "tag": "0025_registration_location_phone",
+      "breakpoints": true
     }
   ]
 }

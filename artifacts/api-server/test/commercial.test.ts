@@ -27,6 +27,25 @@ const registration = {
   password: "Passw0rd1234", confirmPassword: "Passw0rd1234", locale: "en",
 };
 
+function registrationFor(
+  suffix: string,
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    tenantName: `Clinic ${suffix}`,
+    ownerName: `Owner ${suffix}`,
+    username: `owner-${suffix.toLowerCase()}`,
+    phone: "501234567",
+    countryCode: "SA",
+    phoneCountryCode: "SA",
+    cityDisplayName: "Riyadh",
+    password: "Passw0rd1234",
+    confirmPassword: "Passw0rd1234",
+    locale: "en",
+    ...overrides,
+  };
+}
+
 const EXPECTED_LOOKUP_DEFAULTS: Record<string, string[]> = {
   q_value: ["0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "70", "75", "80"],
   former_value: ["N", "Y", "M17", "M30", "MST", "ST", "MU15", "MU17", "MU30", "MUST"],
@@ -68,11 +87,86 @@ describe("commercial lifecycle", () => {
     expect(count.rows[0].count).toBe(1);
   });
 
+  it.each([
+    ["sa-makkah", "SA", "Makkah", "SA", "501234567", "makkah", "+966501234567"],
+    ["sa-jeddah", "SA", "Jeddah", "SA", "501234568", "jeddah", "+966501234568"],
+    ["ae-dubai", "AE", "Dubai", "AE", "501234567", "dubai", "+971501234567"],
+    ["jo-amman", "JO", "Amman", "JO", "790123456", "amman", "+962790123456"],
+  ])(
+    "stores canonical registration location and E.164 phone for %s",
+    async (suffix, countryCode, cityDisplayName, phoneCountryCode, phone, normalizedCity, e164) => {
+      const res = await postRegistration(registrationFor(suffix, {
+        countryCode,
+        cityDisplayName,
+        phoneCountryCode,
+        phone,
+      }));
+      expect(res.status).toBe(201);
+      const row = await pool.query<{
+        country_code: string;
+        city_name_normalized: string;
+        city_display_name: string;
+        phone_e164: string;
+        phone_country_code: string;
+        contact_phone: string;
+        city: string;
+      }>(
+        `SELECT country_code, city_name_normalized, city_display_name,
+                phone_e164, phone_country_code, contact_phone, city
+           FROM tenants WHERE reference_code LIKE $1`,
+        [`clinic-%`],
+      );
+      const tenant = row.rows.find((candidate) => candidate.city_display_name === cityDisplayName);
+      expect(tenant).toMatchObject({
+        country_code: countryCode,
+        city_name_normalized: normalizedCity,
+        city_display_name: cityDisplayName,
+        phone_e164: e164,
+        phone_country_code: phoneCountryCode,
+        contact_phone: e164.slice(1),
+        city: cityDisplayName,
+      });
+    },
+  );
+
+  it("allows a Saudi organization to use a manually selected UAE phone country", async () => {
+    const res = await postRegistration(registrationFor("manual-ae", {
+      countryCode: "SA",
+      cityDisplayName: "Riyadh",
+      phoneCountryCode: "AE",
+      phone: "501234569",
+    }));
+    expect(res.status).toBe(201);
+    const row = await pool.query(
+      `SELECT country_code, city_name_normalized, phone_e164, phone_country_code,
+              contact_phone, city
+         FROM tenants WHERE city_display_name = 'Riyadh'`,
+    );
+    expect(row.rows[0]).toMatchObject({
+      country_code: "SA",
+      city_name_normalized: "riyadh",
+      phone_e164: "+971501234569",
+      phone_country_code: "AE",
+      contact_phone: "971501234569",
+      city: "Riyadh",
+    });
+  });
+
+  it("rejects an invalid selected-country phone with a phone field error", async () => {
+    const res = await postRegistration(registrationFor("invalid-phone", {
+      phone: "123",
+      phoneCountryCode: "SA",
+    }));
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ field: "phone", code: "INVALID_PHONE" });
+  });
+
   it("starts the 72-hour trial atomically at registration", async () => {
     expect((await postRegistration(registration)).status).toBe(201);
-    const tenant = await pool.query("SELECT status, trial_started_at, trial_ends_at, contact_phone FROM tenants WHERE contact_phone = '966551234567'");
+    const tenant = await pool.query("SELECT status, trial_started_at, trial_ends_at, contact_phone, city FROM tenants WHERE contact_phone = '966551234567'");
     expect(tenant.rows[0].status).toBe("TRIAL");
     expect(tenant.rows[0].contact_phone).toBe("966551234567");
+    expect(tenant.rows[0].city).toBe("Riyadh");
     expect(new Date(tenant.rows[0].trial_ends_at).getTime() - new Date(tenant.rows[0].trial_started_at).getTime()).toBe(72 * 60 * 60 * 1000);
   });
 

@@ -25,6 +25,30 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { useAuth, IMPERSONATION_RETURN_PATH_KEY } from "@/hooks/use-auth";
 
+const localizedCityAliases: Record<string, { ar: string; en: string }> = {
+  makkah: { ar: "مكة المكرمة", en: "Makkah" },
+  jeddah: { ar: "جدة", en: "Jeddah" },
+  riyadh: { ar: "الرياض", en: "Riyadh" },
+  medina: { ar: "المدينة المنورة", en: "Medina" },
+  dubai: { ar: "دبي", en: "Dubai" },
+  amman: { ar: "عمّان", en: "Amman" },
+  cairo: { ar: "القاهرة", en: "Cairo" },
+};
+
+function localizedTenantLocation(
+  tenant: { countryCode: string | null; cityNameNormalized: string | null; cityDisplayName: string | null; city: string | null },
+  locale: string,
+) {
+  const language = locale.startsWith("ar") ? "ar" : "en";
+  const country = tenant.countryCode
+    ? new Intl.DisplayNames([language], { type: "region" }).of(tenant.countryCode) ?? null
+    : null;
+  const city = tenant.cityNameNormalized
+    ? localizedCityAliases[tenant.cityNameNormalized]?.[language] ?? tenant.cityDisplayName
+    : tenant.city;
+  return { country, city };
+}
+
 export default function Customers() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -32,7 +56,7 @@ export default function Customers() {
   const params = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const selectedTenantId = params.id ?? null;
-  const { t } = useTranslation("commercial");
+  const { t, i18n } = useTranslation("commercial");
 
   React.useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), 500);
@@ -118,6 +142,14 @@ export default function Customers() {
                           {tenant.contactEmail && (
                             <div className="text-xs text-slate-500 mt-0.5">{tenant.contactEmail}</div>
                           )}
+                          {(tenant.country || tenant.cityDisplayName || tenant.city) && (
+                            <div className="text-xs text-slate-400 mt-0.5">
+                              {[
+                                localizedTenantLocation(tenant, i18n.language).country,
+                                localizedTenantLocation(tenant, i18n.language).city,
+                              ].filter(Boolean).join(" · ")}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={tenant.status} />
@@ -166,7 +198,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export function TenantDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const { data: detailData, isLoading } = usePlatformTenant(id);
-  const { t } = useTranslation(["commercial", "common"]);
+  const { t, i18n } = useTranslation(["commercial", "common"]);
   const [location, setLocation] = useLocation();
   const { startImpersonation } = useAuth();
 
@@ -222,6 +254,7 @@ export function TenantDetail({ id, onBack }: { id: string; onBack: () => void })
   }
 
   const tenant = detailData.tenant;
+  const localizedLocation = localizedTenantLocation(tenant, i18n.language);
   const isActiveTenant = tenant.status === "ACTIVE";
   const hasPermanentActivation = Boolean(tenant.activatedAt);
 
@@ -292,15 +325,19 @@ export function TenantDetail({ id, onBack }: { id: string; onBack: () => void })
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.contactPhone", "Contact Phone")}</label>
                 <div className="flex items-center gap-1.5 text-[15px] font-medium" dir="ltr">
                   <Phone className="h-4 w-4 text-slate-400" />
-                  {tenant.contactPhone || '—'}
+                  {tenant.phone || tenant.contactPhone || '—'}
                 </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.city", "City")}</label>
                 <div className="flex items-center gap-1.5 text-[15px] font-medium">
                   <MapPin className="h-4 w-4 text-slate-400" />
-                  {tenant.city || '—'}
+                  {localizedLocation.city || '—'}
                 </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.country", "Country")}</label>
+                <div className="text-[15px] font-medium">{localizedLocation.country || '—'}</div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">{t("platformAdmin.registrationDate", "Registration Date")}</label>

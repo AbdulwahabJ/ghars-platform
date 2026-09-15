@@ -5,7 +5,8 @@ import {
   passwordSchema,
   tenantStatusSchema,
 } from "./auth";
-import { normalizeMobile } from "../phone";
+import { getCountries } from "libphonenumber-js";
+import { normalizeInternationalPhone } from "../phone";
 
 const organizationNameSchema = z
   .string()
@@ -32,14 +33,11 @@ const optionalEmailSchema = z.preprocess(
   (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
   emailSchema.optional(),
 );
-const phoneSchema = z.string().transform((value, ctx) => {
-  const result = normalizeMobile(value);
-  if (!result.ok) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.message });
-    return z.NEVER;
-  }
-  return result.normalized;
-});
+const countryCodeSchema = z.string().trim().toUpperCase().refine(
+  (value) => getCountries().includes(value as never),
+  "رمز الدولة غير صالح.",
+);
+const phoneSchema = z.string().trim().min(1, "errors.INVALID_PHONE");
 
 export const publicRegistrationInputSchema = z.object({
   tenantName: organizationNameSchema,
@@ -47,14 +45,37 @@ export const publicRegistrationInputSchema = z.object({
   ownerName: ownerNameSchema,
   username: usernameSchema,
   phone: phoneSchema,
+  countryCode: countryCodeSchema.default("SA"),
+  phoneCountryCode: countryCodeSchema.default("SA"),
+  cityDisplayName: z.string().trim().max(120, "اسم المدينة طويل جدًا.").optional(),
   city: z.string().trim().max(120, "اسم المدينة طويل جدًا.").optional(),
   email: optionalEmailSchema,
   password: passwordSchema,
   confirmPassword: z.string(),
   locale: localeSchema,
-}).refine((value) => value.password === value.confirmPassword, {
-  message: "كلمتا المرور غير متطابقتين.",
-  path: ["confirmPassword"],
+}).superRefine((value, ctx) => {
+  if (value.password !== value.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "كلمتا المرور غير متطابقتين.",
+      path: ["confirmPassword"],
+    });
+  }
+  if (!value.cityDisplayName?.trim() && !value.city?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "errors.INVALID_CITY",
+      path: ["cityDisplayName"],
+    });
+  }
+  const phone = normalizeInternationalPhone(value.phone, value.phoneCountryCode);
+  if (!phone.ok) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "errors.INVALID_PHONE",
+      path: ["phone"],
+    });
+  }
 });
 export type PublicRegistrationInput = z.infer<typeof publicRegistrationInputSchema>;
 export const publicRegistrationResponseSchema = z.object({
@@ -166,6 +187,8 @@ export const platformTenantListInputSchema = z.object({
     "EXPIRED",
   ]).optional(),
   query: z.string().trim().min(1).max(200).optional(),
+  countryCode: countryCodeSchema.optional(),
+  cityNameNormalized: z.string().trim().max(120).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
@@ -181,6 +204,11 @@ export const platformTenantSchema = z.object({
   contactEmail: z.string().nullable(),
   contactPhone: z.string().nullable(),
   city: z.string().nullable(),
+  countryCode: z.string().nullable(),
+  cityNameNormalized: z.string().nullable(),
+  country: z.string().nullable(),
+  cityDisplayName: z.string().nullable(),
+  phone: z.string().nullable(),
   locale: localeSchema,
   isInternal: z.boolean(),
   status: tenantStatusSchema,

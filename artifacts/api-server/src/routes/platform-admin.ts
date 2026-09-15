@@ -40,6 +40,7 @@ import {
   updateActivationWorkflowInputSchema,
   updatePlatformSettingsInputSchema,
   impersonateUserInputSchema,
+  formatInternationalPhone,
 } from "@workspace/shared";
 import { writeAudit, writeAuditRequired } from "../lib/audit";
 import {
@@ -88,6 +89,19 @@ function tenantDto(
     lastActivityAt?: Date | string | null;
   } = {},
 ) {
+  const locale = tenant.locale === "en" ? "en" : "ar";
+  const country = tenant.countryCode
+    ? new Intl.DisplayNames([locale], { type: "region" }).of(tenant.countryCode) ?? tenant.countryCode
+    : null;
+  const cityAliases: Record<string, string> = {
+    makkah: locale === "ar" ? "مكة المكرمة" : "Makkah",
+    jeddah: locale === "ar" ? "جدة" : "Jeddah",
+    riyadh: locale === "ar" ? "الرياض" : "Riyadh",
+    medina: locale === "ar" ? "المدينة المنورة" : "Medina",
+    dubai: locale === "ar" ? "دبي" : "Dubai",
+    amman: locale === "ar" ? "عمّان" : "Amman",
+    cairo: locale === "ar" ? "القاهرة" : "Cairo",
+  };
   return {
     id: tenant.id,
     referenceCode: tenant.referenceCode,
@@ -96,6 +110,13 @@ function tenantDto(
     contactEmail: tenant.contactEmail,
     contactPhone: tenant.contactPhone,
     city: tenant.city,
+    countryCode: tenant.countryCode,
+    cityNameNormalized: tenant.cityNameNormalized,
+    country,
+    cityDisplayName: tenant.cityNameNormalized
+      ? cityAliases[tenant.cityNameNormalized] ?? tenant.cityDisplayName ?? tenant.city
+      : tenant.city,
+    phone: formatInternationalPhone(tenant.phoneE164) ?? tenant.contactPhone,
     locale: tenant.locale === "en" ? "en" as const : "ar" as const,
     isInternal: tenant.isInternal,
     status: tenant.status,
@@ -421,6 +442,10 @@ router.get("/platform-admin/tenants", async (req, res) => {
   } else if (input.status) {
     conditions.push(eq(tenantsTable.status, input.status));
     if (input.status === "TRIAL") conditions.push(gte(tenantsTable.trialEndsAt, new Date()));
+  }
+  if (input.countryCode) conditions.push(eq(tenantsTable.countryCode, input.countryCode));
+  if (input.cityNameNormalized) {
+    conditions.push(eq(tenantsTable.cityNameNormalized, input.cityNameNormalized));
   }
   const search = tenantSearch(input.query);
   if (search) conditions.push(search);

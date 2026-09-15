@@ -30,6 +30,11 @@ export const tenantsTable = pgTable(
     contactEmail: text("contact_email"),
     contactPhone: text("contact_phone"),
     city: text("city"),
+    countryCode: text("country_code"),
+    cityNameNormalized: text("city_name_normalized"),
+    cityDisplayName: text("city_display_name"),
+    phoneE164: text("phone_e164"),
+    phoneCountryCode: text("phone_country_code"),
     locale: text("locale").notNull().default("ar"),
     isInternal: boolean("is_internal").notNull().default(false),
     status: tenantStatusEnum("status")
@@ -48,9 +53,14 @@ export const tenantsTable = pgTable(
   },
   (table) => [
     index("IDX_tenants_status").on(table.status),
+    index("IDX_tenants_country_code").on(table.countryCode),
+    index("IDX_tenants_country_city").on(table.countryCode, table.cityNameNormalized),
     uniqueIndex("UQ_tenants_contact_phone")
       .on(table.contactPhone)
       .where(sql`${table.contactPhone} IS NOT NULL`),
+    uniqueIndex("UQ_tenants_phone_e164")
+      .on(table.phoneE164)
+      .where(sql`${table.phoneE164} IS NOT NULL`),
   ],
 );
 

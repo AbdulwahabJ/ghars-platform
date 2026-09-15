@@ -24,7 +24,6 @@ import {
   UserRound,
   LockKeyhole,
   Phone,
-  MapPin,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
@@ -35,15 +34,111 @@ import { localizeErrorMessage } from "@/lib/localize-error";
 import { ApiError } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { Country, City } from "country-state-city";
+import type { ICountry, ICity } from "country-state-city";
+import { cn } from "@/lib/utils";
+
+type SearchOption = {
+  value: string;
+  label: string;
+  selectedLabel?: string;
+  search?: string;
+};
+
+function SearchableOptionCombobox({
+  value,
+  onChange,
+  options,
+  placeholder,
+  searchPlaceholder,
+  emptyLabel,
+  disabled,
+  className,
+}: {
+  value?: string;
+  onChange: (value: string) => void;
+  options: SearchOption[];
+  placeholder: string;
+  searchPlaceholder: string;
+  emptyLabel: string;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn("h-[52px] w-full justify-between rounded-[7px] border-slate-300 px-3 text-start font-normal", className)}
+        >
+          <span className={cn(!selected && "text-muted-foreground")}>
+            {selected?.selectedLabel ?? selected?.label ?? placeholder}
+          </span>
+          <ChevronsUpDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyLabel}</CommandEmpty>
+            {options.map((option) => (
+              <CommandItem
+                key={option.value}
+                value={`${option.label} ${option.search ?? ""}`}
+                onSelect={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                <Check className={cn("me-2 h-4 w-4", value === option.value ? "opacity-100" : "opacity-0")} />
+                {option.label}
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+const countryRecords = Country.getAllCountries();
+const countryLabel = (country: ICountry, locale: string) =>
+  new Intl.DisplayNames([locale], { type: "region" }).of(country.isoCode) ?? country.name;
+
+const cityAliases: Record<string, string> = {
+  Makkah: "مكة المكرمة",
+  Mecca: "مكة المكرمة",
+  Jeddah: "جدة",
+  Riyadh: "الرياض",
+  Medina: "المدينة المنورة",
+  Dubai: "دبي",
+  Amman: "عمّان",
+  Cairo: "القاهرة",
+};
+const cityCanonicalEnglishNames: Record<string, string> = {
+  Mecca: "Makkah",
+};
 
 export default function Register() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation(["commercial", "common"]);
   const { direction } = useLocale();
+  const locale = direction === "rtl" ? "ar" : "en";
 
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [hasFieldServerError, setHasFieldServerError] = useState(false);
+  const [phoneCountryManuallyChanged, setPhoneCountryManuallyChanged] = useState(false);
 
   const registerMutation = useRegister();
   const { login } = useAuth();
@@ -56,6 +151,9 @@ export default function Register() {
       ownerName: "",
       username: "",
       phone: "",
+      countryCode: "SA",
+      phoneCountryCode: "SA",
+      cityDisplayName: "",
       city: "",
       password: "",
       confirmPassword: "",
@@ -86,6 +184,9 @@ export default function Register() {
           "username",
           "phone",
           "city",
+          "cityDisplayName",
+          "countryCode",
+          "phoneCountryCode",
           "email",
           "password",
           "confirmPassword",
@@ -210,39 +311,127 @@ export default function Register() {
                       )}
                     />
 
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField
                       control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[14px]">{t("register.phone")}</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Phone className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                              <Input type="tel" placeholder={t("register.phonePlaceholder")} {...field} dir="ltr" autoComplete="tel" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-start text-[15px]" />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      name="countryCode"
+                      render={({ field }) => {
+                        const countryOptions = countryRecords.map((country) => ({
+                          value: country.isoCode,
+                          label: `${country.flag} ${countryLabel(country, locale)}`,
+                          search: `${country.name} ${country.isoCode}`,
+                        }));
+                        return (
+                          <FormItem>
+                            <FormLabel className="text-[14px]">{t("register.country")}</FormLabel>
+                            <FormControl>
+                              <SearchableOptionCombobox
+                                value={field.value}
+                                onChange={(value) => {
+                                  field.onChange(value);
+                                  form.setValue("cityDisplayName", "");
+                                  form.setValue("city", "");
+                                  if (!phoneCountryManuallyChanged) form.setValue("phoneCountryCode", value);
+                                }}
+                                options={countryOptions}
+                                placeholder={t("register.countryPlaceholder")}
+                                searchPlaceholder={t("register.search")}
+                                emptyLabel={t("register.noResults")}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="cityDisplayName"
+                      render={({ field }) => {
+                        const selectedCountry = form.watch("countryCode") || "SA";
+                        const cities = Array.from(
+                          new Map(
+                            ((City.getCitiesOfCountry(selectedCountry) ?? []) as ICity[])
+                              .map((city) => [city.name.trim().toLocaleLowerCase(), city]),
+                          ).values(),
+                        );
+                        const cityOptions = cities.map((city) => ({
+                          value: cityCanonicalEnglishNames[city.name] ?? city.name,
+                          label: locale === "ar"
+                            ? cityAliases[city.name] ?? city.name
+                            : cityCanonicalEnglishNames[city.name] ?? city.name,
+                          search: city.name,
+                        }));
+                        return (
+                          <FormItem>
+                            <FormLabel className="text-[14px]">{t("register.city")}</FormLabel>
+                            <FormControl>
+                              <SearchableOptionCombobox
+                                value={field.value}
+                                onChange={(value) => {
+                                  field.onChange(value);
+                                  form.setValue("city", value);
+                                }}
+                                options={cityOptions}
+                                disabled={!selectedCountry}
+                                placeholder={t("register.cityPlaceholder")}
+                                searchPlaceholder={t("register.search")}
+                                emptyLabel={t("register.noResults")}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                   </div>
 
                   <FormField
                     control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[14px]">{t("register.city")}</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <MapPin className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                            <Input placeholder={t("register.cityPlaceholder")} {...field} autoComplete="address-level2" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-[15px]" />
+                    name="phone"
+                    render={({ field }) => {
+                      const phoneCountry = form.watch("phoneCountryCode");
+                      const phoneOptions = countryRecords.map((country) => ({
+                        value: country.isoCode,
+                        label: `${country.flag} +${country.phonecode} ${countryLabel(country, locale)}`,
+                         selectedLabel: `${country.flag} +${country.phonecode}`,
+                        search: `${country.name} ${country.isoCode} ${country.phonecode}`,
+                      }));
+                      return (
+                        <FormItem>
+                          <FormLabel className="text-[14px]">{t("register.phone")}</FormLabel>
+                          <div className="flex gap-2">
+                            <FormField
+                              control={form.control}
+                              name="phoneCountryCode"
+                              render={({ field: phoneCountryField }) => (
+                                <SearchableOptionCombobox
+                                  value={phoneCountry}
+                                  onChange={(value) => {
+                                    setPhoneCountryManuallyChanged(true);
+                                    phoneCountryField.onChange(value);
+                                  }}
+                                  options={phoneOptions}
+                                  placeholder={t("register.callingCode")}
+                                  searchPlaceholder={t("register.search")}
+                                  emptyLabel={t("register.noResults")}
+                                  className="w-[148px] shrink-0 sm:w-[170px]"
+                                />
+                              )}
+                            />
+                            <FormControl>
+                              <div className="relative min-w-0 flex-1">
+                                <Phone className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                                <Input type="tel" placeholder={t("register.phonePlaceholder")} {...field} dir="ltr" autoComplete="tel" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-start text-[15px]" />
+                              </div>
+                            </FormControl>
                           </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

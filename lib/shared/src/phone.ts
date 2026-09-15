@@ -95,3 +95,72 @@ export function normalizeMobile(raw: string): MobileNormalizationResult {
     message: MOBILE_MSG_NEEDS_COUNTRY_CODE,
   };
 }
+
+import {
+  getCountries,
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js";
+
+export type InternationalPhoneNormalizationResult =
+  | {
+      ok: true;
+      e164: string;
+      digitsOnly: string;
+      countryCode: CountryCode;
+    }
+  | {
+      ok: false;
+      code: "EMPTY" | "INVALID_COUNTRY" | "INVALID";
+      message: string;
+    };
+
+export const INTERNATIONAL_PHONE_MSG_EMPTY = "يرجى إدخال رقم الجوال.";
+export const INTERNATIONAL_PHONE_MSG_INVALID =
+  "رقم الجوال غير صالح للدولة المحددة.";
+
+/**
+ * Normalize a registration phone against the selected country. This is
+ * intentionally separate from normalizeMobile, whose Saudi-only behavior is
+ * used by existing patient features.
+ */
+export function normalizeInternationalPhone(
+  raw: string,
+  country: string = "SA",
+): InternationalPhoneNormalizationResult {
+  const selectedCountry = country.toUpperCase() as CountryCode;
+  if (!getCountries().includes(selectedCountry)) {
+    return {
+      ok: false,
+      code: "INVALID_COUNTRY",
+      message: INTERNATIONAL_PHONE_MSG_INVALID,
+    };
+  }
+  const input = toEnglishDigits(raw ?? "").trim();
+  if (!input) {
+    return { ok: false, code: "EMPTY", message: INTERNATIONAL_PHONE_MSG_EMPTY };
+  }
+  const explicitInternational = input.startsWith("+") || input.startsWith("00");
+  const parseInput = input.startsWith("00") ? `+${input.slice(2)}` : input;
+  const phone = parsePhoneNumberFromString(parseInput, selectedCountry);
+  if (
+    !phone ||
+    !phone.isValid() ||
+    (explicitInternational &&
+      phone.country !== selectedCountry)
+  ) {
+    return { ok: false, code: "INVALID", message: INTERNATIONAL_PHONE_MSG_INVALID };
+  }
+  return {
+    ok: true,
+    e164: phone.number,
+    digitsOnly: phone.number.slice(1),
+    countryCode: phone.country ?? selectedCountry,
+  };
+}
+
+export function formatInternationalPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const phone = parsePhoneNumberFromString(raw);
+  return phone?.isValid() ? phone.formatInternational() : raw;
+}

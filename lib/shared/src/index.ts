@@ -1,4 +1,5 @@
 export * from "./phone";
+export * from "./location";
 export * from "./arabic";
 export * from "./schemas/common";
 export * from "./schemas/auth";
