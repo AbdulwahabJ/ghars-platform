@@ -390,7 +390,7 @@ export default function LandingPage() {
       }));
 
   return (
-    <div className={`min-h-screen max-w-full overflow-x-hidden bg-background font-sans ${isRTL ? "font-brand-arabic" : "font-brand-latin"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen max-w-full overflow-x-hidden bg-[#F7F9FC] font-sans ${isRTL ? "font-brand-arabic" : "font-brand-latin"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/90 backdrop-blur-md border-b border-border shadow-sm py-3" : "bg-transparent py-5"}`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -479,19 +479,39 @@ export default function LandingPage() {
         </div>
       </nav>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-[#F7FAFC] pt-24 sm:pt-28 lg:pt-28 lg:min-h-[780px]">
+      <section className="relative overflow-hidden bg-[#F7F9FC] pt-24 sm:pt-28 lg:pt-28 lg:min-h-[780px]">
         <div className="absolute inset-x-0 top-0 h-px bg-white"></div>
+        <div
+          className="pointer-events-none absolute inset-0 hidden opacity-40 sm:block"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(15,118,110,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(15,118,110,0.025) 1px, transparent 1px)",
+            backgroundSize: "44px 44px",
+            maskImage: "linear-gradient(to bottom, black, transparent 78%)",
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -start-40 top-20 hidden h-[520px] w-[520px] rounded-full opacity-70 blur-3xl md:block"
+          style={{ background: "radial-gradient(circle, rgba(31,169,184,0.11) 0%, rgba(31,169,184,0) 68%)" }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -end-36 bottom-0 hidden h-[460px] w-[460px] rounded-full opacity-50 blur-3xl lg:block"
+          style={{ background: "radial-gradient(circle, rgba(13,27,61,0.07) 0%, rgba(13,27,61,0) 70%)" }}
+          aria-hidden="true"
+        />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-10 pb-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(370px,0.8fr)] lg:gap-10 lg:pb-12" dir="ltr">
             <div className="order-2 relative min-w-0 lg:order-1 lg:py-4">
               <div
-                className="absolute -inset-x-10 -inset-y-14 bg-cover bg-center opacity-[0.22] blur-[1px]"
+                className="absolute -inset-x-10 -inset-y-14 bg-cover bg-center opacity-[0.14] blur-[1px]"
                 style={{ backgroundImage: `url(${getAssetPath("/assets/dental-clinic-bg.jpg")})` }}
                 aria-hidden="true"
               ></div>
-              <div className="absolute -inset-x-10 -inset-y-14 bg-gradient-to-r from-white/15 via-[#F7FAFC]/25 to-[#F7FAFC] lg:bg-gradient-to-r lg:from-white/5 lg:via-[#F7FAFC]/20 lg:to-[#F7FAFC]"></div>
+              <div className="absolute -inset-x-10 -inset-y-14 bg-gradient-to-r from-white/10 via-[#F7F9FC]/35 to-[#F7F9FC]"></div>
               <div className="relative animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                <div className="overflow-hidden rounded-xl border border-white/80 bg-white p-1.5 shadow-[0_24px_65px_-28px_rgba(13,27,61,0.38)] sm:p-2">
+                <div className="overflow-hidden rounded-xl border border-[#DDE7EC] bg-white p-1.5 shadow-[0_24px_60px_-34px_rgba(13,27,61,0.35)] sm:p-2">
                   <div className="flex h-7 items-center gap-1.5 rounded-t-lg bg-[#EEF3F6] px-3 sm:h-8 sm:px-4">
                     <span className="h-2 w-2 rounded-full bg-[#F87171] sm:h-2.5 sm:w-2.5"></span>
                     <span className="h-2 w-2 rounded-full bg-[#FBBF24] sm:h-2.5 sm:w-2.5"></span>
@@ -571,11 +591,13 @@ export default function LandingPage() {
             })}
           </div>
         </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-white/80" aria-hidden="true" />
       </section>
       {/* Clinical Credibility Section */}
-      <section id="clinical-credibility" className="scroll-mt-24 bg-white py-16 md:py-20">
+      <section id="clinical-credibility" className="relative scroll-mt-24 bg-white py-16 md:py-20">
+        <div className="pointer-events-none absolute inset-y-0 start-0 hidden w-[28%] bg-[#F2F7F8]/65 lg:block" aria-hidden="true" />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-10 lg:grid-cols-[minmax(320px,0.86fr)_minmax(0,1.14fr)] lg:gap-16" dir={isRTL ? "rtl" : "ltr"}>
+          <div className="relative grid items-center gap-10 lg:grid-cols-[minmax(320px,0.86fr)_minmax(0,1.14fr)] lg:gap-16" dir={isRTL ? "rtl" : "ltr"}>
             <div className="order-1 mx-auto w-full max-w-[480px] lg:mx-0">
               <div className="relative overflow-hidden border border-[#DDE7EC] bg-[#EAF7F5]">
                 <img
@@ -636,7 +658,7 @@ export default function LandingPage() {
             {t.clinical.items.map((item, index) => (
               <article
                 key={item.title}
-                className="relative flex min-h-[190px] flex-col border border-[#DDE7EC] bg-white p-5"
+                className="relative flex min-h-[190px] flex-col border border-[#DDE7EC] bg-white p-5 transition-[transform,border-color] duration-300 hover:-translate-y-1 hover:border-[#1FA9B8]/45"
               >
                 <div className="relative z-10 mb-5 flex items-center justify-between">
                   <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1FA9B8]/25 bg-white text-[#0F766E]">
@@ -669,7 +691,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 border-y border-[#0D1B3D]/10 md:grid-cols-2 lg:grid-cols-3">
             {t.features.items.map((feature, i) => (
-              <article key={feature.title} className={`group p-6 md:p-7 ${i > 0 ? "border-t border-[#0D1B3D]/10 md:border-t-0" : ""} ${i % 2 === 1 ? "md:border-s" : ""} ${i >= 2 ? "md:border-t lg:border-t-0" : ""} ${i % 3 !== 0 ? "lg:border-s" : "lg:border-s-0"} ${i >= 3 ? "lg:border-t" : ""}`}>
+              <article key={feature.title} className={`group bg-white p-6 transition-[background-color,box-shadow] duration-300 hover:bg-[#F9FCFC] hover:shadow-[inset_0_0_0_1px_rgba(31,169,184,0.32)] md:p-7 ${i > 0 ? "border-t border-[#0D1B3D]/10 md:border-t-0" : ""} ${i % 2 === 1 ? "md:border-s" : ""} ${i >= 2 ? "md:border-t lg:border-t-0" : ""} ${i % 3 !== 0 ? "lg:border-s" : "lg:border-s-0"} ${i >= 3 ? "lg:border-t" : ""}`}>
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#ECF8F6] text-[#0F766E] transition-colors duration-300 group-hover:bg-[#0F766E] group-hover:text-white">
                   <feature.icon size={22} strokeWidth={1.8} />
                 </div>
@@ -692,7 +714,7 @@ export default function LandingPage() {
           {galleryItems[0] && (
             <button
               type="button"
-              className="landing-gallery-item group mb-6 block w-full overflow-hidden border border-white/15 bg-white/5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
+              className="landing-gallery-item group mb-6 block w-full overflow-hidden rounded-xl border border-white/15 bg-white/5 text-start shadow-[0_24px_60px_-36px_rgba(0,0,0,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
               onClick={() => setLightboxImage(galleryItems[0].img)}
               aria-label={galleryItems[0].title}
             >
@@ -715,7 +737,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 key={`${item.title}-${item.img}`}
-                className="landing-gallery-item group overflow-hidden border border-white/10 bg-white/5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
+                className="landing-gallery-item group overflow-hidden rounded-lg border border-white/10 bg-white/5 text-start shadow-[0_16px_38px_-30px_rgba(0,0,0,0.7)] transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-[#1FA9B8]/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA9B8]"
                 onClick={() => setLightboxImage(item.img)}
                 aria-label={item.title}
               >
@@ -737,7 +759,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* How it Works */}
-      <section id="how-it-works" className="relative scroll-mt-24 overflow-hidden bg-[#F5F8FA] py-16 md:py-20">
+      <section id="how-it-works" className="relative scroll-mt-24 overflow-hidden border-t border-[#DDE7EC] bg-[#F2F7F8] py-16 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
             <span className="mb-2.5 block text-sm font-bold tracking-wider text-[#0F766E] uppercase">{t.howItWorks.badge}</span>
@@ -754,7 +776,7 @@ export default function LandingPage() {
               {t.howItWorks.steps.map((step) => (
                 <article
                   key={step.step}
-                  className="relative flex items-start gap-4 border border-[#0D1B3D]/[0.08] bg-white p-5 text-start sm:gap-5 sm:p-6"
+                  className="relative flex items-start gap-4 border-b border-[#0D1B3D]/10 bg-white/55 p-5 text-start first:border-t sm:gap-5 sm:p-6"
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#1FA9B8]/25 bg-white text-sm font-bold text-[#0D1B3D]">
                     {step.step}
@@ -793,7 +815,7 @@ export default function LandingPage() {
         </div>
       )}
       {/* FAQ Section */}
-      <section id="faq" className="scroll-mt-24 bg-[#F5F8FA] py-16 md:py-20">
+      <section id="faq" className="scroll-mt-24 bg-white py-16 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-[#0F766E] font-bold text-sm tracking-wider uppercase mb-3 block">{t.faq.badge}</span>
@@ -804,7 +826,7 @@ export default function LandingPage() {
             {t.faq.items.map((item, i) => {
               const isOpen = openFaq === i;
               return (
-                <div key={i} className="bg-white border border-border rounded-xl overflow-hidden transition-all duration-300">
+                <div key={i} className={`overflow-hidden border bg-white transition-[border-color,background-color] duration-300 ${isOpen ? "border-[#1FA9B8]/45 bg-[#FAFDFD]" : "border-[#DDE7EC] hover:border-[#1FA9B8]/35"}`}>
                   <button
                     className="landing-faq-trigger group w-full px-6 py-5 flex items-center justify-between text-start"
                     onClick={() => setOpenFaq(isOpen ? null : i)}
@@ -833,6 +855,17 @@ export default function LandingPage() {
       {/* Final CTA */}
       <section className="relative overflow-hidden py-16 md:py-20">
         <div className="absolute inset-0 bg-[#0D1B3D]"></div>
+        <div
+          className="pointer-events-none absolute inset-0 hidden opacity-60 sm:block"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage: "radial-gradient(circle at center, black, transparent 78%)",
+          }}
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-[#1FA9B8]/55" aria-hidden="true" />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 max-w-3xl mx-auto">{t.trial.title}</h2>
           <p className="text-white/80 text-xl mb-10 max-w-2xl mx-auto">{t.trial.subtitle}</p>
@@ -857,7 +890,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* Footer */}
-      <footer className="bg-[#0D1B3D] text-white pt-16 pb-8 border-t border-white/10">
+      <footer className="border-t border-white/10 bg-[#08142F] pb-7 pt-12 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="col-span-1 md:col-span-2">
