@@ -1,0 +1,452 @@
+MODE: Free
+
+Refine the Ghars Landing Page section-by-section to create a premium medical SaaS visual system.
+
+IMPORTANT:
+- Keep the existing content, product screenshots, branding, routes, CTAs, and functionality.
+- Do NOT rebuild the landing page from scratch.
+- Do NOT change backend behavior.
+- Do NOT use AI-looking decorations.
+- Do NOT publish.
+- Create a checkpoint and stop.
+
+PRIMARY GOAL:
+
+The Landing Page currently feels too white and visually flat.
+
+Make it feel:
+- premium
+- medical
+- trustworthy
+- sophisticated
+- modern
+- intentionally designed
+
+The page should have visual depth and rhythm WITHOUT becoming decorative or busy.
+
+==================================================
+1. GLOBAL BACKGROUND SYSTEM
+==================================================
+
+Do not use pure white for the entire page.
+
+Create a controlled background palette using:
+
+- warm/cool off-white
+- very light blue-gray
+- white surfaces
+- deep Ghars navy for selected high-contrast sections
+
+Suggested visual feel:
+
+Base:
+#F7F9FC / #F8FAFC
+
+Primary white surface:
+#FFFFFF
+
+Soft cool section:
+#F2F7F8 or equivalent
+
+Deep navy:
+existing Ghars navy
+
+Teal:
+existing Ghars teal only as restrained accent
+
+Do not introduce unrelated colors.
+
+==================================================
+2. HERO — PREMIUM LIGHT DEPTH
+==================================================
+
+Keep the existing Hero structure exactly.
+
+Do not move the current text, CTAs, or dashboard screenshot unless minor alignment improvements are required.
+
+Enhance only the visual environment.
+
+Add:
+
+- very subtle cool radial lighting behind the dashboard screenshot
+- soft blurred background shapes at very low opacity
+- extremely subtle geometric/grid texture
+- one restrained curved background shape if useful
+- gentle section edge transition into the next section
+
+The background effects should be barely noticeable individually.
+
+The user should feel depth, not see "effects".
+
+Avoid:
+- glow around buttons
+- floating teeth
+- floating implants
+- network graphics
+- large gradients
+- random decorative circles
+
+==================================================
+3. HERO SCREENSHOT PRESENTATION
+==================================================
+
+Make the real Ghars Dashboard screenshot feel like a premium product.
+
+Use:
+- refined browser/application frame
+- subtle border
+- very soft shadow
+- slight separation from background
+
+Do not:
+- tilt excessively
+- use fake perspective
+- add fake UI
+- add strong reflections
+
+Keep the screenshot readable.
+
+==================================================
+4. DR. HUMAM / CLINICAL CREDIBILITY SECTION
+==================================================
+
+This section should feel editorial and authoritative.
+
+Use a visually distinct background from the Hero.
+
+Recommended:
+- white or soft neutral surface
+- subtle full-width background shape or restrained side panel
+- real Dr. Humam image if already provided
+- clean split layout
+
+Give the section more presence through typography and composition, NOT decoration.
+
+The +5,000 credibility item should feel like editorial evidence, not a startup KPI card.
+
+Use:
+- thin separators
+- small teal detail
+- strong navy typography
+- generous whitespace
+
+No oversized statistic cards.
+
+==================================================
+5. CLINICAL JOURNEY SECTION
+==================================================
+
+Use a very light cool-gray / blue-gray section background.
+
+Make the six clinical steps feel connected.
+
+Use:
+- subtle step numbering 01–06
+- understated visual connector on desktop
+- white cards on the soft background
+- thin border
+- very soft hover movement
+
+Avoid strong shadows.
+
+The section should communicate:
+"workflow"
+rather than:
+"random features".
+
+==================================================
+6. OPERATIONAL CAPABILITIES SECTION
+==================================================
+
+Return to a white / near-white background.
+
+Use six cards maximum.
+
+Cards should have:
+- subtle border
+- near-flat shadow
+- small teal icon surface
+- consistent spacing
+- slightly stronger hover/focus border
+
+Do not make all cards heavily rounded.
+
+Keep it mature and clinical.
+
+==================================================
+7. PRODUCT SHOWCASE SECTION
+==================================================
+
+This should be the strongest visual contrast on the page.
+
+Use a premium deep navy background.
+
+Keep real Ghars screenshots.
+
+Structure:
+
+- large featured Dashboard screenshot
+- supporting screenshots below in a clean grid
+
+Use:
+- off-white headings
+- restrained teal accent
+- soft screenshot frames
+- subtle depth
+
+Do NOT apply dark gradient overlays that reduce screenshot readability.
+
+Do NOT add fake 3D mockups.
+
+==================================================
+8. TRANSITION AFTER DARK SHOWCASE
+==================================================
+
+Do not jump harshly from dark navy to pure white.
+
+Use:
+- subtle light transition
+OR
+- generous spacing
+OR
+- a very light cool neutral next section
+
+Make the transition intentional.
+
+==================================================
+9. HOW IT WORKS
+==================================================
+
+Use a soft neutral background.
+
+Keep the three-step layout simple.
+
+Improve hierarchy with:
+- elegant numbers
+- thin connector line
+- cleaner typography
+
+Avoid large boxes if unnecessary.
+
+This section should feel lighter than the clinical journey section.
+
+==================================================
+10. FAQ
+==================================================
+
+Use white or near-white background.
+
+Make the FAQ area visually calm.
+
+Accordion:
+- soft borders
+- clean spacing
+- subtle hover state
+- clear open/closed state
+- no heavy shadows
+
+Do not wrap the entire FAQ in a giant card.
+
+==================================================
+11. FINAL CTA
+==================================================
+
+Make the final CTA visually memorable.
+
+Use Ghars Deep Navy.
+
+Content centered.
+
+Add only subtle background texture such as:
+- extremely soft grid
+- subtle curved line
+- restrained teal accent
+
+No illustrations.
+
+Primary CTA should clearly stand out.
+
+Secondary WhatsApp CTA should remain visible but subordinate.
+
+==================================================
+12. FOOTER
+==================================================
+
+Keep footer dark navy but slightly distinguish it from the CTA section.
+
+Use:
+- subtle border-top
+- muted text
+- clean columns
+- compact spacing
+
+Do not make footer excessively tall.
+
+==================================================
+13. SECTION RHYTHM
+==================================================
+
+Audit vertical spacing across the full page.
+
+The current page should not feel like:
+
+white section
+white section
+white section
+white section
+
+Create visual rhythm through controlled alternation:
+
+Hero:
+premium light
+
+Clinical credibility:
+white/editorial
+
+Clinical journey:
+soft cool background
+
+Operational features:
+white
+
+Product showcase:
+deep navy
+
+How it works:
+soft neutral
+
+FAQ:
+white
+
+Final CTA:
+deep navy
+
+Footer:
+slightly darker navy
+
+==================================================
+14. MICRO-DETAILS
+==================================================
+
+Add subtle premium details only where useful:
+
+- thin separators
+- small section eyebrow text
+- restrained teal rules
+- subtle icon containers
+- consistent section max-width
+- consistent radius system
+- consistent border opacity
+
+Avoid:
+- decorative noise
+- excessive pills
+- huge border-radius everywhere
+- gradients on every section
+- glowing text
+- excessive animation
+
+==================================================
+15. MOTION
+==================================================
+
+Use motion only if already supported cleanly.
+
+Allow:
+- small hover lift
+- border change
+- subtle image scale around 1–2%
+
+Do NOT add:
+- floating animations
+- looping movement
+- parallax
+- bouncing
+- glowing animations
+
+==================================================
+16. MOBILE
+==================================================
+
+On mobile:
+
+- simplify background decoration further
+- remove non-essential textures
+- preserve readability
+- keep screenshot cards large enough to understand
+- stack sections cleanly
+- no horizontal overflow
+- Dr. Humam section must remain elegant
+- CTA buttons must remain easy to tap
+
+==================================================
+17. ACCESSIBILITY
+==================================================
+
+Maintain sufficient contrast.
+
+Do not use very light gray text.
+
+Focus-visible states must remain clear.
+
+Do not sacrifice accessibility for aesthetics.
+
+==================================================
+18. DO NOT TOUCH
+==================================================
+
+Do NOT modify:
+
+- Landing Page copy
+- pricing
+- 3-day trial messaging
+- Dr. Humam claims
+- authentication
+- registration
+- product routes
+- backend
+- WhatsApp behavior
+- Platform Admin
+- production data
+- screenshot source data
+
+This task is visual refinement only.
+
+==================================================
+19. QUALITY BAR
+==================================================
+
+The final page should visually feel closer to a premium healthcare software product than a generic landing-page template.
+
+It should communicate:
+
+Precision.
+Clinical credibility.
+Calm technology.
+Trust.
+
+It must NOT look like it was decorated by AI.
+
+==================================================
+20. FINAL REPORT
+==================================================
+
+Report:
+
+1. Global background system implemented
+2. Hero treatment
+3. Dr. Humam section treatment
+4. Clinical journey treatment
+5. Operational features treatment
+6. Product showcase treatment
+7. How It Works treatment
+8. FAQ treatment
+9. Final CTA treatment
+10. Mobile result
+11. Arabic RTL result
+12. English LTR result
+13. TypeScript/build result
+14. Exact checkpoint hash
+
+DO NOT PUBLISH.
+Create checkpoint and STOP.
