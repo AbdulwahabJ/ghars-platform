@@ -1,0 +1,146 @@
+MODE: Free
+
+Add a premium clinical-credibility section to the Ghars Landing Page.
+
+GOAL:
+Communicate that Ghars was developed from real clinical experience and under the supervision of Dr. Humam Al-Kayyal.
+
+Do NOT make the page feel like a personal doctor advertisement.
+The purpose is to increase trust in Ghars as a professionally designed clinical workflow system.
+
+==================================================
+PLACEMENT
+==================================================
+
+Add the new section:
+
+AFTER:
+"About Ghars"
+
+BEFORE:
+the clinical journey / features section.
+
+Also add one subtle credibility line in the Hero supporting area.
+
+Do not overcrowd the Hero.
+
+==================================================
+ARABIC SECTION
+==================================================
+
+Eyebrow:
+الخبرة وراء غرس
+
+Heading:
+صُمم من واقع الممارسة… وليس من افتراضات تقنية
+
+Body:
+
+تم تطوير غرس بإشراف د. همام الكيال، وبالاستناد إلى خبرة سريرية تتجاوز 5,000 حالة وإجراء في زراعة الأسنان وجراحات وتجميل الوجه والفكين.
+
+هذه الخبرة انعكست على تفاصيل النظام؛ من توثيق الزرعات والإجراءات الجراحية وزراعة العظم ورفع الجيب الفكي، إلى التركيبات والمتابعات والجوانب المالية، ليكون غرس أداة عملية تتوافق مع سير العمل الحقيقي للطبيب والعيادة.
+
+==================================================
+CREDIBILITY ITEMS
+==================================================
+
+Use three restrained credibility items:
+
+1.
++5,000
+حالة وإجراء سريري
+
+2.
+خبرة تخصصية
+في الزراعة وجراحات الوجه والفكين
+
+3.
+من واقع العيادة
+تصميم مبني على احتياجات العمل اليومية
+
+Do NOT make them look like fake SaaS statistics.
+
+Use elegant typography and minimal separators/cards.
+
+==================================================
+HERO TRUST LINE
+==================================================
+
+Add a subtle line below the main Hero supporting text:
+
+طُوّر بإشراف د. همام الكيال وبخبرة سريرية تتجاوز 5,000 حالة وإجراء.
+
+English:
+
+Developed under the supervision of Dr. Humam Al-Kayyal, drawing on experience across more than 5,000 clinical cases and procedures.
+
+Keep this visually secondary to the Hero headline and CTA.
+
+==================================================
+ENGLISH SECTION
+==================================================
+
+Eyebrow:
+The experience behind Ghars
+
+Heading:
+Built from real clinical practice.
+
+Body:
+
+Ghars was developed under the supervision of Dr. Humam Al-Kayyal, drawing on clinical experience across more than 5,000 cases and procedures in dental implantology, oral and maxillofacial surgery, and facial aesthetics.
+
+That experience shaped the system around real clinical workflows — from implant and surgical documentation, bone grafting and sinus lift procedures to prosthetics, follow-up, and financial management.
+
+==================================================
+VISUAL DIRECTION
+==================================================
+
+Make this section feel:
+
+- premium
+- medical
+- credible
+- restrained
+- human
+
+Use existing Ghars navy/teal branding.
+
+Avoid:
+- gradients/glow
+- 3D implants
+- AI-looking doctor imagery
+- oversized stat cards
+- fake awards
+- fake certifications
+- excessive icons
+
+If a real Dr. Humam photo asset is not currently available:
+do NOT generate or substitute an AI doctor.
+
+Build the layout so a real professional photo can be added later.
+
+If a real photo is already available in project assets, use it only if clearly intended for this purpose.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do not describe Dr. Humam or Ghars as:
+- certified
+- officially endorsed
+- medically approved
+- #1
+- the best
+
+unless that exact claim is supported elsewhere.
+
+Use the existing i18n architecture.
+Arabic RTL.
+English LTR.
+Responsive desktop/mobile.
+
+Do not redesign other Landing Page sections.
+Do not publish.
+
+Create checkpoint and stop.

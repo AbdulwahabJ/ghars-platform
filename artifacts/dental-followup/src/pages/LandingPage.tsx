@@ -52,6 +52,7 @@ const CONTENT = {
       titleLine1: "أدر رحلة العلاج كاملة",
       titleLine2: "من الجراحة إلى التركيب والمتابعة",
       subtitle: "غرس يجمع حالات الزراعة، زراعة العظم، رفع الجيب الفكي، الإجراءات الجراحية، التركيبات، المتابعات، المواعيد والمدفوعات في نظام واحد مصمم لعيادات الأسنان.",
+       credibility: "طُوّر بإشراف د. همام الكيال وبخبرة سريرية تتجاوز 5,000 حالة وإجراء.",
       ctaPrimary: "ابدأ تجربتك المجانية",
       ctaSecondary: "تواصل معنا عبر واتساب",
       badges: ["متابعة حالات الزراعة", "تنظيم المرضى", "المالية والمدفوعات", "الإحصائيات والتقارير"]
@@ -61,6 +62,19 @@ const CONTENT = {
       title: "من الجراحة إلى التركيب والمتابعة.",
       desc: "غرس نظام متخصص لإدارة حالات زراعة الأسنان والإجراءات المصاحبة لها، من زراعة العظم ورفع الجيب الفكي إلى التركيبات والمتابعة، بملف موحّد وواضح لكل مريض."
     },
+     credibility: {
+       eyebrow: "الخبرة وراء غرس",
+       title: "صُمم من واقع الممارسة… وليس من افتراضات تقنية",
+       body: [
+         "تم تطوير غرس بإشراف د. همام الكيال، وبالاستناد إلى خبرة سريرية تتجاوز 5,000 حالة وإجراء في زراعة الأسنان وجراحات وتجميل الوجه والفكين.",
+         "هذه الخبرة انعكست على تفاصيل النظام؛ من توثيق الزرعات والإجراءات الجراحية وزراعة العظم ورفع الجيب الفكي، إلى التركيبات والمتابعات والجوانب المالية، ليكون غرس أداة عملية تتوافق مع سير العمل الحقيقي للطبيب والعيادة."
+       ],
+       items: [
+         { value: "+5,000", label: "حالة وإجراء سريري" },
+         { value: "خبرة تخصصية", label: "في الزراعة وجراحات الوجه والفكين" },
+         { value: "من واقع العيادة", label: "تصميم مبني على احتياجات العمل اليومية" }
+       ]
+     },
     clinical: {
       badge: "الرحلة السريرية",
       title: "من الجراحة إلى التركيب والمتابعة",
@@ -177,6 +191,7 @@ const CONTENT = {
       titleLine1: "Manage the entire treatment journey",
       titleLine2: "from surgery to prosthetics and follow-up",
       subtitle: "Ghars brings implant cases, bone grafting, sinus lift procedures, adjunct surgical procedures, prosthetics, follow-ups, appointments, and payments together in one system built for dental clinics.",
+       credibility: "Developed under the supervision of Dr. Humam Al-Kayyal, drawing on experience across more than 5,000 clinical cases and procedures.",
       ctaPrimary: "Start Free Trial",
       ctaSecondary: "Contact Us on WhatsApp",
       badges: ["Implant Cases", "Patient Management", "Finance & Payments", "Analytics & Reports"]
@@ -186,6 +201,19 @@ const CONTENT = {
       title: "From surgery to prosthetics and follow-up.",
       desc: "Ghars is a specialized system for managing dental implant cases and their related procedures, from bone grafting and sinus lift to prosthetics and follow-up, with one clear unified patient record."
     },
+     credibility: {
+       eyebrow: "The experience behind Ghars",
+       title: "Built from real clinical practice.",
+       body: [
+         "Ghars was developed under the supervision of Dr. Humam Al-Kayyal, drawing on clinical experience across more than 5,000 cases and procedures in dental implantology, oral and maxillofacial surgery, and facial aesthetics.",
+         "That experience shaped the system around real clinical workflows — from implant and surgical documentation, bone grafting and sinus lift procedures to prosthetics, follow-up, and financial management."
+       ],
+       items: [
+         { value: "+5,000", label: "Clinical cases and procedures" },
+         { value: "Specialist experience", label: "In implantology and oral & maxillofacial surgery" },
+         { value: "Built in the clinic", label: "Designed around everyday workflow needs" }
+       ]
+     },
     clinical: {
       badge: "Clinical Workflow",
       title: "From surgery to prosthetics and follow-up",
@@ -553,6 +581,9 @@ export default function LandingPage() {
               <p className="mx-auto mb-6 max-w-[36rem] text-[15px] leading-7 text-[#64748B] sm:text-base lg:mx-0 lg:max-w-[36rem] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                 {heroSubtitle}
               </p>
+               <p className="mx-auto mb-6 max-w-[34rem] text-xs leading-6 text-[#0F766E]/85 sm:text-sm lg:mx-0">
+                 {t.hero.credibility}
+               </p>
               <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                 <Link data-testid="link-register" href="/register" className="btn-primary landing-primary-action h-[52px] w-full bg-[#0D1B3D] px-7 text-base text-white shadow-lg shadow-[#0D1B3D]/15 hover:bg-[#142A59] sm:w-auto">
                   {t.hero.ctaPrimary}
@@ -613,6 +644,48 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+       {/* Clinical Credibility Section */}
+       <section id="clinical-credibility" className="bg-white py-20 md:py-24">
+         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+           <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)] lg:gap-16" dir={isRTL ? "rtl" : "ltr"}>
+             <div className="max-w-2xl">
+               <span className="mb-3 block text-sm font-bold uppercase tracking-wider text-[#0F766E]">
+                 {t.credibility.eyebrow}
+               </span>
+               <h2 className="mb-6 text-3xl font-bold leading-tight text-[#0D1B3D] md:text-4xl">
+                 {t.credibility.title}
+               </h2>
+               <div className="space-y-4 text-base leading-8 text-[#64748B] md:text-lg">
+                 {t.credibility.body.map((paragraph) => (
+                   <p key={paragraph}>{paragraph}</p>
+                 ))}
+               </div>
+             </div>
+
+             <div className="rounded-[1.75rem] border border-[#DDE7EC] bg-[#F5F8FA] p-6 shadow-[0_18px_44px_-36px_rgba(13,27,61,0.7)] sm:p-8">
+               <div className="mb-6 flex items-center gap-3">
+                 <span className="h-px flex-1 bg-[#1FA9B8]/35"></span>
+                 <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0F766E]">
+                   Ghars
+                 </span>
+                 <span className="h-px flex-1 bg-[#1FA9B8]/35"></span>
+               </div>
+               <div className="divide-y divide-[#0D1B3D]/10">
+                 {t.credibility.items.map((item) => (
+                   <div key={item.value} className="py-5 first:pt-0 last:pb-0">
+                     <p className="text-xl font-bold leading-snug text-[#0D1B3D] sm:text-2xl">
+                       {item.value}
+                     </p>
+                     <p className="mt-1 text-sm leading-6 text-[#64748B]">
+                       {item.label}
+                     </p>
+                   </div>
+                 ))}
+               </div>
+             </div>
+           </div>
+         </div>
+       </section>
       {/* Clinical Workflow Section */}
       <section id="clinical-workflow" className="bg-[#F5F8FA] py-20 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
