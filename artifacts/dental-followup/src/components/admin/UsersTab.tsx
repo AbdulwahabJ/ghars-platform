@@ -337,6 +337,9 @@ export function UsersTab() {
                 onChange={(v) => setForm({ ...form, avatarData: v })}
                 onError={avatarError}
               />
+              <p className="text-xs text-muted-foreground">
+                {t("users.avatarHelp")}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -440,6 +443,9 @@ export function UsersTab() {
                   onChange={(v) => setEditForm({ ...editForm, avatarData: v })}
                   onError={avatarError}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {t("users.avatarHelp")}
+                </p>
               </div>
 
               <div className="space-y-2">
