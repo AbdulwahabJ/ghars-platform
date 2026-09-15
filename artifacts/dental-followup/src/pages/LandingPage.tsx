@@ -676,9 +676,9 @@ export default function LandingPage() {
                   className="relative z-10 max-h-[620px] w-[94%] object-contain object-bottom drop-shadow-[0_18px_28px_rgba(13,27,61,0.11)] sm:w-[93%]"
                   style={{
                     WebkitMaskImage:
-                      "linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,0.92) 67%, rgba(0,0,0,0.58) 79%, rgba(0,0,0,0.16) 92%, transparent 100%)",
+                      "linear-gradient(to bottom, #000 0%, #000 50%, rgba(0,0,0,0.88) 59%, rgba(0,0,0,0.48) 69%, rgba(0,0,0,0.12) 78%, transparent 87%, transparent 100%)",
                     maskImage:
-                      "linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,0.92) 67%, rgba(0,0,0,0.58) 79%, rgba(0,0,0,0.16) 92%, transparent 100%)",
+                      "linear-gradient(to bottom, #000 0%, #000 50%, rgba(0,0,0,0.88) 59%, rgba(0,0,0,0.48) 69%, rgba(0,0,0,0.12) 78%, transparent 87%, transparent 100%)",
                   }}
                 />
               </div>
