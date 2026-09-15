@@ -16,13 +16,12 @@ import {
   X as CloseIcon,
   ChevronDown,
   Image as ImageIcon,
-  Bone,
   Layers,
   Syringe,
   Crown,
   CalendarCheck2
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type SVGProps } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useLocale } from "@/i18n/LocaleProvider";
@@ -31,6 +30,43 @@ import { usePublicLandingMedia } from "@/hooks/use-landing-media";
 import { buildSupportWhatsappLink } from "@/lib/support";
 import gharsNavbarLogo from "@/assets/ghars-navbar-logo.png";
 import gharsFooterLogo from "@/assets/ghars-footer-logo.png";
+
+type JawBoneIconProps = SVGProps<SVGSVGElement> & {
+  size?: number | string;
+};
+
+function JawBoneIcon({ size = 20, strokeWidth = 1.8, ...props }: JawBoneIconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        d="M4.5 7.5c-.5 3.8.6 8 3.7 10.6 2.1 1.8 5.5 1.8 7.6 0 3.1-2.6 4.2-6.8 3.7-10.6"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.2 8.2c.9 1.1 2.1 1.7 3.4 1.7h4.8c1.3 0 2.5-.6 3.4-1.7"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+      <path
+        d="M17.8 2.8v3.2M16.2 4.4h3.2"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 const CONTENT = {
   ar: {
@@ -73,7 +109,7 @@ const CONTENT = {
       subtitle: "يوثّق غرس مراحل العلاج والإجراءات المصاحبة في ملف واحد مترابط، لتبقى حالة المريض واضحة من أول إجراء حتى آخر متابعة.",
       items: [
          { title: "حالات زراعة الأسنان", desc: "إدارة الزرعات ومواقعها وأنظمتها ومراحلها العلاجية داخل ملف المريض.", icon: Stethoscope },
-        { title: "زراعة العظم", desc: "توثيق إجراءات زراعة العظم والمواد والأغشية والمتابعة المرتبطة بها.", icon: Bone },
+          { title: "زراعة العظم", desc: "توثيق إجراءات زراعة العظم والمواد والأغشية والمتابعة المرتبطة بها.", icon: JawBoneIcon },
         { title: "رفع الجيب الفكي", desc: "تسجيل إجراءات رفع الجيب الفكي وربطها بالحالة والزرعات والمتابعات.", icon: Layers },
         { title: "الإجراءات الجراحية المصاحبة", desc: "توثيق الإجراءات الجراحية مثل إعادة تموضع العصب والإجراءات المساندة للحالة.", icon: Syringe },
         { title: "التركيبات", desc: "متابعة مراحل التركيب المؤقت والنهائي وربطها بحالة الزرعات.", icon: Crown },
@@ -184,7 +220,7 @@ const CONTENT = {
       subtitle: "Ghars keeps treatment stages and related procedures connected in one patient record, from the first procedure through the final follow-up.",
       items: [
          { title: "Dental Implant Cases", desc: "Manage implants, sites, systems, and treatment stages inside the patient record.", icon: Stethoscope },
-        { title: "Bone Grafting", desc: "Document bone grafting procedures, materials, membranes, and related follow-up.", icon: Bone },
+        { title: "Bone Grafting", desc: "Document bone grafting procedures, materials, membranes, and related follow-up.", icon: JawBoneIcon },
         { title: "Sinus Lift", desc: "Record sinus lift procedures and connect them to the case, implants, and follow-ups.", icon: Layers },
         { title: "Adjunct Surgical Procedures", desc: "Document procedures such as nerve repositioning and other supporting surgery.", icon: Syringe },
         { title: "Prosthetics", desc: "Track temporary and final prosthetic stages and connect them to implant status.", icon: Crown },
