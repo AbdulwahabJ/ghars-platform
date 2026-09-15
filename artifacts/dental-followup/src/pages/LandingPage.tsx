@@ -16,8 +16,8 @@ import {
   X as CloseIcon,
   ChevronDown,
   Image as ImageIcon,
-  Layers,
-  Syringe,
+  ArrowUpFromLine,
+  Scissors,
   Crown,
   CalendarCheck2
 } from "lucide-react";
@@ -34,6 +34,34 @@ import gharsFooterLogo from "@/assets/ghars-footer-logo.png";
 type JawBoneIconProps = SVGProps<SVGSVGElement> & {
   size?: number | string;
 };
+
+function DentalImplantIcon({ size = 20, strokeWidth = 1.8, ...props }: JawBoneIconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        d="M7 4.5h10l-1.2 5H8.2l-1.2-5Z"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.2 9.5h5.6v2.2H9.2zM10.2 11.7h3.6l-.7 7.8H11l-.8-7.8ZM10.6 14.2h2.8M10.8 16.7h2.4"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function JawBoneIcon({ size = 20, strokeWidth = 1.8, ...props }: JawBoneIconProps) {
   return (
@@ -108,10 +136,10 @@ const CONTENT = {
       title: "من الجراحة إلى التركيب والمتابعة",
       subtitle: "يوثّق غرس مراحل العلاج والإجراءات المصاحبة في ملف واحد مترابط، لتبقى حالة المريض واضحة من أول إجراء حتى آخر متابعة.",
       items: [
-         { title: "حالات زراعة الأسنان", desc: "إدارة الزرعات ومواقعها وأنظمتها ومراحلها العلاجية داخل ملف المريض.", icon: Stethoscope },
+          { title: "حالات زراعة الأسنان", desc: "إدارة الزرعات ومواقعها وأنظمتها ومراحلها العلاجية داخل ملف المريض.", icon: DentalImplantIcon },
           { title: "زراعة العظم", desc: "توثيق إجراءات زراعة العظم والمواد والأغشية والمتابعة المرتبطة بها.", icon: JawBoneIcon },
-        { title: "رفع الجيب الفكي", desc: "تسجيل إجراءات رفع الجيب الفكي وربطها بالحالة والزرعات والمتابعات.", icon: Layers },
-        { title: "الإجراءات الجراحية المصاحبة", desc: "توثيق الإجراءات الجراحية مثل إعادة تموضع العصب والإجراءات المساندة للحالة.", icon: Syringe },
+         { title: "رفع الجيب الفكي", desc: "تسجيل إجراءات رفع الجيب الفكي وربطها بالحالة والزرعات والمتابعات.", icon: ArrowUpFromLine },
+         { title: "الإجراءات الجراحية المصاحبة", desc: "توثيق الإجراءات الجراحية مثل إعادة تموضع العصب والإجراءات المساندة للحالة.", icon: Scissors },
         { title: "التركيبات", desc: "متابعة مراحل التركيب المؤقت والنهائي وربطها بحالة الزرعات.", icon: Crown },
         { title: "المتابعات", desc: "تنظيم المتابعات والمواعيد وحالة كل متابعة ضمن رحلة علاج المريض.", icon: CalendarCheck2 }
       ],
@@ -219,10 +247,10 @@ const CONTENT = {
       title: "From surgery to prosthetics and follow-up",
       subtitle: "Ghars keeps treatment stages and related procedures connected in one patient record, from the first procedure through the final follow-up.",
       items: [
-         { title: "Dental Implant Cases", desc: "Manage implants, sites, systems, and treatment stages inside the patient record.", icon: Stethoscope },
+          { title: "Dental Implant Cases", desc: "Manage implants, sites, systems, and treatment stages inside the patient record.", icon: DentalImplantIcon },
         { title: "Bone Grafting", desc: "Document bone grafting procedures, materials, membranes, and related follow-up.", icon: JawBoneIcon },
-        { title: "Sinus Lift", desc: "Record sinus lift procedures and connect them to the case, implants, and follow-ups.", icon: Layers },
-        { title: "Adjunct Surgical Procedures", desc: "Document procedures such as nerve repositioning and other supporting surgery.", icon: Syringe },
+         { title: "Sinus Lift", desc: "Record sinus lift procedures and connect them to the case, implants, and follow-ups.", icon: ArrowUpFromLine },
+         { title: "Adjunct Surgical Procedures", desc: "Document procedures such as nerve repositioning and other supporting surgery.", icon: Scissors },
         { title: "Prosthetics", desc: "Track temporary and final prosthetic stages and connect them to implant status.", icon: Crown },
         { title: "Follow-ups", desc: "Organize follow-ups, appointments, and each follow-up status across the journey.", icon: CalendarCheck2 }
       ],
@@ -634,12 +662,18 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-y-0 start-0 hidden w-[28%] bg-[#F2F7F8]/65 lg:block" aria-hidden="true" />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative grid items-center gap-10 lg:grid-cols-[minmax(320px,0.86fr)_minmax(0,1.14fr)] lg:gap-16" dir={isRTL ? "rtl" : "ltr"}>
-            <div className="order-1 mx-auto w-full max-w-[480px] lg:mx-0">
-              <div className="relative overflow-hidden border border-[#DDE7EC] bg-[#EAF7F5]">
+            <div className="order-1 mx-auto w-full max-w-[500px] lg:mx-0">
+              <div className="relative isolate flex min-h-[430px] items-end justify-center overflow-visible sm:min-h-[540px]">
+                <div className="absolute inset-x-[9%] bottom-[5%] top-[14%] -z-20 rounded-[46%] bg-[#EAF7F5]" aria-hidden="true" />
+                <div className="absolute inset-x-[15%] bottom-[11%] top-[20%] -z-10 rounded-full bg-[#DDF2F3]/75 blur-2xl" aria-hidden="true" />
+                <div className="absolute inset-x-[5%] bottom-[3%] top-[9%] -z-10 rounded-full border border-dashed border-[#1FA9B8]/25" aria-hidden="true" />
+                <span className="absolute start-[8%] top-[26%] h-2 w-2 rounded-full bg-[#1FA9B8]/35" aria-hidden="true" />
+                <span className="absolute end-[10%] top-[17%] h-3 w-3 rounded-full border border-[#0F766E]/25" aria-hidden="true" />
+                <span className="absolute end-[4%] top-[47%] h-1.5 w-1.5 rounded-full bg-[#0D1B3D]/20" aria-hidden="true" />
                 <img
-                  src={getAssetPath("/assets/dr-humam.png")}
+                  src={getAssetPath("/assets/dr-humam-cutout.png")}
                   alt={lang === "ar" ? "د. همام الكيال" : "Dr. Humam Al-Kayyal"}
-                  className="aspect-[4/5] w-full object-cover object-top"
+                  className="relative z-10 max-h-[580px] w-[88%] object-contain object-bottom drop-shadow-[0_18px_28px_rgba(13,27,61,0.12)]"
                 />
               </div>
             </div>
