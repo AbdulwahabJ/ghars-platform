@@ -1,0 +1,118 @@
+MODE: Free
+
+Add a small localized helper text to the existing dashboard hero image area.
+
+IMPORTANT:
+- Do NOT remove anything.
+- Do NOT redesign the hero.
+- Do NOT move existing elements.
+- Do NOT change the decorative background.
+- Do NOT change search, cards, greeting, or layout.
+- This task is ONLY to add a subtle helper message.
+
+==================================================
+PLACEMENT
+==================================================
+
+Place the helper text inside or immediately below the existing profile-image/visual area on the LEFT side of the dashboard hero.
+
+It should feel naturally integrated into the current design.
+
+Do not place it over the main greeting or search bar.
+
+==================================================
+ARABIC
+==================================================
+
+When the system language is Arabic, show:
+
+يمكنك إضافة صورتك الشخصية من الإعدادات
+
+Optional small icon:
+Settings / Camera / UserRound
+
+Keep it subtle.
+
+==================================================
+ENGLISH
+==================================================
+
+When the system language is English, show:
+
+You can add your profile photo from Settings.
+
+Use the existing i18n localization architecture.
+
+Do NOT hardcode one language.
+
+Arabic:
+RTL
+
+English:
+LTR
+
+==================================================
+BEHAVIOR
+==================================================
+
+Preferred behavior:
+
+- If the user has NOT uploaded a profile photo:
+  show the helper message.
+
+- If the user already has a profile photo:
+  hide the helper message.
+
+Do not change the existing profile-image upload functionality.
+
+Do not create a new upload flow.
+
+==================================================
+VISUAL STYLE
+==================================================
+
+The helper text should be:
+
+- small
+- elegant
+- secondary
+- readable
+- aligned with Ghars branding
+
+Use:
+- muted blue-gray text
+- optional small teal icon
+- no card
+- no heavy background
+- no large button
+- no tooltip unless already used by the current design
+
+It should look like a subtle onboarding hint, not an alert.
+
+==================================================
+MOBILE
+==================================================
+
+Ensure the hint remains readable on mobile without:
+- overlapping the image
+- overflowing
+- disturbing the hero layout
+
+==================================================
+DO NOT CHANGE
+==================================================
+
+Do not modify:
+- hero dimensions
+- greeting
+- search
+- summary cards
+- decorative circles
+- image upload behavior
+- settings page
+- backend
+
+Only add this localized helper text.
+
+Do not publish.
+Create checkpoint and stop.
