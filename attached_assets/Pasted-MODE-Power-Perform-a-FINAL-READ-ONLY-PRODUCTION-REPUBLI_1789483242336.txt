@@ -1,0 +1,371 @@
+MODE: Power
+
+Perform a FINAL READ-ONLY PRODUCTION REPUBLISH SAFETY AUDIT for Ghars.
+
+IMPORTANT CONTEXT:
+Ghars is already LIVE and Production contains real customer data.
+
+There are real:
+- tenants
+- users
+- trial accounts
+- patients
+- implant cases
+- and potentially additional live records
+
+The goal is to verify whether the CURRENT unpublished changes can be safely republished without affecting any live customer data.
+
+DO NOT:
+- publish
+- modify Production
+- run DDL manually
+- run DML manually
+- reset any database
+- delete any data
+- copy Development data to Production
+- repair migration journals
+- seed demo/test data
+- execute cleanup scripts
+
+READ-ONLY AUDIT ONLY.
+
+==================================================
+1. IDENTIFY ALL UNPUBLISHED CHANGES
+==================================================
+
+Compare the currently published production version with the current codebase.
+
+List every meaningful unpublished change since the last successful production publish.
+
+Classify each as:
+
+- UI ONLY
+- FRONTEND LOGIC
+- BACKEND LOGIC
+- AUTH/SESSION
+- DATABASE SCHEMA
+- DATABASE DATA
+- STORAGE
+- CONFIG/ENVIRONMENT
+- OTHER
+
+Pay special attention to recent work involving:
+
+- registration layout
+- country/city fields
+- international phone input
+- normalized location fields
+- health reporting
+- Platform Admin dialogs
+- onboarding/help tour
+- Landing Page changes
+- support/impersonation work if present
+
+==================================================
+2. PRODUCTION BASELINE
+==================================================
+
+Read Production safely and record baseline counts WITHOUT exposing PII:
+
+- tenants
+- tenant_memberships
+- users
+- patients
+- implant_cases
+- implants
+- payments
+- followups
+- communications
+- installment_plans
+- installments
+- prosthetic_events
+- bone_graft_procedures
+- application_settings
+- whatsapp_templates
+- implant_system_options
+- lookup_options
+
+Also record:
+
+- active trials
+- active permanent tenants
+- suspended tenants
+
+This is our pre-republish preservation baseline.
+
+==================================================
+3. VERIFY PRODUCTION DATABASE HEALTH
+==================================================
+
+Confirm:
+
+- database connectivity works
+- reads work
+- writes are currently functioning through normal application flows
+- actual Production schema matches the expected current schema
+- no existing schema drift is detected
+
+Do not rely only on drizzle.__drizzle_migrations.
+
+Production was initialized by Replit schema comparison and may not contain:
+
+drizzle.__drizzle_migrations
+
+Use actual schema inspection as the source of truth.
+
+==================================================
+4. INSPECT REPLIT GENERATED DATABASE CHANGES
+==================================================
+
+Determine what Replit Publish is expected to apply to Production for the CURRENT codebase.
+
+Inspect the generated schema difference / migration plan if available.
+
+Explicitly search for ANY destructive or risky operation such as:
+
+DROP TABLE
+DROP COLUMN
+TRUNCATE
+DELETE
+RESET
+DROP TYPE
+DROP CONSTRAINT
+column recreation
+table recreation
+unsafe NOT NULL additions
+primary key replacement
+unique constraint changes that could reject existing rows
+foreign key changes that could fail on existing data
+data-copy operations from Development
+
+Report every proposed database operation.
+
+==================================================
+5. SCHEMA MIGRATION SAFETY
+==================================================
+
+For every database schema change:
+
+Classify:
+
+SAFE
+REQUIRES DATA BACKFILL
+POTENTIALLY DESTRUCTIVE
+BLOCKING
+
+For existing live tables, verify:
+
+- no populated column will be dropped
+- no populated table will be recreated/truncated
+- no NOT NULL constraint is added before safe backfill
+- no unique constraint conflicts with current Production data
+- no foreign key conflicts with current Production data
+- no type conversion can lose values
+
+If any risk exists:
+
+SAFE TO REPUBLISH = NO
+
+==================================================
+6. COUNTRY / CITY / PHONE CHANGES
+==================================================
+
+If the new structured registration changes are included in this release:
+
+Verify existing live tenants are preserved.
+
+Existing city/phone values must NOT be lost.
+
+Confirm:
+
+- legacy city values remain intact
+- new country_code/city normalization fields are nullable/backfilled safely if needed
+- existing phone numbers remain valid
+- no existing customer registration record is rewritten destructively
+- future registrations use normalized country/city and E.164 phone storage
+
+Do not modify live rows during this audit.
+
+==================================================
+7. DEVELOPMENT DATA ISOLATION
+==================================================
+
+Confirm that Republish will NOT copy:
+
+- Development tenants
+- Development users
+- test patients
+- screenshot/demo patients
+- demo implant cases
+- demo payments
+- demo followups
+- smoke-test data
+
+into Production.
+
+Explicitly confirm:
+
+COPY DEVELOPMENT DATA TO PRODUCTION: DISABLED / NOT USED
+
+==================================================
+8. SESSION SAFETY
+==================================================
+
+Reconfirm Production sessions use the approved persistent PostgreSQL session store.
+
+Verify this release does not:
+
+- switch to MemoryStore
+- invalidate every customer session unnecessarily
+- break cookie/session configuration
+- change session secret unexpectedly
+
+Report expected user impact:
+
+- no logout
+OR
+- expected logout/relogin
+
+==================================================
+9. FILE / OBJECT STORAGE
+==================================================
+
+Verify the release does not delete or disconnect existing:
+
+- Landing Page uploaded media
+- App Storage objects
+- user-uploaded persistent files
+
+Confirm current object storage environment configuration remains compatible.
+
+==================================================
+10. ENVIRONMENT / SECRETS
+==================================================
+
+Audit required Production variables by NAME only.
+
+Do NOT show values.
+
+Verify current release does not require a new missing secret/config.
+
+Report:
+
+CONFIGURED
+MISSING
+NOT REQUIRED
+
+==================================================
+11. BACKUP / RECOVERY
+==================================================
+
+Confirm current Production database recovery capability before republish.
+
+Check whether Point-in-Time Recovery / recovery window is active.
+
+Do NOT create/delete backups.
+
+Report:
+
+PRODUCTION RECOVERY POINT: AVAILABLE / NOT CONFIRMED
+
+If not confirmed:
+flag it clearly before republish.
+
+==================================================
+12. PREVIEW DEPLOY
+==================================================
+
+If Replit supports preview deployment for this release:
+
+prepare/check a Preview deployment against an isolated preview database/environment.
+
+Do NOT use live Production data.
+
+Verify:
+
+- landing page
+- login
+- registration
+- Platform Admin
+- patient pages
+- clinical workflows
+- Arabic/English
+- deep links
+- health page
+
+If Preview cannot safely replicate Production behavior, report that limitation.
+
+==================================================
+13. FULL TESTS
+==================================================
+
+Run:
+
+- frontend TypeScript
+- backend TypeScript
+- shared tests
+- API tests
+- auth tests
+- tenant isolation tests
+- commercial lifecycle tests
+- registration tests
+- country/city/phone tests
+- finance tests
+- production frontend build
+- production backend build
+
+==================================================
+14. RELEASE BLOCKERS
+==================================================
+
+Republish must be BLOCKED if ANY of the following is found:
+
+- DROP/TRUNCATE of live tables
+- unsafe column deletion
+- Development data copy
+- destructive schema recreation
+- unresolved tenant migration
+- missing production secret
+- session-store regression
+- object-storage regression
+- schema mismatch
+- failed tests/build
+- any operation that risks live customer data
+
+==================================================
+15. FINAL REPORT
+==================================================
+
+Report:
+
+PRODUCTION BASELINE CAPTURED: PASS / FAIL
+PRODUCTION SCHEMA CURRENT: PASS / FAIL
+SCHEMA DRIFT: YES / NO
+GENERATED DATABASE CHANGES REVIEWED: PASS / FAIL
+DESTRUCTIVE DB OPERATIONS: NONE / FOUND
+LIVE CUSTOMER DATA PRESERVATION: PASS / FAIL
+LEGACY CUSTOMER DATA PRESERVED: PASS / FAIL
+COPY DEVELOPMENT DATA: DISABLED / RISK
+SESSION STORE: PASS / BLOCKED
+OBJECT STORAGE: PASS / BLOCKED
+PRODUCTION SECRETS: PASS / ACTION REQUIRED
+RECOVERY POINT: AVAILABLE / NOT CONFIRMED
+PREVIEW DEPLOY: PASS / FAIL / NOT AVAILABLE
+FULL TEST SUITE: PASS / FAIL
+PRODUCTION BUILD: PASS / FAIL
+
+Then provide:
+
+EXPECTED PRODUCTION DATABASE OPERATIONS ON REPUBLISH:
+<exact concise list>
+
+EXPECTED CUSTOMER IMPACT:
+<none / login required / other>
+
+SAFE TO REPUBLISH: YES / NO
+
+IMPORTANT:
+Do NOT publish automatically.
+Do NOT modify Production.
+
+Create a checkpoint and STOP.
