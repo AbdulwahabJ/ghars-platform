@@ -8,7 +8,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Shell } from "@/components/layout/Shell";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Settings } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { usePatients } from "@/hooks/use-patients";
 import { Patient, type ReportFilters } from "@workspace/shared";
@@ -34,7 +34,7 @@ import "@/i18n/locales/ar/operations";
 import "@/i18n/locales/en/operations";
 
 export default function Dashboard() {
-  const { t } = useTranslation("operations");
+  const { t, i18n } = useTranslation("operations");
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const greeting = saudiGreeting();
@@ -304,7 +304,15 @@ export default function Dashboard() {
                       imageFit="natural"
                       className="hero-portrait-avatar"
                     />
-                  ) : null}
+                  ) : (
+                    <p
+                      dir={i18n.language.startsWith("ar") ? "rtl" : "ltr"}
+                      className="absolute inset-x-4 bottom-3 z-10 flex items-center justify-center gap-1.5 text-center text-xs font-medium text-slate-500"
+                    >
+                      <Settings className="h-3.5 w-3.5 shrink-0 text-teal-600" aria-hidden="true" />
+                      <span>{t("dashboard.profilePhotoHint")}</span>
+                    </p>
+                  )}
                 </div>
               </div>
             )}

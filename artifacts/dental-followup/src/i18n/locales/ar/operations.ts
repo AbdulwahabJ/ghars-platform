@@ -1,6 +1,7 @@
 const operations = {
   dashboard: {
     searchPatients: "ابحث عن مريض بالاسم، رقم الملف، أو رقم الجوال...", archived: "مؤرشف",
+    profilePhotoHint: "يمكنك إضافة صورتك الشخصية من الإعدادات",
     viewAllResults: "عرض جميع النتائج ({{count}})", noSearchResults: 'لا توجد نتائج مطابقة لـ "{{query}}"',
     workSummary: "ملخص العمل", todayAndMonth: "اليوم وهذا الشهر",
     dashboardLoadError: "تعذر تحميل بيانات لوحة المتابعة. حاول تحديث الصفحة.",

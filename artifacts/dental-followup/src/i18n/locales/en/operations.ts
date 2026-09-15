@@ -1,6 +1,7 @@
 const operations = {
   dashboard: {
     searchPatients: "Search for a patient by name, file number, or mobile...",
+    profilePhotoHint: "You can add your profile photo from Settings.",
     archived: "Archived",
     viewAllResults: "View all results ({{count}})",
     noSearchResults: 'No results match "{{query}}"',
