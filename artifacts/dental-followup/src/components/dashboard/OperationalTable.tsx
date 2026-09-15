@@ -2895,6 +2895,7 @@ export function OperationalTable({
             variant="default"
             size="sm"
             className="btn-primary"
+            id="tour-new-patient-btn"
             onClick={() => setShowNewRecord((v) => !v)}
             data-testid="button-add-new-record"
           >

@@ -1,11 +1,12 @@
 const guidance = {
   tour: {
-    done: "Start working", next: "Next", previous: "Previous", progress: "{{current}} of 6",
+    done: "Start working", next: "Next", previous: "Previous", progress: "{{current}} of {{total}}",
     navigationTitle: "Main navigation", navigationDescription: "Use these tabs to move between the dashboard, patients, and financial reports.",
     searchTitle: "Find a patient", searchDescription: "Search by patient name, file number, or mobile number.",
-    newPatientTitle: "Add a new case", newPatientDescription: "Start here to register a new patient or add an implant case to an existing patient.",
+    newPatientTitle: "Add a new case", newPatientDescription: "Use this button to add a new patient case and start documenting the patient's treatment journey in Ghars.",
     overviewTitle: "Daily work summary", overviewDescription: "These cards show appointments, follow-ups, and ready or overdue cases.",
     workspaceTitle: "Patient record", workspaceDescription: "The patient record includes details, implants, payments, follow-up, and a summary.",
+    settingsIdentityTitle: "Customize your clinic identity", settingsIdentityDescription: "From Settings, you can upload your clinic logo or image to personalize how your clinic appears inside Ghars.",
     helpTitle: "Help and support", helpDescription: "You can restart the product tour at any time from the question-mark icon.",
     completeTitle: "Tour complete", completeDescription: "You are ready to use the system. You can restart the tour anytime from the question-mark icon.",
     welcomeTitle: "Welcome to the dental implant follow-up system", welcomeDescription: "Take a short tour to learn the system’s most important areas.", welcomeDuration: "The tour takes less than a minute and can be started later from the question-mark icon.",

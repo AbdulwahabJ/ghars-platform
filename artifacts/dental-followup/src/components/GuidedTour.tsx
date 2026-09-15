@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/use-auth";
 
 interface GuidedTourProps {
   autoStart?: boolean;
@@ -25,6 +26,8 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
   const [showQuickHelp, setShowQuickHelp] = useState(false);
   const updatePreferences = useUpdatePreferences();
   const updateOnboarding = updatePreferences.mutate;
+  const { user } = useAuth();
+  const includeSettingsIdentityStep = user?.role === "ADMIN";
 
   const skipWelcome = () => {
     setShowWelcome(false);
@@ -34,18 +37,19 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
   };
 
   const startDriverTour = useCallback(() => {
+    const finalStepIndex = includeSettingsIdentityStep ? 7 : 6;
     const driverObj = driver({
       showProgress: true,
       doneBtnText: t("tour.done"),
       nextBtnText: t("tour.next"),
       prevBtnText: t("tour.previous"),
-      progressText: t("tour.progress"),
+      progressText: t("tour.progress", { total: finalStepIndex }),
       allowClose: true,
       // driver.js merges per-step showProgress with "||" at render time, so a
       // per-step "showProgress: false" cannot override the global "true".
-      // Hide the counter on the final screen (index 6) via the DOM hook instead.
+      // Hide the counter on the final screen via the DOM hook instead.
       onPopoverRender: (popover, { state }) => {
-        popover.progress.style.display = state.activeIndex === 6 ? "none" : "";
+        popover.progress.style.display = state.activeIndex === finalStepIndex ? "none" : "";
       },
       onDestroyStarted: () => {
         if (!driverObj.hasNextStep() && autoStart) {
@@ -101,6 +105,15 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
             align: "start"
           }
         },
+        ...(includeSettingsIdentityStep ? [{
+          element: "#tour-settings-nav",
+          popover: {
+            title: t("tour.settingsIdentityTitle"),
+            description: t("tour.settingsIdentityDescription"),
+            side: "bottom" as const,
+            align: "center" as const
+          }
+        }] : []),
         {
           element: "#tour-help-icon",
           popover: {
@@ -126,7 +139,7 @@ export function GuidedTour({ autoStart = false }: GuidedTourProps) {
     });
 
     driverObj.drive();
-  }, [autoStart, t, updateOnboarding]);
+  }, [autoStart, includeSettingsIdentityStep, t, updateOnboarding]);
 
   useEffect(() => {
     const handleStartTour = () => {

@@ -46,7 +46,11 @@ export default function PatientsList() {
             <h1 className="text-2xl font-bold text-foreground">{t("patient.list")}</h1>
             <p className="text-muted-foreground mt-1">{t("patient.manage")}</p>
           </div>
-          <Button onClick={() => setNewPatientOpen(true)} className="btn-primary shrink-0 w-full sm:w-auto">
+          <Button
+            id="tour-new-patient-btn"
+            onClick={() => setNewPatientOpen(true)}
+            className="btn-primary shrink-0 w-full sm:w-auto"
+          >
             <Plus className="h-5 w-5" />
             {t("patient.add")}
           </Button>
@@ -56,7 +60,8 @@ export default function PatientsList() {
         <div className="bg-card border border-border rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
           <div className="relative w-full md:max-w-md">
             <Search className="absolute end-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input 
+            <Input
+              id="tour-global-search"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               placeholder={t("patient.search")}

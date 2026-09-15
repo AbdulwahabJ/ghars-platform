@@ -129,6 +129,7 @@ export function Header({ user }: HeaderProps) {
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground"
                 }`}
+                id={item.path === "/settings" ? "tour-settings-nav" : undefined}
               >
                 {item.label}
               </Link>

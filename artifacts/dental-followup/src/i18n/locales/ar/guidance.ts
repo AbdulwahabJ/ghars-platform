@@ -1,11 +1,12 @@
 const guidance = {
   tour: {
-    done: "ابدأ العمل", next: "التالي", previous: "السابق", progress: "{{current}} من 6",
+    done: "ابدأ العمل", next: "التالي", previous: "السابق", progress: "{{current}} من {{total}}",
     navigationTitle: "التنقل الرئيسي", navigationDescription: "استخدم هذه التبويبات للانتقال بين الرئيسية، المرضى، والتقارير المالية.",
     searchTitle: "البحث عن مريض", searchDescription: "ابحث باستخدام اسم المريض، رقم الملف، أو رقم الجوال.",
-    newPatientTitle: "إضافة حالة جديدة", newPatientDescription: "ابدأ من هنا لتسجيل مريض جديد أو إضافة حالة زراعة لمريض موجود.",
+    newPatientTitle: "إضافة حالة جديدة", newPatientDescription: "من هنا يمكنك إضافة حالة جديدة وبدء تسجيل بيانات المريض ومتابعة رحلته العلاجية داخل غرس.",
     overviewTitle: "ملخص العمل اليومي", overviewDescription: "تعرض هذه البطاقات المواعيد والمتابعات والحالات الجاهزة والمتأخرة.",
     workspaceTitle: "ملف المريض", workspaceDescription: "داخل ملف المريض ستجد البيانات، الزرعات، الدفعات، المتابعة، والملخص.",
+    settingsIdentityTitle: "تخصيص هوية العيادة", settingsIdentityDescription: "من الإعدادات يمكنك إضافة شعار أو صورة للمنشأة لتظهر داخل النظام وتمنح حساب العيادة هوية خاصة.",
     helpTitle: "المساعدة والتواصل", helpDescription: "يمكنك إعادة تشغيل الجولة التعريفية في أي وقت من علامة الاستفهام.",
     completeTitle: "انتهت الجولة", completeDescription: "أصبحت الآن جاهزًا لاستخدام النظام. يمكنك إعادة الجولة في أي وقت من علامة الاستفهام.",
     welcomeTitle: "مرحبًا بك في نظام متابعة زراعة الأسنان", welcomeDescription: "يمكنك أخذ جولة تعريفية قصيرة للتعرف على أهم أجزاء النظام.", welcomeDuration: "تستغرق الجولة أقل من دقيقة، ويمكنك تشغيلها لاحقًا من علامة الاستفهام.",
