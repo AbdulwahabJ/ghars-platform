@@ -1,0 +1,224 @@
+MODE: Free
+
+Refine the Ghars registration form layout to match the attached reference image as closely as possible.
+
+IMPORTANT:
+- Use the attached image as the visual reference.
+- Do NOT change registration business logic.
+- Do NOT change validation rules.
+- Do NOT change database fields or backend behavior.
+- Keep the current country/city/phone functionality.
+- Do NOT publish.
+- Create a checkpoint and stop.
+
+==================================================
+GOAL
+==================================================
+
+The current form has an awkward empty space next to the Username field.
+
+Reorganize the form so the layout feels balanced, premium, and consistent with the attached reference.
+
+==================================================
+DESKTOP FIELD ORDER
+==================================================
+
+Keep these full-width:
+
+1. اسم العيادة / المركز
+2. اسم المالك / المدير
+
+Then use a two-column row:
+
+RIGHT:
+اسم المستخدم
+
+LEFT:
+كلمة المرور
+
+Below that, make:
+
+تأكيد كلمة المرور
+
+FULL-WIDTH across the row.
+
+Then:
+
+RIGHT:
+الدولة
+
+LEFT:
+المدينة
+
+Then phone section:
+
+Phone number should visually appear as:
+
+[ Country calling code selector ] [ Phone number input ]
+
+Keep it clean and professional.
+
+Then:
+
+لغة العرض المفضلة
+
+FULL-WIDTH.
+
+Then:
+
+إنشاء الحساب
+
+FULL-WIDTH button.
+
+==================================================
+USERNAME + PASSWORD
+==================================================
+
+The specific improvement I want:
+
+Do NOT leave Username alone with an empty column.
+
+Place:
+
+اسم المستخدم
++
+كلمة المرور
+
+side-by-side on desktop.
+
+Keep the existing helper text under Username:
+
+سيُستخدم اسم المستخدم هذا لتسجيل الدخول إلى حسابك.
+
+The helper text must remain visually attached to the Username field only.
+
+Then put:
+
+تأكيد كلمة المرور
+
+as a full-width field below them.
+
+This should match the attached reference.
+
+==================================================
+COUNTRY / CITY
+==================================================
+
+Keep:
+
+الدولة
+المدينة
+
+side-by-side.
+
+Country on the right.
+City on the left.
+
+They must remain searchable/dependent dropdowns as currently implemented.
+
+Do not alter their data behavior.
+
+==================================================
+PHONE
+==================================================
+
+Keep the international phone selector.
+
+Visually structure it like:
+
+[ 🇸🇦 +966 ▼ ] [ 5XXXXXXXX ]
+
+The calling-code selector should be compact.
+
+The phone input should take most of the row width.
+
+Do not allow the calling-code control to look oversized or misaligned.
+
+==================================================
+VISUAL STYLE
+==================================================
+
+Match the attached reference:
+
+- clean two-column alignment
+- consistent field heights
+- consistent spacing
+- labels aligned correctly in RTL
+- subtle borders
+- Ghars navy/teal styling
+- no unnecessary cards
+- no excessive shadows
+- no empty visual gaps
+
+Use the existing Ghars form components.
+
+==================================================
+MOBILE
+==================================================
+
+On mobile:
+
+Stack all fields vertically in a logical order:
+
+1. Clinic name
+2. Owner/Admin name
+3. Username
+4. Password
+5. Confirm Password
+6. Country
+7. City
+8. Calling code + phone number
+9. Preferred language
+10. Create Account
+
+Phone calling code and phone number may remain on one row if space allows.
+Otherwise stack cleanly.
+
+No horizontal overflow.
+
+==================================================
+ARABIC / ENGLISH
+==================================================
+
+Arabic:
+RTL and right-aligned labels.
+
+English:
+LTR and left-aligned labels.
+
+Keep the exact same logical grouping in both languages.
+
+==================================================
+DO NOT CHANGE
+==================================================
+
+Do not change:
+- registration transaction
+- tenant creation
+- 72-hour trial
+- default list bootstrap
+- WhatsApp template bootstrap
+- country/city normalization
+- E.164 phone storage
+- validation rules
+- backend APIs
+
+UI layout only.
+
+==================================================
+FINAL CHECK
+==================================================
+
+Verify:
+
+USERNAME + PASSWORD ROW: PASS / FAIL
+CONFIRM PASSWORD FULL WIDTH: PASS / FAIL
+COUNTRY + CITY ROW: PASS / FAIL
+PHONE LAYOUT: PASS / FAIL
+ARABIC RTL: PASS / FAIL
+ENGLISH LTR: PASS / FAIL
+MOBILE: PASS / FAIL
+BUILD: PASS / FAIL
+CHECKPOINT: <hash>
+
+Do not publish.
