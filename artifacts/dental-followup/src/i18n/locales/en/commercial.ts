@@ -10,6 +10,7 @@ export default {
     ownerNamePlaceholder: "Dr. Ahmed Abdullah",
     username: "Username",
     usernamePlaceholder: "ahmed_admin",
+    usernameHint: "You’ll use this username to sign in to your account.",
     phone: "Mobile Number",
     phonePlaceholder: "5XXXXXXXX",
     callingCode: "Calling Code",

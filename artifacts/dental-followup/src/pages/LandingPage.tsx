@@ -673,7 +673,13 @@ export default function LandingPage() {
                 <img
                   src={getAssetPath("/assets/dr-humam-cutout.png")}
                   alt={lang === "ar" ? "د. همام الكيال" : "Dr. Humam Al-Kayyal"}
-                  className="relative z-10 max-h-[580px] w-[88%] object-contain object-bottom drop-shadow-[0_18px_28px_rgba(13,27,61,0.12)]"
+                  className="relative z-10 max-h-[620px] w-[94%] object-contain object-bottom drop-shadow-[0_18px_28px_rgba(13,27,61,0.11)] sm:w-[93%]"
+                  style={{
+                    WebkitMaskImage:
+                      "linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,0.92) 67%, rgba(0,0,0,0.58) 79%, rgba(0,0,0,0.16) 92%, transparent 100%)",
+                    maskImage:
+                      "linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,0.92) 67%, rgba(0,0,0,0.58) 79%, rgba(0,0,0,0.16) 92%, transparent 100%)",
+                  }}
                 />
               </div>
             </div>

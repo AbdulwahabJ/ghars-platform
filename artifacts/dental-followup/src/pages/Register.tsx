@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -271,7 +272,7 @@ export default function Register() {
                         <FormControl>
                           <div className="relative">
                             <Building2 className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                            <Input placeholder={t("register.tenantNamePlaceholder")} {...field} autoComplete="organization" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-[15px]" />
+                            <Input {...field} autoComplete="organization" className="h-[52px] rounded-[7px] border-slate-300 ps-11 text-[15px]" />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -306,6 +307,9 @@ export default function Register() {
                           <FormControl>
                             <Input placeholder={t("register.usernamePlaceholder")} {...field} dir="ltr" autoComplete="username" className="h-[52px] rounded-[7px] border-slate-300 text-start text-[15px]" />
                           </FormControl>
+                          <FormDescription className="text-xs leading-5">
+                            {t("register.usernameHint")}
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

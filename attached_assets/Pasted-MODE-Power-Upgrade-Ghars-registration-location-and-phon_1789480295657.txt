@@ -1,0 +1,403 @@
+MODE: Power
+
+Upgrade Ghars registration location and phone fields to use normalized country/city selection and international phone formatting.
+
+IMPORTANT:
+Production already contains real users and tenants.
+
+Do NOT:
+- delete existing registration data
+- reset production
+- destructively migrate existing tenants
+- change unrelated registration/business logic
+- publish automatically
+
+GOAL:
+Make registration data structured and analytics-ready for future reporting by country and city.
+
+==================================================
+1. REGISTRATION LOCATION UX
+==================================================
+
+Replace the current free-text city field with structured location selection.
+
+Use two professional searchable dropdowns:
+
+1. Country
+2. City
+
+Arabic:
+الدولة
+المدينة
+
+English:
+Country
+City
+
+Country should appear first.
+
+City options must depend on the selected country.
+
+Example:
+
+Country:
+السعودية
+
+City:
+مكة المكرمة
+جدة
+الرياض
+المدينة المنورة
+...
+
+The city selector must be disabled until a country is selected.
+
+==================================================
+2. DEFAULT COUNTRY
+==================================================
+
+For the current Ghars audience:
+
+Default registration country:
+Saudi Arabia / السعودية
+
+ISO code:
+SA
+
+Do NOT hard-lock it.
+
+The user must be able to choose another country.
+
+==================================================
+3. SEARCHABLE COMBOBOX
+==================================================
+
+Use the existing Ghars/shadcn components.
+
+Country and City selectors should support:
+
+- search
+- keyboard navigation
+- Arabic labels
+- English labels
+- mobile-friendly interaction
+- RTL/LTR
+- clear selected state
+
+Do NOT use a huge native HTML select.
+
+==================================================
+4. COUNTRY/CITY DATA
+==================================================
+
+Use a stable, maintainable country/city dataset.
+
+Do not hardcode only Saudi cities into the registration component.
+
+Use canonical internal values for analytics.
+
+For countries store:
+
+country_code
+using ISO 3166-1 alpha-2
+
+Examples:
+SA
+AE
+JO
+EG
+
+For cities:
+store a normalized city identifier/value plus display name where appropriate.
+
+Do NOT use translated display text as the only database identifier.
+
+The architecture must support future international expansion.
+
+==================================================
+5. DATABASE FIELDS
+==================================================
+
+Audit the current tenant/organization registration schema first.
+
+Reuse existing fields where safe.
+
+Preferred canonical structure:
+
+country_code
+city_code or normalized city identifier
+city_name
+
+If city_code is not reliable across the chosen dataset, use:
+
+country_code
+city_name_normalized
+city_display_name
+
+Do not create redundant fields unnecessarily.
+
+==================================================
+6. EXISTING DATA MIGRATION
+==================================================
+
+Existing tenants may already have free-text city values.
+
+Preserve them.
+
+Create a safe forward migration.
+
+For existing recognizable values such as:
+
+مكة
+مكة المكرمة
+Makkah
+Mecca
+
+normalize where confidently possible.
+
+Do not guess ambiguous locations.
+
+If an old value cannot be normalized:
+preserve its original value and mark it safely for later review.
+
+No existing tenant should lose its city.
+
+==================================================
+7. PHONE INPUT
+==================================================
+
+Upgrade the phone field to an international phone input.
+
+UI structure:
+
+[ Country flag + calling code ] [ Phone number ]
+
+Example:
+
+🇸🇦 +966 | 5XXXXXXXX
+
+The calling-code selector must be searchable and professional.
+
+==================================================
+8. COUNTRY + PHONE SYNC
+==================================================
+
+When the registration country changes:
+
+automatically suggest/update the corresponding calling code.
+
+Examples:
+
+Saudi Arabia → +966
+UAE → +971
+Jordan → +962
+Egypt → +20
+
+However:
+
+Do not hard-lock the phone calling code to the organization country.
+
+The user may use a phone number from another country.
+
+If the user manually changes the phone country code, preserve that choice.
+
+==================================================
+9. PHONE STORAGE
+==================================================
+
+Store phone numbers in canonical E.164 format.
+
+Example:
+
++966501234567
+
+Prefer also storing:
+
+phone_country_code = SA
+
+only if useful for analytics or validation.
+
+Do NOT store formatted UI strings such as:
+
++966 50 123 4567
+
+as the canonical value.
+
+Formatting belongs to presentation.
+
+==================================================
+10. PHONE VALIDATION
+==================================================
+
+Use a reliable international phone validation approach.
+
+Validate based on selected calling country.
+
+Reject obviously invalid numbers before registration.
+
+Arabic error examples:
+
+رقم الجوال غير صالح للدولة المحددة.
+
+English:
+The phone number is not valid for the selected country.
+
+Do not make validation unnecessarily restrictive.
+
+==================================================
+11. ANALYTICS READINESS
+==================================================
+
+The purpose of these normalized fields is future analytics.
+
+Ensure future queries can cleanly answer:
+
+- customers by country
+- customers by city
+- trials by country/city
+- activations by country/city
+- customer growth by region
+
+Do NOT build the analytics dashboard in this task.
+
+Only make the registration data model ready for it.
+
+==================================================
+12. PLATFORM ADMIN
+==================================================
+
+Update Platform Admin customer details to display:
+
+Country
+City
+Phone
+
+Use localized display labels.
+
+Example:
+
+الدولة: السعودية
+المدينة: مكة المكرمة
+رقم الجوال: +966 50 123 4567
+
+Keep canonical DB values hidden from normal display.
+
+==================================================
+13. CUSTOMER LIST FILTERING
+==================================================
+
+If the Platform Admin customer list already supports filters cleanly:
+
+add optional filters for:
+
+Country
+City
+
+Do not redesign the page.
+
+If adding these filters would create unrelated scope, leave them for a later task and report that.
+
+==================================================
+14. REGISTRATION FORM LAYOUT
+==================================================
+
+Keep the current premium Ghars registration design.
+
+Recommended layout:
+
+Organization name
+Owner/Admin name
+
+Username
+
+Country | City
+
+Phone:
+[flag + calling code] [number]
+
+Password | Confirm Password
+
+Preferred language
+
+Do not overcrowd the form.
+
+On mobile, stack fields cleanly.
+
+==================================================
+15. I18N
+==================================================
+
+Use the existing i18next architecture.
+
+Arabic:
+الدولة
+المدينة
+رقم الجوال
+رمز الاتصال
+
+English:
+Country
+City
+Phone Number
+Calling Code
+
+Country and city display names should follow current UI locale where the dataset supports translations.
+
+Do not use translated strings as authorization/database logic.
+
+==================================================
+16. TESTS
+==================================================
+
+Test at minimum:
+
+A. Saudi Arabia → Makkah → +966
+B. Saudi Arabia → Jeddah
+C. UAE → Dubai → +971
+D. Jordan → Amman → +962
+E. User selects Saudi organization country but manually uses UAE phone code
+F. Invalid phone rejected
+G. Existing tenant city preserved
+H. registration transaction still creates tenant/admin/trial/default lists/templates correctly
+I. Arabic RTL
+J. English LTR
+K. mobile layout
+L. tenant isolation unchanged
+
+==================================================
+17. PRODUCTION SAFETY
+==================================================
+
+Because Production contains real customers:
+
+- migration must be forward-only
+- no destructive column replacement
+- preserve legacy city data
+- validate migration on a production-like state
+- no automatic production data rewrite without safe deterministic mapping
+
+Do not publish.
+
+==================================================
+18. FINAL REPORT
+==================================================
+
+Report:
+
+COUNTRY SELECTOR: PASS / FAIL
+CITY DEPENDENT SELECTOR: PASS / FAIL
+COUNTRY/CITY NORMALIZATION: PASS / FAIL
+LEGACY CITY PRESERVATION: PASS / FAIL
+PHONE COUNTRY SELECTOR: PASS / FAIL
+E164 STORAGE: PASS / FAIL
+PHONE VALIDATION: PASS / FAIL
+ANALYTICS READY: PASS / FAIL
+PLATFORM ADMIN DISPLAY: PASS / FAIL
+ARABIC RTL: PASS / FAIL
+ENGLISH LTR: PASS / FAIL
+TESTS: PASS / FAIL
+BUILD: PASS / FAIL
+MIGRATION SAFETY: PASS / FAIL
+
+Do not publish.
+Create checkpoint and STOP.

@@ -1,0 +1,113 @@
+MODE: Free
+
+I want to redesign the doctor/expert section image so it visually matches the internal Ghars dashboard hero style.
+
+CURRENT PROBLEM:
+The current doctor image appears inside a hard rectangular frame/card with a flat background.
+It looks disconnected from the landing page and feels visually heavy.
+
+GOAL:
+Make the doctor image appear like the internal system hero image:
+- no rectangular frame
+- no visible image card
+- no boxed background behind the doctor
+- softer, more elegant, integrated presentation
+
+==================================================
+DESIGN DIRECTION
+==================================================
+
+Use the doctor image as a transparent cutout style element, similar to the dashboard hero image.
+
+The visual treatment should be:
+- the doctor image appears without a frame
+- background behind the doctor is abstract and very soft
+- use subtle floating circular shapes / soft blobs / dashed ring / gentle glow
+- the effect must feel clean, premium, and integrated with the Ghars brand
+- avoid looking AI-generated, exaggerated, or overly decorative
+
+==================================================
+IMAGE STYLE
+==================================================
+
+1. Remove the current rectangular image container or framed card.
+2. Make the doctor image appear as a free-standing visual element.
+3. Use a transparent PNG / masked cutout effect if needed.
+4. Add a soft circular brand-style background behind the doctor only:
+   - pale teal / pale blue gradients
+   - faint circular blur
+   - thin dotted or dashed ring
+   - subtle floating dots
+5. Keep the composition elegant and minimal.
+
+==================================================
+LAYOUT
+==================================================
+
+Desktop:
+- text content on one side
+- doctor image on the other side
+- align vertically in a premium two-column layout
+- image area should feel airy and not boxed
+
+Mobile:
+- stack neatly
+- doctor image centered
+- maintain soft background shapes without overflow issues
+
+==================================================
+VISUAL RESTRICTIONS
+==================================================
+
+Do NOT use:
+- hard rectangular image background
+- thick borders
+- obvious frame
+- dark block behind the doctor
+- heavy shadows
+- ornamental clutter
+- stock-like decorative effects
+
+==================================================
+CONSISTENCY
+==================================================
+
+Match the same visual language used in the internal dashboard hero:
+- soft medical-tech feel
+- clean light background
+- subtle blue/teal accents
+- polished but simple composition
+
+==================================================
+IMPLEMENTATION NOTES
+==================================================
+
+If the current doctor image is not transparent:
+- create a clean cutout/mask around the doctor
+- remove the plain box feeling
+
+Ensure:
+- crisp rendering
+- no jagged edges
+- no strange halo around the cutout
+- no extra visual block around the image
+
+==================================================
+FINAL CHECK
+==================================================
+
+The section should feel:
+- more premium
+- more integrated
+- less boxed
+- more visually similar to the internal hero image
+
+Do not publish.
+Create checkpoint and stop.
+
+Final report:
+DOCTOR FRAME REMOVED: PASS / FAIL
+SOFT HERO-STYLE BACKGROUND APPLIED: PASS / FAIL
+MATCHES INTERNAL HERO STYLE: PASS / FAIL
+MOBILE RESPONSIVE: PASS / FAIL
+CHECKPOINT: <hash>
