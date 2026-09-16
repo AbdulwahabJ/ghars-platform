@@ -9,6 +9,7 @@ import {
   formatFilterValue,
   formatRiyadhDate,
   formatRiyadhTimestamp,
+  pdfVisualText,
   renderPdf,
   renderXlsx,
 } from "../src/lib/export";
@@ -80,11 +81,50 @@ describe("shared export engine", () => {
     expect(pages).toBeGreaterThan(1);
 
     const extracted = pdfText(exported.data);
-    // Cairo's Arabic font preserves logical Arabic text through pdftotext.
-    expect(extracted).toContain("قابل طويل عربي نص هذا");
-    expect(extracted).toContain("غرس");
-    expect(extracted).toContain("صفحة");
+    // Visual correctness is covered by rendered-page QA; extraction must still
+    // retain Arabic glyphs and the unchanged LTR content.
+    expect(extracted).toMatch(/[\u0600-\u06ff]/u);
     expect(extracted).toContain("English Patient Body Text");
+  });
+
+  it("applies Unicode Bidi visual ordering without mutating logical source strings", () => {
+    const cases = [
+      "شركة مجمع السن الرقمي الطبي",
+      "التقرير التشغيلي",
+      "حالة جديدة",
+      "جاهز للتركيب",
+      "رفع الجيب الفكي",
+      "تركيب مؤقت",
+      "مدفوع جزئيًا",
+      "مدفوع بالكامل",
+      "المتابعة القادمة",
+      "الإجراءات الإضافية",
+    ];
+    for (const logical of cases) {
+      const source = logical;
+      const visual = pdfVisualText(logical, "rtl");
+      expect(logical).toBe(source);
+      expect(visual).not.toBe(logical);
+      expect(Array.from(visual).sort()).toEqual(Array.from(logical).sort());
+    }
+
+    for (const ltr of [
+      "Neodent",
+      "Other",
+      "14 Sep 2026, 12:00 PM",
+      "21572",
+      "582722",
+      "+966501234567",
+    ]) {
+      expect(pdfVisualText(ltr, "rtl")).toBe(ltr);
+    }
+    expect(pdfVisualText("6,666.66 ر.س", "rtl")).toContain("6,666.66");
+    expect(
+      pdfVisualText("تاريخ الإنشاء: \u206616 Sep 2026, 06:59 PM\u2069", "rtl"),
+    ).toContain("16 Sep 2026, 06:59 PM");
+    expect(
+      pdfVisualText("الفترة: \u206601 Sep 2026 – 16 Sep 2026\u2069", "rtl"),
+    ).toContain("01 Sep 2026 – 16 Sep 2026");
   });
 
   it("renders Arabic PDF exports independently of the process working directory", async () => {

@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import bidiFactory from "bidi-js";
 import PDFDocument from "pdfkit";
 import {
   formatCellValue,
@@ -11,11 +12,16 @@ import {
   GHARS_NAVY,
   GHARS_PALE_TEAL,
   GHARS_TEAL,
-  prepareText,
   resolveReport,
   safeFilename,
 } from "./formatting.js";
-import type { ExportOptions, ReportColumn, ReportDefinition, ReportRow } from "./types.js";
+import type {
+  ExportOptions,
+  ReportColumn,
+  ReportDefinition,
+  ReportDirection,
+  ReportRow,
+} from "./types.js";
 
 const require = createRequire(import.meta.url);
 const cairoFont = require.resolve("@fontsource/cairo/files/cairo-arabic-400-normal.woff");
@@ -33,6 +39,8 @@ function resolveCairoCompleteFont(): string {
 }
 const cairoCompleteFont = resolveCairoCompleteFont();
 const ARABIC_SCRIPT_RE = /[\u0600-\u06ff\ufb50-\ufdff\ufe70-\ufeff]/u;
+const DIRECTIONAL_CONTROLS_RE = /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu;
+const bidi = bidiFactory();
 
 function fontForText(value: string, bold = false): string {
   return ARABIC_SCRIPT_RE.test(value)
@@ -54,27 +62,27 @@ const MARGIN = 42;
 const HEADER_HEIGHT = 92;
 const FOOTER_HEIGHT = 24;
 
-function pdfValue(value: string, direction: "rtl" | "ltr"): string {
-  const withoutDirectionControls = value.replace(
-    /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
-    "",
-  );
-  const compatiblePunctuation =
-    direction === "rtl" && ARABIC_SCRIPT_RE.test(withoutDirectionControls)
-      ? withoutDirectionControls
-          .replace(/%/g, "٪")
-          .replace(/,/g, "،")
-          .replace(/[/:|]/g, " ")
-          .replace(/\.(?=\s|$)/g, " ")
-      : withoutDirectionControls;
-  return prepareText(compatiblePunctuation, direction);
+/**
+ * Convert logical Unicode text to the visual glyph order PDFKit expects.
+ * Source report values stay untouched; this is the PDF-only UAX #9 boundary.
+ */
+export function pdfVisualText(value: string, direction: ReportDirection): string {
+  const logicalText = value.replace(DIRECTIONAL_CONTROLS_RE, "");
+  if (direction === "ltr" || !ARABIC_SCRIPT_RE.test(logicalText)) return logicalText;
+  const levels = bidi.getEmbeddingLevels(value, "rtl");
+  return bidi.getReorderedString(value, levels).replace(DIRECTIONAL_CONTROLS_RE, "");
 }
 
 function pdfLabel(value: string, direction: "rtl" | "ltr"): string {
-  const prepared = pdfValue(value, direction);
+  const prepared = pdfVisualText(value, direction);
   return direction === "rtl" && ARABIC_SCRIPT_RE.test(prepared)
     ? prepared.replace(/ /g, "\u00A0")
     : prepared;
+}
+
+function isolateMetadataValue(value: string): string {
+  const isolate = ARABIC_SCRIPT_RE.test(value) ? "\u2067" : "\u2066";
+  return `${isolate}${value}\u2069`;
 }
 
 function columnWidths(
@@ -195,17 +203,22 @@ export async function renderPdf(
   const generatedLabel = resolved.locale === "ar" ? "تاريخ الإنشاء" : "Generated";
   const generatedByLabel = resolved.locale === "ar" ? "بواسطة" : "By";
   const filterParts = [
-    `${generatedLabel}: ${formatRiyadhTimestamp(report.metadata.generatedAt ?? new Date(), resolved.locale)}`,
-    report.metadata.generatedBy ? `${generatedByLabel}: ${report.metadata.generatedBy}` : "",
+    `${generatedLabel}: ${isolateMetadataValue(formatRiyadhTimestamp(report.metadata.generatedAt ?? new Date(), resolved.locale))}`,
+    report.metadata.generatedBy
+      ? `${generatedByLabel}: ${isolateMetadataValue(report.metadata.generatedBy)}`
+      : "",
     ...Object.entries(report.metadata.filters ?? {}).map(
-      ([key, value]) => `${key}: ${formatFilterValue(value, resolved.locale)}`,
+      ([key, value]) => {
+        const formatted = formatFilterValue(value, resolved.locale);
+        return `${key}: ${isolateMetadataValue(formatted)}`;
+      },
     ),
   ].filter(Boolean);
   const filterText = filterParts.join(resolved.locale === "ar" ? "،  " : "  •  ");
   doc.font(fontForText(filterText)).fontSize(8);
   const filterHeight = doc.heightOfString(filterText, { width: contentWidth });
   ensureSpace(filterHeight + 12);
-  doc.fillColor("#536078").font(fontForText(filterText)).fontSize(8).text(pdfValue(filterText, direction), MARGIN, y, {
+  doc.fillColor("#536078").font(fontForText(filterText)).fontSize(8).text(pdfVisualText(filterText, direction), MARGIN, y, {
     width: contentWidth,
     align: direction === "rtl" ? "right" : "left",
   });
@@ -248,7 +261,7 @@ export async function renderPdf(
     drawTableHeader();
     for (const row of section.rows) {
       const values = displayColumns.map((column) =>
-        pdfValue(formatCellValue(row[column.key], column, row, resolved.locale), direction),
+        pdfVisualText(formatCellValue(row[column.key], column, row, resolved.locale), direction),
       );
       const heights = values.map((value, index) => {
         doc.font(fontForText(value));
@@ -290,7 +303,7 @@ export async function renderPdf(
     doc.fillColor("#536078").font(fontForText(footer)).fontSize(7);
     // Keep the baseline inside PDFKit's bottom margin; otherwise text() can
     // helpfully create an extra page while we are switching buffered pages.
-    doc.text(footer, MARGIN, pageHeight - MARGIN - FOOTER_HEIGHT - 15, {
+    doc.text(pdfVisualText(footer, direction), MARGIN, pageHeight - MARGIN - FOOTER_HEIGHT - 15, {
       width: contentWidth,
       align: "center",
       lineBreak: false,
