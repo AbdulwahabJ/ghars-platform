@@ -1,0 +1,957 @@
+MODE: Power
+
+Build a SMART UNIVERSAL LEGACY DATA IMPORT system for Ghars.
+
+PRIMARY GOAL:
+Doctors/clinics must NOT be required to fill a Ghars-specific Excel template.
+
+They should be able to upload their EXISTING legacy files as they already have them, even when column names/order/layout differ between clinics.
+
+Supported sources should eventually include:
+
+- XLSX
+- CSV
+- PDF tables
+- scanned/image tables (PNG/JPG)
+
+The system should intelligently understand the source structure, map it into Ghars canonical entities, validate everything, and show a safe preview BEFORE writing anything.
+
+IMPORTANT:
+Accuracy and data safety are more important than automation.
+
+AI/OCR may help understand data,
+but AI/OCR must NEVER directly write clinical or financial records into the database without deterministic validation + human approval.
+
+Do NOT publish.
+Do NOT import real Production data yet.
+
+==================================================
+1. SIMPLE USER EXPERIENCE
+==================================================
+
+The user experience must remain very simple:
+
+STEP 1:
+Upload existing file
+
+STEP 2:
+Ghars analyzes it automatically
+
+STEP 3:
+Review only warnings / uncertain mappings
+
+STEP 4:
+Confirm import
+
+Do NOT force users to manually rebuild their spreadsheets.
+
+==================================================
+2. SUPPORTED INPUTS
+==================================================
+
+Support:
+
+.xlsx
+.csv
+
+Architecture must also support:
+
+.pdf
+.png
+.jpg/jpeg
+
+For image/PDF sources:
+
+extract the table into a structured staging dataset FIRST.
+
+Never import directly from OCR output.
+
+Pipeline:
+
+Image/PDF
+→ table extraction/OCR
+→ structured staging rows
+→ normalization
+→ mapping
+→ validation
+→ human preview
+→ import
+
+==================================================
+3. NEVER TRUST OCR BLINDLY
+==================================================
+
+Clinical and financial data may contain:
+
+- tooth numbers
+- implant sizes
+- dates
+- prices
+- file numbers
+
+One OCR mistake could be dangerous.
+
+Therefore assign confidence per extracted value.
+
+Example:
+
+Patient:
+98%
+
+File Number:
+99%
+
+Site:
+72%
+
+Implant Size:
+91%
+
+Cost:
+64%
+
+Anything below the approved confidence threshold must become:
+
+REVIEW REQUIRED
+
+Never silently guess.
+
+==================================================
+4. AUTOMATIC COLUMN UNDERSTANDING
+==================================================
+
+Different doctors may use completely different column names.
+
+Build an intelligent mapping layer.
+
+Examples:
+
+NAME
+PATIENT
+PATIENT NAME
+اسم المريض
+NAME + MOBILE
+
+→ patient.name
+
+FILE
+FILE NO
+MRN
+رقم الملف
+NO
+
+→ patient.file_number
+
+DATE
+SURGERY DATE
+IMPLANT DATE
+تاريخ الزراعة
+تاريخ العملية
+
+→ case.procedure_date
+
+SYSTEM
+IMPLANT
+BRAND
+نوع الزرعة
+نظام الزرعة
+
+→ implant.system
+
+SITE
+TOOTH
+TOOTH NO
+LOCATION
+الموقع
+السن
+
+→ implant.site
+
+SIZE
+IMPLANT SIZE
+DIMENSIONS
+المقاس
+
+→ implant.size
+
+COST
+PRICE
+AMOUNT
+TOTAL
+التكلفة
+المبلغ
+
+→ financial candidate field
+
+Use:
+- header aliases
+- value type detection
+- semantic analysis
+- neighboring-column context
+
+Do NOT rely only on exact header text.
+
+==================================================
+5. CANONICAL GHARS DATA MODEL
+==================================================
+
+Map source data into canonical Ghars entities:
+
+Patient
+→ Implant Case
+→ Implant(s)
+→ Surgical Procedures
+→ Prosthetic Events
+→ Follow-ups
+→ Finance
+
+Never create a flat uncontrolled import table as final data.
+
+==================================================
+6. CURRENT DOCTOR TABLE
+==================================================
+
+The current sample contains:
+
+NAME + MOBILE
+AGE
+DATE
+FILE
+System
+site
+SIZE
+Q
+Former
+Graft
+COST
+Pros
+NOTE
+
+Use it as one test case.
+
+But DO NOT hardcode the importer around this one spreadsheet.
+
+The importer must work with other layouts too.
+
+==================================================
+7. AUTO-MAPPING PREVIEW
+==================================================
+
+After analysis show something like:
+
+SOURCE COLUMN        GHARS FIELD              CONFIDENCE
+
+NAME + MOBILE   →    Patient Name            98%
+AGE             →    Age                     100%
+DATE            →    Procedure Date          99%
+FILE            →    File Number             100%
+System          →    Implant System          99%
+site            →    Tooth / Site            99%
+SIZE            →    Implant Size            99%
+Graft           →    Bone Graft Indicator    92%
+COST            →    Financial Data          REVIEW
+Pros            →    REVIEW
+Q               →    REVIEW
+Former          →    REVIEW
+
+Allow admin to correct the mapping before import.
+
+==================================================
+8. UNKNOWN COLUMNS
+==================================================
+
+Never guess unknown medical meanings.
+
+For columns such as:
+
+Q
+Former
+Pros
+
+inspect the current Ghars domain model and actual business usage.
+
+If no safe canonical meaning can be proven:
+
+show:
+
+لم يتم التعرف على هذا الحقل
+Requires Mapping
+
+Options:
+
+- select Ghars destination field
+- preserve as legacy note
+- ignore column
+
+Never discard data silently.
+
+==================================================
+9. RAW DATA MUST BE PRESERVED DURING REVIEW
+==================================================
+
+Every preview row must allow:
+
+RAW SOURCE
+
+vs
+
+PROPOSED GHARS RECORD
+
+Example:
+
+RAW:
+ROT | 24,25 | 3.5×10 / 3.5×10
+
+GHARS:
+System: [mapped system]
+Implant 1:
+Site 24
+Size 3.5 × 10
+
+Implant 2:
+Site 25
+Size 3.5 × 10
+
+This is critical for verification.
+
+==================================================
+10. MULTIPLE VALUES INSIDE ONE CELL
+==================================================
+
+Legacy spreadsheets often put multiple implants in one row.
+
+Example:
+
+site:
+24
+25
+
+SIZE:
+3.5×10
+3.5×10
+
+Automatically pair them when counts match.
+
+2 sites
++
+2 sizes
+
+→ 2 implants
+
+If counts do NOT match:
+
+3 sites
+2 sizes
+
+BLOCK the row.
+
+Never guess pairing.
+
+==================================================
+11. IMPLANT SIZE NORMALIZATION
+==================================================
+
+Accept:
+
+3.5*10
+3.5 x 10
+3.5×10
+3.5 X 10
+
+Normalize presentation while preserving exact numeric dimensions.
+
+Do not change values.
+
+==================================================
+12. IMPLANT SYSTEM MAPPING
+==================================================
+
+Legacy doctors may use abbreviations:
+
+ROT
+BIO
+STR
+NOBEL
+etc.
+
+Do not assume their meaning.
+
+Create per-tenant mapping memory.
+
+Example:
+
+Source value:
+ROT
+
+Mapped by admin once to:
+ROT / Root
+
+Save this mapping for future imports by the SAME tenant.
+
+Next file containing ROT should propose the same mapping automatically.
+
+Do not apply one doctor's custom abbreviation globally to every clinic unless verified canonical.
+
+==================================================
+13. LEARN FROM CONFIRMED MAPPINGS
+==================================================
+
+The importer should improve over time.
+
+When an admin confirms:
+
+"Pt Name" → Patient Name
+
+or:
+
+"Impl Brand" → Implant System
+
+save the approved mapping pattern.
+
+Future files can auto-suggest it.
+
+But tenant-specific custom meanings must remain tenant scoped.
+
+==================================================
+14. TREATMENT AND FINANCE MUST BE SEPARATE
+==================================================
+
+Critical rule:
+
+Clinical completion and financial completion are separate.
+
+Possible states:
+
+Treatment complete + Paid in full
+
+Treatment complete + Remaining balance
+
+Treatment ongoing + Paid in full
+
+Treatment ongoing + Remaining balance
+
+Never derive one from the other.
+
+==================================================
+15. FINANCIAL DATA — VERY SAFE MODE
+==================================================
+
+Legacy spreadsheets can contain complex text such as:
+
+دفعة أولى 2500
+دفعة ثانية 2000
+
+or:
+
+دفع وخلص
+
+or:
+
+لم يدفع
+
+Do NOT blindly convert these into payment transactions.
+
+Classify finance extraction into:
+
+A. VERIFIED STRUCTURED
+B. REVIEW REQUIRED
+C. UNSAFE / UNRESOLVED
+
+==================================================
+16. HISTORICAL FINANCE SUMMARY
+==================================================
+
+When exact transactions are not reliably known:
+
+prefer importing a verified historical finance summary:
+
+Total
+Paid
+Remaining
+Payment Status
+
+Do NOT invent payment dates/methods.
+
+==================================================
+17. EXACT PAYMENT HISTORY
+==================================================
+
+Only create real Payment records when source clearly provides:
+
+- amount
+- payment date
+- payment method where available
+
+If date is missing:
+do not invent it.
+
+==================================================
+18. FINANCE VALIDATION
+==================================================
+
+Validate:
+
+Total >= Paid
+
+Remaining = Total - Paid
+
+If source values contradict each other:
+
+REVIEW REQUIRED
+
+Never silently correct financial records.
+
+==================================================
+19. TREATMENT STATUS
+==================================================
+
+Legacy values such as:
+
+DIRECT
+IMMED
+FLAPLESS
+R.P
+
+must NOT automatically be interpreted unless their meaning is proven.
+
+Preserve original values.
+
+Allow mapping into canonical Ghars treatment/procedure fields when appropriate.
+
+==================================================
+20. PATIENT DUPLICATE PROTECTION
+==================================================
+
+Within current tenant only:
+
+Primary:
+File number
+
+Secondary:
+Phone
+
+Name alone:
+warning only
+
+Never automatically merge patients based only on similar names.
+
+==================================================
+21. FILE NUMBER CONFLICT
+==================================================
+
+If:
+
+FILE 35
+
+already belongs to a different patient:
+
+BLOCK import.
+
+Show:
+
+تعارض رقم الملف
+
+Require manual resolution.
+
+==================================================
+22. HISTORICAL DATES
+==================================================
+
+Clinical DATE must remain the original clinical date.
+
+Example:
+
+14 Jul 2025
+
+→ procedure_date = 2025-07-14
+
+created_at can be import time.
+
+Dashboard must NOT count this record as today's activity.
+
+==================================================
+23. AGE
+==================================================
+
+Do NOT invent DOB from AGE.
+
+If source contains:
+
+AGE = 32
+
+preserve as historical age if supported.
+
+Otherwise keep it as legacy metadata/notes.
+
+==================================================
+24. PREVIEW EXPERIENCE
+==================================================
+
+Preview table:
+
+Status
+Patient
+File
+Clinical Date
+System
+Implants
+Procedures
+Treatment Status
+Total
+Paid
+Remaining
+Payment Status
+Warnings
+
+Statuses:
+
+READY
+REVIEW REQUIRED
+DUPLICATE
+BLOCKED
+
+==================================================
+25. ONLY REVIEW PROBLEMS
+==================================================
+
+The user should NOT manually review 500 perfect rows one by one.
+
+Provide filters:
+
+Show All
+Ready
+Needs Review
+Duplicates
+Blocked
+
+If 480 / 500 rows are safe:
+
+user only needs to inspect the 20 problematic rows.
+
+==================================================
+26. BATCH SUMMARY BEFORE COMMIT
+==================================================
+
+Before Import:
+
+Patients: 120
+Cases: 120
+Implants: 187
+
+Ready: 112
+Needs review: 6
+Blocked: 2
+
+Finance summaries: 74
+Exact payments: 12
+
+Nothing gets imported until user confirms.
+
+==================================================
+27. DEFAULT SAFETY POLICY
+==================================================
+
+Default:
+
+BLOCKED → never imported
+
+REVIEW REQUIRED → not imported until approved
+
+READY → eligible for import
+
+Never choose "import everything anyway" as default.
+
+==================================================
+28. TRANSACTION SAFETY
+==================================================
+
+Import each patient's complete data transactionally.
+
+Patient
+Case
+Implants
+Procedures
+Finance
+
+must succeed together.
+
+If one fails:
+rollback that patient's import.
+
+No partial patient records.
+
+==================================================
+29. IMPORT BATCH TRACKING
+==================================================
+
+Create an Import Batch.
+
+Track:
+
+batch_id
+tenant
+imported_by
+source filename
+timestamp
+source rows
+created records
+warnings
+failures
+
+==================================================
+30. SAFE ROLLBACK
+==================================================
+
+Allow rollback of an import batch.
+
+Rollback may remove ONLY records created by that batch.
+
+Never touch records that existed previously.
+
+If imported records were edited/used later:
+block automatic rollback and require review.
+
+==================================================
+31. AUDIT LOG
+==================================================
+
+Record:
+
+IMPORT_UPLOADED
+IMPORT_ANALYZED
+IMPORT_CONFIRMED
+IMPORT_COMPLETED
+IMPORT_FAILED
+IMPORT_ROLLED_BACK
+
+==================================================
+32. TENANT ISOLATION
+==================================================
+
+Importer must derive tenant from authenticated session.
+
+Never trust tenant information inside uploaded files.
+
+No cross-tenant matching.
+
+==================================================
+33. SECURITY
+==================================================
+
+For spreadsheets:
+
+do not execute:
+- macros
+- formulas
+- external links
+
+Read calculated/static values safely.
+
+Validate:
+- MIME
+- size
+- row count
+- sheet count
+
+==================================================
+34. ORIGINAL FILE
+==================================================
+
+Keep original source only according to existing safe file-retention policy.
+
+Do not permanently retain uploaded medical files unnecessarily.
+
+==================================================
+35. IMAGE/PDF IMPORT
+==================================================
+
+For image or PDF uploads:
+
+OCR/table extraction must produce the SAME staging preview as Excel.
+
+The user should not care what the original format was.
+
+Everything goes through:
+
+Extraction
+→ Structured Staging
+→ Mapping
+→ Validation
+→ Preview
+→ Confirm
+
+==================================================
+36. OCR SAFETY THRESHOLDS
+==================================================
+
+Never auto-approve low-confidence OCR for:
+
+File number
+Patient identity
+Clinical date
+Tooth/site
+Implant size
+Financial amounts
+
+Require review.
+
+==================================================
+37. FUTURE DOCTOR FILES
+==================================================
+
+Design for files where:
+
+- headers are different
+- column order is different
+- some columns are missing
+- multiple sheets exist
+- Arabic/English headers are mixed
+- one row contains multiple implants
+
+Do not bind architecture to one doctor's file.
+
+==================================================
+38. OPTIONAL STANDARD EXPORT
+==================================================
+
+After interpreting an uploaded legacy file:
+
+allow admin to download:
+
+"البيانات بعد التنظيم"
+
+as a normalized Excel file BEFORE importing.
+
+This is useful for audit.
+
+The normalized Excel should reflect exactly what Ghars intends to import.
+
+==================================================
+39. FIRST REAL USE — SAFETY
+==================================================
+
+When this feature is eventually used for the first real doctor:
+
+Do NOT import the whole file first.
+
+Recommended process:
+
+1. Analyze entire file
+2. Select 5 representative patients
+3. Import those 5
+4. Verify them manually inside Ghars
+5. Only then import remaining READY rows
+
+Provide support for selecting rows for a pilot import.
+
+==================================================
+40. DEVELOPMENT ONLY FOR NOW
+==================================================
+
+Implement and validate in Development.
+
+DO NOT import the attached doctor's real records into Production.
+
+DO NOT publish.
+
+==================================================
+41. TEST DIFFERENT SOURCE LAYOUTS
+==================================================
+
+Test at least:
+
+A. Current sample layout
+
+B. Arabic spreadsheet with different headers
+
+C. English spreadsheet with different column order
+
+D. Multi-implant row
+
+E. Finance text row
+
+F. Missing columns
+
+G. Duplicate file number
+
+H. Image/PDF extraction staging
+
+I. Historical 2025 case
+
+==================================================
+42. FINAL REPORT
+==================================================
+
+Report:
+
+UNIVERSAL IMPORT ARCHITECTURE:
+PASS / FAIL
+
+XLSX:
+PASS / FAIL
+
+CSV:
+PASS / FAIL
+
+IMAGE/PDF STAGING:
+PASS / FAIL
+
+AUTOMATIC COLUMN DETECTION:
+PASS / FAIL
+
+SEMANTIC FIELD MAPPING:
+PASS / FAIL
+
+CONFIDENCE SCORING:
+PASS / FAIL
+
+LOW-CONFIDENCE REVIEW:
+PASS / FAIL
+
+TENANT MAPPING MEMORY:
+PASS / FAIL
+
+MULTIPLE IMPLANTS:
+PASS / FAIL
+
+FINANCE SAFETY:
+PASS / FAIL
+
+NO INVENTED PAYMENTS:
+PASS / FAIL
+
+TREATMENT/FINANCE SEPARATION:
+PASS / FAIL
+
+DUPLICATE PROTECTION:
+PASS / FAIL
+
+HISTORICAL DATE SAFETY:
+PASS / FAIL
+
+PREVIEW BEFORE WRITE:
+PASS / FAIL
+
+PILOT IMPORT:
+PASS / FAIL
+
+BATCH ROLLBACK:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+DO NOT PUBLISH.
+STOP after checkpoint.

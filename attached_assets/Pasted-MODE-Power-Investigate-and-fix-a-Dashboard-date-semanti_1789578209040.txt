@@ -1,0 +1,317 @@
+MODE: Power
+
+Investigate and fix a Dashboard date-semantics bug in Ghars.
+
+OBSERVED BUG:
+
+Today (2026-09-16), I manually entered an OLD historical patient/case/implant record whose actual clinical procedure date is in 2025.
+
+After saving it, the Dashboard cards counted the record under:
+- Today
+and/or
+- This Month
+
+This is incorrect.
+
+IMPORTANT:
+A historical clinical record entered today must NOT be counted as a clinical event that happened today/month merely because created_at is today.
+
+Production contains real customer data.
+
+DO NOT:
+- modify existing Production records
+- delete/reset data
+- change historical clinical dates
+- publish automatically
+- perform destructive migrations
+
+Use Production READ-ONLY for verification and Development for reproduction.
+
+==================================================
+1. DEFINE THE CORRECT DATE SEMANTICS
+==================================================
+
+Ghars must clearly distinguish:
+
+created_at
+= when the record was entered into Ghars
+
+from:
+
+procedure_date / placement_date / event_date
+= when the clinical event actually happened
+
+Dashboard clinical metrics must use CLINICAL dates, not record creation timestamps.
+
+==================================================
+2. AUDIT ALL 5 DASHBOARD CARDS
+==================================================
+
+Audit the exact backend query/calculation for the approved Dashboard cards:
+
+1. المرضى الذين تم زرعهم
+   Patients Implanted
+
+2. عدد الزرعات
+   Implant Count
+
+3. الأنظمة المستخدمة
+   Implant Systems Used
+
+4. مرضى التركيب
+   Prosthetic Patients
+
+5. التركيبات التي تمت
+   Completed Prosthetics
+
+For EACH metric report:
+
+- source table/entity
+- date field currently used
+- status conditions
+- Today condition
+- Current Month condition
+
+==================================================
+3. REQUIRED DATE RULES
+==================================================
+
+Use the canonical clinical date for each metric.
+
+Expected model:
+
+PATIENTS IMPLANTED:
+Use implant/case clinical procedure date, NOT created_at.
+
+IMPLANT COUNT:
+Count implants associated with clinical implant placement during the selected period.
+Do NOT count based on when the DB row was created.
+
+IMPLANT SYSTEMS USED:
+Count systems from implants clinically placed during the selected period.
+
+PROSTHETIC PATIENTS:
+Use the appropriate prosthetic clinical/event date according to the existing canonical definition.
+
+COMPLETED PROSTHETICS:
+Use the final/completed prosthetic event_date, NOT created_at.
+
+Reuse existing canonical Ghars business rules where already defined.
+
+Do not invent new semantics unnecessarily.
+
+==================================================
+4. HISTORICAL ENTRY TEST
+==================================================
+
+Reproduce this exact scenario in Development:
+
+Current date:
+September 2026
+
+Create today:
+
+Patient
+Case
+Implant
+
+But set clinical procedure date to:
+
+14 Nov 2025
+
+Expected:
+
+Dashboard TODAY:
+0 contribution
+
+Dashboard CURRENT MONTH (Sep 2026):
+0 contribution
+
+Historical period containing Nov 2025:
+record IS counted appropriately.
+
+The fact that created_at is Sep 2026 must not affect those clinical metrics.
+
+==================================================
+5. CURRENT-DATE TEST
+==================================================
+
+Then create another case today with procedure_date = today.
+
+Expected:
+
+Today:
+counted
+
+Current Month:
+counted
+
+==================================================
+6. MIXED CASE TEST
+==================================================
+
+Test one patient with:
+
+- historical implant in 2025
+- new implant in Sep 2026
+
+Ensure only the Sep 2026 clinical event contributes to current period metrics.
+
+Avoid double-counting the patient where metric semantics require distinct patients.
+
+==================================================
+7. PROSTHETIC EVENT TEST
+==================================================
+
+Create historical prosthetic events entered today:
+
+event_date = 2025
+
+They must NOT appear in Sep 2026 / Today prosthetic metrics.
+
+Then create an event with event_date = today.
+
+It should appear normally.
+
+==================================================
+8. RIYADH TIMEZONE
+==================================================
+
+Today/month boundaries must use Ghars' Saudi/Riyadh semantics.
+
+Do not introduce UTC boundary errors.
+
+Date-only clinical fields must remain date-only.
+
+==================================================
+9. SEARCH FOR CREATED_AT LEAKAGE
+==================================================
+
+Audit Dashboard/statistics queries for accidental usage of:
+
+created_at
+updated_at
+
+where a clinical date should be used.
+
+Also inspect SQL/ORM helpers, report aggregation, and frontend transformations.
+
+Fix the canonical source rather than patching the UI.
+
+==================================================
+10. DASHBOARD + STATISTICS CONSISTENCY
+==================================================
+
+Dashboard and Statistics must use the SAME clinical-date semantics.
+
+A record must not show:
+
+Dashboard Sep 2026
+
+but:
+
+Statistics Nov 2025
+
+for the same clinical event.
+
+Reuse shared aggregation logic where practical.
+
+==================================================
+11. DO NOT CHANGE "DATE ADDED"
+==================================================
+
+The Patient Medical Record may correctly show:
+
+Date added:
+16 Sep 2026
+
+because that is when the record was entered.
+
+That is NOT the same thing as the clinical procedure date.
+
+Preserve this distinction.
+
+==================================================
+12. OPTIONAL UX CLARITY
+==================================================
+
+Audit labels to make sure users understand:
+
+Today / This Month
+
+means clinical activity during that period.
+
+Do not add unnecessary text unless ambiguity exists.
+
+==================================================
+13. REGRESSION TESTS
+==================================================
+
+Add automated tests for:
+
+A. historical case entered today
+B. historical implant entered today
+C. historical prosthetic event entered today
+D. current-day clinical event
+E. current-month clinical event
+F. previous-month clinical event
+G. mixed historical/current events
+H. Riyadh day boundary
+I. Dashboard and Statistics consistency
+
+==================================================
+14. FINAL REPORT
+==================================================
+
+Report:
+
+ROOT CAUSE:
+<exact cause>
+
+PATIENTS IMPLANTED DATE FIELD:
+<field>
+
+IMPLANT COUNT DATE FIELD:
+<field>
+
+IMPLANT SYSTEMS DATE FIELD:
+<field>
+
+PROSTHETIC PATIENTS DATE FIELD:
+<field>
+
+COMPLETED PROSTHETICS DATE FIELD:
+<field>
+
+CREATED_AT INCORRECTLY USED:
+YES / NO
+
+HISTORICAL 2025 ENTRY EXCLUDED FROM SEP 2026:
+PASS / FAIL
+
+CURRENT-DATE ENTRY COUNTED:
+PASS / FAIL
+
+DASHBOARD / STATISTICS CONSISTENCY:
+PASS / FAIL
+
+RIYADH DATE SEMANTICS:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.

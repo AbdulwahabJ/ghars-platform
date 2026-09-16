@@ -1,0 +1,158 @@
+MODE: Free
+
+Fix the Dashboard decorative background elements so they appear correctly in BOTH Arabic RTL and English LTR.
+
+CURRENT ISSUE:
+
+In English mode, the Dashboard background contains decorative light-blue orbital/network line graphics on the left and right sides.
+
+In Arabic mode, these decorative elements disappear or are clipped.
+
+The screenshots clearly show:
+- English: decorations visible on both sides
+- Arabic: decorations missing
+
+GOAL:
+Keep the exact same decorative visual system in both languages.
+
+Do NOT redesign the Dashboard.
+Do NOT change content, cards, hero, search, metrics, or spacing unnecessarily.
+
+==================================================
+1. INVESTIGATE ROOT CAUSE
+==================================================
+
+Audit the decorative background implementation for:
+
+- absolute positioning
+- left/right offsets
+- translateX
+- transform-origin
+- pseudo-elements
+- overflow-hidden
+- ltr: / rtl: Tailwind classes
+- direction-dependent conditions
+- CSS logical properties
+- conditional rendering based on locale
+
+Find exactly why the elements disappear in RTL.
+
+==================================================
+2. KEEP DECORATIONS IN BOTH LOCALES
+==================================================
+
+The decorative graphics must render in:
+
+Arabic RTL
+and
+English LTR
+
+They should remain visible on BOTH sides of the Dashboard.
+
+Do not remove them in RTL.
+
+==================================================
+3. RTL-SAFE POSITIONING
+==================================================
+
+Use locale-safe positioning.
+
+Preferred:
+- absolute decorative layers anchored independently from document direction
+- or explicit rtl/ltr positioning classes where needed
+
+Do NOT let `dir="rtl"` push decorative elements outside the viewport.
+
+==================================================
+4. AVOID CLIPPING
+==================================================
+
+Check parent containers for:
+
+overflow-hidden
+overflow-x-hidden
+
+If clipping is the cause:
+fix the decorative layer positioning without introducing horizontal scrolling.
+
+Do NOT simply remove overflow protection if that causes page overflow.
+
+==================================================
+5. MAINTAIN CURRENT ENGLISH DESIGN
+==================================================
+
+English version currently looks good.
+
+Do NOT visually regress it.
+
+The Arabic version should achieve the same visual richness.
+
+==================================================
+6. OPTIONAL MIRRORING
+==================================================
+
+If the decorative composition is intentionally asymmetric:
+
+mirror the composition appropriately for RTL.
+
+But keep:
+- same opacity
+- same scale
+- same visual weight
+- same number of decorative elements
+
+Do not make Arabic look emptier.
+
+==================================================
+7. RESPONSIVE
+==================================================
+
+Verify on:
+
+Desktop Arabic
+Desktop English
+Tablet Arabic
+Tablet English
+Mobile Arabic
+Mobile English
+
+Decorations should never:
+- overlap cards
+- block clicks
+- create scrollbars
+- reduce readability
+
+Set pointer-events: none where appropriate.
+
+==================================================
+8. FINAL REPORT
+==================================================
+
+Report:
+
+RTL ROOT CAUSE:
+<exact cause>
+
+ARABIC DECORATIONS:
+PASS / FAIL
+
+ENGLISH DECORATIONS:
+PASS / FAIL
+
+BOTH SIDES VISIBLE:
+PASS / FAIL
+
+NO HORIZONTAL SCROLL:
+PASS / FAIL
+
+MOBILE:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.

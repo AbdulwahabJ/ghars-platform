@@ -1,0 +1,609 @@
+MODE: Power
+
+EXPAND THE GLOBAL LATIN DIGIT POLICY TO 100% OF GHARS.
+
+CRITICAL REQUIREMENT:
+
+There must be ZERO Arabic-Indic numerals anywhere in the application UI.
+
+Always display:
+
+0 1 2 3 4 5 6 7 8 9
+
+Never display:
+
+٠ ١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩
+
+This rule applies to EVERY surface, EVERY state, EVERY component, EVERY dialog, and EVERY workflow.
+
+==================================================
+1. COMPLETE APPLICATION-WIDE AUDIT
+==================================================
+
+Audit ALL UI surfaces, including but not limited to:
+
+- Dashboard
+- Patients
+- Patient Medical Record
+- Procedures
+- Implant Cases
+- Implant create/edit
+- Implant dialogs
+- Bone Graft
+- Sinus Lift
+- Adjunct Procedures
+- Prosthetics
+- Follow-ups
+- Communications
+- Finance
+- Payments
+- Charges
+- Discounts
+- Installments
+- Statistics
+- Reports
+- Settings
+- Platform Admin
+- Registration
+- Login
+- Password reset/change
+- Onboarding/Tour
+- Landing admin
+- Import wizard
+- Export dialogs
+- Notifications
+- Help dialogs
+
+==================================================
+2. ALL CREATE / ADD FLOWS
+==================================================
+
+Every "Add" / "Create" form must use Latin digits.
+
+Examples:
+
+إضافة سجل
+إضافة حالة
+إضافة زرعة
+إضافة متابعة
+إضافة دفعة
+إضافة رسوم
+إضافة إجراء
+إضافة مستخدم
+
+All numeric values in:
+- labels
+- placeholders
+- typed values
+- select options
+- date pickers
+- counters
+
+must display Latin digits.
+
+==================================================
+3. ALL EDIT FLOWS
+==================================================
+
+Every Edit form/dialog must use Latin digits.
+
+Existing values loaded into edit forms must be normalized for display.
+
+Example:
+
+stored/display input:
+٤.٢
+
+must appear as:
+
+4.2
+
+without changing the underlying numeric meaning.
+
+==================================================
+4. ALL DIALOGS / MODALS
+==================================================
+
+Audit EVERY:
+
+- Dialog
+- AlertDialog
+- Modal
+- Drawer
+- Sheet
+- Popover
+- confirmation window
+
+Numbers inside:
+
+- titles
+- descriptions
+- dates
+- counts
+- amounts
+- validation errors
+- buttons
+- selected values
+
+must always use Latin digits.
+
+==================================================
+5. ALL DROPDOWNS / SELECTS
+==================================================
+
+Audit:
+
+- Select
+- Combobox
+- Command menu
+- Dropdown
+- Multi-select
+
+Numeric options must use Latin digits.
+
+Examples:
+
+Tooth:
+36
+
+Length:
+10
+
+Diameter:
+4.2
+
+Trial:
+3 days
+
+Do not render:
+
+٣٦
+١٠
+٤.٢
+٣
+
+==================================================
+6. ALL DATE PICKERS / CALENDARS
+==================================================
+
+Critical:
+
+Calendar UI must use Latin digits even when Arabic locale is active.
+
+Audit:
+
+- day numbers
+- month/year header
+- selected date
+- date range
+- shortcut labels with numbers
+
+Use Arabic text if interface is Arabic, but Latin digits.
+
+==================================================
+7. ALL TIME PICKERS
+==================================================
+
+Time must always display Latin digits.
+
+Examples:
+
+09:30 AM
+04:15 PM
+
+==================================================
+8. ALL VALIDATION MESSAGES
+==================================================
+
+Any numbers inside validation messages must be Latin.
+
+Example:
+
+يجب أن يكون المقاس بين 3 و 15
+
+NOT:
+
+٣ و ١٥
+
+==================================================
+9. ALL TOASTS / NOTIFICATIONS
+==================================================
+
+Examples:
+
+تم استيراد 25 سجلًا
+
+لديك 3 متابعات متأخرة
+
+تمت إضافة 2 زرعة
+
+Always Latin digits.
+
+==================================================
+10. ALL BADGES / COUNTERS
+==================================================
+
+Audit:
+
+- notification badges
+- sidebar counts
+- table counts
+- status badges
+- unread counts
+- trial days remaining
+
+Always Latin digits.
+
+==================================================
+11. ALL TABLES
+==================================================
+
+Including:
+
+- main rows
+- expanded rows
+- totals
+- headers with counts
+- inline edit
+- row actions
+- pagination
+
+Always Latin digits.
+
+==================================================
+12. ALL CARDS
+==================================================
+
+Audit all KPI cards and summary cards.
+
+Today:
+0
+
+This Month:
+15
+
+Never Arabic numerals.
+
+==================================================
+13. ALL CHARTS
+==================================================
+
+Audit chart library formatters for:
+
+- x-axis
+- y-axis
+- tooltips
+- data labels
+- legends
+- percentages
+
+Use Latin digits regardless of UI locale.
+
+==================================================
+14. ALL IMPORT PREVIEW SCREENS
+==================================================
+
+Legacy import:
+
+- file numbers
+- dates
+- confidence %
+- row numbers
+- tooth/site
+- sizes
+- amounts
+- counts
+
+must use Latin digits.
+
+==================================================
+15. ALL EXPORT PREVIEW / EXPORT FILES
+==================================================
+
+PDF:
+Arabic text + Latin digits
+
+Excel:
+Arabic headers + numeric/Latin digits
+
+CSV if retained:
+ASCII digits
+
+==================================================
+16. ALL PLATFORM ADMIN DIALOGS
+==================================================
+
+Include:
+
+- activate
+- suspend
+- extend trial
+- reset password
+- impersonate
+- system health
+- customer counts
+
+All numbers Latin.
+
+==================================================
+17. ALL AUTHENTICATION SCREENS
+==================================================
+
+Audit:
+
+- phone number
+- password requirements
+- setup key messages
+- 72-hour trial
+- retry countdowns
+- rate-limit messages
+
+Always Latin digits.
+
+==================================================
+18. ALL HELP / TOUR CONTENT
+==================================================
+
+If help text contains numeric examples:
+
+3 days
+5,000 cases
+72 hours
+
+must use Latin digits even in Arabic UI.
+
+==================================================
+19. ALL LANDING PAGE CONTENT
+==================================================
+
+Arabic Landing Page must still use:
+
+5,000
+3 أيام
+2,990 ريال
+4,990 ريال
+
+NOT Arabic-Indic digits.
+
+==================================================
+20. GLOBAL INPUT NORMALIZATION
+==================================================
+
+Create one shared utility that normalizes:
+
+Arabic-Indic:
+٠١٢٣٤٥٦٧٨٩
+
+Persian:
+۰۱۲۳۴۵۶۷۸۹
+
+to:
+
+0123456789
+
+Use it consistently for user-entered numeric-compatible fields.
+
+==================================================
+21. NORMALIZE ON INPUT, PASTE, AND BLUR
+==================================================
+
+Support normalization when user:
+
+- types
+- pastes
+- edits
+- submits
+
+Arabic digits should become Latin seamlessly.
+
+Example:
+
+User pastes:
+٠٥٠٦٣٨٨٢٦٣
+
+Field becomes:
+0506388263
+
+==================================================
+22. DO NOT DAMAGE TEXT
+==================================================
+
+Only normalize numeral characters.
+
+Never modify normal Arabic text.
+
+==================================================
+23. TECHNICAL VALUES
+==================================================
+
+Technical IDs, URLs, query params, codes, and references must remain ASCII/Latin digits.
+
+Examples:
+
+SS26-001
+clinic-123
+2026-09-16
+
+==================================================
+24. CENTRALIZED FORMATTERS ONLY
+==================================================
+
+Do NOT add scattered regex replacements in every component.
+
+Create/reuse centralized helpers for:
+
+- formatNumber
+- formatDate
+- formatTime
+- formatCurrency
+- normalizeDigits
+- formatPercentage
+
+All must force:
+
+numberingSystem = "latn"
+
+where relevant.
+
+==================================================
+25. INTL USAGE
+==================================================
+
+Audit every Intl call.
+
+Use:
+
+numberingSystem: "latn"
+
+or locale extension:
+
+ar-SA-u-nu-latn
+
+where Arabic language formatting is still needed.
+
+==================================================
+26. THIRD-PARTY COMPONENTS
+==================================================
+
+Audit libraries that may independently localize numerals:
+
+- date pickers
+- chart libraries
+- calendar libraries
+- PDF renderers
+- phone inputs
+- number inputs
+
+Override numeral formatting safely.
+
+==================================================
+27. CSS / FONT FEATURES
+==================================================
+
+Check whether any font/OpenType feature substitutes numeral glyphs.
+
+Ensure Latin numerals render visually as Latin digits.
+
+==================================================
+28. EXACT TEST MATRIX
+==================================================
+
+Test in Arabic UI:
+
+- Add Patient
+- Edit Patient
+- Add Implant Case
+- Edit Implant
+- Add Payment
+- Edit Payment
+- Add Follow-up
+- All confirmation dialogs
+- Calendar
+- Date picker
+- Dropdowns
+- Dashboard
+- Statistics
+- Platform Admin
+- Registration
+- Import
+- Export
+- Notifications
+- Tooltips
+
+Then repeat in English UI.
+
+==================================================
+29. SOURCE CODE AUDIT
+==================================================
+
+Search for literal Arabic-Indic numerals inside source code and translation resources.
+
+Replace system examples where appropriate.
+
+Do not alter legitimate user/test content unless needed.
+
+==================================================
+30. AUTOMATED TEST
+==================================================
+
+Add a regression utility/test that scans rendered system UI where practical and fails if it finds:
+
+[٠-٩]
+or
+[۰-۹]
+
+in system-generated UI content.
+
+Exclude genuine user-entered text only where necessary.
+
+==================================================
+31. ACCEPTANCE RULE
+==================================================
+
+The task is NOT complete if even one Ghars-generated screen/dialog/field shows Arabic-Indic digits.
+
+Target:
+
+ARABIC-INDIC DIGITS IN SYSTEM UI:
+ZERO
+
+==================================================
+32. FINAL REPORT
+==================================================
+
+Report:
+
+GLOBAL LATIN DIGITS: PASS / FAIL
+
+CREATE FLOWS: PASS / FAIL
+EDIT FLOWS: PASS / FAIL
+DIALOGS: PASS / FAIL
+DROPDOWNS: PASS / FAIL
+DATE PICKERS: PASS / FAIL
+TIME PICKERS: PASS / FAIL
+VALIDATION: PASS / FAIL
+TOASTS: PASS / FAIL
+BADGES: PASS / FAIL
+TABLES: PASS / FAIL
+CARDS: PASS / FAIL
+CHARTS: PASS / FAIL
+PATIENT MODULE: PASS / FAIL
+IMPLANT MODULE: PASS / FAIL
+FINANCE MODULE: PASS / FAIL
+FOLLOWUPS: PASS / FAIL
+STATISTICS: PASS / FAIL
+SETTINGS: PASS / FAIL
+PLATFORM ADMIN: PASS / FAIL
+AUTH: PASS / FAIL
+ONBOARDING: PASS / FAIL
+LANDING: PASS / FAIL
+IMPORT: PASS / FAIL
+PDF: PASS / FAIL
+EXCEL: PASS / FAIL
+
+ARABIC INPUT NORMALIZATION: PASS / FAIL
+PERSIAN INPUT NORMALIZATION: PASS / FAIL
+
+SYSTEM-GENERATED ARABIC-INDIC DIGITS FOUND:
+<number>
+
+EXPECTED:
+0
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
