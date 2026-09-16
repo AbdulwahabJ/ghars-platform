@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import bcrypt from "bcryptjs";
 import ExcelJS from "exceljs";
+import { mkdir, writeFile } from "node:fs/promises";
 import type { IncomingMessage } from "node:http";
 import app from "../src/app";
 import { csvEscape } from "../src/lib/csv";
@@ -751,6 +752,9 @@ describe("full data export", () => {
   });
 
   it("exports every entity as localized PDF and XLSX reports", async () => {
+    if (process.env.EXPORT_QA_DIR) {
+      await mkdir(process.env.EXPORT_QA_DIR, { recursive: true });
+    }
     for (const entity of [
       "patients",
       "cases",
@@ -766,6 +770,12 @@ describe("full data export", () => {
         expect(pdf.status, `${entity} ${locale} PDF`).toBe(200);
         expect(pdf.headers["content-type"]).toContain("application/pdf");
         expect(pdf.body.length).toBeGreaterThan(100);
+        if (process.env.EXPORT_QA_DIR) {
+          await writeFile(
+            `${process.env.EXPORT_QA_DIR}/settings-${entity}-${locale}.pdf`,
+            pdf.body,
+          );
+        }
       }
 
       const xlsx = await admin.get(`/api/admin/export/${entity}.xlsx?locale=en`);

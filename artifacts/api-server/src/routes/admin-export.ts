@@ -21,7 +21,7 @@ import { asc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { writeAudit } from "../lib/audit";
 import { sendCsv, toCsv } from "../lib/csv";
-import { renderPdf, renderXlsx } from "../lib/export/index.js";
+import { formatCellValue, renderPdf, renderXlsx } from "../lib/export/index.js";
 import { localizeExportValue } from "../lib/export-localization";
 import type { ReportColumn, ReportDefinition, ReportRow } from "../lib/export/index.js";
 import { requireAuth, requireRole } from "../middlewares/auth";
@@ -131,6 +131,61 @@ const COLUMN_TYPES: Record<ExportEntity, Record<number, ReportColumn["type"]>> =
   communications: { 4: "date", 8: "date" },
 };
 
+const PDF_COLUMN_LAYOUTS: Record<
+  ExportEntity,
+  Array<{ index: number; width: number }>
+> = {
+  patients: [
+    { index: 0, width: 70 }, { index: 1, width: 140 },
+    { index: 2, width: 105 }, { index: 3, width: 50 },
+    { index: 5, width: 85 }, { index: 6, width: 61 },
+  ],
+  cases: [
+    { index: 0, width: 60 }, { index: 1, width: 110 },
+    { index: 2, width: 75 }, { index: 3, width: 90 },
+    { index: 5, width: 100 }, { index: 7, width: 75 },
+    { index: 8, width: 85 }, { index: 9, width: 162 },
+  ],
+  implants: [
+    { index: 0, width: 60 }, { index: 1, width: 75 },
+    { index: 2, width: 55 }, { index: 3, width: 85 },
+    { index: 4, width: 45 }, { index: 5, width: 45 },
+    { index: 8, width: 70 }, { index: 9, width: 90 },
+    { index: 12, width: 85 }, { index: 13, width: 147 },
+  ],
+  payments: [
+    { index: 0, width: 75 }, { index: 3, width: 80 },
+    { index: 2, width: 85 }, { index: 5, width: 80 },
+    { index: 6, width: 90 }, { index: 4, width: 105 },
+    { index: 8, width: 105 }, { index: 7, width: 137 },
+  ],
+  charges: [
+    { index: 0, width: 70 }, { index: 1, width: 80 },
+    { index: 2, width: 95 }, { index: 3, width: 145 },
+    { index: 4, width: 85 }, { index: 5, width: 80 },
+    { index: 6, width: 202 },
+  ],
+  discounts: [
+    { index: 0, width: 75 }, { index: 1, width: 80 },
+    { index: 2, width: 90 }, { index: 3, width: 80 },
+    { index: 4, width: 190 }, { index: 5, width: 120 },
+    { index: 6, width: 122 },
+  ],
+  followups: [
+    { index: 0, width: 65 }, { index: 1, width: 72 },
+    { index: 2, width: 105 }, { index: 3, width: 85 },
+    { index: 4, width: 75 }, { index: 6, width: 80 },
+    { index: 7, width: 80 }, { index: 8, width: 85 },
+    { index: 9, width: 110 },
+  ],
+  communications: [
+    { index: 0, width: 70 }, { index: 1, width: 100 },
+    { index: 2, width: 105 }, { index: 4, width: 85 },
+    { index: 5, width: 90 }, { index: 6, width: 132 },
+    { index: 7, width: 90 }, { index: 8, width: 85 },
+  ],
+};
+
 function requestedLocale(req: Request, res: Response): ExportLocale | undefined {
   const value = req.query.locale;
   if (value === undefined) return "ar";
@@ -150,15 +205,25 @@ function toReport(
   rows: unknown[][],
   locale: ExportLocale,
   clinicName: string,
+  format: "pdf" | "xlsx",
 ): ReportDefinition {
   const reportHeaders = locale === "ar" ? ARABIC_HEADERS[entity] : ENGLISH_HEADERS[entity];
   const types = COLUMN_TYPES[entity];
-  const columns: ReportColumn[] = headers.map((_header, index) => ({
+  const allColumns: ReportColumn[] = headers.map((_header, index) => ({
     key: `column_${index}`,
     header: reportHeaders[index] ?? "",
     type: types[index],
     width: types[index] === "date" ? 18 : types[index] === "currency" ? 16 : undefined,
   }));
+  const columns = format === "pdf"
+    ? PDF_COLUMN_LAYOUTS[entity].map(({ index, width }) => ({
+        ...allColumns[index],
+        width,
+        align: allColumns[index].type === "number" || allColumns[index].type === "currency"
+          ? "right" as const
+          : undefined,
+      }))
+    : allColumns;
   const reportRows: ReportRow[] = rows.map((values) => {
     const row: ReportRow = {};
     values.forEach((value, index) => {
@@ -183,16 +248,46 @@ function toReport(
   return {
     metadata: {
       title: locale === "ar"
-        ? `${EXPORT_ENTITY_LABELS[entity]} — تصدير البيانات`
-        : `${ENTITY_ENGLISH_LABELS[entity]} — Data export`,
-      subtitle: locale === "ar" ? EXPORT_ENTITY_LABELS[entity] : ENTITY_ENGLISH_LABELS[entity],
+        ? `تقرير ${EXPORT_ENTITY_LABELS[entity]}`
+        : `${ENTITY_ENGLISH_LABELS[entity]} report`,
+      subtitle: locale === "ar" ? "تصدير بيانات المنشأة" : "Organization data export",
       clinicName,
       locale,
       direction: locale === "ar" ? "rtl" : "ltr",
-      orientation: columns.length >= 8 ? "landscape" : "portrait",
+      orientation: format === "pdf" && entity === "patients" ? "portrait" : "landscape",
       filename: entity,
     },
-    sections: [{ title: locale === "ar" ? EXPORT_ENTITY_LABELS[entity] : ENTITY_ENGLISH_LABELS[entity], columns, rows: reportRows }],
+    sections: [
+      ...(format === "pdf" && entity === "payments"
+        ? [{
+            title: locale === "ar" ? "ملخص الدفعات" : "Payment summary",
+            columns: [
+              { key: "metric", header: locale === "ar" ? "المؤشر" : "Metric", width: 250 },
+              { key: "value", header: locale === "ar" ? "القيمة" : "Value", width: 250 },
+            ],
+            rows: [
+              {
+                metric: locale === "ar" ? "إجمالي الدفعات" : "Total payments",
+                value: formatCellValue(
+                  rows.reduce((sum, row) => sum + (Number(row[2]) || 0), 0),
+                  { key: "amount", header: "", type: "currency" },
+                  {},
+                  locale,
+                ),
+              },
+              {
+                metric: locale === "ar" ? "عدد الدفعات" : "Payment count",
+                value: rows.length,
+              },
+            ],
+          }]
+        : []),
+      {
+        title: locale === "ar" ? EXPORT_ENTITY_LABELS[entity] : ENTITY_ENGLISH_LABELS[entity],
+        columns,
+        rows: reportRows,
+      },
+    ],
   };
 }
 
@@ -613,6 +708,7 @@ async function sendBinaryExport(
     rows,
     locale,
     req.currentTenant!.name,
+    format,
   );
   const exported = format === "pdf"
     ? await renderPdf(report, { locale, direction: locale === "ar" ? "rtl" : "ltr" })

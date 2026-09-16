@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import bcrypt from "bcryptjs";
+import { mkdir, writeFile } from "node:fs/promises";
 import app from "../src/app";
 import {
   agentFor,
@@ -439,6 +440,25 @@ describe("GET /api/reports/operational/export.csv", () => {
       `/api/reports/operational/export.csv?${RANGE}`,
     );
     expect(res.status).toBe(401);
+  });
+});
+
+describe("GET /api/reports/operational binary exports", () => {
+  it("exports compact localized PDF reports without changing XLSX behavior", async () => {
+    const ar = await admin.get(`/api/reports/operational/export.pdf?${RANGE}&locale=ar`);
+    const en = await admin.get(`/api/reports/operational/export.pdf?${RANGE}&locale=en`);
+    const xlsx = await admin.get(`/api/reports/operational/export.xlsx?${RANGE}&locale=ar`);
+    expect(ar.status).toBe(200);
+    expect(en.status).toBe(200);
+    expect(xlsx.status).toBe(200);
+    expect(ar.headers["content-type"]).toContain("application/pdf");
+    expect(en.headers["content-type"]).toContain("application/pdf");
+    expect(xlsx.headers["content-type"]).toContain("spreadsheetml");
+    if (process.env.EXPORT_QA_DIR) {
+      await mkdir(process.env.EXPORT_QA_DIR, { recursive: true });
+      await writeFile(`${process.env.EXPORT_QA_DIR}/operational-ar.pdf`, ar.body);
+      await writeFile(`${process.env.EXPORT_QA_DIR}/operational-en.pdf`, en.body);
+    }
   });
 });
 

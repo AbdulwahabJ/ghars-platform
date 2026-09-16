@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { resolve } from "node:path";
 import PDFDocument from "pdfkit";
 import {
   formatCellValue,
@@ -19,13 +20,12 @@ const cairoFont = require.resolve("@fontsource/cairo/files/cairo-arabic-400-norm
 const cairoBoldFont = require.resolve("@fontsource/cairo/files/cairo-arabic-700-normal.woff");
 const cairoLatinFont = require.resolve("@fontsource/cairo/files/cairo-latin-400-normal.woff");
 const cairoLatinBoldFont = require.resolve("@fontsource/cairo/files/cairo-latin-700-normal.woff");
+const cairoCompleteFont = resolve(process.cwd(), "src/assets/Cairo-Variable.ttf");
 const ARABIC_SCRIPT_RE = /[\u0600-\u06ff\ufb50-\ufdff\ufe70-\ufeff]/u;
 
 function fontForText(value: string, bold = false): string {
   return ARABIC_SCRIPT_RE.test(value)
-    ? bold
-      ? cairoBoldFont
-      : cairoFont
+    ? cairoCompleteFont
     : bold
       ? cairoLatinBoldFont
       : cairoLatinFont;
@@ -40,7 +40,7 @@ export interface PdfExport {
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
 const MARGIN = 42;
-const HEADER_HEIGHT = 76;
+const HEADER_HEIGHT = 92;
 const FOOTER_HEIGHT = 24;
 
 function pdfValue(value: string, direction: "rtl" | "ltr"): string {
@@ -57,6 +57,13 @@ function pdfValue(value: string, direction: "rtl" | "ltr"): string {
           .replace(/\.(?=\s|$)/g, " ")
       : withoutDirectionControls;
   return prepareText(compatiblePunctuation, direction);
+}
+
+function pdfLabel(value: string, direction: "rtl" | "ltr"): string {
+  const prepared = pdfValue(value, direction);
+  return direction === "rtl" && ARABIC_SCRIPT_RE.test(prepared)
+    ? prepared.replace(/ /g, "\u00A0")
+    : prepared;
 }
 
 function columnWidths(
@@ -126,30 +133,26 @@ export async function renderPdf(
     doc.fillColor(GHARS_NAVY).rect(MARGIN, top, contentWidth, 3).fill();
     doc.fillColor(GHARS_NAVY).font(cairoLatinBoldFont).fontSize(17);
     const brand = resolved.locale === "ar" ? "غرس" : "Ghars";
-    doc.font(resolved.locale === "ar" ? cairoBoldFont : cairoLatinBoldFont)
+    doc.font(resolved.locale === "ar" ? cairoCompleteFont : cairoLatinBoldFont)
       .text(brand, MARGIN, top + 10, { width: contentWidth / 2, align: "left", lineBreak: false });
-    doc.fillColor(GHARS_TEAL).fontSize(8).font(cairoLatinFont);
-      doc.text(resolved.locale === "ar" ? "غرس" : "Ghars Dental Care", MARGIN, top + 33, {
-        width: contentWidth / 2, align: "left", lineBreak: false,
-      });
     if (report.metadata.clinicName) {
       doc.fillColor("#536078").fontSize(8).font(fontForText(report.metadata.clinicName));
-      doc.text(pdfValue(report.metadata.clinicName, direction), MARGIN + contentWidth / 2, top + 33, {
+      doc.text(pdfLabel(report.metadata.clinicName, direction), MARGIN + contentWidth / 2, top + 13, {
         width: contentWidth / 2,
-        align: direction === "rtl" ? "right" : "right",
+        align: "right",
         lineBreak: false,
       });
     }
     doc.restore();
     doc.fillColor(GHARS_NAVY).font(fontForText(report.metadata.title, true)).fontSize(16);
-    doc.text(pdfValue(report.metadata.title, direction), MARGIN, MARGIN + 26, {
+    doc.text(pdfLabel(report.metadata.title, direction), MARGIN, top + 39, {
       width: contentWidth,
       align: direction === "rtl" ? "right" : "left",
       lineBreak: false,
     });
     if (report.metadata.subtitle) {
       doc.fillColor("#536078").font(fontForText(report.metadata.subtitle)).fontSize(9);
-      doc.text(pdfValue(report.metadata.subtitle, direction), MARGIN, MARGIN + 48, {
+      doc.text(pdfLabel(report.metadata.subtitle, direction), MARGIN, top + 62, {
         width: contentWidth,
         align: direction === "rtl" ? "right" : "left",
         lineBreak: false,
@@ -157,7 +160,7 @@ export async function renderPdf(
     }
     if (sectionTitle) {
       doc.fillColor(GHARS_TEAL).font(fontForText(sectionTitle, true)).fontSize(10);
-      doc.text(pdfValue(sectionTitle, direction), MARGIN, MARGIN + 62, {
+      doc.text(pdfLabel(sectionTitle, direction), MARGIN, top + 78, {
         width: contentWidth,
         align: direction === "rtl" ? "right" : "left",
         lineBreak: false,
@@ -200,7 +203,7 @@ export async function renderPdf(
   for (const section of resolved.sections) {
     if (section.title && y > MARGIN + HEADER_HEIGHT) {
       ensureSpace(24, section.title);
-      doc.fillColor(GHARS_TEAL).font(fontForText(section.title, true)).fontSize(11).text(pdfValue(section.title, direction), MARGIN, y, {
+      doc.fillColor(GHARS_TEAL).font(fontForText(section.title, true)).fontSize(11).text(pdfLabel(section.title, direction), MARGIN, y, {
         width: contentWidth,
         align: direction === "rtl" ? "right" : "left",
       });
@@ -211,7 +214,7 @@ export async function renderPdf(
     const widths = columnWidths(displayColumns, contentWidth, section.rows, resolved.locale);
     const headerHeight = Math.max(25, ...displayColumns.map((column, index) => {
       doc.font(fontForText(column.header, true)).fontSize(8);
-      return doc.heightOfString(pdfValue(column.header, direction), {
+       return doc.heightOfString(pdfLabel(column.header, direction), {
         width: Math.max(1, widths[index] - 10),
         lineGap: 1,
       }) + 10;
@@ -221,7 +224,7 @@ export async function renderPdf(
       let x = MARGIN;
       doc.fillColor(GHARS_NAVY).rect(MARGIN, y, contentWidth, headerHeight).fill();
       displayColumns.forEach((column, index) => {
-        doc.fillColor("#FFFFFF").font(fontForText(column.header, true)).fontSize(8).text(pdfValue(column.header, direction), x + 5, y + 5, {
+         doc.fillColor("#FFFFFF").font(fontForText(column.header, true)).fontSize(8).text(pdfLabel(column.header, direction), x + 5, y + 5, {
           width: Math.max(1, widths[index] - 10),
           align: column.align ?? (direction === "rtl" ? "right" : "left"),
           height: headerHeight - 6,

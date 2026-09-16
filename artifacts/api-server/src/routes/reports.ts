@@ -1450,11 +1450,12 @@ function operationalDefinition(
   includeFinance: boolean,
   locale: ExportLocale,
   clinicName: string,
+  pdfMode = false,
 ): ReportDefinition {
   const labels = exportLabels[locale];
   const dateValue = (value: string | null): Date | null =>
     value ? new Date(`${value.slice(0, 10)}T12:00:00+03:00`) : null;
-  const columns: ReportColumn[] = [
+  let columns: ReportColumn[] = [
     { key: "patientName", header: labels.patient, type: "text" },
     { key: "fileNumber", header: labels.fileNumber, type: "text" },
     { key: "caseStatus", header: labels.caseStatus, type: "text" },
@@ -1477,6 +1478,22 @@ function operationalDefinition(
       { key: "remaining", header: labels.remaining, type: "currency" },
       { key: "paymentStatus", header: labels.paymentStatus, type: "text" },
     );
+  }
+  if (pdfMode) {
+    const widths: Record<string, number> = includeFinance
+      ? {
+          patientName: 95, fileNumber: 55, caseStatus: 78, treatingDoctor: 72,
+          procedureDate: 68, implantStatuses: 78, adjunctProcedures: 92,
+          nextFollowup: 68, remaining: 75, paymentStatus: 76,
+        }
+      : {
+          patientName: 105, fileNumber: 58, caseStatus: 85, treatingDoctor: 82,
+          procedureDate: 72, implantSystems: 84, implantStatuses: 85,
+          adjunctProcedures: 105, nextFollowup: 78,
+        };
+    columns = columns
+      .filter((column) => widths[column.key] !== undefined)
+      .map((column) => ({ ...column, width: widths[column.key] }));
   }
   return {
     metadata: {
@@ -1745,6 +1762,7 @@ router.get("/reports/operational/export.pdf", async (req, res) => {
       includeFinance,
       locale,
       req.currentTenant!.name,
+      true,
     ),
     includeFinance,
   );

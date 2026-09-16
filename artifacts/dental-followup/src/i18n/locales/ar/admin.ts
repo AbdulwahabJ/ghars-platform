@@ -24,6 +24,6 @@ const admin = {
     time: "الوقت", description: "الوصف", empty: "لا توجد سجلات مطابقة للفلاتر المحددة.", total: "إجمالي السجلات: {{count}}", previous: "السابق", next: "التالي", page: "صفحة {{page}} من {{totalPages}}",
     actions: { patient_create: "إضافة مريض", patient_update: "تعديل بيانات مريض", patient_archive: "أرشفة ملف مريض", patient_restore: "استعادة ملف مريض", implant_case_create: "إضافة حالة زراعة", implant_case_update: "تعديل حالة زراعة", implant_create: "إضافة زرعة", implant_update: "تعديل زرعة", case_base_amount_update: "تحديث مبلغ العلاج", payment_create: "تسجيل دفعة", payment_void: "إلغاء دفعة", followup_created: "إضافة متابعة", followup_updated: "تعديل متابعة", followup_completed: "إتمام متابعة", user_create: "إنشاء مستخدم", login_success: "تسجيل دخول" },
   },
-  export: { title: "تصدير كامل البيانات (CSV)", description: "ملفات CSV بترميز UTF-8 تُفتح مباشرة في Excel. التصدير للقراءة فقط ولا يتضمن أي بيانات حسّاسة (لا كلمات مرور ولا حسابات مستخدمين).", entities: { patients: "المرضى", cases: "حالات الزراعة", implants: "الزرعات", payments: "الدفعات", charges: "الرسوم الإضافية", discounts: "الخصومات", followups: "المتابعات", communications: "سجل التواصل" } },
+  export: { title: "تصدير البيانات", description: "يمكنك تصدير بيانات المنشأة بتنسيق PDF أو Excel، مع الحفاظ على تنسيق احترافي وهوية غرس.", entities: { patients: "المرضى", cases: "حالات الزراعة", implants: "الزرعات", payments: "الدفعات", charges: "الرسوم الإضافية", discounts: "الخصومات", followups: "المتابعات", communications: "سجل التواصل" } },
 } as const;
 export default admin;
