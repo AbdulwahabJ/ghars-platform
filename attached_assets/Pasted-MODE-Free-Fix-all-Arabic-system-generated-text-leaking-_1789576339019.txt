@@ -1,0 +1,316 @@
+MODE: Free
+
+Fix all Arabic system-generated text leaking into the English Ghars interface.
+
+The attached screenshot shows the app in ENGLISH, but several labels/actions/values are still displayed in Arabic.
+
+IMPORTANT:
+Do NOT translate user-entered data.
+
+Examples of data that must remain exactly as entered:
+- patient names
+- doctor names
+- manually entered notes
+- custom descriptions
+- clinic names
+- custom list values if they are user-created
+
+The problem is ONLY system-generated UI text and canonical system values.
+
+==================================================
+1. FIX THE CURRENT SCREEN
+==================================================
+
+Audit the expanded patient row shown in the attached screenshot.
+
+When app locale = English, all SYSTEM UI must be English.
+
+Examples currently leaking Arabic include items such as:
+
+تعديل
+إلغاء الدفعة
+نقدية
+دفعة علاجية
+ريال
+and any similar action/status/payment labels.
+
+Expected English examples:
+
+تعديل
+→ Edit
+
+إلغاء الدفعة
+→ Void Payment / Cancel Payment
+(use the terminology already canonical in Ghars)
+
+نقدية
+→ Cash
+
+دفعة علاجية
+→ Treatment Payment
+
+مدفوع
+→ Paid
+
+مدفوع بالكامل
+→ Paid in full
+
+متبقي
+→ Remaining
+
+==================================================
+2. CURRENCY
+==================================================
+
+When locale = English:
+
+Use:
+SAR 3,000.00
+SAR 1,000.00
+
+Do NOT show Arabic currency words such as:
+ريال
+ر.س
+
+When locale = Arabic:
+
+Use the approved Arabic presentation:
+3,000.00 ر.س
+
+Do not alter numeric values.
+
+==================================================
+3. PAYMENT METHOD LOCALIZATION
+==================================================
+
+Audit canonical payment methods.
+
+All canonical payment methods must have AR/EN presentation labels.
+
+Examples:
+
+CASH
+Arabic: نقدي
+English: Cash
+
+CARD
+Arabic: بطاقة
+English: Card
+
+BANK_TRANSFER
+Arabic: تحويل بنكي
+English: Bank Transfer
+
+Add mappings for every payment method actually supported by Ghars.
+
+Do not change stored canonical values.
+
+==================================================
+4. PAYMENT / FINANCIAL STATUS LOCALIZATION
+==================================================
+
+Audit all financial statuses and actions.
+
+Canonical values must remain machine-readable internally.
+
+Presentation must come from i18next.
+
+Examples:
+
+PAID
+Arabic: مدفوع
+English: Paid
+
+PAID_IN_FULL
+Arabic: مدفوع بالكامل
+English: Paid in full
+
+PARTIALLY_PAID
+Arabic: مدفوع جزئيًا
+English: Partially paid
+
+UNPAID
+Arabic: غير مدفوع
+English: Unpaid
+
+VOIDED
+Arabic: ملغاة
+English: Voided
+
+Use the actual existing canonical values in the codebase.
+
+Do not invent duplicate status architecture.
+
+==================================================
+5. AUDIT THE WHOLE APPLICATION
+==================================================
+
+Do not fix only this screenshot.
+
+Search the application for hardcoded Arabic text that can appear while locale = English.
+
+Audit especially:
+
+- Patient table
+- Patient expanded row
+- Patient Medical Record
+- Procedures
+- Implant Cases
+- Bone Graft
+- Sinus Lift
+- Prosthetics
+- Follow-ups
+- Communications
+- Finance
+- Payments
+- Charges
+- Discounts
+- Installments
+- Dashboard
+- Statistics
+- Settings
+- Platform Admin
+- dialogs
+- dropdown menus
+- buttons
+- toast messages
+- empty states
+- validation messages
+
+Use the EXISTING i18next architecture.
+
+Do NOT create another localization system.
+
+==================================================
+6. CANONICAL DATA VS DISPLAY TEXT
+==================================================
+
+Very important:
+
+Stored values such as:
+
+CASH
+PAID
+ACTIVE
+READY_FOR_PROSTHETIC
+
+must remain canonical and language-independent.
+
+Only their DISPLAY label changes with locale.
+
+Never store:
+
+"Cash"
+or
+"نقدي"
+
+as replacement canonical values just to fix translation.
+
+==================================================
+7. USER-ENTERED ARABIC DATA
+==================================================
+
+If the user entered:
+
+patient name:
+بر عويض الحربي
+
+or an Arabic custom description,
+
+it is CORRECT for that Arabic content to remain Arabic even when interface language = English.
+
+Do NOT automatically translate patient/clinical data.
+
+Only system-generated text follows interface locale.
+
+==================================================
+8. DATE / TIME
+==================================================
+
+For English interface:
+
+September 16, 2026
+or the currently approved English date convention.
+
+For Arabic interface:
+use the current approved Ghars convention.
+
+Do not introduce Arabic system labels into English date metadata.
+
+==================================================
+9. RTL / LTR
+==================================================
+
+English interface:
+LTR.
+
+Arabic interface:
+RTL.
+
+However, user-entered Arabic strings inside the English interface must still display naturally using proper bidi isolation.
+
+Do not reverse Arabic text.
+
+==================================================
+10. LANGUAGE SWITCH TEST
+==================================================
+
+Test the exact same patient record.
+
+A. Set Ghars to English.
+
+Verify:
+- Patient information = English
+- Follow-up = English
+- Financials = English
+- Payment breakdown = English
+- Edit = English
+- Void Payment = English
+- payment method = English
+- payment status = English
+- currency = SAR
+- no hardcoded Arabic system labels remain
+
+B. Switch to Arabic.
+
+Verify all system labels become Arabic again.
+
+C. Switch back to English without refresh if supported.
+
+Verify no stale Arabic labels remain.
+
+==================================================
+11. AUTOMATED AUDIT
+==================================================
+
+Search source code for hardcoded Arabic strings inside components that should use i18n.
+
+Move system copy into the existing translation files where appropriate.
+
+Do not move:
+- test fixtures
+- user data
+- legitimate Arabic translation resources
+
+==================================================
+12. FINAL REPORT
+==================================================
+
+Report:
+
+CURRENT SCREEN ENGLISH LOCALIZATION: PASS / FAIL
+PAYMENT ACTIONS: PASS / FAIL
+PAYMENT METHODS: PASS / FAIL
+FINANCIAL STATUSES: PASS / FAIL
+CURRENCY LOCALIZATION: PASS / FAIL
+HARDCODED ARABIC UI AUDIT: PASS / FAIL
+USER-ENTERED ARABIC PRESERVED: PASS / FAIL
+AR → EN SWITCH: PASS / FAIL
+EN → AR SWITCH: PASS / FAIL
+RTL/LTR: PASS / FAIL
+TYPECHECK: PASS / FAIL
+BUILD: PASS / FAIL
+CHECKPOINT: <hash>
+
+Do not publish.
+Create checkpoint and STOP.
