@@ -555,3 +555,6 @@ input[type='date'][data-empty-date='true']:not(:focus)::before {
   color: hsl(var(--muted-foreground));
   pointer-events: none;
 }
+html[data-locale='en'] input[type='date'][data-empty-date='true']:not(:focus)::before {
+  content: 'day / month / year';
+}

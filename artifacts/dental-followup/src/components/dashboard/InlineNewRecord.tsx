@@ -1154,7 +1154,7 @@ export function InlineNewRecord({
                       </SelectTrigger>
                       <SelectContent>
                         {PAYMENT_LABELS.map((l) => (
-                          <SelectItem key={l} value={l}>{l}</SelectItem>
+                          <SelectItem key={l} value={l}>{enumLabel("paymentLabel", l)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1171,7 +1171,7 @@ export function InlineNewRecord({
                       </SelectTrigger>
                       <SelectContent>
                         {PAYMENT_METHODS.map((m) => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                          <SelectItem key={m} value={m}>{enumLabel("paymentMethod", m)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

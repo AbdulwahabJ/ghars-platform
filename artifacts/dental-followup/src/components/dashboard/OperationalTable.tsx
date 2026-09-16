@@ -235,6 +235,7 @@ function adjunctProcedureClass(procedureType: string): string {
 }
 
 function ClinicalSummaryBadges({ rows }: { rows: OperationalRow[] }) {
+  const { enumLabel } = useEnumTranslation();
   const statuses = summaryImplantStatuses(rows);
   const adjunctProcedures = summaryAdjunctProcedureTypes(rows);
   if (statuses.length === 0 && adjunctProcedures.length === 0) return <>—</>;
@@ -245,10 +246,15 @@ function ClinicalSummaryBadges({ rows }: { rows: OperationalRow[] }) {
         <Badge
           key={status}
           className={`text-[10px] ${implantStatusClass(status as ImplantStatus)}`}
-          title={count > 1 ? `${status} — ${count} زرعات` : status}
+          title={count > 1
+            ? dashboardText("implantStatusCount", {
+                status: enumLabel("implantStatus", status),
+                count,
+              })
+            : enumLabel("implantStatus", status)}
         >
-          <span className="notranslate">
-            {status}
+          <span>
+            {enumLabel("implantStatus", status)}
             {count > 1 ? ` ×${count}` : ""}
           </span>
         </Badge>
@@ -257,9 +263,11 @@ function ClinicalSummaryBadges({ rows }: { rows: OperationalRow[] }) {
         <Badge
           key={procedureType}
           className={`text-[10px] ${adjunctProcedureClass(procedureType)}`}
-          title={count > 1 ? `${procedureType} — ${count} إجراءات` : procedureType}
+          title={count > 1
+            ? dashboardText("procedureCount", { procedure: procedureType, count })
+            : procedureType}
         >
-          <span className="notranslate">
+          <span dir="auto">
             {procedureType}
             {count > 1 ? ` ×${count}` : ""}
           </span>
@@ -417,7 +425,6 @@ function InlinePatientEdit({
   onDone: () => void;
 }) {
   const { toast } = useToast();
-  const { enumLabel } = useEnumTranslation();
   const update = useUpdatePatient();
   const [fullName, setFullName] = useState(p.fullName);
   const [mobile, setMobile] = useState(p.mobileNumber ?? "");
@@ -465,10 +472,10 @@ function InlinePatientEdit({
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={update.isPending || !fullName.trim()} className="h-7 text-xs">
           {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          حفظ
+          {dashboardText("save")}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={update.isPending} className="h-7 text-xs">
-          إلغاء
+          {dashboardText("cancel")}
         </Button>
       </div>
     </div>
@@ -555,10 +562,10 @@ function InlineCaseEdit({
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={update.isPending || !treatingDoctor.trim()} className="h-7 text-xs">
           {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          حفظ
+          {dashboardText("save")}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={update.isPending} className="h-7 text-xs">
-          إلغاء
+          {dashboardText("cancel")}
         </Button>
       </div>
     </div>
@@ -704,10 +711,10 @@ function InlineImplantEdit({
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={update.isPending} className="h-7 text-xs">
           {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          حفظ
+          {dashboardText("save")}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={update.isPending} className="h-7 text-xs">
-          إلغاء
+          {dashboardText("cancel")}
         </Button>
       </div>
     </div>
@@ -757,6 +764,7 @@ function InlineAddImplant({
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const create = useCreateImplant();
   const { data: implantOptions } = useImplantOptions();
   const qc = useQueryClient();
@@ -885,7 +893,7 @@ function InlineAddImplant({
           <Select value={implantStatus} onValueChange={(value) => setImplantStatus(value as ImplantStatus)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {IMPLANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{enumLabel("implantStatus", s)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -911,10 +919,10 @@ function InlineAddImplant({
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={create.isPending || !site || !caseId} className="h-8 text-xs">
           {create.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          حفظ الزرعة
+          {dashboardText("saveImplant")}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={create.isPending} className="h-8 text-xs">
-          إلغاء
+          {dashboardText("cancel")}
         </Button>
       </div>
     </div>
@@ -929,6 +937,7 @@ function InlineRecordPayment({
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const create = useCreatePayment();
   const qc = useQueryClient();
 
@@ -981,7 +990,7 @@ function InlineRecordPayment({
           <Select value={paymentLabel} onValueChange={(value) => setPaymentLabel(value as typeof PAYMENT_LABELS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+              {PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{enumLabel("paymentLabel", l)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -990,7 +999,7 @@ function InlineRecordPayment({
           <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as typeof PAYMENT_METHODS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{enumLabel("paymentMethod", m)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -1010,10 +1019,10 @@ function InlineRecordPayment({
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={create.isPending || !amount || !caseId} className="h-8 text-xs">
           {create.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          حفظ الدفعة
+          {dashboardText("savePayment")}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={create.isPending} className="h-8 text-xs">
-          إلغاء
+          {dashboardText("cancel")}
         </Button>
       </div>
     </div>
@@ -1134,10 +1143,10 @@ function InlineAddFollowup({
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={create.isPending || !scheduledAt || !caseId} className="h-8 text-xs">
           {create.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          حفظ المتابعة
+          {dashboardText("saveFollowup")}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={create.isPending} className="h-8 text-xs">
-          إلغاء
+          {dashboardText("cancel")}
         </Button>
       </div>
     </div>
@@ -1275,10 +1284,10 @@ function InlineFollowupEdit({
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={update.isPending || !scheduledAt} className="h-8 text-xs">
           {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          حفظ
+          {dashboardText("save")}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDone} disabled={update.isPending} className="h-8 text-xs">
-          إلغاء
+          {dashboardText("cancel")}
         </Button>
       </div>
     </div>
@@ -1299,6 +1308,7 @@ function InlinePaymentEdit({
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const update = useUpdatePayment();
 
   const [amount, setAmount] = useState(String(payment.amount));
@@ -1360,14 +1370,14 @@ function InlinePaymentEdit({
           <Label className="text-xs">{dashboardText("paymentDescription")}</Label>
           <Select value={paymentLabel} onValueChange={(v) => setPaymentLabel(v as typeof PAYMENT_LABELS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>{PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+            <SelectContent>{PAYMENT_LABELS.map((l) => <SelectItem key={l} value={l}>{enumLabel("paymentLabel", l)}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">{dashboardText("paymentMethod")}</Label>
           <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as typeof PAYMENT_METHODS[number])}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>{PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+            <SelectContent>{PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{enumLabel("paymentMethod", m)}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
@@ -1386,11 +1396,11 @@ function InlinePaymentEdit({
           disabled={update.isPending || !amount || !paymentDate}
           className="h-8 text-xs">
           {update.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          حفظ
+          {dashboardText("save")}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDone}
           disabled={update.isPending} className="h-8 text-xs">
-          إلغاء
+          {dashboardText("cancel")}
         </Button>
       </div>
     </div>
@@ -1409,6 +1419,7 @@ function CasePaymentsSection({
   canManage: boolean;
 }) {
   const { toast } = useToast();
+  const { enumLabel } = useEnumTranslation();
   const qc = useQueryClient();
   const financeQuery = useCaseFinance(caseId, true);
   const voidPayment = useVoidPayment();
@@ -1444,7 +1455,7 @@ function CasePaymentsSection({
   };
 
   if (financeQuery.isLoading) {
-    return <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> جارٍ التحميل...</div>;
+    return <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> {dashboardText("loading")}</div>;
   }
   if (payments.length === 0) {
     return <p className="text-xs text-muted-foreground py-1">{dashboardText("noPayments")}</p>;
@@ -1454,7 +1465,7 @@ function CasePaymentsSection({
     <div className="space-y-2 mt-2 border-t border-border/60 pt-2">
       <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
         <CreditCard className="h-3 w-3" />
-        الدفعات ({payments.length})
+        {dashboardText("paymentsCount", { count: payments.length })}
       </p>
       {payments.map((payment) => (
         <div key={payment.id} className={`rounded-lg border text-xs p-2.5 space-y-2 ${payment.isVoided ? "border-destructive/30 bg-destructive/5 opacity-70" : "border-border/70 bg-background/60"}`}>
@@ -1464,7 +1475,7 @@ function CasePaymentsSection({
             <div className="space-y-2">
               <p className="font-medium text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3.5 w-3.5" />
-                إلغاء الدفعة — {formatMoney(payment.amount)} ({payment.paymentDate})
+                {dashboardText("voidPayment")} — {formatMoney(payment.amount)} ({formatSaudiDate(payment.paymentDate)})
               </p>
               <div className="space-y-1">
                 <Label className="text-xs">{dashboardText("voidReasonRequired")}</Label>
@@ -1478,7 +1489,7 @@ function CasePaymentsSection({
                   disabled={voidPayment.isPending || !voidReason.trim()}
                   className="h-7 text-xs">
                   {voidPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                  تأكيد إلغاء الدفعة
+                  {dashboardText("confirmVoidPayment")}
                 </Button>
                 <Button type="button" size="sm" variant="outline"
                   onClick={() => setVoidingPaymentId(null)}
@@ -1500,12 +1511,12 @@ function CasePaymentsSection({
                     <Button type="button" variant="ghost" size="sm"
                       className="h-6 px-2 text-[11px] gap-1 text-muted-foreground"
                       onClick={() => startEdit(payment.id)}>
-                      <Pencil className="h-3 w-3" /> تعديل
+                      <Pencil className="h-3 w-3" /> {dashboardText("edit")}
                     </Button>
                     <Button type="button" variant="ghost" size="sm"
                       className="h-6 px-2 text-[11px] gap-1 text-destructive hover:text-destructive"
                       onClick={() => startVoid(payment.id)}>
-                      <X className="h-3 w-3" /> إلغاء الدفعة
+                      <X className="h-3 w-3" /> {dashboardText("voidPayment")}
                     </Button>
                   </div>
                 )}
@@ -1518,13 +1529,13 @@ function CasePaymentsSection({
                 {payment.paymentLabel && (
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground">{dashboardText("description")}</span>
-                    <span>{payment.paymentLabel}</span>
+                     <span>{enumLabel("paymentLabel", payment.paymentLabel)}</span>
                   </div>
                 )}
                 {payment.paymentMethod && (
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground">{dashboardText("method")}</span>
-                    <span>{payment.paymentMethod}</span>
+                     <span>{enumLabel("paymentMethod", payment.paymentMethod)}</span>
                   </div>
                 )}
                 {payment.referenceNumber && (
@@ -1536,7 +1547,7 @@ function CasePaymentsSection({
                 {payment.isVoided && payment.voidReason && (
                   <div className="col-span-2 flex justify-between gap-2">
                     <span className="text-muted-foreground">{dashboardText("voidReason")}</span>
-                    <span className="text-destructive">{payment.voidReason}</span>
+                     <span className="text-destructive" dir="auto">{payment.voidReason}</span>
                   </div>
                 )}
               </div>
@@ -1580,7 +1591,7 @@ function OperationalFinanceSummary({
                 data-testid={`button-edit-final-total-${row.caseId}`}
               >
                 <Pencil className="h-3 w-3" />
-                تعديل
+                {dashboardText("edit")}
               </Button>
             )}
           </div>
@@ -1606,7 +1617,7 @@ function OperationalFinanceSummary({
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs font-semibold text-foreground">{dashboardText("paymentBreakdown")}</p>
             <span className="text-[11px] text-muted-foreground">
-              {installmentPlan.installmentCount} دفعات — {formatMoney(installmentPlan.totalAmount)}
+              {dashboardText("installmentsCount", { count: installmentPlan.installmentCount })} — {formatMoney(installmentPlan.totalAmount)}
             </span>
           </div>
           <div className="space-y-1.5">
@@ -1709,7 +1720,7 @@ function OperationalInstallmentRow({
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{formatSaudiDate(installment.dueDate)}</p>
           <p className="text-muted-foreground">
-            مجدول {formatMoney(installment.amount)} — مسدد {formatMoney(installment.paidAmount)}
+            {dashboardText("scheduled")} {formatMoney(installment.amount)} — {dashboardText("paid")} {formatMoney(installment.paidAmount)}
           </p>
         </div>
         <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] ${installmentStatusClass(installment.status)}`}>
@@ -1725,7 +1736,7 @@ function OperationalInstallmentRow({
             data-testid={`button-pay-operational-installment-${installment.id}`}
           >
             <Check className="h-3 w-3" />
-            تم الدفع
+            {dashboardText("recordInstallmentPayment")}
           </Button>
         ) : isPaid ? (
           <Check className="h-4 w-4 text-emerald-600" aria-label={dashboardText("paid")} />
@@ -1764,7 +1775,7 @@ function OperationalInstallmentRow({
               {createPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : dashboardText("save")}
             </Button>
             <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[10px]" onClick={() => setPaying(false)}>
-              إلغاء
+              {dashboardText("cancel")}
             </Button>
           </div>
           {error ? <p className="text-[10px] text-destructive sm:col-span-4">{error}</p> : null}
@@ -1963,7 +1974,7 @@ function PatientExpandedRow({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               <div className="rounded-lg bg-muted/45 px-3 py-2">
                 <p className="text-[11px] text-muted-foreground mb-0.5">{t("dashboard.name")}</p>
-                <p className="font-semibold notranslate truncate">{p?.fullName ?? group.patientName}</p>
+                 <p className="font-semibold notranslate truncate" dir="auto">{p?.fullName ?? group.patientName}</p>
               </div>
               <div className="rounded-lg bg-muted/45 px-3 py-2">
                 <p className="text-[11px] text-muted-foreground mb-0.5">{t("dashboard.fileNumber")}</p>
@@ -2330,7 +2341,7 @@ function PatientExpandedRow({
                    <div className="flex items-center justify-between gap-2">
                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                        <CalendarCheck2 className="h-3 w-3" />
-                       سجل التركيبات
+                        {dashboardText("prostheticHistory")}
                      </p>
                      <div className="flex items-center gap-1">
                        <Badge variant="secondary" className="text-[10px]">
@@ -2344,7 +2355,7 @@ function PatientExpandedRow({
                          onClick={() => setProstheticEventContext({ caseItem: c })}
                        >
                          <Plus className="h-3 w-3" />
-                         إضافة تركيب
+                          {dashboardText("addProsthetic")}
                        </Button>
                      </div>
                    </div>
@@ -2369,7 +2380,7 @@ function PatientExpandedRow({
                                    <span className="font-medium">{formatSaudiDate(event.eventDate)}</span>
                                    {implant && (
                                      <span className="text-muted-foreground">
-                                       السن {implant.site}{implant.system ? ` — ${implant.system}` : ""}
+                                        {dashboardText("toothSiteValue", { site: implant.site })}{implant.system ? ` — ${implant.system}` : ""}
                                      </span>
                                    )}
                                  </div>
@@ -2382,7 +2393,7 @@ function PatientExpandedRow({
                                      onClick={() => setConfirmArchiveProstheticEventId(event.id)}
                                    >
                                      <Archive className="h-3 w-3" />
-                                     أرشفة
+                                      {dashboardText("archive")}
                                    </Button>
                                  )}
                                </div>
@@ -2391,7 +2402,7 @@ function PatientExpandedRow({
                                  <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2 space-y-2">
                                    <p className="text-[11px] flex items-start gap-1.5">
                                      <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
-                                     سيتم استبعاد هذا السجل من ملخص العمل مع الاحتفاظ به في السجل.
+                                      {dashboardText("archiveProstheticConfirmation")}
                                    </p>
                                    <div className="flex gap-2">
                                      <Button
@@ -2403,7 +2414,7 @@ function PatientExpandedRow({
                                        disabled={archiveProstheticEvent.isPending}
                                      >
                                        {archiveProstheticEvent.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-                                       تأكيد الأرشفة
+                                        {dashboardText("confirmArchive")}
                                      </Button>
                                      <Button
                                        type="button"
@@ -2413,7 +2424,7 @@ function PatientExpandedRow({
                                        onClick={() => setConfirmArchiveProstheticEventId(null)}
                                        disabled={archiveProstheticEvent.isPending}
                                      >
-                                       إلغاء
+                                        {dashboardText("cancel")}
                                      </Button>
                                    </div>
                                  </div>
@@ -2424,7 +2435,7 @@ function PatientExpandedRow({
                      </div>
                    ) : (
                      <p className="text-xs text-muted-foreground rounded-lg bg-muted/30 px-3 py-2">
-                       لا توجد تركيبات موثقة لهذه الحالة حتى الآن.
+                        {dashboardText("noProsthetics")}
                      </p>
                    )}
                  </div>
@@ -2664,7 +2675,7 @@ function PatientSummaryRow({
       <td className="px-4 py-3">
         <div className="flex items-start gap-2">
           <div className="min-w-0">
-            <p className="font-medium text-sm notranslate leading-tight">{group.patientName}</p>
+             <p className="font-medium text-sm notranslate leading-tight" dir="auto">{group.patientName}</p>
             <div className="flex gap-1 mt-1 flex-wrap">
               {overdue && (
                 <Badge variant="destructive" className="text-[10px]">{dashboardText("overdue")}</Badge>
@@ -2686,7 +2697,7 @@ function PatientSummaryRow({
       <td className="px-4 py-3 text-sm notranslate">{summaryDoctor(group.rows)}</td>
       <td className="px-4 py-3 text-sm tabular-nums">{summaryImplantCount(group.rows)}</td>
       <td className="px-4 py-3 text-sm notranslate">
-        {systems.length > 0 ? systems.join("، ") : "—"}
+        {systems.length > 0 ? systems.join(i18n.language.startsWith("ar") ? "، " : ", ") : "—"}
       </td>
       <td className="px-4 py-3 text-sm">
         {summaryNextFollowup(group.rows) ? formatSaudiDate(summaryNextFollowup(group.rows)!) : "—"}
@@ -2724,6 +2735,7 @@ function PatientCard({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const { enumLabel } = useEnumTranslation();
   const overdue = hasOverdue(group.rows);
   const ready = hasReady(group.rows);
   const remaining = showFinance ? summaryRemaining(group.rows) : null;
@@ -2737,7 +2749,7 @@ function PatientCard({
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold notranslate">{group.patientName}</p>
+             <p className="font-semibold notranslate" dir="auto">{group.patientName}</p>
             <p className="text-xs text-muted-foreground shrink-0" dir="ltr">{group.fileNumber}</p>
           </div>
           <div className="flex gap-1 mt-1 flex-wrap">
@@ -2754,7 +2766,7 @@ function PatientCard({
               <span className="font-medium text-foreground">{dashboardText("remainingAmount", { amount: formatMoney(remaining) })}</span>
             )}
             {payStatus && (
-              <Badge className={`text-[10px] ${paymentStatusClass(payStatus)}`}>{payStatus}</Badge>
+               <Badge className={`text-[10px] ${paymentStatusClass(payStatus)}`}>{enumLabel("paymentStatus", payStatus)}</Badge>
             )}
           </div>
         </div>

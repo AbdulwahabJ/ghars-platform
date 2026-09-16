@@ -179,7 +179,7 @@ function FollowupForm({
               <SelectContent>
                 {activeCases.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.caseStatus} —{" "}
+                    {enumLabel("caseStatus", c.caseStatus)} —{" "}
                     {c.procedureDate
                       ? formatSaudiDate(c.procedureDate)
                       : formatSaudiDate(c.createdAt)}

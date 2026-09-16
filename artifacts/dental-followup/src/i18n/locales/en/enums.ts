@@ -32,6 +32,7 @@ const enums = {
   },
   paymentLabel: {
     "دفعة أولى": "First payment",
+    "دفعة علاجية": "Treatment payment",
     "دفعة ثانية": "Second payment",
     "دفعة كاملة": "Full payment",
     "دفعة إضافية": "Additional payment",
@@ -40,6 +41,7 @@ const enums = {
   paymentMethod: {
     "شبكة": "Card",
     "نقدي": "Cash",
+    "نقدية": "Cash",
     "تحويل": "Bank transfer",
     "تمارا": "Tamara",
     "أخرى": "Other",
