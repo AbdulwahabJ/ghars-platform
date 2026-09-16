@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import adminAuditRouter from "./admin-audit";
 import adminExportRouter from "./admin-export";
 import adminImportRouter from "./admin-import";
+import universalImportRouter from "./universal-import";
 import adminLookupsRouter from "./admin-lookups";
 import adminTemplatesRouter from "./admin-templates";
 import adminUsersRouter from "./admin-users";
@@ -53,6 +54,7 @@ router.use(adminLookupsRouter);
 router.use(adminTemplatesRouter);
 router.use(adminAuditRouter);
 router.use(adminImportRouter);
+router.use(universalImportRouter);
 router.use(adminExportRouter);
 
 export default router;

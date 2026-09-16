@@ -449,6 +449,181 @@ export const importCommitResponseSchema = z.object({
 export type ImportCommitResponse = z.infer<typeof importCommitResponseSchema>;
 
 /* ------------------------------------------------------------------ */
+/* Universal legacy import staging                                     */
+/* ------------------------------------------------------------------ */
+
+export const UNIVERSAL_IMPORT_DESTINATIONS = [
+  "patient.name",
+  "patient.file_number",
+  "patient.mobile",
+  "patient.age",
+  "case.procedure_date",
+  "case.treating_doctor",
+  "case.status",
+  "implant.system",
+  "implant.site",
+  "implant.size",
+  "finance.candidate",
+  "finance.preserve_summary",
+  "finance.ignore",
+  "legacy_note",
+  "ignore",
+] as const;
+export type UniversalImportDestination =
+  (typeof UNIVERSAL_IMPORT_DESTINATIONS)[number];
+
+export const universalImportMappingSchema = z.object({
+  source: z.string().min(1).max(200),
+  destination: z.enum(UNIVERSAL_IMPORT_DESTINATIONS),
+  confidence: z.number().min(0).max(1),
+  reason: z.string().max(500),
+  requiresReview: z.boolean(),
+});
+export type UniversalImportMapping = z.infer<typeof universalImportMappingSchema>;
+
+export const universalImportInputSchema = z.object({
+  filename: z.string().min(1).max(255),
+  mime: z.string().min(1).max(160),
+  /** UTF-8 text for CSV, base64 for XLSX/PDF/images. */
+  content: z.string().min(1).max(11_000_000),
+  mappings: z.array(universalImportMappingSchema).optional(),
+});
+export type UniversalImportInput = z.infer<typeof universalImportInputSchema>;
+
+export const universalImportMappingPatchSchema = z.object({
+  mappings: z.array(
+    z.object({
+      source: z.string().min(1).max(200),
+      destination: z.enum(UNIVERSAL_IMPORT_DESTINATIONS),
+    }),
+  ).default([]),
+  valueMappings: z.array(z.object({
+    source: z.string().min(1).max(200),
+    destination: z.string().min(1).max(200),
+  })).optional(),
+  rowApprovals: z.array(z.object({
+    rowNumber: z.number().int().min(1),
+    approved: z.boolean(),
+  })).optional(),
+  version: z.number().int().min(1).optional(),
+}).refine((value) => value.mappings.length > 0 || (value.valueMappings?.length ?? 0) > 0 || (value.rowApprovals?.length ?? 0) > 0,
+  "At least one mapping, value mapping, or row approval is required.");
+export type UniversalImportMappingPatch = z.infer<typeof universalImportMappingPatchSchema>;
+
+export const universalImportCommitSchema = z.object({
+  rowNumbers: z.array(z.number().int().min(1)).optional(),
+  pilot: z.boolean().default(false),
+  version: z.number().int().min(1).optional(),
+});
+export type UniversalImportCommit = z.infer<typeof universalImportCommitSchema>;
+
+export const universalImportBatchStatusSchema = z.enum([
+  "ANALYZED",
+  "COMMITTING",
+  "ROLLING_BACK",
+  "PILOT_COMMITTED",
+  "COMMITTED",
+  "PARTIAL_FAILED",
+  "ROLLED_BACK",
+]);
+export type UniversalImportBatchStatus = z.infer<
+  typeof universalImportBatchStatusSchema
+>;
+
+export const universalImportNormalizedRowSchema = z.object({
+  rowNumber: z.number().int().min(1),
+  raw: z.record(z.string(), z.string()),
+  status: z.enum(["READY", "REVIEW_REQUIRED", "BLOCKED", "DUPLICATE"]),
+  warnings: z.array(z.string()),
+  confidence: z.record(z.string(), z.number().min(0).max(1)),
+  proposed: z.object({
+    patient: z.object({
+      name: z.string(),
+      fileNumber: z.string(),
+      mobile: z.string().nullable(),
+      age: z.number().nullable(),
+    }),
+    case: z.object({
+      procedureDate: z.string(),
+      treatingDoctor: z.string(),
+      status: z.string(),
+    }),
+    implants: z.array(z.object({
+      site: z.string(),
+      size: z.string().nullable(),
+      system: z.string().nullable(),
+    })),
+    financeCandidate: z.string().nullable(),
+    legacyNotes: z.array(z.string()),
+  }),
+});
+export type UniversalImportNormalizedRow = z.infer<
+  typeof universalImportNormalizedRowSchema
+>;
+
+export const universalImportSummarySchema = z.object({
+  totalRows: z.number().int().min(0),
+  ready: z.number().int().min(0),
+  reviewRequired: z.number().int().min(0),
+  blocked: z.number().int().min(0),
+  duplicate: z.number().int().min(0),
+  patients: z.number().int().min(0),
+  implants: z.number().int().min(0),
+  committedRows: z.number().int().min(0).optional(),
+  pilot: z.boolean().optional(),
+  partial: z.boolean().optional(),
+  approvedRows: z.array(z.number().int().min(1)).optional(),
+});
+export type UniversalImportSummary = z.infer<typeof universalImportSummarySchema>;
+
+export const universalImportBatchSchema = z.object({
+  id: z.string().uuid(),
+  filename: z.string(),
+  mime: z.string(),
+  status: universalImportBatchStatusSchema,
+  version: z.number().int().min(1),
+  mappings: z.array(universalImportMappingSchema),
+  rows: z.array(universalImportNormalizedRowSchema),
+  summary: universalImportSummarySchema,
+  createdRecords: z.array(z.object({
+    table: z.string(),
+    id: z.string().uuid(),
+    patientId: z.string().uuid().optional(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  })),
+  committedRowNumbers: z.array(z.number().int().min(1)),
+});
+export type UniversalImportBatch = z.infer<typeof universalImportBatchSchema>;
+
+export const universalImportCommitResponseSchema = z.object({
+  batch: universalImportBatchSchema,
+  importedRows: z.number().int().min(0),
+  createdRecords: z.number().int().min(0),
+});
+export type UniversalImportCommitResponse = z.infer<
+  typeof universalImportCommitResponseSchema
+>;
+
+export const universalImportPartialFailureResponseSchema = z.object({
+  error: z.string(),
+  batch: universalImportBatchSchema,
+  committedGroups: z.number().int().min(0),
+  committedRows: z.number().int().min(0),
+});
+export type UniversalImportPartialFailureResponse = z.infer<
+  typeof universalImportPartialFailureResponseSchema
+>;
+
+export const universalImportRollbackResponseSchema = z.object({
+  batch: universalImportBatchSchema,
+  rolledBack: z.literal(true),
+});
+export type UniversalImportRollbackResponse = z.infer<
+  typeof universalImportRollbackResponseSchema
+>;
+
+/* ------------------------------------------------------------------ */
 /* Data export                                                         */
 /* ------------------------------------------------------------------ */
 

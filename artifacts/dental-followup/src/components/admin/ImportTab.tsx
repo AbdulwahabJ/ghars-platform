@@ -1,316 +1,88 @@
-import { useRef, useState } from "react";
-import { AlertTriangle, Download, FileUp, Loader2 } from "lucide-react";
-import {
-  IMPORT_TYPES,
-  type ImportCommitResponse,
-  type ImportMode,
-  type ImportPreviewResponse,
-  type ImportRowResult,
-  type ImportType,
-} from "@workspace/shared";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
-import { useImportPreview, useImportCommit } from "@/hooks/use-admin";
-import { importTemplateUrl } from "@/lib/api";
+import { useState } from "react";
+import { UniversalImportBatch } from "@workspace/shared";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
-import { localizeErrorMessage } from "@/lib/localize-error";
+import {
+  UploadStep,
+  MappingStep,
+  ReviewStep,
+  ResultStep,
+} from "./universal-import/UniversalImportSteps";
 
-const MAX_FILE_BYTES = 4 * 1024 * 1024;
+// Original legacy components preserved
+import { LegacyImport } from "./LegacyImport";
 
 export function ImportTab() {
-  const preview = useImportPreview();
-  const commit = useImportCommit();
-  const { toast } = useToast();
   const { t } = useTranslation("admin");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<"universal" | "legacy">("universal");
 
-  const [type, setType] = useState<ImportType>("patients");
-  const [mode, setMode] = useState<ImportMode>("skip_duplicates");
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [content, setContent] = useState<string | null>(null);
-  const [previewResult, setPreviewResult] =
-    useState<ImportPreviewResponse | null>(null);
-  const [commitResult, setCommitResult] =
-    useState<ImportCommitResponse | null>(null);
-
-  const fail = (err: unknown) =>
-    toast({
-      variant: "destructive",
-      title: t("import.operationFailed"),
-      description: localizeErrorMessage(err),
-    });
-
-  const onPickFile = (file: File | undefined) => {
-    if (!file) return;
-    if (file.size > MAX_FILE_BYTES) {
-      toast({
-        variant: "destructive",
-        title: t("import.fileTooLargeTitle"),
-        description: t("import.fileTooLargeDescription"),
-      });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setContent(String(reader.result));
-      setFileName(file.name);
-      setPreviewResult(null);
-      setCommitResult(null);
-    };
-    reader.readAsText(file, "utf-8");
-  };
-
-  const runPreview = () => {
-    if (!content) return;
-    setCommitResult(null);
-    preview.mutate(
-      { type, content, mode },
-      { onSuccess: setPreviewResult, onError: fail },
-    );
-  };
-
-  const runCommit = () => {
-    if (!content || !previewResult) return;
-    commit.mutate(
-      { type, content, mode },
-      {
-        onSuccess: (result) => {
-          setCommitResult(result);
-          setPreviewResult(null);
-          toast({
-            title: t("import.completedTitle"),
-            description: t("import.completedDescription", result),
-          });
-        },
-        onError: fail,
-      },
-    );
-  };
+  // Universal Import state machine
+  const [batch, setBatch] = useState<UniversalImportBatch | null>(null);
+  const [isMappingConfirmed, setIsMappingConfirmed] = useState(false);
+  const [isReviewingPilot, setIsReviewingPilot] = useState(false);
+  const [partialError, setPartialError] = useState<string>();
 
   const reset = () => {
-    setContent(null);
-    setFileName(null);
-    setPreviewResult(null);
-    setCommitResult(null);
-    if (fileRef.current) fileRef.current.value = "";
+    setBatch(null);
+    setIsMappingConfirmed(false);
+    setIsReviewingPilot(false);
+    setPartialError(undefined);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("import.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            {t("import.safetyNotice")}
-          </AlertDescription>
-        </Alert>
+    <div className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <TabsList>
+          <TabsTrigger value="universal">
+            {t("import.universal.tab", "Universal Import (Excel/CSV/PDF)")}
+          </TabsTrigger>
+          <TabsTrigger value="legacy">
+            {t("import.legacy.tab", "Legacy Template Import")}
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>{t("import.dataType")}</Label>
-            <Select
-              value={type}
-              onValueChange={(v) => {
-                setType(v as ImportType);
-                reset();
-              }}
-            >
-              <SelectTrigger data-testid="select-import-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {IMPORT_TYPES.map((importType) => (
-                  <SelectItem key={importType} value={importType}>
-                    {t(`import.types.${importType}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>{t("import.duplicateHandling")}</Label>
-            <Select
-              value={mode}
-              onValueChange={(v) => {
-                setMode(v as ImportMode);
-                setPreviewResult(null);
-              }}
-            >
-              <SelectTrigger data-testid="select-import-mode">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="skip_duplicates">
-                  {t("import.skipDuplicates")}
-                </SelectItem>
-                <SelectItem value="create_only">
-                  {t("import.createOnly")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>{t("import.readyTemplate")}</Label>
-            <Button variant="outline" className="w-full" asChild>
-              <a href={importTemplateUrl(type)} data-testid="link-import-template">
-                <Download className="h-4 w-4 ms-1" />
-                <span>{t("import.downloadTemplate", { type: t(`import.types.${type}`) })}</span>
-              </a>
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={(e) => onPickFile(e.target.files?.[0])}
-            data-testid="input-import-file"
-          />
-          <Button variant="outline" onClick={() => fileRef.current?.click()}>
-            <FileUp className="h-4 w-4 ms-1" />
-            <span>{t("import.chooseFile")}</span>
-          </Button>
-          {fileName && (
-            <span className="text-sm text-muted-foreground" dir="ltr">
-              {fileName}
-            </span>
+        <TabsContent value="universal" className="mt-6">
+          {!batch && (
+            <UploadStep onAnalyzed={(b) => setBatch(b)} />
           )}
-          <Button
-            onClick={runPreview}
-            disabled={!content || preview.isPending}
-            data-testid="button-import-preview"
-          >
-            {preview.isPending && (
-              <Loader2 className="h-4 w-4 animate-spin ms-1" />
-            )}
-            <span>{t("import.preview")}</span>
-          </Button>
-        </div>
 
-        {previewResult && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="secondary">
-                {t("import.totalRows", { count: previewResult.totalRows })}
-              </Badge>
-              <Badge variant="secondary">{t("import.valid", { count: previewResult.validRows })}</Badge>
-              <Badge variant={previewResult.duplicateRows > 0 ? "outline" : "secondary"}>
-                {t("import.duplicate", { count: previewResult.duplicateRows })}
-              </Badge>
-              <Badge
-                variant={previewResult.invalidRows > 0 ? "destructive" : "secondary"}
-              >
-                {t("import.invalid", { count: previewResult.invalidRows })}
-              </Badge>
-            </div>
-            <RowsTable rows={previewResult.rows} truncated={previewResult.truncated} />
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={runCommit}
-                disabled={commit.isPending || previewResult.validRows === 0}
-                data-testid="button-import-commit"
-              >
-                {commit.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin ms-1" />
-                )}
-                <span>{t("import.confirmImport", { count: previewResult.validRows })}</span>
-              </Button>
-              <Button variant="ghost" onClick={reset}>
-                {t("import.cancel")}
-              </Button>
-            </div>
-          </div>
-        )}
+          {batch && batch.status === "ANALYZED" && !isMappingConfirmed && (
+            <MappingStep
+              batch={batch}
+              onNext={(b) => {
+                setBatch(b);
+                setIsMappingConfirmed(true);
+              }}
+              onCancel={reset}
+            />
+          )}
 
-        {commitResult && (
-          <div className="space-y-3">
-            <Alert>
-              <AlertDescription>
-                {t("import.commitSummary", commitResult)}
-              </AlertDescription>
-            </Alert>
-            <RowsTable rows={commitResult.rows} truncated={commitResult.truncated} />
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+          {batch && (batch.status === "ANALYZED" || (batch.status === "PILOT_COMMITTED" && isReviewingPilot)) && isMappingConfirmed && (
+            <ReviewStep
+              batch={batch}
+              onNext={(b, err) => {
+                setBatch(b);
+                setIsReviewingPilot(false);
+                if (err) setPartialError(err);
+              }}
+              onCancel={reset}
+            />
+          )}
 
-function RowsTable({
-  rows,
-  truncated,
-}: {
-  rows: ImportRowResult[];
-  truncated: boolean;
-}) {
-  const { t } = useTranslation("admin");
-  return (
-    <div className="overflow-x-auto max-h-96 overflow-y-auto border border-border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-start w-16">{t("import.row")}</TableHead>
-            <TableHead className="text-start w-24">{t("import.status")}</TableHead>
-            <TableHead className="text-start">{t("import.summary")}</TableHead>
-            <TableHead className="text-start">{t("import.errors")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((r) => (
-            <TableRow key={r.rowNumber}>
-              <TableCell>{r.rowNumber}</TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    r.status === "valid"
-                      ? "secondary"
-                      : r.status === "duplicate"
-                        ? "outline"
-                        : "destructive"
-                  }
-                >
-                  {t(`import.statuses.${r.status}`)}
-                </Badge>
-              </TableCell>
-              <TableCell>{r.summary}</TableCell>
-              <TableCell className="text-destructive text-sm">
-                {r.errors.join("، ")}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {truncated && (
-        <p className="text-xs text-muted-foreground p-2">
-          {t("import.truncated")}
-        </p>
-      )}
+          {batch && ((batch.status === "PILOT_COMMITTED" && !isReviewingPilot) || batch.status === "COMMITTED" || batch.status === "ROLLED_BACK" || batch.status === "PARTIAL_FAILED") && (
+            <ResultStep
+              batch={batch}
+              partialError={partialError}
+              onReset={reset}
+              onContinue={() => setIsReviewingPilot(true)}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="legacy" className="mt-6">
+          <LegacyImport />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

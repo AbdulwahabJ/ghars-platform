@@ -33,6 +33,27 @@ function binaryParser(
   response.on("error", (error) => callback(error, Buffer.alloc(0)));
 }
 
+function packageWithCentralEntry(name: string, uncompressed = 1): Buffer {
+  const nameBuffer = Buffer.from(name);
+  const central = Buffer.alloc(46 + nameBuffer.length);
+  central.writeUInt32LE(0x02014b50, 0);
+  central.writeUInt16LE(20, 4);
+  central.writeUInt16LE(20, 6);
+  central.writeUInt16LE(8, 8);
+  central.writeUInt32LE(0, 20);
+  central.writeUInt32LE(1, 24);
+  central.writeUInt32LE(uncompressed, 24);
+  central.writeUInt16LE(nameBuffer.length, 28);
+  nameBuffer.copy(central, 46);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(1, 8);
+  eocd.writeUInt16LE(1, 10);
+  eocd.writeUInt32LE(central.length, 12);
+  eocd.writeUInt32LE(4, 16);
+  return Buffer.concat([Buffer.from("PK\x03\x04"), central, eocd]);
+}
+
 async function seedAssistant(username: string): Promise<TestAgent> {
   await pool.query(
     `INSERT INTO users (username, password_hash, full_name, role)
@@ -690,6 +711,595 @@ describe("legacy data import", () => {
     );
     expect(counts.rows[0].payments).toBe(1);
     expect(counts.rows[0].followups).toBe(1);
+  });
+});
+
+describe("universal legacy import staging", () => {
+  it("analyzes arbitrary CSV headers without writing and blocks mismatched implant pairs", async () => {
+    const before = await pool.query("SELECT count(*)::int AS c FROM patients");
+    const csv = [
+      "NAME,FILE,DATE,SYSTEM,SITE,SIZE,UNKNOWN",
+      "مريض عالمي,UI-1001,2025-07-14,ROT,\"24,25\",\"3.5x10,4.0x11\",opaque",
+    ].join("\n");
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "legacy-layout.csv",
+      mime: "text/csv",
+      content: csv,
+    });
+    expect(analyzed.status).toBe(201);
+    expect(analyzed.body.mappings.find((m: { source: string }) => m.source === "NAME").destination)
+      .toBe("patient.name");
+    expect(analyzed.body.mappings.find((m: { source: string }) => m.source === "UNKNOWN").requiresReview)
+      .toBe(true);
+    expect(analyzed.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    expect(analyzed.body.rows[0].proposed.implants).toHaveLength(2);
+    expect(analyzed.body.rows[0].proposed.implants[0].size).toBe("3.5 × 10");
+    const after = await pool.query("SELECT count(*)::int AS c FROM patients");
+    expect(after.rows[0].c).toBe(before.rows[0].c);
+
+    const mismatch = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "mismatch.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE",
+        "مريض عدم تطابق,UI-1002,2025-07-14,\"24,25,26\",\"3.5x10,4.0x11\"",
+      ].join("\n"),
+    });
+    expect(mismatch.status).toBe(201);
+    expect(mismatch.body.rows[0].status).toBe("BLOCKED");
+    expect(mismatch.body.rows[0].warnings.join(" ")).toContain("counts do not match");
+  });
+
+  it("stages XLSX, commits a selected pilot, and rolls back only its records", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Legacy");
+    sheet.addRow(["Patient Name", "MRN", "Surgery Date", "Tooth", "Implant Brand", "Dimensions"]);
+    sheet.addRow(["مريض إكسل عالمي", "UI-1003", "2025-08-01", "36", "ROT", "4.1*10"]);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "legacy-layout.xlsx",
+      mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      content: Buffer.from(buffer).toString("base64"),
+    });
+    expect(analyzed.status).toBe(201);
+    expect(analyzed.body.rows[0].status).toBe("READY");
+    const batchId = analyzed.body.id;
+
+    const committed = await admin.post(`/api/admin/import/universal/${batchId}/commit`).send({
+      rowNumbers: [1],
+      pilot: true,
+    });
+    expect(committed.status).toBe(200);
+    expect(committed.body.importedRows).toBe(1);
+    const created = await pool.query("SELECT id FROM patients WHERE file_number = 'UI-1003'");
+    expect(created.rows).toHaveLength(1);
+
+    const rolledBack = await admin.post(`/api/admin/import/universal/${batchId}/rollback`).send({});
+    expect(rolledBack.status).toBe(200);
+    const after = await pool.query("SELECT id FROM patients WHERE file_number = 'UI-1003'");
+    expect(after.rows).toHaveLength(0);
+  });
+
+  it("accepts PDF/image only as extraction staging and never commits placeholders", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "scan.pdf",
+      mime: "application/pdf",
+      content: Buffer.from("not imported").toString("base64"),
+    });
+    expect(analyzed.status).toBe(201);
+    expect(analyzed.body.rows[0].status).toBe("BLOCKED");
+    const commit = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({});
+    expect(commit.status).toBe(422);
+  });
+
+  it("classifies tenant duplicates and file-number conflicts before commit", async () => {
+    const duplicateFile = `UI-DUP-${Date.now()}`;
+    await seedPatientWithCase(duplicateFile, "2025-10-01");
+    const duplicate = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "existing-case.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE",
+        `مريض ${duplicateFile},${duplicateFile},2025-10-01,36`,
+      ].join("\n"),
+    });
+    expect(duplicate.status).toBe(201);
+    expect(duplicate.body.rows[0].status).toBe("DUPLICATE");
+    expect(duplicate.body.summary.duplicate).toBe(1);
+
+    const conflict = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "file-conflict.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE",
+        `اسم مختلف,${duplicateFile},2025-10-02,37`,
+      ].join("\n"),
+    });
+    expect(conflict.status).toBe(201);
+    expect(conflict.body.rows[0].status).toBe("BLOCKED");
+    expect(conflict.body.rows[0].warnings.join(" ")).toContain("belongs to a different patient");
+
+    const withinBatch = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "within-batch.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE",
+        "مريض داخل الملف,UI-DUP-2,2025-10-03,38",
+        "مريض داخل الملف,UI-DUP-2,2025-10-03,39",
+      ].join("\n"),
+    });
+    expect(withinBatch.status).toBe(201);
+    expect(withinBatch.body.rows.map((row: { status: string }) => row.status))
+      .toEqual(["READY", "DUPLICATE"]);
+
+    const phoneOwner = await admin.post("/api/patients").send({
+      fileNumber: `UI-PHONE-${Date.now()}`,
+      fullName: "مريض هاتف قائم",
+      mobileNumber: "0501234567",
+    });
+    expect(phoneOwner.status).toBe(201);
+    const phoneWarning = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "phone-warning.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,MOBILE",
+        "مريض هاتف جديد,UI-PHONE-NEW,2025-10-04,40,0501234567",
+      ].join("\n"),
+    });
+    expect(phoneWarning.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    expect(phoneWarning.body.rows[0].warnings.join(" ")).toContain("phone number");
+  });
+
+  it("keeps all rows for one patient atomic and rejects empty selection", async () => {
+    const atomicFile = `UI-ATOMIC-${Date.now()}`;
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "atomic-patient.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE",
+        `مريض ذري,${atomicFile},2025-11-01,41`,
+        `مريض ذري,${atomicFile},2025-11-02,42`,
+      ].join("\n"),
+    });
+    expect(analyzed.status).toBe(201);
+    expect(analyzed.body.rows.every((row: { status: string }) => row.status === "READY")).toBe(true);
+
+    // Introduce a tenant-local conflict after preview. The first case must
+    // roll back with the second case in the same patient transaction.
+    await seedPatientWithCase(atomicFile, "2025-11-02");
+    const empty = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({
+      rowNumbers: [],
+    });
+    expect(empty.status).toBe(422);
+
+    const commit = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({
+      rowNumbers: [1, 2],
+    });
+    expect(commit.status).toBe(422);
+    const cases = await pool.query(
+      `SELECT ic.procedure_date
+       FROM implant_cases ic
+       JOIN patients p ON p.id = ic.patient_id
+       WHERE p.file_number = '${atomicFile}'
+       ORDER BY ic.procedure_date`,
+    );
+    expect(cases.rows.map((row) => new Date(row.procedure_date).toISOString().slice(0, 10)))
+      .toEqual(["2025-11-02"]);
+  });
+
+  it("resolves unknown-column review after an explicit legacy-note or ignore decision", async () => {
+    const legacyNote = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "explicit-note.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,UNKNOWN_FIELD",
+        "مريض قرار ملاحظة,UI-MAPPING-NOTE,2025-12-01,43,legacy detail",
+      ].join("\n"),
+    });
+    expect(legacyNote.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    const notePatch = await admin
+      .patch(`/api/admin/import/universal/${legacyNote.body.id}/mapping`)
+      .send({ mappings: [{ source: "UNKNOWN_FIELD", destination: "legacy_note" }] });
+    expect(notePatch.status).toBe(200);
+    expect(notePatch.body.rows[0].status).toBe("READY");
+    expect(notePatch.body.rows[0].proposed.legacyNotes).toContain("UNKNOWN_FIELD: legacy detail");
+
+    const ignored = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "explicit-ignore.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,UNKNOWN_FIELD",
+        "مريض قرار تجاهل,UI-MAPPING-IGNORE,2025-12-02,44,ignore detail",
+      ].join("\n"),
+    });
+    const ignorePatch = await admin
+      .patch(`/api/admin/import/universal/${ignored.body.id}/mapping`)
+      .send({ mappings: [{ source: "UNKNOWN_FIELD", destination: "ignore" }] });
+    expect(ignorePatch.status).toBe(200);
+    expect(ignorePatch.body.rows[0].status).toBe("READY");
+    expect(ignorePatch.body.rows[0].proposed.legacyNotes).toEqual([]);
+  });
+
+  it("recomputes mapping review server-side and retains approved value mappings", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "mapping-security.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SURPRISE",
+        "مريض مراجعة,UI-MAP-1,14/07/2025,45,kept",
+      ].join("\n"),
+      mappings: [{
+        source: "SURPRISE",
+        destination: "ignore",
+        confidence: 1,
+        requiresReview: false,
+        reason: "forged client decision",
+      }],
+    });
+    expect(analyzed.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    const patched = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      mappings: [{ source: "SURPRISE", destination: "ignore" }],
+      valueMappings: [{ source: "R", destination: "ROT" }],
+    });
+    expect(patched.body.rows[0].status).toBe("READY");
+
+    const learned = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "learned-value.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SYSTEM",
+        "مريض قيمة,UI-MAP-2,١٤/٠٧/٢٠٢٥,46,R",
+      ].join("\n"),
+    });
+    expect(learned.body.rows[0].status).toBe("READY");
+    expect(learned.body.rows[0].proposed.implants[0].system).toBe("ROT");
+
+    const finance = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "finance-review.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,AMOUNT",
+        "مريض مالي,UI-MAP-FINANCE,2025-07-15,47,1200",
+      ].join("\n"),
+    });
+    expect(finance.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    const financePatch = await admin
+      .patch(`/api/admin/import/universal/${finance.body.id}/mapping`)
+      .send({ mappings: [{ source: "AMOUNT", destination: "finance.preserve_summary" }] });
+    expect(financePatch.body.rows[0].status).toBe("READY");
+    expect(financePatch.body.rows[0].proposed.financeCandidate).toBe("1200");
+  });
+
+  it("blocks partial patient selection and one-size/multi-site guessing", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "complete-patient.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE",
+        "مريض تاريخ,UI-COMPLETE-1,2025-12-10,47,4.0x10",
+        "مريض تاريخ,UI-COMPLETE-1,2025-12-11,48,4.0x11",
+      ].join("\n"),
+    });
+    expect(analyzed.body.rows.every((row: { status: string }) => row.status === "READY")).toBe(true);
+    const partial = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({
+      rowNumbers: [1],
+    });
+    expect(partial.status).toBe(422);
+
+    const mismatch = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "one-size-many-sites.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE",
+        "مريض مقاسات,UI-COMPLETE-2,2025-12-12,\"47,48\",4.0x10",
+      ].join("\n"),
+    });
+    expect(mismatch.body.rows[0].status).toBe("BLOCKED");
+  });
+
+  it("returns recoverable PARTIAL_FAILED status when a later patient group conflicts", async () => {
+    const firstFile = `UI-PARTIAL-A-${Date.now()}`;
+    const secondFile = `UI-PARTIAL-B-${Date.now()}`;
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "partial-groups.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE",
+        `مريض أول,${firstFile},2025-12-14,50`,
+        `مريض ثان,${secondFile},2025-12-15,51`,
+      ].join("\n"),
+    });
+    expect(analyzed.body.rows.every((row: { status: string }) => row.status === "READY")).toBe(true);
+    await admin.post("/api/patients").send({ fileNumber: secondFile, fullName: "اسم مختلف لاحقًا" });
+    const commit = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({});
+    expect(commit.status).toBe(422);
+    expect(commit.body.batch.status).toBe("PARTIAL_FAILED");
+    expect(commit.body.committedGroups).toBe(1);
+    expect(commit.body.batch.createdRecords.length).toBeGreaterThan(0);
+    const first = await pool.query("SELECT id FROM patients WHERE file_number = $1", [firstFile]);
+    expect(first.rows).toHaveLength(1);
+  });
+
+  it("rejects inconsistent XLSX extensions, signatures, macros, and formulas", async () => {
+    const badSignature = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "bad.xlsx",
+      mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      content: Buffer.from("not a zip").toString("base64"),
+    });
+    expect(badSignature.status).toBe(422);
+    const wrongMime = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "bad.xlsx",
+      mime: "text/csv",
+      content: Buffer.from("PK\x03\x04").toString("base64"),
+    });
+    expect(wrongMime.status).toBe(422);
+    const macro = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "bad.xlsm",
+      mime: "application/vnd.ms-excel.sheet.macroEnabled.12",
+      content: Buffer.from("PK\x03\x04").toString("base64"),
+    });
+    expect(macro.status).toBe(422);
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Legacy");
+    sheet.addRow(["NAME", "FILE", "DATE", "SITE"]);
+    sheet.addRow(["Formula", "UI-FORMULA", "2025-12-13", "49"]);
+    sheet.getCell("A2").value = { formula: "CONCATENATE(\"Formula\")", result: "Formula" };
+    const formula = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "formula.xlsx",
+      mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      content: Buffer.from(await workbook.xlsx.writeBuffer()).toString("base64"),
+    });
+    expect(formula.status).toBe(422);
+  });
+
+  it("claims a batch with CAS so concurrent commits create one tracked set", async () => {
+    const file = `UI-CAS-${Date.now()}`;
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "cas.csv", mime: "text/csv",
+      content: `NAME,FILE,DATE,SITE\nCAS patient,${file},2026-01-01,11`,
+    });
+    const [left, right] = await Promise.all([
+      admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({}),
+      admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({}),
+    ]);
+    expect([left.status, right.status].sort()).toEqual([200, 409]);
+    const patients = await pool.query("SELECT id FROM patients WHERE file_number = $1", [file]);
+    expect(patients.rows).toHaveLength(1);
+    const batch = await admin.get(`/api/admin/import/universal/${analyzed.body.id}`);
+    expect(batch.body.createdRecords.length).toBeGreaterThan(0);
+    expect(batch.body.createdRecords.filter((record: { table: string }) => record.table === "patients")).toHaveLength(1);
+  });
+
+  it("rejects a stale mapping patch racing a claimed commit", async () => {
+    const file = `UI-RACE-${Date.now()}`;
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "race.csv", mime: "text/csv",
+      content: `NAME,FILE,DATE,SITE,UNMAPPED\nRace patient,${file},2026-01-02,12,review`,
+    });
+    const version = analyzed.body.version;
+    const [commit, patch] = await Promise.all([
+      admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({ version }),
+      admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+        version,
+        mappings: [{ source: "UNMAPPED", destination: "ignore" }],
+      }),
+    ]);
+    expect([commit.status, patch.status].every((status) => [200, 409, 422].includes(status))).toBe(true);
+    const batch = await admin.get(`/api/admin/import/universal/${analyzed.body.id}`);
+    expect(batch.status).toBe(200);
+    if (commit.status === 200) {
+      const patients = await pool.query("SELECT id FROM patients WHERE file_number = $1", [file]);
+      expect(patients.rows).toHaveLength(1);
+      expect(batch.body.createdRecords.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("stages rows from every non-empty XLSX worksheet", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const first = workbook.addWorksheet("First");
+    first.addRow(["NAME", "FILE", "DATE", "SITE"]);
+    first.addRow(["Sheet one", "UI-SHEET-1", "2026-01-03", "13"]);
+    const second = workbook.addWorksheet("Second");
+    second.addRow(["SITE", "DATE", "FILE", "NAME"]);
+    second.addRow(["14", "2026-01-04", "UI-SHEET-2", "Sheet two"]);
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "two-sheets.xlsx",
+      mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      content: Buffer.from(await workbook.xlsx.writeBuffer()).toString("base64"),
+    });
+    expect(analyzed.status).toBe(201);
+    expect(analyzed.body.rows).toHaveLength(2);
+    expect(analyzed.body.rows.map((row: { raw: Record<string, string> }) => row.raw.__sheet))
+      .toEqual(["First", "Second"]);
+  });
+
+  it("keeps pilot batches open, appends later rows, and rolls back all records", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "pilot-lifecycle.csv", mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE",
+        "Pilot patient,UI-PILOT-LIFE,2026-01-05,15",
+        "Second patient,UI-PILOT-LIFE-2,2026-01-06,16",
+      ].join("\n"),
+    });
+    const first = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({ rowNumbers: [1], pilot: true });
+    expect(first.status).toBe(200);
+    expect(first.body.batch.status).toBe("PILOT_COMMITTED");
+    expect(first.body.batch.committedRowNumbers).toEqual([1]);
+    const second = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({ rowNumbers: [1, 2] });
+    expect(second.status).toBe(200);
+    expect(second.body.batch.status).toBe("COMMITTED");
+    expect(second.body.batch.committedRowNumbers).toEqual([1, 2]);
+    expect(second.body.batch.createdRecords.length).toBeGreaterThan(first.body.batch.createdRecords.length);
+    const rollback = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/rollback`).send({});
+    expect(rollback.status).toBe(200);
+    const remaining = await pool.query("SELECT id FROM patients WHERE file_number = 'UI-PILOT-LIFE'");
+    expect(remaining.rows).toHaveLength(0);
+    const remainingSecond = await pool.query("SELECT id FROM patients WHERE file_number = 'UI-PILOT-LIFE-2'");
+    expect(remainingSecond.rows).toHaveLength(0);
+  });
+
+  it("requires explicit row approval for phone warnings and independently maps ROT and BIO", async () => {
+    await admin.post("/api/patients").send({ fileNumber: "UI-PHONE-OWNER-2", fullName: "Phone owner", mobileNumber: "0509876543" });
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "phone-values.csv", mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,MOBILE,SYSTEM",
+        "Phone new,UI-PHONE-NEW-2,2026-01-07,17,0509876543,R",
+        "Value new,UI-VALUE-NEW-2,2026-01-08,18,,B",
+      ].join("\n"),
+    });
+    expect(analyzed.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    const patched = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      rowApprovals: [{ rowNumber: 1, approved: true }],
+      valueMappings: [{ source: "R", destination: "ROT" }, { source: "B", destination: "BIO" }],
+    });
+    expect(patched.status).toBe(200);
+    expect(patched.body.rows.every((row: { status: string }) => row.status === "READY")).toBe(true);
+    expect(patched.body.rows.map((row: { proposed: { implants: { system: string }[] } }) => row.proposed.implants[0].system))
+      .toEqual(["ROT", "BIO"]);
+  });
+
+  it("rejects macro, external-link, and ZIP metadata bomb packages before ExcelJS", async () => {
+    const cases = [
+      ["renamed.xlsx", "xl/vbaProject.bin", 1],
+      ["external.xlsx", "xl/externalLinks/externalLink1.xml", 1],
+      ["bomb.xlsx", "xl/worksheets/sheet1.xml", 70 * 1024 * 1024],
+    ] as const;
+    for (const [filename, entry, size] of cases) {
+      const response = await admin.post("/api/admin/import/universal/analyze").send({
+        filename,
+        mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        content: packageWithCentralEntry(entry, size).toString("base64"),
+      });
+      expect(response.status).toBe(422);
+    }
+  });
+
+  it("blocks every row when one file number has conflicting new-patient identities", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "identity-conflict.csv", mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE",
+        "First identity,UI-IDENTITY-CONFLICT,2026-02-01,20",
+        "Second identity,UI-IDENTITY-CONFLICT,2026-02-02,21",
+      ].join("\n"),
+    });
+    expect(analyzed.body.rows.map((row: { status: string }) => row.status)).toEqual(["BLOCKED", "BLOCKED"]);
+    const commit = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({});
+    expect(commit.status).toBe(422);
+  });
+
+  it("parses explicit English month names strictly and rejects impossible dates", async () => {
+    const valid = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "english-date.csv", mime: "text/csv",
+      content: "NAME,FILE,DATE,SITE\nEnglish date,UI-EN-DATE,14 jUlY 2025,22",
+    });
+    expect(valid.body.rows[0].proposed.case.procedureDate).toBe("2025-07-14");
+    const invalid = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "invalid-english-date.csv", mime: "text/csv",
+      content: "NAME,FILE,DATE,SITE\nInvalid date,UI-EN-BAD,31 February 2025,23",
+    });
+    expect(invalid.body.rows[0].status).toBe("BLOCKED");
+  });
+
+  it("splits combined Arabic and English name/mobile cells without changing raw input", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "combined-name-mobile.csv", mime: "text/csv",
+      content: [
+        "NAME+MOBILE,FILE,DATE,SITE",
+        "مريض عربي 0501234567,UI-COMBINED-AR,2026-02-03,24",
+        "English patient +966501234568,UI-COMBINED-EN,2026-02-04,25",
+      ].join("\n"),
+    });
+    expect(analyzed.body.rows[0].proposed.patient.name).toBe("مريض عربي");
+    expect(analyzed.body.rows[0].proposed.patient.mobile).toContain("0501234567");
+    expect(analyzed.body.rows[1].proposed.patient.name).toBe("English patient");
+    expect(analyzed.body.rows[1].proposed.patient.mobile).toContain("966501234568");
+    expect(analyzed.body.rows[0].raw["NAME+MOBILE"]).toBe("مريض عربي 0501234567");
+    expect(analyzed.body.rows[1].raw["NAME+MOBILE"]).toBe("English patient +966501234568");
+  });
+
+  it("reviews phone-only, malformed, and unexpectedly separated combined cells", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "ambiguous-combined.csv", mime: "text/csv",
+      content: [
+        "NAME+MOBILE,FILE,DATE,SITE",
+        "0501234567,UI-COMBINED-PHONE,2026-02-07,28",
+        "Arabic name @ 050123456,UI-COMBINED-BAD,2026-02-08,29",
+        "English name +96650ABC1234,UI-COMBINED-MALFORMED,2026-02-09,30",
+      ].join("\n"),
+    });
+    expect(analyzed.body.rows.map((row: { status: string }) => row.status))
+      .toEqual(["REVIEW_REQUIRED", "REVIEW_REQUIRED", "REVIEW_REQUIRED"]);
+    expect(analyzed.body.rows.every((row: { warnings: string[] }) =>
+      row.warnings.some((warning) => warning.includes("Combined name/mobile")))).toBe(true);
+    expect(analyzed.body.rows[0].proposed.patient.name).toBe("");
+    expect(analyzed.body.rows[0].raw["NAME+MOBILE"]).toBe("0501234567");
+  });
+
+  it("uses compatible identity when one same-file history row omits phone", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "optional-phone-history.csv", mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,MOBILE",
+        "Same patient,UI-SAME-PHONE,2026-02-10,31,0557771234",
+        "Same patient,UI-SAME-PHONE,2026-02-11,32,",
+      ].join("\n"),
+    });
+    expect(analyzed.body.rows.every((row: { status: string }) => row.status === "READY")).toBe(true);
+    const committed = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({});
+    expect(committed.status).toBe(200);
+    const cases = await pool.query(
+      `SELECT count(*)::int AS count FROM implant_cases ic
+       JOIN patients p ON p.id = ic.patient_id WHERE p.file_number = 'UI-SAME-PHONE'`,
+    );
+    expect(cases.rows[0].count).toBe(2);
+  });
+
+  it("derives a group's patient mobile independent of row order", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "reversed-mobile-history.csv", mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,MOBILE",
+        "Reversed mobile,UI-REVERSED-MOBILE,2026-02-12,33,",
+        "Reversed mobile,UI-REVERSED-MOBILE,2026-02-13,34,0558882345",
+      ].join("\n"),
+    });
+    expect(analyzed.body.rows.every((row: { status: string }) => row.status === "READY")).toBe(true);
+    const committed = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({});
+    expect(committed.status).toBe(200);
+    const patient = await pool.query(
+      "SELECT mobile_number FROM patients WHERE file_number = 'UI-REVERSED-MOBILE'",
+    );
+    expect(patient.rows).toHaveLength(1);
+    expect(patient.rows[0].mobile_number).toBe("0558882345");
+  });
+
+  it("serializes rollback against continuation with a lifecycle CAS", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "rollback-race.csv", mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE",
+        "Rollback first,UI-ROLLBACK-RACE-1,2026-02-05,26",
+        "Rollback second,UI-ROLLBACK-RACE-2,2026-02-06,27",
+      ].join("\n"),
+    });
+    const pilot = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({ rowNumbers: [1], pilot: true });
+    expect(pilot.body.batch.status).toBe("PILOT_COMMITTED");
+    const [rollback, continuation] = await Promise.all([
+      admin.post(`/api/admin/import/universal/${analyzed.body.id}/rollback`).send({}),
+      admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({ rowNumbers: [1, 2] }),
+    ]);
+    expect([rollback.status, continuation.status].sort()).toEqual(expect.arrayContaining([200]));
+    const batch = await admin.get(`/api/admin/import/universal/${analyzed.body.id}`);
+    if (batch.body.status === "ROLLED_BACK") {
+      const patients = await pool.query("SELECT id FROM patients WHERE file_number IN ('UI-ROLLBACK-RACE-1','UI-ROLLBACK-RACE-2')");
+      expect(patients.rows).toHaveLength(0);
+    } else {
+      expect(batch.body.createdRecords.length).toBeGreaterThan(0);
+    }
   });
 });
 

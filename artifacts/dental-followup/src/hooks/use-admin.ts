@@ -11,6 +11,9 @@ import type {
   UpdateLookupOptionInput,
   UpdateTemplateInput,
   UpdateUserInput,
+  UniversalImportInput,
+  UniversalImportMappingPatch,
+  UniversalImportCommit,
 } from "@workspace/shared";
 import { api } from "@/lib/api";
 import { APP_SETTINGS_QUERY_KEY } from "./use-settings";
@@ -195,6 +198,54 @@ export function useImportCommit() {
     mutationFn: (input: ImportRequest) => api.adminImportCommit(input),
     onSuccess: () => {
       // Imported data affects nearly every list in the app.
+      queryClient.invalidateQueries();
+    },
+  });
+}
+
+export function useUniversalImportAnalyze() {
+  return useMutation({
+    mutationFn: (input: UniversalImportInput) => api.universalImportAnalyze(input),
+  });
+}
+
+export function useUniversalImportGetBatch(id: string | null) {
+  return useQuery({
+    queryKey: ["admin", "universal-import", id],
+    queryFn: () => api.universalImportGetBatch(id!),
+    enabled: !!id,
+  });
+}
+
+export function useUniversalImportPatchMapping() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UniversalImportMappingPatch }) =>
+      api.universalImportPatchMapping(id, input),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["admin", "universal-import", data.id], data);
+    },
+  });
+}
+
+export function useUniversalImportCommitBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UniversalImportCommit }) =>
+      api.universalImportCommitBatch(id, input),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["admin", "universal-import", data.batch.id], data.batch);
+      queryClient.invalidateQueries();
+    },
+  });
+}
+
+export function useUniversalImportRollbackBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.universalImportRollbackBatch(id),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["admin", "universal-import", data.batch.id], data.batch);
       queryClient.invalidateQueries();
     },
   });

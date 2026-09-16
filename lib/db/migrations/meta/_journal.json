@@ -183,6 +183,20 @@
       "when": 1789481032596,
       "tag": "0025_registration_location_phone",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789579000000,
+      "tag": "0026_universal_import_staging",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1789580000000,
+      "tag": "0027_import_concurrency_lifecycle",
+      "breakpoints": true
     }
   ]
 }

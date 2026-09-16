@@ -1,0 +1,1043 @@
+import { Router, type IRouter } from "express";
+import ExcelJS from "exceljs";
+import {
+  db,
+  importBatchesTable,
+  importMappingsTable,
+  implantCasesTable,
+  implantsTable,
+  patientsTable,
+} from "@workspace/db";
+import {
+  UNIVERSAL_IMPORT_DESTINATIONS,
+  universalImportCommitSchema,
+  universalImportInputSchema,
+  universalImportMappingPatchSchema,
+  universalImportBatchSchema,
+  universalImportCommitResponseSchema,
+  universalImportPartialFailureResponseSchema,
+  universalImportRollbackResponseSchema,
+  type UniversalImportBatch,
+  type UniversalImportDestination,
+  type UniversalImportMapping,
+  normalizeArabicSearchText,
+  normalizeMobile,
+} from "@workspace/shared";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { parseCsv } from "../lib/csv";
+import { writeAuditRequired } from "../lib/audit";
+import { requireAuth, requireRole } from "../middlewares/auth";
+
+const router: IRouter = Router();
+router.use("/admin/import/universal", requireAuth, requireRole("ADMIN"));
+
+const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_ROWS = 5_000;
+const MAX_SHEETS = 20;
+const MIN_CONFIDENCE = 0.8;
+const IMAGE_MIMES = new Set(["application/pdf", "image/png", "image/jpeg"]);
+const MAX_XLSX_UNCOMPRESSED = 64 * 1024 * 1024;
+const MAX_XLSX_ENTRIES = 2_000;
+const MAX_XLSX_ENTRY = 16 * 1024 * 1024;
+
+type RawRow = { rowNumber: number; sheet: string; values: Record<string, string> };
+type CreatedRecord = {
+  table: string;
+  id: string;
+  patientId?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+type ProposedImplant = { site: string; size: string | null; system: string | null };
+type NormalizedRow = {
+  rowNumber: number;
+  raw: Record<string, string>;
+  status: "READY" | "REVIEW_REQUIRED" | "BLOCKED" | "DUPLICATE";
+  warnings: string[];
+  confidence: Record<string, number>;
+  proposed: {
+    patient: { name: string; fileNumber: string; mobile: string | null; age: number | null };
+    case: { procedureDate: string; treatingDoctor: string; status: string };
+    implants: ProposedImplant[];
+    financeCandidate: string | null;
+    legacyNotes: string[];
+  };
+};
+
+const destinationSet = new Set<string>(UNIVERSAL_IMPORT_DESTINATIONS);
+
+function normalizeHeader(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[\s_.:/\\()-]+/g, "")
+    .replace(/[؟?]/g, "");
+}
+
+const ALIASES: Record<string, UniversalImportDestination> = {
+  name: "patient.name", patient: "patient.name", patientname: "patient.name",
+  "اسم المريض": "patient.name", "الاسم الكامل": "patient.name", "name+mobile": "patient.name",
+  file: "patient.file_number", fileno: "patient.file_number", file_number: "patient.file_number",
+  mrn: "patient.file_number", no: "patient.file_number", "رقم الملف": "patient.file_number",
+  mobile: "patient.mobile", phone: "patient.mobile", telephone: "patient.mobile", "رقم الجوال": "patient.mobile",
+  age: "patient.age", العمر: "patient.age",
+  date: "case.procedure_date", surgerydate: "case.procedure_date", implantdate: "case.procedure_date",
+  proceduredate: "case.procedure_date", "تاريخ العملية": "case.procedure_date", "تاريخ الزراعة": "case.procedure_date",
+  system: "implant.system", implant: "implant.system", brand: "implant.system", "نظام الزرعة": "implant.system",
+  implantbrand: "implant.system",
+  site: "implant.site", tooth: "implant.site", toothno: "implant.site", location: "implant.site", "الموقع": "implant.site",
+  size: "implant.size", implantsize: "implant.size", dimensions: "implant.size", "المقاس": "implant.size",
+  cost: "finance.candidate", price: "finance.candidate", amount: "finance.candidate", total: "finance.candidate",
+  "التكلفة": "finance.candidate", "المبلغ": "finance.candidate",
+  doctor: "case.treating_doctor", treatingdoctor: "case.treating_doctor", "الطبيب المعالج": "case.treating_doctor",
+  status: "case.status", casestatus: "case.status", "حالة الحالة": "case.status",
+};
+
+function aliasFor(header: string): UniversalImportDestination | null {
+  const normalized = normalizeHeader(header);
+  const direct = ALIASES[header.trim()] ?? ALIASES[normalized];
+  if (direct) return direct;
+  return Object.entries(ALIASES).find(([key]) => normalizeHeader(key) === normalized)?.[1] ?? null;
+}
+
+function splitValues(value: string): string[] {
+  return value.split(/[,\n;؛|/]+/).map((part) => part.trim()).filter(Boolean);
+}
+
+function normalizeSize(value: string): string {
+  return value.trim().replace(/[×Xx*]/g, " × ").replace(/\s+/g, " ").trim();
+}
+
+function sizeNumbers(value: string | null): { diameter: string | null; length: string | null } {
+  if (!value) return { diameter: null, length: null };
+  const numbers = value.match(/\d+(?:\.\d+)?/g) ?? [];
+  return { diameter: numbers[0] ?? null, length: numbers[1] ?? null };
+}
+
+function cleanDate(value: string): string | null {
+  const v = value.trim()
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+  let year = 0;
+  let month = 0;
+  let day = 0;
+  const monthNames: Record<string, number> = {
+    jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,
+    may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8,
+    sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11,
+    dec: 12, december: 12,
+  };
+  const textual = /^(\d{1,2})\s+([a-z]+)\s+(\d{4})$/i.exec(v);
+  if (textual) {
+    day = Number(textual[1]);
+    month = monthNames[textual[2].toLowerCase()] ?? 0;
+    year = Number(textual[3]);
+  }
+  let match = textual ? null : /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(v);
+  if (textual) {
+    // Parsed above using an explicit English month-name table.
+  } else if (match) {
+    [, year, month, day] = match.map(Number) as [string, number, number, number];
+  } else {
+    match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(v);
+    if (!match) return null;
+    [, day, month, year] = match.map(Number) as [string, number, number, number];
+  }
+  if (year < 1 || year > 9999 || month < 1 || month > 12 || day < 1 || day > new Date(Date.UTC(year, month, 0)).getUTCDate()) {
+    return null;
+  }
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function excelDate(value: Date): string {
+  return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}-${String(value.getUTCDate()).padStart(2, "0")}`;
+}
+
+function parseNumber(value: string): number | null {
+  const v = value.replace(/,/g, "").trim();
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function splitCombinedNameMobile(value: string): { name: string; mobile: string | null; review: string | null } {
+  const trimmed = value.trim();
+  const phoneLike = /(?:\+?966|00966|05)\s*[\dA-Za-z\s().-]{5,}/iu.test(trimmed) || /^\+?\d[\d\s().-]{7,}$/u.test(trimmed);
+  const match = /^(.*?)[\s,،;؛|/:-]+((?:\+?966|00966|05|5)[\d\s().-]{7,})\s*$/u.exec(trimmed);
+  if (!match) {
+    if (phoneLike) return { name: "", mobile: null, review: "Combined name/mobile value contains a phone-like segment that could not be split deterministically." };
+    return { name: trimmed, mobile: null, review: null };
+  }
+  const candidate = match[2].replace(/[^\d+]/g, "");
+  const normalized = normalizeMobile(candidate);
+  if (!normalized.ok || !match[1].trim()) {
+    return { name: "", mobile: null, review: "Combined name/mobile value has a malformed or ambiguous phone segment." };
+  }
+  return { name: match[1].trim(), mobile: candidate, review: null };
+}
+
+function compatiblePatientIdentity(rows: NormalizedRow[]): boolean {
+  const names = new Set(rows.map((row) => normalizeArabicSearchText(row.proposed.patient.name)));
+  if (names.size > 1) return false;
+  const phones = new Set(rows.map((row) => {
+    const phone = row.proposed.patient.mobile ? normalizeMobile(row.proposed.patient.mobile) : null;
+    return phone?.ok ? phone.normalized : null;
+  }).filter((phone): phone is string => Boolean(phone)));
+  return phones.size <= 1;
+}
+
+function canonicalGroupMobile(rows: NormalizedRow[]): string | null {
+  for (const row of rows) {
+    const raw = row.proposed.patient.mobile;
+    if (!raw) continue;
+    const normalized = normalizeMobile(raw);
+    if (normalized.ok) return raw;
+  }
+  return null;
+}
+
+function inspectXlsxPackage(buffer: Buffer): void {
+  if (buffer.length < 22) throw new Error("The XLSX package is truncated.");
+  const eocd = buffer.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (eocd < 0) throw new Error("The XLSX package directory is invalid.");
+  const entries = buffer.readUInt16LE(eocd + 10);
+  const directorySize = buffer.readUInt32LE(eocd + 12);
+  const directoryOffset = buffer.readUInt32LE(eocd + 16);
+  if (entries > MAX_XLSX_ENTRIES || directoryOffset + directorySize > buffer.length) {
+    throw new Error("The XLSX package structure exceeds safe limits.");
+  }
+  let offset = directoryOffset;
+  let total = 0;
+  for (let i = 0; i < entries; i++) {
+    if (offset + 46 > buffer.length || buffer.readUInt32LE(offset) !== 0x02014b50) {
+      throw new Error("The XLSX central directory is invalid.");
+    }
+    const compressed = buffer.readUInt32LE(offset + 20);
+    const uncompressed = buffer.readUInt32LE(offset + 24);
+    const nameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const name = buffer.subarray(offset + 46, offset + 46 + nameLength).toString("utf8");
+    if (uncompressed > MAX_XLSX_ENTRY || total + uncompressed > MAX_XLSX_UNCOMPRESSED ||
+      (compressed > 0 && uncompressed / compressed > 1000)) {
+      throw new Error("The XLSX package compression or uncompressed-size limits were exceeded.");
+    }
+    if (/vbaProject|externalLinks|^xl\/(embeddings|activeX)\//i.test(name)) {
+      throw new Error("Macros, embedded objects, external links, and unsafe package metadata are not allowed.");
+    }
+    total += uncompressed;
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+}
+
+async function readSpreadsheet(
+  filename: string,
+  mime: string,
+  content: string,
+): Promise<{ rows: RawRow[]; extractionReview?: string }> {
+  const lower = filename.toLowerCase();
+  const extension = lower.includes(".") ? lower.slice(lower.lastIndexOf(".")) : "";
+  const isCsv = extension === ".csv" || extension === ".txt";
+  const isXlsx = extension === ".xlsx";
+  const isRejectedWorkbook = extension === ".xls" || extension === ".xlsm";
+  if (isRejectedWorkbook || (extension === ".xlsx" && !(
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/octet-stream"
+  ))) {
+    throw new Error("XLS/XLSM and MIME/extension-mismatched workbooks are not allowed; upload a standard XLSX file.");
+  }
+  if (isCsv && mime !== "text/csv" && mime !== "text/plain" && !mime.includes("csv")) {
+    throw new Error("CSV MIME type does not match the file extension.");
+  }
+  if (IMAGE_MIMES.has(mime) || /\.(pdf|png|jpe?g)$/i.test(lower)) {
+    if (extension === ".pdf" && mime !== "application/pdf") throw new Error("PDF MIME type does not match the file extension.");
+    if (extension !== ".pdf" && !mime.startsWith("image/")) throw new Error("Image MIME type does not match the file extension.");
+    return {
+      rows: [{ rowNumber: 1, sheet: "Extraction", values: { "Extraction status": "REVIEW_REQUIRED" } }],
+      extractionReview: "PDF/image extraction is staged for review; no OCR output is imported automatically.",
+    };
+  }
+  let headers: string[];
+  let values: string[][];
+  if (isCsv || mime.includes("csv")) {
+    const parsed = parseCsv(content);
+    if (!parsed.length) throw new Error("The uploaded file contains no rows.");
+    headers = parsed[0].map((v, i) => v.trim() || `Column ${i + 1}`);
+    values = parsed.slice(1);
+  } else if (
+    isXlsx ||
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ) {
+    const buffer = Buffer.from(content, "base64");
+    if (buffer.length > MAX_BYTES) throw new Error("The spreadsheet exceeds the 8 MB limit.");
+    if (buffer.length < 4 || buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
+      throw new Error("The XLSX signature is invalid.");
+    }
+    inspectXlsxPackage(buffer);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+    if (workbook.worksheets.length > MAX_SHEETS) throw new Error(`Too many sheets; maximum is ${MAX_SHEETS}.`);
+    const workbookModel = workbook as unknown as { model?: { externalLinks?: unknown[] } };
+    if ((workbookModel.model?.externalLinks?.length ?? 0) > 0) {
+      throw new Error("External-link worksheets are not allowed.");
+    }
+    for (const worksheet of workbook.worksheets) {
+      if (worksheet.rowCount > MAX_ROWS || worksheet.columnCount > 100) {
+        throw new Error("The workbook structure exceeds the row/column limits.");
+      }
+    }
+    const allRows: RawRow[] = [];
+    for (const sheet of workbook.worksheets) {
+      const matrix: string[][] = [];
+      sheet.eachRow({ includeEmpty: false }, (row) => {
+        const cells: string[] = [];
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          const value = cell.value;
+          if (value && typeof value === "object" && ("formula" in value || "sharedFormula" in value)) {
+            throw new Error("Formula cells are not allowed; upload calculated/static values only.");
+          }
+          cells.push(value == null ? "" : value instanceof Date ? excelDate(value) : String(value));
+        });
+        if (cells.some(Boolean)) matrix.push(cells);
+      });
+      if (!matrix.length) continue;
+      const sheetHeaders = matrix[0].map((v, i) => v.trim() || `Column ${i + 1}`);
+      for (const [index, cells] of matrix.slice(1).entries()) {
+        allRows.push({
+          rowNumber: allRows.length + 1,
+          sheet: sheet.name,
+          values: Object.fromEntries(sheetHeaders.map((header, i) => [header, (cells[i] ?? "").trim()])),
+        });
+      }
+    }
+    if (!allRows.length) throw new Error("The workbook contains no rows.");
+    if (allRows.some((row) => Object.keys(row.values).length > 100)) throw new Error("Too many columns; maximum is 100.");
+    return { rows: allRows };
+  } else {
+    throw new Error("Supported uploads are CSV, XLSX, PDF, PNG, and JPEG.");
+  }
+  if (headers.length > 100) throw new Error("Too many columns; maximum is 100.");
+  if (values.length > MAX_ROWS) throw new Error(`Too many rows; maximum is ${MAX_ROWS}.`);
+  return {
+    rows: values.map((cells, index) => ({
+      rowNumber: index + 1,
+      sheet: "CSV",
+      values: Object.fromEntries(headers.map((header, i) => [header, (cells[i] ?? "").trim()])),
+    })),
+  };
+}
+
+async function learnedMappings(tenantId: string): Promise<{
+  headers: Map<string, UniversalImportDestination>;
+  values: Map<string, string>;
+}> {
+  const rows = await db.select().from(importMappingsTable).where(eq(importMappingsTable.tenantId, tenantId));
+  return {
+    headers: new Map(rows.filter((row) => row.approvedAt && row.sourceKind === "header").map((row) => [`${row.sourceValue}`, row.destination as UniversalImportDestination])),
+    values: new Map(rows.filter((row) => row.approvedAt && row.sourceKind.startsWith("value:")).map((row) => [`${row.sourceKind}:${row.sourceValue}`, row.destination])),
+  };
+}
+
+function makeMappings(
+  headers: string[],
+  learned: { headers: Map<string, UniversalImportDestination>; values: Map<string, string> },
+  overrides?: UniversalImportMapping[],
+): UniversalImportMapping[] {
+  const overrideMap = new Map((overrides ?? []).map((mapping) => [mapping.source, mapping]));
+  return headers.map((source) => {
+    const override = overrideMap.get(source);
+    if (override) return override;
+    const learnedDestination = learned.headers.get(source);
+    const destination = learnedDestination ?? aliasFor(source);
+    const confidence = learnedDestination ? 1 : destination ? 0.92 : 0;
+    return {
+      source,
+      destination: destination ?? "legacy_note",
+      confidence,
+      reason: learnedDestination ? "Approved tenant mapping" : destination ? "Deterministic header alias" : "Unknown column preserved for review",
+      requiresReview: !destination || confidence < MIN_CONFIDENCE || destination === "finance.candidate",
+    };
+  });
+}
+
+function normalizeRows(
+  rows: RawRow[],
+  mappings: UniversalImportMapping[],
+  valueMappings: Map<string, string> = new Map(),
+  extractionReview?: string,
+  approvedRows: Set<number> = new Set(),
+): NormalizedRow[] {
+  const byDestination = new Map<UniversalImportDestination, string[]>();
+  for (const mapping of mappings) {
+    if (!destinationSet.has(mapping.destination)) continue;
+    const values = byDestination.get(mapping.destination) ?? [];
+    values.push(mapping.source);
+    byDestination.set(mapping.destination, values);
+  }
+  const get = (row: RawRow, destination: UniversalImportDestination): string =>
+    (byDestination.get(destination) ?? []).map((source) => row.values[source] ?? "").find(Boolean) ?? "";
+  const hasCombinedNameMobile = (byDestination.get("patient.name") ?? [])
+    .some((source) => normalizeHeader(source) === normalizeHeader("name+mobile"));
+  return rows.map((row) => {
+    const warnings = mappings.filter((mapping) => mapping.requiresReview).map((mapping) => `${mapping.source} requires review`);
+    if (extractionReview) warnings.push(extractionReview);
+    const combined = hasCombinedNameMobile
+      ? splitCombinedNameMobile(get(row, "patient.name"))
+      : { name: get(row, "patient.name"), mobile: null, review: null };
+    const name = combined.name;
+    const fileNumber = get(row, "patient.file_number");
+    const procedureDate = cleanDate(get(row, "case.procedure_date"));
+    const sites = splitValues(get(row, "implant.site"));
+    const sizes = splitValues(get(row, "implant.size")).map(normalizeSize);
+    const rawSystems = splitValues(get(row, "implant.system"));
+    const systems = rawSystems.map((rawSystem) =>
+      valueMappings.get(`value:implant.system:${rawSystem}`) ?? rawSystem,
+    );
+    const implants = sites.map((site, index) => ({
+      site,
+      size: sizes[index] ?? null,
+      system: systems[index] ?? (systems.length === 1 ? systems[0] : null),
+    }));
+    const blocked: string[] = [];
+    if (combined.review) warnings.push(combined.review);
+    if ((!name && !combined.review) || !fileNumber || !procedureDate) blocked.push("Patient name, file number, and clinical date are required.");
+    if (!sites.length) blocked.push("At least one implant site is required.");
+    if (sites.length > 1 && sizes.length !== sites.length) blocked.push("Implant site/size counts do not match; pairing is blocked.");
+    if (systems.length > 1 && systems.length !== sites.length) blocked.push("Implant site/system counts do not match; pairing is blocked.");
+    const finance = get(row, "finance.candidate") || get(row, "finance.preserve_summary") || null;
+    if (get(row, "finance.candidate")) warnings.push("Financial source text is review-only; explicitly preserve it as a historical summary or ignore it before commit.");
+    const legacyNotes = mappings
+      .filter((mapping) => mapping.destination === "legacy_note")
+      .map((mapping) => `${mapping.source}: ${row.values[mapping.source] ?? ""}`)
+      .filter((note) => !note.endsWith(": "));
+    const status = blocked.length
+      ? "BLOCKED"
+      : warnings.length
+        ? "REVIEW_REQUIRED"
+        : "READY";
+    return {
+      rowNumber: row.rowNumber,
+      raw: { ...row.values, __sheet: row.sheet },
+      status,
+      warnings: [...blocked, ...warnings],
+      confidence: Object.fromEntries(mappings.map((mapping) => [mapping.source, mapping.confidence])),
+      proposed: {
+        patient: { name, fileNumber, mobile: get(row, "patient.mobile") || combined.mobile, age: parseNumber(get(row, "patient.age")) },
+        case: {
+          procedureDate: procedureDate ?? "",
+          treatingDoctor: get(row, "case.treating_doctor") || "د. همام",
+          status: get(row, "case.status") || "حالة جديدة",
+        },
+        implants,
+        financeCandidate: finance,
+        legacyNotes,
+      },
+    };
+  });
+}
+
+async function classifyDuplicates(
+  rows: NormalizedRow[],
+  tenantId: string,
+  approvedRows: Set<number> = new Set(),
+): Promise<NormalizedRow[]> {
+  const byFile = new Map<string, NormalizedRow[]>();
+  for (const row of rows) {
+    if (!row.proposed.patient.fileNumber) continue;
+    const group = byFile.get(row.proposed.patient.fileNumber) ?? [];
+    group.push(row);
+    byFile.set(row.proposed.patient.fileNumber, group);
+  }
+  for (const [fileNumber, group] of byFile) {
+    if (!compatiblePatientIdentity(group)) {
+      for (const row of group) {
+        row.status = "BLOCKED";
+        row.warnings = [...row.warnings, `File number ${fileNumber} has conflicting patient identity across rows.`];
+      }
+    }
+  }
+  const fileNumbers = [...new Set(rows.map((row) => row.proposed.patient.fileNumber).filter(Boolean))];
+  if (!fileNumbers.length) return rows;
+  const patients = await db.select({
+    id: patientsTable.id,
+    fileNumber: patientsTable.fileNumber,
+    fullNameNormalized: patientsTable.fullNameNormalized,
+    mobileNormalized: patientsTable.mobileNormalized,
+  }).from(patientsTable).where(and(
+    eq(patientsTable.tenantId, tenantId),
+    inArray(patientsTable.fileNumber, fileNumbers),
+  ));
+  const patientByFile = new Map(patients.map((patient) => [patient.fileNumber, patient]));
+  const patientIds = patients.map((patient) => patient.id);
+  const cases = patientIds.length
+    ? await db.select({
+      patientId: implantCasesTable.patientId,
+      procedureDate: implantCasesTable.procedureDate,
+    }).from(implantCasesTable).where(and(
+      eq(implantCasesTable.tenantId, tenantId),
+      inArray(implantCasesTable.patientId, patientIds),
+      isNull(implantCasesTable.archivedAt),
+    ))
+    : [];
+  const existingCases = new Set(cases.map((item) => `${item.patientId}|${item.procedureDate ?? ""}`));
+  const tenantPhoneRows = await db.select({ mobileNormalized: patientsTable.mobileNormalized })
+    .from(patientsTable)
+    .where(eq(patientsTable.tenantId, tenantId));
+  const phoneNumbers = new Set(
+    tenantPhoneRows.map((patient) => patient.mobileNormalized)
+      .filter((value): value is string => Boolean(value)),
+  );
+  const seenInUpload = new Set<string>();
+  return rows.map((row) => {
+    if (row.status === "BLOCKED") return row;
+    const patient = patientByFile.get(row.proposed.patient.fileNumber);
+    if (patient && patient.fullNameNormalized !== normalizeArabicSearchText(row.proposed.patient.name)) {
+      return {
+        ...row,
+        status: "BLOCKED",
+        warnings: [...row.warnings, `File number ${row.proposed.patient.fileNumber} belongs to a different patient.`],
+      };
+    }
+    const normalizedPhone = row.proposed.patient.mobile
+      ? normalizeMobile(row.proposed.patient.mobile)
+      : null;
+    if (normalizedPhone?.ok && phoneNumbers.has(normalizedPhone.normalized) && !patient && !approvedRows.has(row.rowNumber)) {
+      return {
+        ...row,
+        status: row.status === "READY" ? "REVIEW_REQUIRED" : row.status,
+        warnings: [...row.warnings, "A tenant patient already uses this phone number; review before creating a separate patient."],
+      };
+    }
+    const key = `${row.proposed.patient.fileNumber}|${row.proposed.case.procedureDate}`;
+    if (
+      (patient && existingCases.has(`${patient.id}|${row.proposed.case.procedureDate}`)) ||
+      seenInUpload.has(key)
+    ) {
+      return {
+        ...row,
+        status: "DUPLICATE",
+        warnings: [...row.warnings, "This patient/case already exists in the tenant or earlier in this upload."],
+      };
+    }
+    seenInUpload.add(key);
+    return row;
+  });
+}
+
+function publicBatch(batch: typeof importBatchesTable.$inferSelect): UniversalImportBatch {
+  const mappings = batch.mappings as UniversalImportMapping[];
+  const rows = batch.normalizedRows as NormalizedRow[];
+  return universalImportBatchSchema.parse({
+    id: batch.id,
+    filename: batch.sourceFilename,
+    mime: batch.sourceMime,
+    status: batch.status,
+    version: batch.version,
+    mappings,
+    rows,
+    summary: batch.summary,
+    createdRecords: batch.createdRecords,
+    committedRowNumbers: batch.committedRowNumbers,
+  });
+}
+
+router.post("/admin/import/universal/analyze", async (req, res): Promise<void> => {
+  const parsed = universalImportInputSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { filename, mime, content } = parsed.data;
+  const bytes = mime.includes("csv") ? Buffer.byteLength(content) : Buffer.from(content, "base64").length;
+  if (bytes > MAX_BYTES) {
+    res.status(413).json({ error: "The uploaded file exceeds the 8 MB limit." });
+    return;
+  }
+  try {
+    const { rows, extractionReview } = await readSpreadsheet(filename, mime, content);
+    const headers = [...new Set(rows.flatMap((row) => Object.keys(row.values)))];
+    const learned = await learnedMappings(req.currentTenant!.id);
+    // Client confidence/review flags are never trusted. Analyze always
+    // recomputes deterministic and learned mappings on the server; edits use
+    // the authenticated PATCH endpoint after preview.
+    const mappings = makeMappings(headers, learned);
+     const normalizedRows = await classifyDuplicates(
+      normalizeRows(rows, mappings, learned.values, extractionReview),
+      req.currentTenant!.id,
+     );
+    const summary = {
+      totalRows: normalizedRows.length,
+      ready: normalizedRows.filter((row) => row.status === "READY").length,
+      reviewRequired: normalizedRows.filter((row) => row.status === "REVIEW_REQUIRED").length,
+      blocked: normalizedRows.filter((row) => row.status === "BLOCKED").length,
+      duplicate: normalizedRows.filter((row) => row.status === "DUPLICATE").length,
+      patients: new Set(normalizedRows.map((row) => row.proposed.patient.fileNumber)).size,
+      implants: normalizedRows.reduce((sum, row) => sum + row.proposed.implants.length, 0),
+    };
+    const [batch] = await db.insert(importBatchesTable).values({
+      tenantId: req.currentTenant!.id,
+      importedBy: req.currentUser!.id,
+      sourceFilename: filename,
+      sourceMime: mime,
+      sourceRows: rows,
+      mappings,
+      normalizedRows,
+      summary,
+    }).returning();
+    await writeAuditRequired({
+      tenantId: req.currentTenant!.id,
+      userId: req.currentUser!.id,
+      action: "IMPORT_UPLOADED",
+      entityType: "import_batch",
+      entityId: batch.id,
+      summary: `Universal import analyzed: ${filename}`,
+      details: { rows: summary.totalRows, mime },
+    });
+    await writeAuditRequired({
+      tenantId: req.currentTenant!.id,
+      userId: req.currentUser!.id,
+      action: "IMPORT_ANALYZED",
+      entityType: "import_batch",
+      entityId: batch.id,
+      summary: `Universal import mappings analyzed: ${filename}`,
+      details: summary,
+    });
+    res.status(201).json(publicBatch(batch));
+  } catch (error) {
+    res.status(422).json({ error: error instanceof Error ? error.message : "Unable to analyze the upload." });
+  }
+});
+
+router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<void> => {
+  const parsed = universalImportMappingPatchSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [batch] = await db.select().from(importBatchesTable).where(and(
+    eq(importBatchesTable.id, req.params.id),
+    eq(importBatchesTable.tenantId, req.currentTenant!.id),
+  ));
+  if (!batch || batch.status !== "ANALYZED") {
+    res.status(404).json({ error: "Import staging batch not found or no longer editable." });
+    return;
+  }
+  const current = batch.mappings as UniversalImportMapping[];
+  const patch = new Map(parsed.data.mappings.map((mapping) => [mapping.source, mapping.destination]));
+  const mappings = current.map((mapping) => {
+    const explicit = patch.get(mapping.source);
+    if (!explicit) return mapping;
+    // Only an explicitly submitted source is resolved. Omitted unknown
+    // columns retain their server-computed review requirement.
+    return {
+      ...mapping,
+      destination: explicit,
+      confidence: 1,
+      requiresReview: explicit === "finance.candidate",
+    };
+  });
+  const learned = await learnedMappings(req.currentTenant!.id);
+  const valueMappings = new Map(learned.values);
+  for (const mapping of parsed.data.valueMappings ?? []) {
+    valueMappings.set(`value:implant.system:${mapping.source}`, mapping.destination);
+  }
+  const priorApprovals = new Set((batch.summary as { approvedRows?: number[] }).approvedRows ?? []);
+  for (const approval of parsed.data.rowApprovals ?? []) {
+    if (approval.approved) priorApprovals.add(approval.rowNumber);
+    else priorApprovals.delete(approval.rowNumber);
+  }
+  const rows = await classifyDuplicates(
+    normalizeRows(batch.sourceRows as RawRow[], mappings, valueMappings, undefined, priorApprovals),
+    req.currentTenant!.id,
+    priorApprovals,
+  );
+  const summary = {
+    ...(batch.summary as Record<string, unknown>),
+    ready: rows.filter((row) => row.status === "READY").length,
+    reviewRequired: rows.filter((row) => row.status === "REVIEW_REQUIRED").length,
+    blocked: rows.filter((row) => row.status === "BLOCKED").length,
+    duplicate: rows.filter((row) => row.status === "DUPLICATE").length,
+    approvedRows: [...priorApprovals],
+  };
+  const patchNow = new Date();
+  const [updated] = await db.update(importBatchesTable).set({ mappings, normalizedRows: rows, summary, version: batch.version + 1, updatedAt: patchNow }).where(and(
+    eq(importBatchesTable.id, batch.id),
+    eq(importBatchesTable.tenantId, req.currentTenant!.id),
+    eq(importBatchesTable.status, "ANALYZED"),
+    eq(importBatchesTable.version, batch.version),
+    ...(parsed.data.version ? [eq(importBatchesTable.version, parsed.data.version)] : []),
+  )).returning();
+  if (!updated) {
+    await writeAuditRequired({ tenantId: req.currentTenant!.id, userId: req.currentUser!.id, action: "IMPORT_FAILED",
+      entityType: "import_batch", entityId: batch.id, summary: "Stale mapping patch rejected" });
+    res.status(409).json({ error: "Import batch changed while mapping; refresh and retry." });
+    return;
+  }
+  for (const mapping of parsed.data.mappings) {
+    await db.insert(importMappingsTable).values({
+      tenantId: req.currentTenant!.id,
+      sourceKind: "header",
+      sourceValue: mapping.source,
+      destination: mapping.destination,
+      confidence: "1",
+      approvedBy: req.currentUser!.id,
+      approvedAt: new Date(),
+    });
+  }
+  for (const mapping of parsed.data.valueMappings ?? []) {
+    await db.insert(importMappingsTable).values({
+      tenantId: req.currentTenant!.id,
+      sourceKind: "value:implant.system",
+      sourceValue: mapping.source,
+      destination: mapping.destination,
+      confidence: "1",
+      approvedBy: req.currentUser!.id,
+      approvedAt: new Date(),
+    });
+  }
+  res.json(publicBatch(updated));
+});
+
+router.get("/admin/import/universal/:id", async (req, res): Promise<void> => {
+  const [batch] = await db.select().from(importBatchesTable).where(and(
+    eq(importBatchesTable.id, req.params.id),
+    eq(importBatchesTable.tenantId, req.currentTenant!.id),
+  ));
+  if (!batch) {
+    res.status(404).json({ error: "Import staging batch not found." });
+    return;
+  }
+  res.json(publicBatch(batch));
+});
+
+router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void> => {
+  const options = universalImportCommitSchema.safeParse(req.body);
+  if (!options.success) {
+    res.status(400).json({ error: options.error.message });
+    return;
+  }
+  const [batch] = await db.select().from(importBatchesTable).where(and(
+    eq(importBatchesTable.id, req.params.id),
+    eq(importBatchesTable.tenantId, req.currentTenant!.id),
+  ));
+  if (!batch || !["ANALYZED", "PILOT_COMMITTED", "PARTIAL_FAILED"].includes(batch.status)) {
+    res.status(404).json({ error: "Import staging batch not found or already finalized." });
+    return;
+  }
+  const rows = batch.normalizedRows as NormalizedRow[];
+  const committedRowNumbers = new Set((batch.committedRowNumbers as number[]) ?? []);
+  const selected = new Set(options.data.rowNumbers ?? rows.map((row) => row.rowNumber));
+  for (const rowNumber of committedRowNumbers) selected.delete(rowNumber);
+  const chosen = rows.filter((row) => selected.has(row.rowNumber));
+  if (chosen.length === 0) {
+    res.status(422).json({ error: "Select at least one row to commit." });
+    return;
+  }
+  const selectedFiles = new Set(chosen.map((row) => row.proposed.patient.fileNumber));
+  const missingHistory = rows.filter((row) =>
+    row.status === "READY" &&
+    selectedFiles.has(row.proposed.patient.fileNumber) &&
+    !committedRowNumbers.has(row.rowNumber) &&
+    !selected.has(row.rowNumber),
+  );
+  if (missingHistory.length > 0) {
+    res.status(422).json({ error: "Select every READY row for each selected patient/file number; partial patient history is not allowed." });
+    return;
+  }
+  if (options.data.pilot && selectedFiles.size > 5) {
+    res.status(422).json({ error: "Pilot import is limited to five distinct patients." });
+    return;
+  }
+  if (chosen.some((row) => row.status !== "READY")) {
+    res.status(422).json({ error: "Only READY rows can be committed. Resolve review and blocked rows first." });
+    return;
+  }
+  const claimed = await db.update(importBatchesTable).set({
+    status: "COMMITTING",
+    version: batch.version + 1,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(importBatchesTable.id, batch.id),
+    eq(importBatchesTable.tenantId, req.currentTenant!.id),
+    or(eq(importBatchesTable.status, "ANALYZED"), eq(importBatchesTable.status, "PILOT_COMMITTED"), eq(importBatchesTable.status, "PARTIAL_FAILED")),
+    eq(importBatchesTable.version, batch.version),
+    ...(options.data.version ? [eq(importBatchesTable.version, options.data.version)] : []),
+  )).returning();
+  if (!claimed.length) {
+    await writeAuditRequired({ tenantId: req.currentTenant!.id, userId: req.currentUser!.id, action: "IMPORT_FAILED",
+      entityType: "import_batch", entityId: batch.id, summary: "Concurrent import claim rejected" });
+    res.status(409).json({ error: "Import batch is being changed or committed; refresh and retry." });
+    return;
+  }
+  const createdRecords: CreatedRecord[] = [...(batch.createdRecords as CreatedRecord[])];
+  let committedRowCount = 0;
+  let committedGroupCount = 0;
+  const committedThisRun: number[] = [];
+  const groups = new Map<string, NormalizedRow[]>();
+  for (const row of chosen) {
+    const group = groups.get(row.proposed.patient.fileNumber) ?? [];
+    group.push(row);
+    groups.set(row.proposed.patient.fileNumber, group);
+  }
+  try {
+    for (const group of groups.values()) {
+      const groupRecords: CreatedRecord[] = [];
+      await db.transaction(async (tx) => {
+        const firstRow = group[0];
+        if (!compatiblePatientIdentity(group)) {
+          throw new Error(`Conflicting patient identity for file ${firstRow.proposed.patient.fileNumber}.`);
+        }
+        const patientMatches = await tx.select().from(patientsTable).where(and(
+          eq(patientsTable.tenantId, req.currentTenant!.id),
+          eq(patientsTable.fileNumber, firstRow.proposed.patient.fileNumber),
+        ));
+        let patient = patientMatches[0];
+        if (patient && patient.fullNameNormalized !== normalizeArabicSearchText(firstRow.proposed.patient.name)) {
+          throw new Error(`File number conflict for ${firstRow.proposed.patient.fileNumber}.`);
+        }
+        if (!patient) {
+          const canonicalMobile = canonicalGroupMobile(group);
+          [patient] = await tx.insert(patientsTable).values({
+            tenantId: req.currentTenant!.id,
+            fileNumber: firstRow.proposed.patient.fileNumber,
+            fullName: firstRow.proposed.patient.name,
+            fullNameNormalized: normalizeArabicSearchText(firstRow.proposed.patient.name),
+            mobileNumber: canonicalMobile,
+            age: firstRow.proposed.patient.age,
+            createdBy: req.currentUser!.id,
+            updatedBy: req.currentUser!.id,
+            administrativeNote: firstRow.proposed.legacyNotes.join("\n") || null,
+          }).returning();
+          groupRecords.push({
+            table: "patients",
+            id: patient.id,
+            createdAt: patient.createdAt.toISOString(),
+            updatedAt: patient.updatedAt.toISOString(),
+          });
+        }
+        for (const row of group) {
+          const existingCase = await tx.select().from(implantCasesTable).where(and(
+            eq(implantCasesTable.tenantId, req.currentTenant!.id),
+            eq(implantCasesTable.patientId, patient.id),
+            eq(implantCasesTable.procedureDate, row.proposed.case.procedureDate),
+            isNull(implantCasesTable.archivedAt),
+          ));
+          if (existingCase.length) throw new Error(`Duplicate case for file ${row.proposed.patient.fileNumber} and date ${row.proposed.case.procedureDate}.`);
+          const [caseRow] = await tx.insert(implantCasesTable).values({
+            tenantId: req.currentTenant!.id,
+            patientId: patient.id,
+            procedureDate: row.proposed.case.procedureDate,
+            treatingDoctor: row.proposed.case.treatingDoctor,
+            caseStatus: row.proposed.case.status,
+            baseTreatmentAmount: "0",
+            legacyCostNote: row.proposed.financeCandidate,
+            generalNote: row.proposed.legacyNotes.join("\n") || null,
+            createdBy: req.currentUser!.id,
+            updatedBy: req.currentUser!.id,
+          }).returning();
+          groupRecords.push({
+            table: "implant_cases",
+            id: caseRow.id,
+            patientId: patient.id,
+            createdAt: caseRow.createdAt.toISOString(),
+            updatedAt: caseRow.updatedAt.toISOString(),
+          });
+          for (const implant of row.proposed.implants) {
+            const [implantRow] = await tx.insert(implantsTable).values({
+              tenantId: req.currentTenant!.id,
+              implantCaseId: caseRow.id,
+              site: implant.site,
+              isCustomSite: true,
+              system: implant.system,
+              diameter: sizeNumbers(implant.size).diameter,
+              length: sizeNumbers(implant.size).length,
+              implantNote: implant.size ? `Legacy size: ${implant.size}` : null,
+              createdBy: req.currentUser!.id,
+              updatedBy: req.currentUser!.id,
+            }).returning();
+            groupRecords.push({
+              table: "implants",
+              id: implantRow.id,
+              patientId: patient.id,
+              createdAt: implantRow.createdAt.toISOString(),
+              updatedAt: implantRow.updatedAt.toISOString(),
+            });
+          }
+        }
+      });
+      createdRecords.push(...groupRecords);
+      committedRowCount += group.length;
+      committedGroupCount += 1;
+      committedThisRun.push(...group.map((row) => row.rowNumber));
+    }
+  } catch (error) {
+    if (createdRecords.length > 0) {
+      await db.update(importBatchesTable).set({
+        status: "PARTIAL_FAILED",
+        version: batch.version + 2,
+        committedRowNumbers: [...committedRowNumbers, ...committedThisRun],
+        createdRecords,
+        committedAt: new Date(),
+        updatedAt: new Date(),
+        summary: {
+          ...(batch.summary as Record<string, unknown>),
+          committedRows: committedRowCount,
+          partial: true,
+          pilot: options.data.pilot,
+        },
+      }).where(and(
+        eq(importBatchesTable.id, batch.id),
+        eq(importBatchesTable.tenantId, req.currentTenant!.id),
+        eq(importBatchesTable.status, "COMMITTING"),
+        eq(importBatchesTable.version, batch.version + 1),
+      ));
+      const errorMessage = error instanceof Error ? error.message : "One patient group failed.";
+      await writeAuditRequired({
+        tenantId: req.currentTenant!.id,
+        userId: req.currentUser!.id,
+        action: "IMPORT_FAILED",
+        entityType: "import_batch",
+        entityId: batch.id,
+        summary: `Universal import partially failed after ${committedGroupCount} patient groups`,
+        details: { committedGroups: committedGroupCount, committedRows: committedRowCount, error: errorMessage },
+      });
+      const [partialFailed] = await db.select().from(importBatchesTable).where(and(
+        eq(importBatchesTable.id, batch.id),
+        eq(importBatchesTable.tenantId, req.currentTenant!.id),
+      ));
+      res.status(422).json(universalImportPartialFailureResponseSchema.parse({
+        error: errorMessage,
+        committedGroups: committedGroupCount,
+        committedRows: committedRowCount,
+        batch: publicBatch(partialFailed),
+      }));
+      return;
+    }
+    await db.update(importBatchesTable).set({
+      status: "ANALYZED",
+      version: batch.version + 2,
+      updatedAt: new Date(),
+    }).where(and(eq(importBatchesTable.id, batch.id), eq(importBatchesTable.tenantId, req.currentTenant!.id),
+      eq(importBatchesTable.status, "COMMITTING"), eq(importBatchesTable.version, batch.version + 1)));
+    res.status(422).json({ error: error instanceof Error ? error.message : "Import failed; no patient group was committed." });
+    return;
+  }
+  const [updated] = await db.update(importBatchesTable).set({
+    status: options.data.pilot ? "PILOT_COMMITTED" : "COMMITTED",
+    version: batch.version + 2,
+    committedRowNumbers: [...committedRowNumbers, ...committedThisRun],
+    createdRecords,
+    committedAt: new Date(),
+    updatedAt: new Date(),
+    summary: { ...(batch.summary as Record<string, unknown>), committedRows: committedRowCount, pilot: options.data.pilot },
+  }).where(and(eq(importBatchesTable.id, batch.id), eq(importBatchesTable.tenantId, req.currentTenant!.id),
+    eq(importBatchesTable.status, "COMMITTING"), eq(importBatchesTable.version, batch.version + 1))).returning();
+  await writeAuditRequired({
+    tenantId: req.currentTenant!.id,
+    userId: req.currentUser!.id,
+    action: "IMPORT_CONFIRMED",
+    entityType: "import_batch",
+    entityId: batch.id,
+    summary: `Universal import confirmed: ${chosen.length} rows`,
+    details: { pilot: options.data.pilot, rows: chosen.map((row) => row.rowNumber) },
+  });
+  await writeAuditRequired({
+    tenantId: req.currentTenant!.id,
+    userId: req.currentUser!.id,
+    action: "IMPORT_COMPLETED",
+    entityType: "import_batch",
+    entityId: batch.id,
+    summary: `Universal import completed: ${chosen.length} rows`,
+    details: { createdRecords: createdRecords.length },
+  });
+  res.json(universalImportCommitResponseSchema.parse({
+    batch: publicBatch(updated),
+    importedRows: chosen.length,
+    createdRecords: createdRecords.length,
+  }));
+});
+
+router.post("/admin/import/universal/:id/rollback", async (req, res): Promise<void> => {
+  const [batch] = await db.select().from(importBatchesTable).where(and(
+    eq(importBatchesTable.id, req.params.id),
+    eq(importBatchesTable.tenantId, req.currentTenant!.id),
+  ));
+  if (!batch || !["COMMITTED", "PILOT_COMMITTED", "PARTIAL_FAILED"].includes(batch.status)) {
+    res.status(404).json({ error: "Only a committed or partially failed import batch can be rolled back." });
+    return;
+  }
+  const records = batch.createdRecords as CreatedRecord[];
+  const [claimedRollback] = await db.update(importBatchesTable).set({
+    status: "ROLLING_BACK", version: batch.version + 1, updatedAt: new Date(),
+  }).where(and(
+    eq(importBatchesTable.id, batch.id), eq(importBatchesTable.tenantId, req.currentTenant!.id),
+    or(eq(importBatchesTable.status, "COMMITTED"), eq(importBatchesTable.status, "PILOT_COMMITTED"), eq(importBatchesTable.status, "PARTIAL_FAILED")),
+    eq(importBatchesTable.version, batch.version),
+  )).returning();
+  if (!claimedRollback) {
+    await writeAuditRequired({ tenantId: req.currentTenant!.id, userId: req.currentUser!.id, action: "IMPORT_FAILED",
+      entityType: "import_batch", entityId: batch.id, summary: "Concurrent rollback claim rejected" });
+    res.status(409).json({ error: "Import batch changed while rollback was starting; refresh and retry." });
+    return;
+  }
+  const implantIds = records.filter((record) => record.table === "implants").map((record) => record.id);
+  const caseIds = records.filter((record) => record.table === "implant_cases").map((record) => record.id);
+  const patientIds = records.filter((record) => record.table === "patients").map((record) => record.id);
+  let rolledBackBatch: typeof importBatchesTable.$inferSelect;
+  try {
+    await db.transaction(async (tx) => {
+      const [currentImplants, currentCases, currentPatients] = await Promise.all([
+        implantIds.length ? tx.select({ id: implantsTable.id, createdAt: implantsTable.createdAt, updatedAt: implantsTable.updatedAt }).from(implantsTable).where(and(eq(implantsTable.tenantId, req.currentTenant!.id), inArray(implantsTable.id, implantIds))) : [],
+        caseIds.length ? tx.select({ id: implantCasesTable.id, createdAt: implantCasesTable.createdAt, updatedAt: implantCasesTable.updatedAt }).from(implantCasesTable).where(and(eq(implantCasesTable.tenantId, req.currentTenant!.id), inArray(implantCasesTable.id, caseIds))) : [],
+        patientIds.length ? tx.select({ id: patientsTable.id, createdAt: patientsTable.createdAt, updatedAt: patientsTable.updatedAt }).from(patientsTable).where(and(eq(patientsTable.tenantId, req.currentTenant!.id), inArray(patientsTable.id, patientIds))) : [],
+      ]);
+      const currentById = new Map([...currentImplants, ...currentCases, ...currentPatients].map((record) => [record.id, record]));
+      if (records.some((record) => {
+        const current = currentById.get(record.id);
+        return !current ||
+          current.createdAt.toISOString() !== record.createdAt ||
+          current.updatedAt.toISOString() !== record.updatedAt;
+      })) {
+        throw new Error("Rollback blocked: an imported record was modified after import.");
+      }
+      if (implantIds.length) await tx.delete(implantsTable).where(and(eq(implantsTable.tenantId, req.currentTenant!.id), inArray(implantsTable.id, implantIds)));
+      if (caseIds.length) {
+        const references = await tx.select({ id: implantCasesTable.id }).from(implantCasesTable).where(and(eq(implantCasesTable.tenantId, req.currentTenant!.id), inArray(implantCasesTable.id, caseIds), isNull(implantCasesTable.archivedAt)));
+        if (references.length !== caseIds.length) throw new Error("Rollback blocked: imported cases were archived or changed.");
+        await tx.delete(implantCasesTable).where(and(eq(implantCasesTable.tenantId, req.currentTenant!.id), inArray(implantCasesTable.id, caseIds)));
+      }
+      if (patientIds.length) {
+        const references = await tx.select({ id: patientsTable.id }).from(patientsTable).where(and(eq(patientsTable.tenantId, req.currentTenant!.id), inArray(patientsTable.id, patientIds), isNull(patientsTable.archivedAt)));
+        if (references.length !== patientIds.length) throw new Error("Rollback blocked: imported patients were archived or changed.");
+        await tx.delete(patientsTable).where(and(eq(patientsTable.tenantId, req.currentTenant!.id), inArray(patientsTable.id, patientIds)));
+      }
+      const [finalBatch] = await tx.update(importBatchesTable).set({
+        status: "ROLLED_BACK", version: batch.version + 2, rolledBackAt: new Date(), updatedAt: new Date(),
+      }).where(and(eq(importBatchesTable.id, batch.id), eq(importBatchesTable.tenantId, req.currentTenant!.id),
+        eq(importBatchesTable.status, "ROLLING_BACK"), eq(importBatchesTable.version, batch.version + 1))).returning();
+      if (!finalBatch) throw new Error("Rollback lost its lifecycle claim.");
+      rolledBackBatch = finalBatch;
+    });
+  } catch (error) {
+    await db.update(importBatchesTable).set({ status: batch.status, version: batch.version + 2, updatedAt: new Date() }).where(and(
+      eq(importBatchesTable.id, batch.id), eq(importBatchesTable.tenantId, req.currentTenant!.id),
+      eq(importBatchesTable.status, "ROLLING_BACK"), eq(importBatchesTable.version, batch.version + 1),
+    ));
+    res.status(409).json({ error: error instanceof Error ? error.message : "Rollback blocked because imported records were changed or used." });
+    return;
+  }
+  await writeAuditRequired({
+    tenantId: req.currentTenant!.id,
+    userId: req.currentUser!.id,
+    action: "IMPORT_ROLLED_BACK",
+    entityType: "import_batch",
+    entityId: batch.id,
+    summary: "Universal import batch rolled back",
+  });
+  res.json(universalImportRollbackResponseSchema.parse({
+    batch: publicBatch(rolledBackBatch!),
+    rolledBack: true,
+  }));
+});
+
+export default router;

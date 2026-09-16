@@ -28,3 +28,4 @@
 - [Cairo PDF subsets](cairo-pdf-subsets.md) — Fontsource Cairo splits Arabic/Latin glyphs; PDF renderers must select by script, normalize bidi punctuation, and reverse RTL columns.
 - [Export enum localization](export-enum-localization.md) — localize canonical Arabic enum values only at the export boundary; never rewrite stored values or filter inputs.
 - [Clinical date semantics](clinical-date-semantics.md) — implant activity follows case procedure date; prosthetic activity follows event date; entry timestamps never substitute.
+- [Legacy import safety](legacy-import-safety.md) — staging is server-owned; approval is exact and tenant-scoped; patient groups, pilot lifecycle, CAS, and rollback tracking are mandatory.

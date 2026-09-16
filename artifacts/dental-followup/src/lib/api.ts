@@ -89,6 +89,13 @@ import type {
   UpdateLookupOptionInput,
   UpdateTemplateInput,
   UpdateUserInput,
+  UniversalImportInput,
+  UniversalImportBatch,
+  UniversalImportMappingPatch,
+  UniversalImportCommit,
+  UniversalImportCommitResponse,
+  UniversalImportPartialFailureResponse,
+  UniversalImportRollbackResponse,
   QuickEntryInput,
   QuickEntryResponse,
   PublicRegistrationInput,
@@ -715,7 +722,7 @@ export const api = {
   quickEntry: (input: QuickEntryInput) =>
     request<QuickEntryResponse>("/quick-entry", { method: "POST", json: input }),
 
-  // Admin: legacy import
+  // Admin: legacy import (template-based)
   adminImportPreview: (input: ImportRequest) =>
     request<ImportPreviewResponse>(`/admin/import/preview`, {
       method: "POST",
@@ -725,6 +732,29 @@ export const api = {
     request<ImportCommitResponse>(`/admin/import/commit`, {
       method: "POST",
       json: input,
+    }),
+
+  // Admin: Universal Legacy Import
+  universalImportAnalyze: (input: UniversalImportInput) =>
+    request<UniversalImportBatch>(`/admin/import/universal/analyze`, {
+      method: "POST",
+      json: input,
+    }),
+  universalImportGetBatch: (id: string) =>
+    request<UniversalImportBatch>(`/admin/import/universal/${id}`),
+  universalImportPatchMapping: (id: string, input: UniversalImportMappingPatch) =>
+    request<UniversalImportBatch>(`/admin/import/universal/${id}/mapping`, {
+      method: "PATCH",
+      json: input,
+    }),
+  universalImportCommitBatch: (id: string, input: UniversalImportCommit) =>
+    request<UniversalImportCommitResponse>(`/admin/import/universal/${id}/commit`, {
+      method: "POST",
+      json: input,
+    }),
+  universalImportRollbackBatch: (id: string) =>
+    request<UniversalImportRollbackResponse>(`/admin/import/universal/${id}/rollback`, {
+      method: "POST",
     }),
 };
 
