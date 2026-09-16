@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
 import app from "../src/app";
 import {
   ADMIN_PASSWORD,
@@ -154,11 +155,14 @@ describe("platform admin control center", () => {
     });
     expect(invalidSettings.status).toBe(400);
 
+    const registrationSuffix = randomUUID().slice(0, 8);
+    const futureTenantName = `Future Default Clinic ${registrationSuffix}`;
     const registration = await agentFor(app).post("/api/auth/register").send({
-      tenantName: "Future Default Clinic",
+      tenantName: futureTenantName,
       ownerName: "Future Owner",
-      username: "future-owner",
+      username: `future-owner-${registrationSuffix}`,
       phone: "0501234567",
+      cityDisplayName: "Riyadh",
       password: ADMIN_PASSWORD,
       confirmPassword: ADMIN_PASSWORD,
       locale: "en",
@@ -169,7 +173,8 @@ describe("platform admin control center", () => {
       trial_ends_at: Date;
     }>(
       `SELECT trial_started_at, trial_ends_at
-       FROM tenants WHERE name = 'Future Default Clinic'`,
+       FROM tenants WHERE name = $1`,
+      [futureTenantName],
     );
     const durationHours = (
       futureTenant.rows[0].trial_ends_at.getTime()

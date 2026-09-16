@@ -80,6 +80,7 @@ const dashboardText = (key: string, options?: Record<string, unknown>) => {
     ? i18n.t(operationalKey, options)
     : i18n.t(`guidance:dashboard.${key}`, options);
 };
+const clinicalText = (key: string) => i18n.t(`clinical:implant.fieldHelp.${key}`);
 const NORMAL_IMPLANT_STATUS_PROGRESSION: readonly ImplantStatus[] = [
   "مزروعة",
   "مرحلة الالتئام",
@@ -679,7 +680,7 @@ function InlineImplantEdit({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Former</Label>
+          <Label className="text-xs">{clinicalText("Former")}</Label>
           <Select value={formerValue || "__none__"} onValueChange={(v) => setFormerValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
@@ -689,7 +690,7 @@ function InlineImplantEdit({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Graft</Label>
+          <Label className="text-xs">{clinicalText("Graft")}</Label>
           <Select value={graftValue || "__none__"} onValueChange={(v) => setGraftValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
@@ -867,7 +868,7 @@ function InlineAddImplant({
         </div>
         {/* Former */}
         <div className="space-y-1">
-          <Label className="text-xs">Former</Label>
+          <Label className="text-xs">{clinicalText("Former")}</Label>
           <Select value={formerValue || "__none__"} onValueChange={(v) => setFormerValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
@@ -878,7 +879,7 @@ function InlineAddImplant({
         </div>
         {/* Graft */}
         <div className="space-y-1">
-          <Label className="text-xs">Graft</Label>
+          <Label className="text-xs">{clinicalText("Graft")}</Label>
           <Select value={graftValue || "__none__"} onValueChange={(v) => setGraftValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>
@@ -1163,6 +1164,7 @@ function riyadhDateTimeInput(value: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
+    numberingSystem: "latn",
   }).format(new Date(value)).replace(" ", "T");
 }
 
@@ -1173,6 +1175,7 @@ function riyadhDateInput(value: string | null): string {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    numberingSystem: "latn",
   }).format(new Date(value));
 }
 
@@ -2240,7 +2243,7 @@ function PatientExpandedRow({
                                     <p className="font-medium notranslate truncate">{imp.system || "—"}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] text-muted-foreground">SIZE</p>
+                                    <p className="text-[10px] text-muted-foreground">{clinicalText("SIZE")}</p>
                                     <p className="font-medium" dir="ltr">
                                       {imp.diameter != null || imp.length != null
                                         ? `${imp.diameter != null ? `Ø${imp.diameter}` : "—"}${imp.diameter != null && imp.length != null ? " × " : ""}${imp.length != null ? `L${imp.length}` : ""}`
@@ -2252,11 +2255,11 @@ function PatientExpandedRow({
                                     <p className="font-medium">{imp.qValue || "—"}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] text-muted-foreground">Former</p>
+                                    <p className="text-[10px] text-muted-foreground">{clinicalText("Former")}</p>
                                     <p className="font-medium">{imp.formerValue || "—"}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] text-muted-foreground">Graft</p>
+                                    <p className="text-[10px] text-muted-foreground">{clinicalText("Graft")}</p>
                                     <p className="font-medium">{imp.graftValue || "—"}</p>
                                   </div>
                                   <div>
@@ -2487,7 +2490,7 @@ function PatientExpandedRow({
                               <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{enumLabel("adjunctProcedureCategory", procedure.procedureCategory)}</Badge>
                               <span>{procedure.procedureType}</span>
                               <span className="font-medium">{formatSaudiDate(procedure.procedureDate)}</span>
-                              <Badge variant="secondary">{procedure.procedureStatus}</Badge>
+                              <Badge variant="secondary">{enumLabel("procedureStatus", procedure.procedureStatus)}</Badge>
                                <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] me-auto" onClick={() => setBoneGraftContext({ caseItem: c, procedure })}><Pencil className="h-3 w-3" />{t("dashboard.edit")}</Button>
                                {canArchiveProstheticEvents && <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-destructive hover:text-destructive" onClick={() => setConfirmArchiveBoneGraftProcedureId(procedure.id)}><Archive className="h-3 w-3" />{t("dashboard.archive")}</Button>}
                             </div>

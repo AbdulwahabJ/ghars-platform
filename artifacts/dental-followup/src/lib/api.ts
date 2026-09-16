@@ -140,6 +140,7 @@ import type {
 } from "@workspace/shared";
 import i18n from "@/i18n";
 import { localizeApiErrorMessage } from "@/lib/localize-error";
+import { normalizeNumericValues } from "@/lib/digits";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
 
@@ -174,7 +175,7 @@ async function request<T>(
     method,
     credentials: "same-origin",
     headers: json !== undefined ? { "Content-Type": "application/json" } : {},
-    body: json !== undefined ? JSON.stringify(json) : undefined,
+    body: json !== undefined ? JSON.stringify(normalizeNumericValues(json)) : undefined,
   });
 
   if (!response.ok) {

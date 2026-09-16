@@ -7,6 +7,7 @@ import {
   GHARS_NAVY,
   GHARS_PALE_TEAL,
   GHARS_TEAL,
+  normalizeSystemDigits,
   resolveReport,
   safeFilename,
   toDate,
@@ -36,7 +37,7 @@ function excelValue(value: ReportRow[string], column: ReportColumn, locale: "ar"
   if (column.type === "boolean" && typeof value === "boolean") {
     return value ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No";
   }
-  return String(value);
+  return column.systemDigits ? normalizeSystemDigits(String(value)) : String(value);
 }
 
 function configureSheet(

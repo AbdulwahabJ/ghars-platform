@@ -34,6 +34,7 @@ import {
 import { effectivePermissions } from "../lib/permissions";
 import { writeAudit } from "../lib/audit";
 import { localizeExportList, localizeExportValue } from "../lib/export-localization";
+import { normalizeSystemDigits } from "../lib/export/formatting";
 import {
   buildInstallmentPlanDto,
   buildSummary,
@@ -380,7 +381,7 @@ function buildDefinition(
       { key: "value", header: l.value, type: "text" },
     ], [
       { field: l.name, value: patient.fullName },
-      { field: l.fileNumber, value: patient.fileNumber },
+       { field: l.fileNumber, value: normalizeSystemDigits(patient.fileNumber) },
       { field: l.mobile, value: asText(patient.mobileNumber) },
       { field: l.age, value: patient.age },
       { field: l.status, value: patient.archivedAt ? l.archived : l.active },
@@ -388,7 +389,7 @@ function buildDefinition(
     ]),
   );
   const cases = section(l.cases, [
-    { key: "case", header: l.case, type: "text", width: 75 },
+     { key: "case", header: l.case, type: "text", width: 75, systemDigits: true },
     { key: "procedureDate", header: l.procedureDate, type: "date" },
     { key: "doctor", header: l.doctor, type: "text" },
     { key: "referringDoctor", header: l.referringDoctor, type: "text" },

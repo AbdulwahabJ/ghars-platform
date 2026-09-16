@@ -60,6 +60,7 @@ export function todayInRiyadh(): string {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    numberingSystem: "latn",
   }).format(new Date());
 }
 
@@ -70,6 +71,7 @@ function formatPlainDate(value: string, language: string): string {
     year: "numeric",
     month: "long",
     day: "numeric",
+    numberingSystem: "latn",
   }).format(date);
 }
 
@@ -165,6 +167,7 @@ function timeParts(value: string): { hour: number; minute: number; period: "ص" 
       hour: "numeric",
       minute: "2-digit",
       hour12: false,
+      numberingSystem: "latn",
     }).formatToParts(new Date());
     const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 9);
     const minute = Number(parts.find((part) => part.type === "minute")?.value ?? 0);

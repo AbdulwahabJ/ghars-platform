@@ -15,7 +15,8 @@ export type EnumCategory =
   | "adjunctProcedureCategory"
   | "procedureSide"
   | "sinusLiftType"
-  | "prostheticEventType";
+  | "prostheticEventType"
+  | "procedureStatus";
 
 export function useEnumTranslation() {
   const { t } = useTranslation("enums");

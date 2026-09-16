@@ -213,6 +213,9 @@ function toReport(
     key: `column_${index}`,
     header: reportHeaders[index] ?? "",
     type: types[index],
+    // Every operational export starts with the patient file number. It is a
+    // technical identifier, not free-form text.
+    systemDigits: index === 0,
     width: types[index] === "date" ? 18 : types[index] === "currency" ? 16 : undefined,
   }));
   const columns = format === "pdf"

@@ -895,7 +895,7 @@ export function InlineNewRecord({
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Former</Label>
+                        <Label className="text-xs">{t("fields.formerValue")}</Label>
                         <Select
                           dir={i18n.dir()}
                           value={form.watch(`implants.${index}.formerValue`) || "__none__"}
@@ -913,7 +913,7 @@ export function InlineNewRecord({
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Graft</Label>
+                        <Label className="text-xs">{t("fields.graftValue")}</Label>
                         <Select
                           dir={i18n.dir()}
                           value={form.watch(`implants.${index}.graftValue`) || "__none__"}

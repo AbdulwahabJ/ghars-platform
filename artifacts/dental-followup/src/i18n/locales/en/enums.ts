@@ -120,6 +120,7 @@ const enums = {
   procedureSide: { "يمين": "Right", "يسار": "Left" },
   sinusLiftType: { "مفتوح": "Open", "مغلق": "Closed", "أخرى": "Other" },
   prostheticEventType: { "تركيب مؤقت": "Temporary prosthesis", "تركيب دائم": "Final prosthesis" },
+  procedureStatus: { "مخطط": "Planned", "تم": "Completed", "مؤجل": "Postponed" },
 } as const;
 
 export default enums;

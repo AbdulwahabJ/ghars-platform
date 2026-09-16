@@ -59,6 +59,7 @@ import {
   type ReportDefinition,
   type ReportLocale,
 } from "../lib/export";
+import { normalizeSystemDigits, normalizeSystemNumericText } from "../lib/export/formatting";
 import { localizeExportValue } from "../lib/export-localization";
 import { effectivePermissions } from "../lib/permissions";
 import { parseOrRespond } from "../lib/validation";
@@ -1451,8 +1452,8 @@ function financeExportReport(
         columns: [
           { key: "paymentDate", header: labels.date, type: "date", width: 75 },
           { key: "patientName", header: labels.patient, type: "text", width: 125 },
-          { key: "fileNumber", header: labels.fileNumber, type: "text", width: 65 },
-          { key: "implantCaseId", header: labels.caseNumber, type: "text", width: 75 },
+          { key: "fileNumber", header: labels.fileNumber, type: "text", width: 65, systemDigits: true },
+          { key: "implantCaseId", header: labels.caseNumber, type: "text", width: 75, systemDigits: true },
           { key: "paymentLabel", header: labels.paymentLabel, type: "text", width: 110 },
           { key: "amount", header: labels.amount, type: "currency", width: 80, align: "right" },
           { key: "paymentMethod", header: labels.paymentMethod, type: "text", width: 85 },
@@ -1487,7 +1488,8 @@ router.get("/finance/export.csv", requireFinanceView, async (req, res) => {
   const overview = await computeOverview(filters, tenantId);
 
   const esc = (v: string | number | null): string => {
-    const s = v == null ? "" : String(v);
+    // Normalize numeric identifiers/amounts only; preserve user-entered text.
+    const s = v == null ? "" : normalizeSystemNumericText(String(v));
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const header = [
@@ -1502,12 +1504,12 @@ router.get("/finance/export.csv", requireFinanceView, async (req, res) => {
   ].join(",");
   const lines = overview.payments.map((p) =>
     [
-      p.paymentDate,
+      normalizeSystemDigits(p.paymentDate),
       esc(p.patientName),
-      esc(p.fileNumber),
-      p.implantCaseId.slice(0, 8),
+      esc(normalizeSystemDigits(p.fileNumber)),
+      normalizeSystemDigits(p.implantCaseId.slice(0, 8)),
       esc(p.paymentLabel),
-      p.amount.toFixed(2),
+      normalizeSystemDigits(p.amount.toFixed(2)),
       esc(p.paymentMethod),
       esc(p.createdByName),
     ].join(","),

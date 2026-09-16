@@ -2,8 +2,10 @@
 
 import * as React from 'react';
 import { DayButton, DayPicker, getDefaultClassNames } from 'react-day-picker';
+import { useTranslation } from 'react-i18next';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getIntlLocale } from '@/i18n';
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -23,6 +25,9 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>['variant'];
 }) {
   const defaultClassNames = getDefaultClassNames();
+  const { i18n } = useTranslation();
+  const activeLocale = i18n.language === 'en' ? 'en' : 'ar';
+  const intlLocale = getIntlLocale(activeLocale);
 
   return (
     <DayPicker
@@ -36,7 +41,11 @@ function Calendar({
       captionLayout={captionLayout}
       formatters={{
         formatMonthDropdown: (date) =>
-          date.toLocaleString('default', { month: 'short' }),
+          new Intl.DateTimeFormat(intlLocale, { month: 'short', numberingSystem: 'latn' }).format(date),
+        formatMonthCaption: (date) =>
+          new Intl.DateTimeFormat(intlLocale, { month: 'long', year: 'numeric', numberingSystem: 'latn' }).format(date),
+        formatWeekdayName: (date) =>
+          new Intl.DateTimeFormat(intlLocale, { weekday: 'short', numberingSystem: 'latn' }).format(date),
         ...formatters,
       }}
       classNames={{
@@ -189,7 +198,7 @@ function CalendarDayButton({
       ref={ref}
       variant="ghost"
       size="icon"
-      data-day={day.date.toLocaleDateString()}
+      data-day={day.date.toISOString().slice(0, 10)}
       data-selected-single={
         modifiers.selected &&
         !modifiers.range_start &&

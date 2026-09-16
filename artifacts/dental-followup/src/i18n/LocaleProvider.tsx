@@ -12,10 +12,12 @@ import {
 } from "./index";
 
 export function LocaleProvider({ children }: PropsWithChildren) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation("common");
   const { user, preferences } = useAuth();
   const updatePreferences = useUpdatePreferences();
-  const [locale, setCurrentLocale] = useState<Locale>(getLocale);
+  const [locale, setCurrentLocale] = useState<Locale>(() =>
+    isLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE,
+  );
 
   useEffect(() => {
     const handleLanguageChanged = (next: string) => {
@@ -40,11 +42,8 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     document.documentElement.dir = direction;
     document.body.dir = direction;
     document.documentElement.dataset.locale = locale;
-    document.title =
-      locale === "ar"
-        ? "غرس | Ghars"
-        : "Ghars | Dental Implant Management";
-  }, [locale]);
+    document.title = t("app.title");
+  }, [locale, t]);
 
   const changeLocale = async (next: Locale) => {
     if (next === locale) return;

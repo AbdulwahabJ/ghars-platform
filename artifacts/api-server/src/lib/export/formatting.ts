@@ -16,6 +16,24 @@ export const GHARS_LIGHT_NAVY = "#E9EDF5";
 
 export const DEFAULT_RIYADH_TIME_ZONE = "Asia/Riyadh";
 
+/**
+ * System-generated numbers are always written with Latin glyphs.  This is
+ * deliberately not applied to arbitrary report text: names, notes and
+ * messages are user-entered content and must retain their original spelling.
+ */
+export function normalizeSystemDigits(value: string): string {
+  return value.replace(/[٠-٩۰-۹]/g, (digit) => {
+    const code = digit.charCodeAt(0);
+    return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
+  });
+}
+
+/** Normalize a value only when it is itself a numeric identifier/value. */
+export function normalizeSystemNumericText(value: string): string {
+  const normalized = normalizeSystemDigits(value);
+  return /^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(normalized) ? normalized : value;
+}
+
 /** Remove path separators, control characters and reserved Windows names. */
 export function safeFilename(
   value: string | undefined | null,
@@ -67,7 +85,8 @@ export function formatRiyadhTimestamp(
   // Deliberately use English Gregorian month names for both UI locales.  This
   // is an export format (not UI copy), and must not vary with the machine's
   // Arabic calendar settings.
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = new Intl.DateTimeFormat("en-US-u-nu-latn", {
+    numberingSystem: "latn",
     timeZone: DEFAULT_RIYADH_TIME_ZONE,
     day: "2-digit",
     month: "short",
@@ -77,20 +96,21 @@ export function formatRiyadhTimestamp(
     hour12: true,
   }).formatToParts(date);
   const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
-  return `${part("day")} ${part("month")} ${part("year")}, ${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
+  return normalizeSystemDigits(`${part("day")} ${part("month")} ${part("year")}, ${part("hour")}:${part("minute")} ${part("dayPeriod")}`);
 }
 
 export function formatRiyadhDate(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = new Intl.DateTimeFormat("en-US-u-nu-latn", {
+    numberingSystem: "latn",
     timeZone: DEFAULT_RIYADH_TIME_ZONE,
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).formatToParts(date);
   const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
-  return `${part("day")} ${part("month")} ${part("year")}`;
+  return normalizeSystemDigits(`${part("day")} ${part("month")} ${part("year")}`);
 }
 
 export function formatFilterValue(value: ReportCellValue, locale: ReportLocale): string {
@@ -109,7 +129,10 @@ export function formatCellValue(
   row: ReportRow,
   locale: ReportLocale = "en",
 ): string {
-  if (column.format) return column.format(value, row);
+  if (column.format) {
+    const formatted = column.format(value, row);
+    return column.systemDigits ? normalizeSystemDigits(formatted) : formatted;
+  }
   if (value === null || value === undefined || value === "") return "—";
   if (column.type === "date") {
     if (!(value instanceof Date || typeof value === "string")) return "";
@@ -121,19 +144,27 @@ export function formatCellValue(
       : formatRiyadhTimestamp(date, locale);
   }
   if (column.type === "percentage" && typeof value === "number") {
-    return `${new Intl.NumberFormat(locale === "ar" ? "ar-SA" : "en", {
+    return normalizeSystemDigits(`${new Intl.NumberFormat(locale === "ar" ? "ar-SA-u-nu-latn" : "en-u-nu-latn", {
+      numberingSystem: "latn",
       maximumFractionDigits: 2,
-    }).format(value * 100)}%`;
+    }).format(value * 100)}%`);
   }
   if (column.type === "currency" && typeof value === "number") {
-    const amount = new Intl.NumberFormat("en-US", {
+    const amount = new Intl.NumberFormat("en-US-u-nu-latn", {
+      numberingSystem: "latn",
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(value);
-    return locale === "ar" ? `${amount} ر.س` : `SAR ${amount}`;
+    return normalizeSystemDigits(locale === "ar" ? `${amount} ر.س` : `SAR ${amount}`);
+  }
+  if (
+    (column.type === "number" || column.type === "currency" || column.type === "percentage") &&
+    typeof value === "string"
+  ) {
+    return normalizeSystemDigits(value);
   }
   if (typeof value === "boolean") return value ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No";
-  return String(value);
+  return column.systemDigits ? normalizeSystemDigits(String(value)) : String(value);
 }
 
 /**

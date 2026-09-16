@@ -99,6 +99,14 @@ export function getLocale(): Locale {
   return isLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
 }
 
+/** Resolve an explicit locale for formatters without consulting browser defaults. */
+export function getIntlLocale(locale: Locale = getLocale()): string {
+  // Keep system-generated UI digits Latin in both languages. This explicit
+  // extension is intentional: browser/OS Arabic preferences must not change
+  // dashboard, report, or form-control display.
+  return locale === "en" ? "en-US-u-nu-latn-ca-gregory" : "ar-SA-u-nu-latn-ca-gregory";
+}
+
 export function getTranslationKeyForLocale(locale: Locale): string {
   return locale === "ar" ? "ar-SA" : "en-US";
 }

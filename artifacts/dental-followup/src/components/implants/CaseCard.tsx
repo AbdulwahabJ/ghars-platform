@@ -432,7 +432,7 @@ export function CaseCard({
                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{enumLabel("adjunctProcedureCategory", item.procedureCategory)}</Badge>
                     <span>{item.procedureType}</span>
                     <span className="font-semibold">{formatSaudiDate(item.procedureDate)}</span>
-                    <Badge variant="secondary">{item.procedureStatus}</Badge>
+                     <Badge variant="secondary">{enumLabel("procedureStatus", item.procedureStatus)}</Badge>
                      {implant && <span className="text-muted-foreground">{t("implant.tooth", { site: implant.site })}</span>}
                      {!isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 me-auto" onClick={() => setBoneGraftProcedureDialog(item)}><Pencil className="h-3.5 w-3.5 ms-1" />{t("implant.edit")}</Button>}
                      {canArchive && !isReadOnly && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setBoneGraftProcedureToArchive(item)}><Archive className="h-3.5 w-3.5 ms-1" />{t("implant.archive")}</Button>}

@@ -6,6 +6,8 @@ const common = {
     shortTagline: "Dental implant management and follow-up",
     values: "Technology · Precision · Trust",
   },
+  app: { title: "Ghars | Dental Implant Management" },
+  greeting: { morning: "Good morning", evening: "Good evening" },
   nav: {
     dashboard: "Dashboard",
     patients: "Patients",
@@ -87,6 +89,7 @@ const common = {
     choose: "Choose language",
     arabic: "العربية",
     english: "English",
+    toggleNavigation: "Open or close navigation menu",
   },
   status: {
     scheduled: "Scheduled",

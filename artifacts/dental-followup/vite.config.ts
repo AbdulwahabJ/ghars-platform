@@ -25,8 +25,10 @@ function resolvePort(): number {
 // The app is served from the domain root in production.
 const basePath = process.env.BASE_PATH ?? '/';
 
-export default defineConfig(async ({ command }) => {
-  const port = command === 'serve' ? resolvePort() : 0;
+export default defineConfig(async ({ command, mode }) => {
+  // Vitest loads Vite with command === "serve" and mode === "test", but it
+  // does not expose the application HTTP server and therefore needs no port.
+  const port = command === 'serve' && mode !== 'test' ? resolvePort() : 0;
   return {
   base: basePath,
   plugins: [

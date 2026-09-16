@@ -33,6 +33,8 @@ export interface ReportColumn {
   /** Optional fixed width (in PDF points or Excel character units). */
   width?: number;
   align?: "left" | "center" | "right";
+  /** Normalize digits in technical identifiers (file/case numbers). */
+  systemDigits?: boolean;
   /** An optional value formatter used by both renderers. */
   format?: (value: ReportCellValue, row: ReportRow) => string;
 }

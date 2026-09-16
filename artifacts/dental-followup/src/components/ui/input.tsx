@@ -1,24 +1,38 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { isNumericCompatibleField, normalizeDigits } from '@/lib/digits';
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(
-  ({ className, type, onChange, ...props }, ref) => {
+  ({ className, type, onChange, value, defaultValue, ...props }, ref) => {
     // Native date inputs render an English "mm/dd/yyyy" skeleton when empty.
     // Tag empty date inputs so CSS (see index.css) can replace that skeleton
     // with an Arabic placeholder, consistently across the whole system.
     const isDate = type === 'date';
-    const isControlled = props.value !== undefined;
+    const isControlled = value !== undefined;
     // For uncontrolled date inputs, track emptiness from the DOM value so an
     // entered date is never hidden after blur.
     const [uncontrolledEmpty, setUncontrolledEmpty] = React.useState(
-      () => props.defaultValue === undefined || props.defaultValue === '',
+      () => defaultValue === undefined || defaultValue === '',
     );
     const isEmptyDate =
       isDate &&
       (isControlled
-        ? props.value === '' || props.value === null
+        ? value === '' || value === null
         : uncontrolledEmpty);
+    const normalizeNumericValue = isNumericCompatibleField({
+      type,
+      inputMode: props.inputMode,
+      name: props.name,
+      id: props.id,
+      ariaLabel: props['aria-label'],
+    });
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      // Native capture handles third-party inputs, while shared Inputs can
+      // normalize immediately before invoking the caller's React handler.
+      // Do not touch free-text fields: their Arabic/Persian digits are data.
+      if (normalizeNumericValue) {
+        event.target.value = normalizeDigits(event.target.value);
+      }
       if (isDate && !isControlled) {
         setUncontrolledEmpty(event.target.value === '');
       }
@@ -34,6 +48,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(
         data-empty-date={isDate ? (isEmptyDate ? 'true' : 'false') : undefined}
         onChange={handleChange}
         ref={ref}
+        value={normalizeNumericValue && typeof value === 'string' ? normalizeDigits(value) : value}
+        defaultValue={normalizeNumericValue && typeof defaultValue === 'string' ? normalizeDigits(defaultValue) : defaultValue}
         {...props}
       />
     );

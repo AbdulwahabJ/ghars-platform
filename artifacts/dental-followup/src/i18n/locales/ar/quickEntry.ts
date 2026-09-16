@@ -6,8 +6,8 @@ const quickEntry = {
     removeImplant: "إزالة الزرعة {{number}}", removeAdjunctProcedure: "إزالة الإجراء المساند {{number}}", save: "حفظ السجل", saving: "جارٍ الحفظ...",
   },
   sections: {
-    patient: "١. بيانات المريض", case: "٢. حالة الزراعة والزرعات", implants: "الزرعات ({{count}})",
-    finance: "٣. المالية", followup: "٤. المتابعة",
+    patient: "1. بيانات المريض", case: "2. حالة الزراعة والزرعات", implants: "الزرعات ({{count}})",
+    finance: "3. المالية", followup: "4. المتابعة",
   },
   fields: {
     general: "البيانات العامة", fileNumber: "رقم الملف", fullName: "اسم المريض", mobileNumber: "رقم الجوال",
@@ -18,8 +18,8 @@ const quickEntry = {
     paymentLabel: "وصف الدفعة", paymentMethod: "طريقة الدفع", followupType: "نوع المتابعة",
     followupScheduledAt: "موعد المتابعة (التاريخ والوقت)", followupAssignedUserId: "مسؤول المتابعة",
     followupNote: "ملاحظة المتابعة", site: "موقع الزرعة (FDI)", system: "نظام الزرعة",
-    diameter: "قطر الزرعة", length: "طول الزرعة", qValue: "قيمة Q", formerValue: "قيمة Former",
-    graftValue: "قيمة Graft", implantStatus: "حالة الزرعة", implantNote: "ملاحظة الزرعة",
+    diameter: "قطر الزرعة", length: "طول الزرعة", qValue: "قيمة Q", formerValue: "القيمة السابقة",
+    graftValue: "قيمة ترقيع العظم", implantStatus: "حالة الزرعة", implantNote: "ملاحظة الزرعة",
   },
   placeholders: {
     fileNumber: "مثال: 1001", fullName: "الاسم الكامل", age: "العمر", prosValue: "مثال: 3M",

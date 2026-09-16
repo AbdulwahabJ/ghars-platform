@@ -773,18 +773,15 @@ export function ResultStep({
             {isPartial
               ? t("import.universal.summaryMsgPartial", {
                   count: batch.summary.committedRows || 0,
-                  defaultValue: `Processed ${batch.summary.committedRows || 0} rows before a failure occurred.`
                 })
               : isPilotCommitted
                 ? t("import.universal.summaryMsgPilot", {
                     count: batch.summary.committedRows || 0,
-                    defaultValue: `Pilot import completed successfully for ${batch.summary.committedRows || 0} rows.`
                   })
                 : t("import.universal.summaryMsg", {
                     count: batch.summary.committedRows || 0,
                     patients: batch.summary.patients,
                     implants: batch.summary.implants,
-                    defaultValue: `Processed ${batch.summary.committedRows || 0} rows containing ${batch.summary.patients} patients and ${batch.summary.implants} implants.`
                   })}
             {isPartial && (
               <div className="mt-2 text-sm space-y-1">

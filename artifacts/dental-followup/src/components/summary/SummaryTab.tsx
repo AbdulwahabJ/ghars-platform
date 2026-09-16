@@ -98,9 +98,9 @@ function ImplantTable({
              <th className="px-2 py-1.5 font-medium">{t("summary.site")}</th>
              <th className="px-2 py-1.5 font-medium">{t("summary.system")}</th>
              <th className="px-2 py-1.5 font-medium">{t("summary.size")}</th>
-            <th className="px-2 py-1.5 font-medium">Q</th>
-            <th className="px-2 py-1.5 font-medium">Former</th>
-            <th className="px-2 py-1.5 font-medium">Graft</th>
+              <th className="px-2 py-1.5 font-medium">{t("implant.fieldHelp.Q")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("implant.fieldHelp.Former")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("implant.fieldHelp.Graft")}</th>
              <th className="px-2 py-1.5 font-medium">{t("summary.status")}</th>
           </tr>
         </thead>
@@ -179,7 +179,7 @@ function BoneGraftSummary({
                 <td className="px-2 py-1.5">{procedure.material ?? "—"}</td>
                 <td className="px-2 py-1.5">{procedure.membrane ?? "—"}</td>
                 <td className="px-2 py-1.5">
-                  {procedure.procedureStatus}
+                  {enumLabel("procedureStatus", procedure.procedureStatus)}
                   {procedure.status === "archived" ? (
                      <Badge variant="secondary" className="ms-1 text-[10px]">{t("summary.archived")}</Badge>
                   ) : null}
@@ -253,7 +253,7 @@ function CaseSummary({
           value={implantCase.procedureDate ? formatSaudiDate(implantCase.procedureDate) : "—"}
         />
          <Field label={t("summary.treatingDoctor")} value={implantCase.treatingDoctor} />
-        <Field label="Pros" value={implantCase.prosValue ?? "—"} />
+         <Field label={t("implant.fieldHelp.Pros")} value={implantCase.prosValue ?? "—"} />
         <Field
            label={t("summary.expectedProstheticDate")}
           value={implantCase.expectedProstheticDate ? formatSaudiDate(implantCase.expectedProstheticDate) : "—"}

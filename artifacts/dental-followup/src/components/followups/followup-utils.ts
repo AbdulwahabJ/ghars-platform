@@ -52,6 +52,7 @@ export function toRiyadhInputValue(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
+    numberingSystem: "latn",
   }).formatToParts(new Date(iso));
   const get = (type: string) =>
     parts.find((p) => p.type === type)?.value ?? "";

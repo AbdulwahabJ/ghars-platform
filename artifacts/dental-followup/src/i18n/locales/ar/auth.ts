@@ -63,7 +63,7 @@ const auth = {
     fullName: "الاسم الكامل",
     fullNamePlaceholder: "الاسم الكامل",
     username: "اسم المستخدم (بالإنجليزية)",
-    usernamePlaceholder: "username",
+    usernamePlaceholder: "اسم المستخدم",
     email: "البريد الإلكتروني للاستعادة",
     password: "كلمة المرور",
     confirmPassword: "تأكيد كلمة المرور",

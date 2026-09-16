@@ -100,7 +100,8 @@ const CHART_COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
 /* ------------------------------------------------------------------ */
 
 export default function Finance() {
-  const { t } = useTranslation("operations");
+  const { t, i18n } = useTranslation("operations");
+  const locale = (i18n.language === "en" ? "en" : "ar") as "en" | "ar";
   const { enumLabel } = useEnumTranslation();
   const { user } = useAuth();
   const { data: options } = useImplantOptions();
@@ -175,11 +176,11 @@ export default function Finance() {
   const kpis = data?.kpis;
   const kpiCards = kpis
     ? [
-        { label: t("finance.collected"), value: formatMoney(kpis.collectedInPeriod) },
-        { label: t("finance.caseValue"), value: formatMoney(kpis.caseValueInPeriod) },
-        { label: t("finance.charges"), value: formatMoney(kpis.chargesInPeriod) },
-        { label: t("finance.discounts"), value: formatMoney(kpis.discountsInPeriod) },
-        { label: t("finance.outstanding"), value: formatMoney(kpis.totalOutstanding) },
+        { label: t("finance.collected"), value: formatMoney(kpis.collectedInPeriod, locale) },
+        { label: t("finance.caseValue"), value: formatMoney(kpis.caseValueInPeriod, locale) },
+        { label: t("finance.charges"), value: formatMoney(kpis.chargesInPeriod, locale) },
+        { label: t("finance.discounts"), value: formatMoney(kpis.discountsInPeriod, locale) },
+        { label: t("finance.outstanding"), value: formatMoney(kpis.totalOutstanding, locale) },
         { label: t("finance.paymentsCount"), value: String(kpis.paymentsCount) },
         {
           label: t("finance.balancePatients"),
@@ -354,10 +355,10 @@ export default function Finance() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data.collectionSeries}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} width={70} />
+                        <XAxis dataKey="bucket" tick={{ fontSize: 11 }} tickFormatter={(value) => String(value)} />
+                        <YAxis tick={{ fontSize: 11 }} width={70} tickFormatter={(value) => formatMoney(Number(value), locale)} />
                         <Tooltip
-                          formatter={(value) => [formatMoney(Number(value)), t("finance.amount")]}
+                          formatter={(value) => [formatMoney(Number(value), locale), t("finance.amount")]}
                         />
                         <Bar dataKey="amount" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
                       </BarChart>
@@ -393,7 +394,7 @@ export default function Finance() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(value) => [formatMoney(Number(value)), t("finance.amount")]}
+                          formatter={(value) => [formatMoney(Number(value), locale), t("finance.amount")]}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -450,7 +451,7 @@ export default function Finance() {
                             </TableCell>
                             <TableCell>{p.paymentLabel ? enumLabel("paymentLabel", p.paymentLabel) : "—"}</TableCell>
                             <TableCell className="tabular-nums whitespace-nowrap">
-                              {formatMoney(p.amount)}
+                              {formatMoney(p.amount, locale)}
                             </TableCell>
                             <TableCell>{p.paymentMethod ? enumLabel("paymentMethod", p.paymentMethod) : "—"}</TableCell>
                             <TableCell>{p.createdByName ?? "—"}</TableCell>

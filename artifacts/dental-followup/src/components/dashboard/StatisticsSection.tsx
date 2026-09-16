@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { StatisticsResponse } from "@workspace/shared";
 import { useTranslation } from "react-i18next";
 import { useEnumTranslation } from "@/i18n/use-enum-translation";
+import { formatNumber } from "@/lib/money";
 
 const CHART_COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#64748b", "#ef4444"];
 
@@ -42,6 +43,9 @@ export function StatisticsSection({
   isError: boolean;
 }) {
   const { t } = useTranslation("guidance");
+  const { i18n } = useTranslation();
+  const locale = i18n.language === "en" ? "en" : "ar";
+  const chartNumber = (value: unknown) => formatNumber(Number(value), locale);
   const { enumLabel } = useEnumTranslation();
   if (isLoading) {
     return (
@@ -74,9 +78,9 @@ export function StatisticsSection({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.overTime}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={40} />
-                  <Tooltip />
+                  <XAxis dataKey="bucket" tick={{ fontSize: 11 }} tickFormatter={(value) => String(value)} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={40} tickFormatter={chartNumber} />
+                  <Tooltip formatter={(value) => [chartNumber(value), ""]} />
                   <Legend />
                   <Bar dataKey="cases" name={t("dashboard.cases")} fill="#0ea5e9" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="implants" name={t("dashboard.implants")} fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -110,7 +114,7 @@ export function StatisticsSection({
                       />
                     ))}
                   </Pie>
-                  <Tooltip />
+                   <Tooltip formatter={(value) => [chartNumber(value), ""]} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -127,7 +131,7 @@ export function StatisticsSection({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.caseStatuses} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                   <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} tickFormatter={chartNumber} />
                   <YAxis
                     type="category"
                     dataKey="name"
@@ -136,7 +140,7 @@ export function StatisticsSection({
                     orientation="right"
                       tickFormatter={(value) => enumLabel("caseStatus", String(value))}
                   />
-                   <Tooltip labelFormatter={(value) => enumLabel("caseStatus", String(value))} />
+                    <Tooltip formatter={(value) => [chartNumber(value), t("dashboard.count")]} labelFormatter={(value) => enumLabel("caseStatus", String(value))} />
                   <Bar dataKey="count" name={t("dashboard.count")} fill="#8b5cf6" radius={[4, 0, 0, 4]} />
                 </BarChart>
               </ResponsiveContainer>

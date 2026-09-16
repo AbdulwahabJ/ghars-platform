@@ -6,6 +6,8 @@ const common = {
     shortTagline: "نظام إدارة ومتابعة زراعة الأسنان",
     values: "تقنية · دقة · ثقة",
   },
+  app: { title: "غرس | Ghars" },
+  greeting: { morning: "صباح الخير", evening: "مساء الخير" },
   nav: {
     dashboard: "الرئيسية",
     patients: "المرضى",
@@ -86,7 +88,8 @@ const common = {
     label: "اللغة",
     choose: "اختيار اللغة",
     arabic: "العربية",
-    english: "English",
+    english: "الإنجليزية",
+    toggleNavigation: "فتح أو إغلاق قائمة التنقل",
   },
   status: {
     scheduled: "مجدولة",

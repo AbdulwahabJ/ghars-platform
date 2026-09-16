@@ -323,7 +323,7 @@ const CONTENT = {
 
 export default function LandingPage() {
   const { direction, changeLocale } = useLocale();
-  const { i18n } = useTranslation();
+  const { i18n, t: commonT } = useTranslation("common");
   const lang = i18n.language === 'en' ? 'en' : 'ar';
   const t = CONTENT[lang];
   const isRTL = direction === 'rtl';
@@ -481,7 +481,7 @@ export default function LandingPage() {
 
           <div className="hidden md:flex items-center gap-4">
             <button data-testid="btn-toggle-lang" onClick={toggleLanguage} className="landing-language-toggle font-medium">
-              {lang === 'ar' ? 'English' : 'العربية'}
+              {commonT(lang === "ar" ? "language.english" : "language.arabic")}
             </button>
             {user ? (
               <Link data-testid="link-dashboard" href="/dashboard" className="btn-primary landing-primary-action bg-[#0D1B3D] text-white hover:bg-[#0D1B3D]/90 h-10 text-sm px-6">
@@ -505,7 +505,7 @@ export default function LandingPage() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-menu"
-            aria-label="Toggle navigation menu"
+            aria-label={commonT("language.toggleNavigation")}
           >
             {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -523,7 +523,7 @@ export default function LandingPage() {
              <button data-testid="btn-scroll" onClick={() => scrollTo("faq")} className="cursor-pointer text-[#64748B] font-medium text-start py-2 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]">{t.nav.faq}</button>
             <div className="flex flex-col gap-3 mt-2">
                <button data-testid="btn-toggle-lang" onClick={toggleLanguage} className="landing-language-toggle border-b border-gray-100 text-start font-medium">
-                {lang === 'ar' ? 'Switch to English' : 'التبديل للعربية'}
+                 {commonT(lang === "ar" ? "language.english" : "language.arabic")}
               </button>
               {user ? (
                 <Link href="/dashboard" className="text-center py-2 bg-[#0D1B3D] text-white font-semibold rounded-lg">
