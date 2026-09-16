@@ -59,12 +59,31 @@ function pdfValue(value: string, direction: "rtl" | "ltr"): string {
   return prepareText(compatiblePunctuation, direction);
 }
 
-function columnWidths(columns: ReportColumn[], width: number): number[] {
+function columnWidths(
+  columns: ReportColumn[],
+  width: number,
+  rows: ReportRow[] = [],
+  locale: "ar" | "en" | "mixed" = "en",
+): number[] {
   const specified = columns.reduce((sum, column) => sum + (column.width ?? 0), 0);
-  const unspecified = columns.filter((column) => column.width === undefined).length;
+  const unspecifiedColumns = columns.filter((column) => column.width === undefined);
   const remaining = Math.max(0, width - specified);
-  const fallback = unspecified ? remaining / unspecified : 0;
-  return columns.map((column) => column.width ?? fallback);
+  if (!unspecifiedColumns.length) return columns.map((column) => column.width ?? 0);
+  const estimates = unspecifiedColumns.map((column) => {
+    const longest = Math.max(
+      column.header.length,
+      ...rows.slice(0, 100).map((row) => formatCellValue(row[column.key], column, row, locale).length),
+    );
+    const typeMinimum = column.type === "text" ? 72 : column.type === "date" ? 62 : column.type === "boolean" ? 42 : 52;
+    return Math.min(240, Math.max(typeMinimum, longest * 4.2 + 14));
+  });
+  const totalEstimate = estimates.reduce((sum, value) => sum + value, 0);
+  const scale = totalEstimate > remaining && remaining > 0 ? remaining / totalEstimate : 1;
+  const computed = estimates.map((value) => Math.max(38, value * scale));
+  const computedTotal = computed.reduce((sum, value) => sum + value, 0);
+  const correction = computedTotal > remaining ? remaining / computedTotal : 1;
+  let next = 0;
+  return columns.map((column) => column.width ?? (computed[next++] * correction));
 }
 
 function collectPdf(doc: PDFKit.PDFDocument): Promise<Buffer> {
@@ -106,10 +125,13 @@ export async function renderPdf(
     doc.save();
     doc.fillColor(GHARS_NAVY).rect(MARGIN, top, contentWidth, 3).fill();
     doc.fillColor(GHARS_NAVY).font(cairoLatinBoldFont).fontSize(17);
-    doc.text("GHARS |", MARGIN, top + 10, { width: contentWidth / 2, align: "left", lineBreak: false });
-    doc.font(cairoBoldFont).text("غرس", MARGIN + 68, top + 10, { width: contentWidth / 2, align: "left", lineBreak: false });
+    const brand = resolved.locale === "ar" ? "غرس" : "Ghars";
+    doc.font(resolved.locale === "ar" ? cairoBoldFont : cairoLatinBoldFont)
+      .text(brand, MARGIN, top + 10, { width: contentWidth / 2, align: "left", lineBreak: false });
     doc.fillColor(GHARS_TEAL).fontSize(8).font(cairoLatinFont);
-    doc.text("Ghars Dental Care", MARGIN, top + 33, { width: contentWidth / 2, align: "left", lineBreak: false });
+      doc.text(resolved.locale === "ar" ? "غرس" : "Ghars Dental Care", MARGIN, top + 33, {
+        width: contentWidth / 2, align: "left", lineBreak: false,
+      });
     if (report.metadata.clinicName) {
       doc.fillColor("#536078").fontSize(8).font(fontForText(report.metadata.clinicName));
       doc.text(pdfValue(report.metadata.clinicName, direction), MARGIN + contentWidth / 2, top + 33, {
@@ -186,17 +208,24 @@ export async function renderPdf(
     }
     const displayColumns =
       direction === "rtl" ? [...section.columns].reverse() : section.columns;
-    const widths = columnWidths(displayColumns, contentWidth);
-    const headerHeight = 25;
+    const widths = columnWidths(displayColumns, contentWidth, section.rows, resolved.locale);
+    const headerHeight = Math.max(25, ...displayColumns.map((column, index) => {
+      doc.font(fontForText(column.header, true)).fontSize(8);
+      return doc.heightOfString(pdfValue(column.header, direction), {
+        width: Math.max(1, widths[index] - 10),
+        lineGap: 1,
+      }) + 10;
+    }));
     const drawTableHeader = () => {
       ensureSpace(headerHeight + 2, section.title);
       let x = MARGIN;
       doc.fillColor(GHARS_NAVY).rect(MARGIN, y, contentWidth, headerHeight).fill();
       displayColumns.forEach((column, index) => {
-        doc.fillColor("#FFFFFF").font(fontForText(column.header, true)).fontSize(8).text(pdfValue(column.header, direction), x + 5, y + 7, {
+        doc.fillColor("#FFFFFF").font(fontForText(column.header, true)).fontSize(8).text(pdfValue(column.header, direction), x + 5, y + 5, {
           width: Math.max(1, widths[index] - 10),
           align: column.align ?? (direction === "rtl" ? "right" : "left"),
-          lineBreak: false,
+          height: headerHeight - 6,
+          lineGap: 1,
         });
         x += widths[index];
       });
@@ -241,8 +270,10 @@ export async function renderPdf(
   const pageRange = doc.bufferedPageRange();
   for (let index = 0; index < pageRange.count; index += 1) {
     doc.switchToPage(pageRange.start + index);
-    doc.fillColor("#536078").font(cairoLatinFont).fontSize(7);
-    const footer = `Ghars • Page ${index + 1} of ${pageRange.count}`;
+    const footer = resolved.locale === "ar"
+      ? `غرس | صفحة ${index + 1} من ${pageRange.count}`
+      : `Ghars | Page ${index + 1} of ${pageRange.count}`;
+    doc.fillColor("#536078").font(fontForText(footer)).fontSize(7);
     // Keep the baseline inside PDFKit's bottom margin; otherwise text() can
     // helpfully create an extra page while we are switching buffered pages.
     doc.text(footer, MARGIN, pageHeight - MARGIN - FOOTER_HEIGHT - 15, {

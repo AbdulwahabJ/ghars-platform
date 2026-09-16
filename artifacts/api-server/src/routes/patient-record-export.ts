@@ -33,6 +33,7 @@ import {
 } from "../lib/export";
 import { effectivePermissions } from "../lib/permissions";
 import { writeAudit } from "../lib/audit";
+import { localizeExportList, localizeExportValue } from "../lib/export-localization";
 import {
   buildInstallmentPlanDto,
   buildSummary,
@@ -401,7 +402,7 @@ function buildDefinition(
     procedureDate: dateValue(row.procedureDate),
     doctor: row.treatingDoctor,
     referringDoctor: asText(row.referringDoctor),
-    caseStatus: row.caseStatus,
+    caseStatus: localizeExportValue(row.caseStatus, locale),
     prostheticValue: asText(row.prosValue),
     expectedProstheticDate: dateValue(row.expectedProstheticDate),
     reimplantation: row.isReimplantation
@@ -433,7 +434,7 @@ function buildDefinition(
     formerValue: asText(row.formerValue),
     graftValue: asText(row.graftValue),
     procedureTags: row.procedureTags?.filter(Boolean).join(", ") || null,
-    implantStatus: row.implantStatus,
+    implantStatus: localizeExportValue(row.implantStatus, locale),
     note: asText(row.implantNote),
   })));
   if (nonEmpty(implants)) sections.push(implants);
@@ -456,17 +457,17 @@ function buildDefinition(
   ], data.grafts.map((row) => ({
     case: caseIndex.get(row.implantCaseId) ?? "",
     date: row.procedureDate,
-    category: row.procedureCategory,
-    type: row.procedureType,
-    side: asText(row.procedureSide),
-    liftType: asText(row.liftType),
+    category: localizeExportValue(row.procedureCategory, locale),
+    type: localizeExportValue(row.procedureType, locale),
+    side: localizeExportValue(asText(row.procedureSide), locale),
+    liftType: localizeExportValue(asText(row.liftType), locale),
     site: asText(row.site),
     material: asText(row.material),
     membrane: asText(row.membrane),
     quantity: asText(row.quantity),
     size: asText(row.size),
     doctor: row.treatingDoctor,
-    procedureStatus: row.procedureStatus,
+    procedureStatus: localizeExportValue(row.procedureStatus, locale),
     note: asText(row.note),
   })));
   if (nonEmpty(adjuncts)) sections.push(adjuncts);
@@ -479,7 +480,7 @@ function buildDefinition(
   ], data.prosthetics.map((row) => ({
     case: caseIndex.get(row.implantCaseId) ?? "",
     date: row.eventDate,
-    eventType: row.eventType,
+    eventType: localizeExportValue(row.eventType, locale),
     note: asText(row.note),
   })));
   if (nonEmpty(prosthetics)) sections.push(prosthetics);
@@ -494,10 +495,10 @@ function buildDefinition(
     { key: "note", header: l.note, type: "text" },
   ], data.followups.map((row) => ({
     case: caseIndex.get(row.implantCaseId) ?? "",
-    type: row.followupType,
-    status: row.followupStatus,
+    type: localizeExportValue(row.followupType, locale),
+    status: localizeExportValue(row.followupStatus, locale),
     scheduledAt: dateValue(row.scheduledAt),
-    result: asText(row.result),
+    result: localizeExportValue(asText(row.result), locale),
     nextAppointment: dateValue(row.nextAppointmentAt),
     note: asText(row.note),
   })));
@@ -513,9 +514,9 @@ function buildDefinition(
   ], data.communications.map((row) => ({
     date: dateValue(row.openedAt ?? row.createdAt),
     case: row.implantCaseId ? (caseIndex.get(row.implantCaseId) ?? "") : null,
-    reason: asText(row.communicationReason),
+    reason: localizeExportValue(asText(row.communicationReason), locale),
     message: asText(row.renderedMessage),
-    communicationResult: asText(row.communicationResult),
+    communicationResult: localizeExportValue(asText(row.communicationResult), locale),
     resultNote: asText(row.resultNote),
   })));
   if (nonEmpty(communications)) sections.push(communications);
@@ -559,7 +560,7 @@ function buildDefinition(
       paid: summary.paidAmount,
       outstanding: summary.outstanding,
       paymentPercent: summary.paymentPercent == null ? null : summary.paymentPercent / 100,
-      paymentStatus: summary.paymentStatus,
+      paymentStatus: localizeExportValue(summary.paymentStatus, locale),
     })));
     if (nonEmpty(financialSummaries)) sections.push(financialSummaries);
 
@@ -576,9 +577,9 @@ function buildDefinition(
     ], data.payments.map((row) => ({
       case: caseIndex.get(row.implantCaseId) ?? "",
       paymentDate: row.paymentDate,
-      paymentLabel: asText(row.paymentLabel),
+      paymentLabel: localizeExportValue(asText(row.paymentLabel), locale),
       amount: money(row.amount),
-      paymentMethod: asText(row.paymentMethod),
+      paymentMethod: localizeExportValue(asText(row.paymentMethod), locale),
       referenceNumber: asText(row.referenceNumber),
       voided: Boolean(row.voidedAt),
       voidReason: asText(row.voidReason),
@@ -604,7 +605,7 @@ function buildDefinition(
         amount: item.amount,
         paidAmount: item.paidAmount,
         outstanding: item.outstanding,
-        status: item.status,
+        status: localizeExportValue(item.status, locale),
       }));
     });
     const installments = section(l.installments, [

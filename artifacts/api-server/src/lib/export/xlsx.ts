@@ -25,13 +25,17 @@ export interface XlsxExport {
   data: Buffer;
 }
 
-function excelValue(value: ReportRow[string], column: ReportColumn): ExcelJS.CellValue {
-  if (value === null || value === undefined || value === "") return "";
+function excelValue(value: ReportRow[string], column: ReportColumn, locale: "ar" | "en" | "mixed"): ExcelJS.CellValue {
+  if (value === null || value === undefined || value === "") return "—";
   if (column.type === "date") return toDate(value) ?? String(value);
   if ((column.type === "number" || column.type === "currency" || column.type === "percentage") && typeof value === "number") {
     return value;
   }
-  if (column.type === "boolean" && typeof value === "boolean") return value;
+  // Excel booleans are intentionally localized display values in exports.
+  // They remain sortable/filterable text and never leak TRUE/FALSE.
+  if (column.type === "boolean" && typeof value === "boolean") {
+    return value ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No";
+  }
   return String(value);
 }
 
@@ -53,16 +57,20 @@ function configureSheet(
   worksheet.getRow(1).height = 27;
 
   worksheet.mergeCells(`A2:${lastLetter}2`);
-  worksheet.getCell("A2").value = `GHARS | غرس${report.metadata.clinicName ? `  •  ${report.metadata.clinicName}` : ""}`;
+  worksheet.getCell("A2").value = options.locale === "ar"
+    ? `غرس${report.metadata.clinicName ? `  •  ${report.metadata.clinicName}` : ""}`
+    : `Ghars${report.metadata.clinicName ? `  •  ${report.metadata.clinicName}` : ""}`;
   worksheet.getCell("A2").font = { name: "Cairo", size: 10, bold: true, color: { argb: GHARS_TEAL.slice(1) } };
   worksheet.getCell("A2").alignment = { horizontal: options.direction === "rtl" ? "right" : "left" };
   worksheet.mergeCells(`A3:${lastLetter}3`);
-  worksheet.getCell("A3").value = `Generated (Riyadh): ${formatRiyadhTimestamp(report.metadata.generatedAt ?? new Date(), options.locale)}`;
+  worksheet.getCell("A3").value = options.locale === "ar"
+    ? `تاريخ الإنشاء (الرياض): ${formatRiyadhTimestamp(report.metadata.generatedAt ?? new Date(), options.locale)}`
+    : `Generated (Riyadh): ${formatRiyadhTimestamp(report.metadata.generatedAt ?? new Date(), options.locale)}`;
   worksheet.getCell("A3").font = { name: "Cairo", size: 9, color: { argb: "FF536078" } };
   worksheet.mergeCells(`A4:${lastLetter}4`);
   const filterText = Object.entries(report.metadata.filters ?? {})
     .map(([key, value]) => `${key}: ${formatFilterValue(value, options.locale)}`)
-    .join("  •  ");
+    .join(options.locale === "ar" ? "  ،  " : "  •  ");
   worksheet.getCell("A4").value = filterText || report.metadata.subtitle || "";
   worksheet.getCell("A4").font = { name: "Cairo", size: 9, color: { argb: "FF536078" } };
   if (section.title) {
@@ -89,16 +97,25 @@ function configureSheet(
     const excelRow = worksheet.getRow(rowIndex + 7);
     section.columns.forEach((column, columnIndex) => {
       const cell = excelRow.getCell(columnIndex + 1);
-      cell.value = excelValue(row[column.key], column);
+      cell.value = excelValue(row[column.key], column, options.locale);
       cell.font = { name: "Cairo", size: 10, color: { argb: "FF18243D" } };
       cell.alignment = {
         horizontal: column.align ?? (options.direction === "rtl" ? "right" : "left"),
         vertical: "top",
         wrapText: true,
       };
-      if (column.type === "date") cell.numFmt = "dd mmm yyyy hh:mm";
+      if (column.type === "date") {
+        const date = toDate(row[column.key]);
+        const hasTime = date !== undefined &&
+          (date.getUTCHours() !== 0 || date.getUTCMinutes() !== 0 || date.getUTCSeconds() !== 0);
+        cell.numFmt = hasTime
+          ? "[$-409]dd mmm yyyy, hh:mm AM/PM"
+          : "[$-409]dd mmm yyyy";
+      }
       if (column.type === "percentage") cell.numFmt = "0.0%";
-      if (column.type === "currency") cell.numFmt = '#,##0.00 "SAR"';
+      if (column.type === "currency") {
+        cell.numFmt = '[$-409]#,##0.00 "SAR"';
+      }
       if (rowIndex % 2 === 0) {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GHARS_PALE_TEAL.slice(1) } };
       }
@@ -108,7 +125,16 @@ function configureSheet(
 
   section.columns.forEach((column, index) => {
     const excelColumn = worksheet.getColumn(index + 1);
-    excelColumn.width = Math.min(60, Math.max(column.width ?? 14, 10));
+    const samples = [
+      column.header,
+      ...section.rows.slice(0, 100).map((row) => formatCellValue(row[column.key], column, row, options.locale)),
+    ];
+    const contentWidth = Math.max(...samples.map((value) => String(value).split(/\r?\n/).reduce((max, line) => Math.max(max, line.length), 0)), 10);
+    const defaultWidth = column.type === "boolean" ? 10 : column.type === "date" ? 22 : 14;
+    // Report widths are PDF points; convert explicit values to approximate
+    // Excel character units instead of treating (for example) 145pt as 145 chars.
+    const declaredWidth = column.width === undefined ? defaultWidth : column.width / 7;
+    excelColumn.width = Math.min(60, Math.max(declaredWidth, Math.min(42, contentWidth + 2), 10));
   });
   const lastRow = Math.max(6, section.rows.length + 6);
   worksheet.autoFilter = { from: { row: 6, column: 1 }, to: { row: lastRow, column: lastColumn } };
@@ -118,7 +144,9 @@ function configureSheet(
   worksheet.pageSetup.fitToWidth = 1;
   worksheet.pageSetup.fitToHeight = 0;
   worksheet.properties.defaultRowHeight = 20;
-  worksheet.headerFooter.oddFooter = "Ghars • Page &P of &N";
+  worksheet.headerFooter.oddFooter = options.locale === "ar"
+    ? "غرس | صفحة &P من &N"
+    : "Ghars | Page &P of &N";
 }
 
 export async function renderXlsx(
@@ -133,7 +161,8 @@ export async function renderXlsx(
   workbook.modified = new Date();
   const usedSheetNames = new Set<string>();
   resolved.sections.forEach((section, index) => {
-    const baseName = section.title?.replace(/[\\/*?:[\]]/g, "").slice(0, 25) || `Report ${index + 1}`;
+    const fallbackName = resolved.locale === "ar" ? `تقرير ${index + 1}` : `Report ${index + 1}`;
+    const baseName = section.title?.replace(/[\\/*?:[\]]/g, "").slice(0, 25) || fallbackName;
     let name = baseName;
     let suffix = 2;
     while (usedSheetNames.has(name)) {

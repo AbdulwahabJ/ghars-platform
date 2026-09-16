@@ -22,6 +22,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { writeAudit } from "../lib/audit";
 import { sendCsv, toCsv } from "../lib/csv";
 import { renderPdf, renderXlsx } from "../lib/export/index.js";
+import { localizeExportValue } from "../lib/export-localization";
 import type { ReportColumn, ReportDefinition, ReportRow } from "../lib/export/index.js";
 import { requireAuth, requireRole } from "../middlewares/auth";
 
@@ -84,6 +85,40 @@ const ENGLISH_HEADERS: Record<ExportEntity, string[]> = {
   ],
 };
 
+/** Binary reports are deliberately single-locale. CSV keeps its historical
+ * Arabic headings for import/backwards compatibility. */
+const ARABIC_HEADERS: Record<ExportEntity, string[]> = {
+  patients: ["رقم الملف", "الاسم الكامل", "رقم الجوال", "العمر", "ملاحظة إدارية", "تاريخ الإضافة", "مؤرشف في"],
+  cases: ["رقم ملف المريض", "اسم المريض", "تاريخ العملية", "الطبيب المعالج", "الطبيب المحوِّل", "حالة الحالة", "مدة الـ Pros", "تاريخ التركيب المتوقع", "المبلغ الأساسي للعلاج", "ملاحظة عامة", "ملاحظة مالية قديمة", "إعادة زراعة", "سبب إعادة الزراعة", "مؤرشفة في"],
+  implants: ["رقم ملف المريض", "تاريخ العملية", "الموقع", "النظام", "القطر", "الطول", "قيمة Q", "قيمة Former", "قيمة Graft", "نوع الطعم", "ملاحظة الطعم", "وسوم الإجراء", "حالة الزرعة", "ملاحظة", "مؤرشفة في"],
+  payments: ["رقم ملف المريض", "تاريخ العملية", "المبلغ", "تاريخ الدفعة", "وصف الدفعة", "طريقة الدفع", "الرقم المرجعي", "ملاحظة", "سجّلها", "ملغاة في", "ألغاها", "سبب الإلغاء"],
+  charges: ["رقم ملف المريض", "تاريخ العملية", "نوع الرسم", "الوصف", "المبلغ", "تاريخ الرسم", "ملاحظة"],
+  discounts: ["رقم ملف المريض", "تاريخ العملية", "المبلغ", "تاريخ الخصم", "السبب", "اعتمده", "تاريخ الإدخال"],
+  followups: ["رقم ملف المريض", "تاريخ العملية", "نوع المتابعة", "موعد المتابعة", "الحالة", "يتطلب تواصلًا", "موعد التواصل", "الموعد التالي", "المسؤول", "ملاحظة"],
+  communications: ["رقم ملف المريض", "سبب التواصل", "القالب", "الرسالة المرسلة", "فُتح في", "النتيجة", "ملاحظة النتيجة", "المستخدم", "تاريخ الإدخال"],
+};
+
+const STATUS_LABELS: Record<string, [string, string]> = {
+  planned: ["مخطط", "Planned"], completed: ["مكتمل", "Completed"],
+  cancelled: ["ملغى", "Cancelled"], active: ["نشط", "Active"],
+  pending: ["قيد الانتظار", "Pending"], overdue: ["متأخر", "Overdue"],
+  scheduled: ["مجدول", "Scheduled"], sent: ["تم الإرسال", "Sent"],
+  delivered: ["تم التسليم", "Delivered"], failed: ["فشل", "Failed"],
+  implanted: ["مزروعة", "Implanted"],
+};
+
+function localizedValue(value: unknown, locale: ExportLocale): unknown {
+  if (value === "نعم" || value === "Yes" || value === true) return locale === "ar" ? "نعم" : "Yes";
+  if (value === "لا" || value === "No" || value === false) return locale === "ar" ? "لا" : "No";
+  if (typeof value === "string") {
+    const localized = localizeExportValue(value, locale);
+    if (localized !== value) return localized;
+    const label = STATUS_LABELS[value.toLowerCase()];
+    if (label) return label[locale === "ar" ? 0 : 1];
+  }
+  return value;
+}
+
 /** The fields with intrinsic numeric/date types in each canonical export. */
 const COLUMN_TYPES: Record<ExportEntity, Record<number, ReportColumn["type"]>> = {
   patients: { 3: "number", 5: "date", 6: "date" },
@@ -116,13 +151,11 @@ function toReport(
   locale: ExportLocale,
   clinicName: string,
 ): ReportDefinition {
-  const englishHeaders = ENGLISH_HEADERS[entity];
+  const reportHeaders = locale === "ar" ? ARABIC_HEADERS[entity] : ENGLISH_HEADERS[entity];
   const types = COLUMN_TYPES[entity];
-  const columns: ReportColumn[] = headers.map((header, index) => ({
+  const columns: ReportColumn[] = headers.map((_header, index) => ({
     key: `column_${index}`,
-    // Keep both labels available in either locale so exported files remain
-    // useful when shared between Arabic- and English-speaking staff.
-    header: `${header} / ${englishHeaders[index] ?? ""}`,
+    header: reportHeaders[index] ?? "",
     type: types[index],
     width: types[index] === "date" ? 18 : types[index] === "currency" ? 16 : undefined,
   }));
@@ -139,25 +172,27 @@ function toReport(
         const number = typeof value === "number" ? value : Number(value);
         row[`column_${index}`] = Number.isFinite(number) ? number : String(value);
       } else {
-        row[`column_${index}`] = value as ReportRow[string];
+        const reportValue = type === "date" && value
+          ? value instanceof Date ? value : new Date(String(value))
+          : localizedValue(value, locale);
+        row[`column_${index}`] = reportValue as ReportRow[string];
       }
     });
     return row;
   });
   return {
     metadata: {
-      title: `${EXPORT_ENTITY_LABELS[entity]} / ${ENTITY_ENGLISH_LABELS[entity]} — ${
-        locale === "ar" ? "تصدير البيانات" : "Data export"
-      }`,
-      subtitle: `${EXPORT_ENTITY_LABELS[entity]} / ${ENTITY_ENGLISH_LABELS[entity]}`,
+      title: locale === "ar"
+        ? `${EXPORT_ENTITY_LABELS[entity]} — تصدير البيانات`
+        : `${ENTITY_ENGLISH_LABELS[entity]} — Data export`,
+      subtitle: locale === "ar" ? EXPORT_ENTITY_LABELS[entity] : ENTITY_ENGLISH_LABELS[entity],
       clinicName,
       locale,
       direction: locale === "ar" ? "rtl" : "ltr",
       orientation: columns.length >= 8 ? "landscape" : "portrait",
       filename: entity,
     },
-    columns,
-    rows: reportRows,
+    sections: [{ title: locale === "ar" ? EXPORT_ENTITY_LABELS[entity] : ENTITY_ENGLISH_LABELS[entity], columns, rows: reportRows }],
   };
 }
 

@@ -1,0 +1,1324 @@
+MODE: Power
+
+Perform a COMPLETE PROFESSIONAL EXPORT SYSTEM OVERHAUL for Ghars.
+
+Scope:
+ALL existing PDF and Excel export functionality across the entire application.
+
+IMPORTANT CONTEXT:
+Ghars is a live multi-tenant medical SaaS with real customer data.
+
+This task must be READ-ONLY from a business-data perspective.
+
+DO NOT:
+- modify patient/clinical/financial records
+- delete any Production data
+- change tenant ownership
+- alter commercial lifecycle
+- seed Production
+- copy Development data into Production
+- publish automatically
+- perform destructive database migrations
+
+GOAL:
+Create one professional, consistent, localized, production-grade export experience across Ghars.
+
+The export quality must be good enough for:
+- clinic management
+- doctors
+- audits
+- printing
+- archiving
+- management meetings
+- sharing internally
+- financial review
+
+==================================================
+1. AUDIT ALL EXPORT SURFACES
+==================================================
+
+Search the entire codebase for:
+
+- PDF
+- Excel
+- XLSX
+- CSV
+- Print
+- Download
+- Report
+- jsPDF
+- html2canvas
+- pdfmake
+- PDFKit
+- ExcelJS
+- SheetJS / xlsx
+- window.print
+- screenshot export
+- table export helpers
+
+Identify every current export/report surface.
+
+At minimum inspect:
+
+- Patients
+- Patient Medical Record
+- Implant Cases
+- Implants
+- Bone Graft
+- Sinus Lift
+- Adjunct Procedures
+- Prosthetic Events
+- Follow-ups
+- Communications
+- Payments
+- Charges
+- Discounts
+- Installment Plans
+- Installments
+- Statistics
+- Dashboard reports
+- Operational reports
+- Platform Admin reports
+- Settings exports
+- any Print/Export action
+
+Create a report inventory before modifying code.
+
+==================================================
+2. ONE SHARED EXPORT ARCHITECTURE
+==================================================
+
+Do NOT maintain different export engines per page.
+
+Create/refactor into one shared architecture such as:
+
+export/
+  pdf/
+  excel/
+  formatters/
+  localization/
+  branding/
+  report-definitions/
+  column-layout/
+  pagination/
+
+Exact paths should match current project conventions.
+
+Centralize:
+
+- Ghars branding
+- logo
+- report titles
+- locale
+- RTL/LTR
+- date formatting
+- time formatting
+- currency formatting
+- status labels
+- Boolean labels
+- empty values
+- filenames
+- page headers
+- footers
+- page numbers
+- Excel styling
+- column width rules
+- filter summaries
+
+Each report should only define:
+- title
+- sections
+- fields
+- data
+- filters
+- summaries
+
+==================================================
+3. EXPORT LANGUAGE MUST FOLLOW APP LANGUAGE
+==================================================
+
+CRITICAL REQUIREMENT:
+
+The export language must ALWAYS follow the current Ghars interface locale.
+
+If the system/app language is Arabic:
+
+PDF:
+- Arabic
+- RTL
+- Arabic report title
+- Arabic field labels
+- Arabic table headers
+- Arabic statuses
+- Arabic summaries
+- Arabic filter labels
+- Arabic footer labels
+
+Excel:
+- Arabic sheet names
+- Arabic metadata
+- Arabic column headers
+- Arabic status labels
+- RTL worksheet direction
+
+If the system/app language is English:
+
+PDF:
+- English
+- LTR
+- English report title
+- English headers
+- English statuses
+- English summaries
+- English filter labels
+
+Excel:
+- English sheet names
+- English metadata
+- English column headers
+- English statuses
+- LTR worksheet direction
+
+Do NOT:
+- mix Arabic headers with English UI locale
+- hardcode Arabic in export logic
+- hardcode English in export logic
+
+Use the existing i18next localization architecture.
+
+==================================================
+4. DATE DISPLAY STANDARD
+==================================================
+
+Even when export language is Arabic:
+
+DO NOT use Arabic month names such as:
+
+أيلول
+نيسان
+آذار
+كانون
+
+Use standardized English abbreviated months:
+
+16 Sep 2026
+09 Apr 2026
+03 Mar 2026
+
+For date/time:
+
+16 Sep 2026, 04:20 PM
+
+This format should be consistent across Arabic and English exports.
+
+==================================================
+5. EXCEL DATES MUST REMAIN REAL DATES
+==================================================
+
+Do NOT convert Excel dates to strings.
+
+Use real Excel date cells.
+
+Force English month display with an LCID-aware number format such as:
+
+[$-409]dd mmm yyyy
+
+For date/time:
+
+[$-409]dd mmm yyyy, hh:mm AM/PM
+
+This prevents Excel/Windows locale from changing:
+
+Sep → أيلول
+
+or similar localized month names.
+
+==================================================
+6. REMOVE SCREENSHOT-STYLE PDF
+==================================================
+
+PDF export must NOT:
+
+- screenshot the page
+- capture full DOM with html2canvas
+- put a website screenshot into PDF
+- export visible UI as an image-only document
+
+PDF must be built from structured report data.
+
+Text must be:
+
+- selectable
+- searchable
+- crisp at zoom
+- printable
+- correctly paginated
+
+Charts may use image/vector rendering where appropriate.
+
+==================================================
+7. GHARS PDF DESIGN SYSTEM
+==================================================
+
+Create a reusable professional PDF template.
+
+HEADER:
+
+- Ghars logo
+- غرس | GHARS
+- clinic/organization name
+- report title
+- optional date range
+- optional filters
+- generation date/time
+
+Use Ghars branding:
+
+Deep Navy:
+#0D1B3D
+
+Restrained teal accent.
+
+White background.
+
+Do not overdecorate.
+
+==================================================
+8. PDF HEADER SHOULD BE COMPACT
+==================================================
+
+Current PDF exports waste too much vertical space.
+
+Make the report header compact and balanced.
+
+The table/content should start quickly after metadata.
+
+Do not create large empty areas before data.
+
+==================================================
+9. PDF FOOTER
+==================================================
+
+Every page:
+
+Arabic:
+غرس | صفحة 1 من 3
+
+English:
+Ghars | Page 1 of 3
+
+Optional:
+Generated by Ghars
+
+Footer must never overlap report content.
+
+==================================================
+10. ARABIC FONT
+==================================================
+
+Embed a proper Arabic-compatible font.
+
+Recommended:
+- Cairo
+- Tajawal
+- IBM Plex Sans Arabic
+- Noto Sans Arabic
+
+Use existing project assets where appropriate.
+
+Arabic must render:
+- connected
+- correctly shaped
+- RTL
+- without boxes
+- without reversed words
+- without broken punctuation
+
+Mixed Arabic/English must work cleanly.
+
+==================================================
+11. REPORT ORIENTATION
+==================================================
+
+Use intelligent orientation.
+
+A4 Portrait:
+- patient medical record
+- simple summaries
+- short tables
+
+A4 Landscape:
+- Implant Cases
+- finance tables
+- operational reports
+- any wide table
+
+Do not force every report into portrait.
+
+==================================================
+12. PROFESSIONAL TABLE ENGINE
+==================================================
+
+Create/refine a reusable table renderer supporting:
+
+- smart column widths
+- min/max widths
+- wrapped headers
+- word wrapping
+- row height calculation
+- repeated table headers
+- page breaks
+- padding
+- vertical alignment
+- subtle zebra rows
+- clean Ghars header colors
+
+Do NOT make every column equal width.
+
+==================================================
+13. SMART COLUMN PRIORITY
+==================================================
+
+Classify columns by importance.
+
+NARROW:
+- counts
+- yes/no
+- short statuses
+
+MEDIUM:
+- date
+- doctor
+- file number
+- implant system
+
+WIDE:
+- patient
+- procedures
+- follow-up details
+- clinical notes
+- status descriptions
+
+Use real content-aware sizing.
+
+==================================================
+14. LONG TEXT HANDLING
+==================================================
+
+Never allow:
+
+one
+word
+or
+character
+per
+line
+
+because a column is too narrow.
+
+Long text should:
+- wrap by words
+- use minimum column widths
+- move to a details row/section where appropriate
+- truncate only when safe and clearly indicated
+
+For secondary verbose fields:
+use a secondary details line rather than destroying table readability.
+
+==================================================
+15. ROW PAGINATION
+==================================================
+
+Calculate row height before drawing.
+
+If the row does not fit:
+move the full row to the next page.
+
+Do not split a record badly between pages.
+
+Repeat table header on each page.
+
+==================================================
+16. REMOVE BLANK PAGE BEHAVIOR
+==================================================
+
+Investigate and fix current issues where:
+
+- first page is mostly empty
+- table begins on page 2
+- unnecessary extra pages appear
+- small datasets generate 3 pages
+
+Expected for small reports:
+
+Header
+Metadata
+Table
+Footer
+
+all fit naturally.
+
+==================================================
+17. STANDARD BUSINESS FORMATTERS
+==================================================
+
+Never show raw values:
+
+undefined
+null
+TRUE
+FALSE
+raw enum values
+raw timestamps
+
+Instead:
+
+Empty:
+—
+
+Arabic Boolean:
+نعم / لا
+
+English:
+Yes / No
+
+Statuses:
+localized user-facing labels based on current app language.
+
+==================================================
+18. CURRENCY
+==================================================
+
+Arabic PDF:
+3,250 ر.س
+
+English PDF:
+SAR 3,250
+
+Excel:
+numeric value + proper format.
+
+Do not export financial numbers as strings.
+
+==================================================
+19. PATIENT LIST REPORT
+==================================================
+
+Do not dump all database columns.
+
+Use useful business fields only.
+
+Example:
+- File Number
+- Patient Name
+- Phone
+- Doctor
+- Case Status
+- Implant Count
+- Next Follow-up
+- Financial Status
+
+Localized according to current UI language.
+
+==================================================
+20. PATIENT MEDICAL RECORD PDF
+==================================================
+
+Design as a professional medical record.
+
+Suggested structure:
+
+Patient Information
+
+Clinical Summary
+
+Implant Cases
+
+Implants
+
+Surgical Procedures
+
+Bone Graft
+
+Sinus Lift
+
+Prosthetic History
+
+Follow-ups
+
+Communication History
+
+Financial Summary
+
+Hide empty sections.
+
+Do not show internal IDs.
+
+==================================================
+21. IMPLANT CASES PDF — SPECIAL REDESIGN
+==================================================
+
+Current export quality is unacceptable.
+
+Use:
+
+A4 Landscape.
+
+Primary fields only:
+
+- Patient
+- File Number
+- Case Status
+- Doctor
+- Procedure Date
+- Implant Count
+- Implant Systems
+- Implant Status
+- Associated Procedures
+- Next Follow-up
+- Financial Status
+
+Use actual canonical fields.
+
+For Arabic UI:
+Arabic labels.
+
+For English UI:
+English labels.
+
+For 3 normal cases:
+the report should normally fit on ONE landscape page if content permits.
+
+==================================================
+22. IMPLANT CASE COMPACT PRESENTATION
+==================================================
+
+For multiple implant systems:
+
+Neodent × 2
+Straumann × 1
+
+For associated procedures:
+
+Bone Graft
+Sinus Lift
+
+Use compact readable formats.
+
+Do not create vertical text stacks.
+
+==================================================
+23. FINANCIAL REPORTS
+==================================================
+
+Reuse canonical finance calculations.
+
+Do NOT recalculate independently in export logic.
+
+Use current canonical functions such as:
+
+loadCaseFinancials
+calcPaymentStatus
+
+or current equivalents.
+
+Show:
+
+Base amount
+Charges
+Discounts
+Total
+Paid
+Remaining
+Payment status
+Installments
+
+Localized labels according to interface language.
+
+==================================================
+24. STATISTICS REPORT
+==================================================
+
+Do NOT screenshot the statistics page.
+
+Create a real report with:
+
+Executive Summary
+KPIs
+Charts
+Supporting tables
+
+Charts may be image/vector assets.
+
+Text and tables remain structured.
+
+==================================================
+25. EXCEL MUST BE TRUE XLSX
+==================================================
+
+Use actual .xlsx files.
+
+Do NOT:
+- rename CSV to xlsx
+- use HTML masquerading as Excel
+
+Use the current compatible workbook library.
+
+==================================================
+26. EXCEL BRANDING
+==================================================
+
+Top rows:
+
+Ghars report title
+
+Clinic name
+
+Generated date/time
+
+Date range / filters
+
+Then professional table.
+
+Keep branding subtle.
+
+==================================================
+27. EXCEL RTL/LTR BASED ON APP LANGUAGE
+==================================================
+
+If app language = Arabic:
+
+- worksheet RTL
+- Arabic sheet names
+- Arabic metadata
+- Arabic headers
+- Arabic status labels
+
+If app language = English:
+
+- worksheet LTR
+- English sheet names
+- English metadata
+- English headers
+- English statuses
+
+Do not mix locales.
+
+==================================================
+28. EXCEL TABLE STYLING
+==================================================
+
+Required:
+
+- Ghars navy header row
+- contrasting header text
+- thin borders
+- optional alternating rows
+- professional row heights
+- wrap headers
+- autofilter
+- freeze panes
+- smart column widths
+
+No ####### cells.
+
+==================================================
+29. EXCEL REAL DATA TYPES
+==================================================
+
+Dates:
+real Date
+
+Amounts:
+numeric
+
+Counts:
+numeric
+
+Percentages:
+numeric
+
+Text:
+text
+
+Users must be able to:
+
+SUM
+SORT
+FILTER
+PIVOT
+
+without cleanup.
+
+==================================================
+30. EXCEL BOOLEAN VALUES
+==================================================
+
+Do not show:
+
+TRUE
+FALSE
+
+Use locale:
+
+Arabic:
+نعم
+لا
+
+English:
+Yes
+No
+
+==================================================
+31. EXCEL COLUMN WIDTHS
+==================================================
+
+Use controlled autosizing.
+
+Examples:
+
+File number:
+compact
+
+Patient:
+wide
+
+Doctor:
+medium
+
+Date:
+medium
+
+Amount:
+medium
+
+Notes:
+wide
+
+Set max widths to prevent one long field from making the sheet unusable.
+
+==================================================
+32. FREEZE PANES
+==================================================
+
+Freeze table header.
+
+If metadata rows exist:
+freeze below metadata + header row.
+
+==================================================
+33. FILTERS
+==================================================
+
+Apply Autofilter to actual table range.
+
+==================================================
+34. PROFESSIONAL SHEET NAMES
+==================================================
+
+Arabic examples:
+
+المرضى
+حالات الزراعة
+المتابعات
+المدفوعات
+
+English:
+
+Patients
+Implant Cases
+Follow-ups
+Payments
+
+No:
+Sheet1
+Data
+Export
+
+==================================================
+35. MULTI-SHEET EXPORT
+==================================================
+
+Use multiple sheets only where useful.
+
+Patient record example:
+
+Arabic:
+الملخص
+الزرعات
+الإجراءات
+المتابعات
+المالية
+
+English:
+Summary
+Implants
+Procedures
+Follow-ups
+Finance
+
+==================================================
+36. FILTER-AWARE EXPORT
+==================================================
+
+Exports should respect active:
+
+- search
+- date filters
+- doctor filter
+- status filter
+- payment status
+- other canonical filters
+
+Export ALL matching records.
+
+Do NOT export only the current pagination page unless explicitly requested.
+
+==================================================
+37. EXPORT FILTER SUMMARY
+==================================================
+
+Show applied filters in:
+
+PDF metadata
+Excel metadata rows
+
+Only include active filters.
+
+==================================================
+38. EXPORT FILENAME LANGUAGE
+==================================================
+
+Use professional filenames.
+
+If Arabic interface:
+filenames may remain safe Latin/ASCII for compatibility, for example:
+
+Ghars_Implant_Cases_2026-09-16.pdf
+
+Do not create unsafe filenames with special OS-incompatible characters.
+
+English same pattern.
+
+==================================================
+39. TENANT SECURITY
+==================================================
+
+Every export must:
+
+- require authentication
+- derive tenant server-side
+- enforce effective permissions
+- never trust frontend tenantId
+- prevent cross-tenant export
+
+Platform Super Admin exports require explicit platform permissions.
+
+==================================================
+40. FIELD PRIVACY
+==================================================
+
+Never export:
+
+- passwords
+- password hashes
+- secrets
+- session IDs
+- tokens
+- reset tokens
+- verification tokens
+- internal security metadata
+- hidden technical fields
+
+==================================================
+41. LARGE EXPORT SAFETY
+==================================================
+
+For large datasets:
+
+avoid browser freezing.
+
+Prefer backend generation/streaming where practical.
+
+Do not build massive hidden DOMs.
+
+Do not use screenshot generation.
+
+==================================================
+42. ERROR HANDLING
+==================================================
+
+Arabic UI:
+
+تعذر إنشاء ملف التصدير. يرجى المحاولة مرة أخرى.
+
+English UI:
+
+Unable to generate the export. Please try again.
+
+Log technical errors safely.
+
+Do not show stack traces.
+
+==================================================
+43. EXPORT UI
+==================================================
+
+Standardize all export menus.
+
+Arabic:
+
+تصدير
+PDF
+Excel
+
+English:
+
+Export
+PDF
+Excel
+
+Use existing Ghars dropdown/menu components.
+
+==================================================
+44. PRINT IS SEPARATE
+==================================================
+
+Print must remain a separate action.
+
+Do not treat browser Print as PDF export.
+
+==================================================
+45. CSV
+==================================================
+
+If CSV is still technically useful:
+keep as a secondary option only.
+
+Primary user-facing export:
+
+PDF
+Excel
+
+==================================================
+46. PERFORMANCE
+==================================================
+
+Measure/report export generation time for typical datasets:
+
+- 10 rows
+- 100 rows
+- 500 rows if practical
+
+Do not introduce severe latency.
+
+If a large export is slow:
+recommend or implement safe backend generation.
+
+==================================================
+47. ACCESSIBILITY OF DOCUMENTS
+==================================================
+
+Where technically possible:
+
+- meaningful PDF metadata title
+- author = Ghars
+- language metadata = ar or en
+- proper table reading order
+- selectable text
+
+Do not make PDFs image-only.
+
+==================================================
+48. VISUAL CONSISTENCY
+==================================================
+
+All PDF reports must share:
+
+- same header system
+- same footer
+- same typography
+- same date style
+- same spacing system
+- same Ghars colors
+
+All Excel reports must share:
+
+- same title format
+- same header styling
+- same formatting conventions
+
+No report should feel like it came from a different product.
+
+==================================================
+49. TEST WITH SAFE DEVELOPMENT DATA
+==================================================
+
+Use safe test/dev data only.
+
+Test:
+
+- Arabic patient names
+- English patient names
+- English implant system names
+- mixed Arabic/English
+- long procedures
+- multiple implants
+- finance
+- empty values
+- follow-up notes
+- Boolean fields
+- date/time fields
+
+Do NOT use Production customer data for visual QA.
+
+==================================================
+50. VISUAL PDF QA
+==================================================
+
+Generate and visually inspect:
+
+A. Arabic Patient List
+B. English Patient List
+C. Arabic Implant Cases
+D. English Implant Cases
+E. 3-row Implant Cases
+F. 20+ row Implant Cases
+G. Patient Medical Record
+H. Finance Report
+I. Follow-up Report
+
+Verify:
+
+- language follows current UI locale
+- RTL/LTR correct
+- no blank pages
+- no clipping
+- no character-per-line wrapping
+- no broken Arabic
+- page numbers correct
+- dates use English month abbreviations
+- professional spacing
+
+==================================================
+51. VISUAL EXCEL QA
+==================================================
+
+Generate and inspect:
+
+A. Arabic Patients
+B. English Patients
+C. Arabic Implant Cases
+D. English Implant Cases
+E. Finance Export
+
+Verify:
+
+- sheet direction matches UI language
+- headers match UI language
+- English month dates
+- real date cells
+- real numeric cells
+- no TRUE/FALSE
+- filters work
+- freeze panes work
+- widths are readable
+- no #######
+
+==================================================
+52. LANGUAGE SWITCH TEST
+==================================================
+
+This is mandatory.
+
+Test scenario:
+
+A. Set Ghars to Arabic.
+Export PDF + Excel.
+Verify both are fully Arabic/RTL.
+
+B. Switch Ghars to English.
+Export SAME report again.
+Verify both are fully English/LTR.
+
+C. Confirm:
+- no stale language cache
+- no Arabic labels remain in English export
+- no English UI labels remain in Arabic export except unavoidable clinical/system proper nouns
+- sheet names switch correctly
+- report titles switch correctly
+- status labels switch correctly
+
+==================================================
+53. DATABASE
+==================================================
+
+Expected:
+
+DATABASE MIGRATION REQUIRED: NO
+
+If any database migration is unexpectedly required:
+
+STOP and explain why.
+
+Do not proceed destructively.
+
+==================================================
+54. AUTOMATED TESTS
+==================================================
+
+Add focused tests for:
+
+- export language follows locale
+- Arabic PDF
+- English PDF
+- RTL
+- LTR
+- Arabic Excel
+- English Excel
+- date format
+- English month format
+- real Excel date cells
+- numeric Excel cells
+- Boolean localization
+- pagination
+- long Arabic text
+- filtered exports
+- tenant isolation
+- permission denial
+- field privacy
+- safe filenames
+
+==================================================
+55. FULL VALIDATION
+==================================================
+
+Run:
+
+- frontend TypeScript
+- backend TypeScript
+- shared tests
+- API tests
+- export tests
+- tenant isolation tests
+- permission/auth tests
+- production frontend build
+- production backend build
+
+==================================================
+56. FINAL REPORT
+==================================================
+
+Report:
+
+EXPORT SURFACES FOUND:
+<number>
+
+EXPORT SURFACES MIGRATED:
+<number>
+
+SHARED PDF ENGINE:
+PASS / FAIL
+
+SHARED EXCEL ENGINE:
+PASS / FAIL
+
+PDF SCREENSHOT LOGIC REMOVED:
+PASS / FAIL
+
+PDF LANGUAGE FOLLOWS UI:
+PASS / FAIL
+
+EXCEL LANGUAGE FOLLOWS UI:
+PASS / FAIL
+
+ARABIC PDF RTL:
+PASS / FAIL
+
+ENGLISH PDF LTR:
+PASS / FAIL
+
+ARABIC EXCEL RTL:
+PASS / FAIL
+
+ENGLISH EXCEL LTR:
+PASS / FAIL
+
+ARABIC FONT:
+PASS / FAIL
+
+PDF SMART COLUMN WIDTHS:
+PASS / FAIL
+
+PDF PAGINATION:
+PASS / FAIL
+
+PDF BLANK PAGE ISSUE:
+PASS / FAIL
+
+IMPLANT CASES PDF:
+PASS / FAIL
+
+PATIENT RECORD PDF:
+PASS / FAIL
+
+FINANCIAL PDF:
+PASS / FAIL
+
+EXCEL TRUE XLSX:
+PASS / FAIL
+
+EXCEL ENGLISH MONTH DATES:
+PASS / FAIL
+
+EXCEL DATE CELLS REAL:
+PASS / FAIL
+
+EXCEL NUMERIC CELLS REAL:
+PASS / FAIL
+
+BOOLEAN LOCALIZATION:
+PASS / FAIL
+
+EXCEL FILTERS:
+PASS / FAIL
+
+EXCEL FREEZE PANES:
+PASS / FAIL
+
+EXCEL COLUMN WIDTHS:
+PASS / FAIL
+
+FILTER-AWARE EXPORT:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+PERMISSIONS:
+PASS / FAIL
+
+FIELD PRIVACY:
+PASS / FAIL
+
+LARGE EXPORT PERFORMANCE:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+PRODUCTION BUILD:
+PASS / FAIL
+
+EXACT CHECKPOINT:
+<hash>
+
+DO NOT PUBLISH.
+
+Create checkpoint and STOP.

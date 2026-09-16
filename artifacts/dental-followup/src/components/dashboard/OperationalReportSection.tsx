@@ -24,7 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 /**
- * Filtered operational report: on-screen table + CSV export + browser print.
+ * Filtered operational report: on-screen table + PDF/XLSX export + browser print.
  * Financial columns appear only when the backend included them for this user.
  */
 export function OperationalReportSection({

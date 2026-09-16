@@ -59,6 +59,7 @@ import {
   type ReportDefinition,
   type ReportLocale,
 } from "../lib/export";
+import { localizeExportValue } from "../lib/export-localization";
 import { effectivePermissions } from "../lib/permissions";
 import { parseOrRespond } from "../lib/validation";
 import { requireAuth } from "../middlewares/auth";
@@ -1418,8 +1419,10 @@ function financeExportReport(
   };
   if (filters.patientName) reportFilters[labels.patientName] = filters.patientName;
   if (filters.fileNumber) reportFilters[labels.fileNumber] = filters.fileNumber;
-  if (filters.paymentMethod) reportFilters[labels.paymentMethod] = filters.paymentMethod;
-  if (filters.paymentStatus) reportFilters[labels.paymentStatus] = filters.paymentStatus;
+  if (filters.paymentMethod) reportFilters[labels.paymentMethod] =
+    String(localizeExportValue(filters.paymentMethod, locale));
+  if (filters.paymentStatus) reportFilters[labels.paymentStatus] =
+    String(localizeExportValue(filters.paymentStatus, locale));
   if (filters.implantSystem) reportFilters[labels.implantSystem] = filters.implantSystem;
 
   return {
@@ -1460,9 +1463,9 @@ function financeExportReport(
           patientName: payment.patientName,
           fileNumber: payment.fileNumber,
           implantCaseId: payment.implantCaseId.slice(0, 8),
-          paymentLabel: payment.paymentLabel,
+          paymentLabel: localizeExportValue(payment.paymentLabel, locale),
           amount: payment.amount,
-          paymentMethod: payment.paymentMethod,
+          paymentMethod: localizeExportValue(payment.paymentMethod, locale),
           createdByName: payment.createdByName,
         })),
       },

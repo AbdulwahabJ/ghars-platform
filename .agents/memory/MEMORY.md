@@ -25,3 +25,4 @@
 - [Wouter query state](wouter-query-state.md) — useSearch, not useLocation alone, must drive URL-query UI state and Back/Forward behavior.
 - [Registration location compatibility](registration-location-compatibility.md) — normalized location/E.164 fields are additive; dual-write legacy city/phone and never rewrite uncertain tenant data.
 - [Cairo PDF subsets](cairo-pdf-subsets.md) — Fontsource Cairo splits Arabic/Latin glyphs; PDF renderers must select by script, normalize bidi punctuation, and reverse RTL columns.
+- [Export enum localization](export-enum-localization.md) — localize canonical Arabic enum values only at the export boundary; never rewrite stored values or filter inputs.

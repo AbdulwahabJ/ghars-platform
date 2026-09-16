@@ -72,9 +72,9 @@ export function ExportMenu({
         description: t(`exports.formats.${format}`),
       });
     } catch (error) {
+      console.error("Export generation failed", error);
       toast({
         title: t("exports.error"),
-        description: error instanceof Error ? error.message : t("errors.generic"),
         variant: "destructive",
       });
     } finally {

@@ -1,7 +1,14 @@
 import { execFileSync } from "node:child_process";
 import ExcelJS from "exceljs";
 import { afterAll, describe, expect, it } from "vitest";
-import { renderPdf, renderXlsx } from "../src/lib/export";
+import {
+  formatCellValue,
+  formatFilterValue,
+  formatRiyadhDate,
+  formatRiyadhTimestamp,
+  renderPdf,
+  renderXlsx,
+} from "../src/lib/export";
 import type { ReportDefinition } from "../src/lib/export";
 
 const LONG_ARABIC_TEXT =
@@ -70,10 +77,10 @@ describe("shared export engine", () => {
     expect(pages).toBeGreaterThan(1);
 
     const extracted = pdfText(exported.data);
-    // Cairo's Arabic font preserves logical Arabic text through pdftotext;
-    // the Latin footer proves that English text is selectable as well.
+    // Cairo's Arabic font preserves logical Arabic text through pdftotext.
     expect(extracted).toContain("قابل طويل عربي نص هذا");
-    expect(extracted).toContain("Ghars • Page");
+    expect(extracted).toContain("غرس");
+    expect(extracted).toContain("صفحة");
     expect(extracted).toContain("English Patient Body Text");
   });
 
@@ -135,4 +142,134 @@ describe("shared export engine", () => {
     expect(serializedCells.join("\n")).not.toContain("internalId");
     expect(worksheet.columnCount).toBe(5);
   });
+
+  it("uses standardized English Gregorian dates and locale-specific business values", () => {
+    const timestamp = new Date("2026-09-16T13:20:00.000Z");
+    expect(formatRiyadhTimestamp(timestamp, "ar")).toBe("16 Sep 2026, 04:20 PM");
+    expect(formatRiyadhTimestamp(timestamp, "en")).toBe("16 Sep 2026, 04:20 PM");
+    expect(formatRiyadhDate("2026-04-09")).toBe("09 Apr 2026");
+    expect(formatFilterValue("2026-03-03", "ar")).toBe("03 Mar 2026");
+    expect(formatCellValue(3250, { key: "amount", header: "Amount", type: "currency" }, {}, "ar"))
+      .toBe("3,250 ر.س");
+    expect(formatCellValue(3250, { key: "amount", header: "Amount", type: "currency" }, {}, "en"))
+      .toBe("SAR 3,250");
+    expect(formatCellValue(null, { key: "value", header: "Value" }, {}, "en")).toBe("—");
+  });
+
+  it("localizes XLSX metadata, booleans, missing values, direction, and LCID dates", async () => {
+    const localeReport = (locale: "ar" | "en"): ReportDefinition => ({
+      metadata: {
+        title: locale === "ar" ? "تقرير الاختبار" : "Test report",
+        clinicName: locale === "ar" ? "عيادة غرس" : "Ghars Clinic",
+        generatedAt: new Date("2026-09-16T13:20:00.000Z"),
+        locale,
+        direction: locale === "ar" ? "rtl" : "ltr",
+      },
+      sections: [{
+        title: locale === "ar" ? "الملخص" : "Summary",
+        columns: [
+          { key: "date", header: locale === "ar" ? "التاريخ" : "Date", type: "date" },
+          { key: "active", header: locale === "ar" ? "نشط" : "Active", type: "boolean" },
+          { key: "empty", header: locale === "ar" ? "فارغ" : "Empty", type: "text" },
+        ],
+        rows: [{
+          date: new Date("2026-09-16T13:20:00.000Z"),
+          active: true,
+          empty: null,
+        }],
+      }],
+    });
+
+    for (const locale of ["ar", "en"] as const) {
+      const exported = await renderXlsx(localeReport(locale));
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(exported.data);
+      const sheet = workbook.worksheets[0];
+      expect(sheet.views[0].rightToLeft).toBe(locale === "ar");
+      expect(sheet.name).toBe(locale === "ar" ? "الملخص" : "Summary");
+      expect(sheet.getCell("A2").text).toContain(locale === "ar" ? "غرس" : "Ghars");
+      expect(sheet.getCell("A3").text).toContain(
+        locale === "ar" ? "تاريخ الإنشاء (الرياض)" : "Generated (Riyadh)",
+      );
+      expect(sheet.getCell("A7").value).toBeInstanceOf(Date);
+      expect(sheet.getCell("A7").numFmt).toBe("[$-409]dd mmm yyyy, hh:mm AM/PM");
+      expect(sheet.getCell("B7").value).toBe(locale === "ar" ? "نعم" : "Yes");
+      expect(sheet.getCell("C7").value).toBe("—");
+      expect(sheet.headerFooter.oddFooter).toBe(
+        locale === "ar" ? "غرس | صفحة &P من &N" : "Ghars | Page &P of &N",
+      );
+      expect(sheet.getColumn(1).width).toBeGreaterThanOrEqual(10);
+      expect(sheet.getColumn(1).width).toBeLessThanOrEqual(60);
+    }
+  });
+
+  it("keeps English PDF content and footer fully LTR", async () => {
+    const english: ReportDefinition = {
+      metadata: {
+        title: "Implant Cases",
+        subtitle: "Three-row report",
+        clinicName: "Ghars Clinic",
+        generatedAt: new Date("2026-09-16T13:20:00.000Z"),
+        locale: "en",
+        direction: "ltr",
+        orientation: "landscape",
+      },
+      sections: [{
+        title: "Implant Cases",
+        columns: [
+          { key: "patient", header: "Patient", type: "text" },
+          { key: "date", header: "Procedure date", type: "date" },
+          { key: "active", header: "Active", type: "boolean" },
+        ],
+        rows: Array.from({ length: 3 }, (_, index) => ({
+          patient: `Patient ${index + 1}`,
+          date: `2026-09-${String(index + 1).padStart(2, "0")}`,
+          active: index % 2 === 0,
+        })),
+      }],
+    };
+    const exported = await renderPdf(english);
+    const extracted = pdfText(exported.data);
+    expect(extracted).toContain("Implant Cases");
+    expect(extracted).toContain("Ghars | Page 1 of 1");
+    expect(extracted).toContain("16 Sep 2026, 04:20 PM");
+  });
+
+  it("generates 10, 100, and 500-row backend exports within safe bounds", async () => {
+    for (const count of [10, 100, 500]) {
+      const performanceReport: ReportDefinition = {
+        metadata: {
+          title: `Performance ${count}`,
+          locale: "en",
+          direction: "ltr",
+          orientation: "landscape",
+        },
+        columns: [
+          { key: "file", header: "File number", type: "text" },
+          { key: "patient", header: "Patient", type: "text" },
+          { key: "date", header: "Procedure date", type: "date" },
+          { key: "amount", header: "Amount", type: "currency" },
+          { key: "active", header: "Active", type: "boolean" },
+        ],
+        rows: Array.from({ length: count }, (_, index) => ({
+          file: `P-${index + 1}`,
+          patient: `Patient ${index + 1}`,
+          date: new Date("2026-09-16T00:00:00.000Z"),
+          amount: 1000 + index,
+          active: index % 2 === 0,
+        })),
+      };
+      const pdfStarted = performance.now();
+      const pdf = await renderPdf(performanceReport);
+      const pdfMs = performance.now() - pdfStarted;
+      const xlsxStarted = performance.now();
+      const xlsx = await renderXlsx(performanceReport);
+      const xlsxMs = performance.now() - xlsxStarted;
+      expect(pdf.data.length).toBeGreaterThan(1_000);
+      expect(xlsx.data.length).toBeGreaterThan(1_000);
+      expect(pdfMs, `${count}-row PDF took ${pdfMs.toFixed(0)}ms`).toBeLessThan(15_000);
+      expect(xlsxMs, `${count}-row XLSX took ${xlsxMs.toFixed(0)}ms`).toBeLessThan(15_000);
+      console.info(`export-performance rows=${count} pdfMs=${pdfMs.toFixed(0)} xlsxMs=${xlsxMs.toFixed(0)}`);
+    }
+  }, 45_000);
 });

@@ -741,7 +741,7 @@ export function auditQs(filters: Partial<AuditFilters>): string {
   return params.toString();
 }
 
-/** URL for the audit log CSV export (browser download). */
+/** URL for an audit-log export download. */
 export function auditExportUrl(
   filters: Partial<AuditFilters>,
   format: ExportFormat = "csv",
@@ -750,7 +750,7 @@ export function auditExportUrl(
   return `${API_BASE}/admin/audit-logs/export.${format}?${exportQs(auditQs(exportFilters))}`;
 }
 
-/** URL for a full-data CSV export of one entity (browser download). */
+/** URL for a full-data export of one entity. */
 export type ExportFormat = "pdf" | "xlsx" | "csv";
 
 function exportLocale(): "ar" | "en" {
@@ -787,7 +787,7 @@ export function reportQs(filters: ReportFilters): string {
   return params.toString();
 }
 
-/** URL for the operational report CSV export (browser download). */
+/** URL for an operational-report export download. */
 export function operationalExportUrl(
   filters: ReportFilters,
   format: ExportFormat = "csv",
@@ -814,7 +814,7 @@ export function financeQs(filters: FinanceFilters): string {
   return params.toString();
 }
 
-/** URL for the CSV export (opened directly so the browser downloads it). */
+/** URL for a finance-report export download. */
 export function financeExportUrl(
   filters: FinanceFilters,
   format: ExportFormat = "csv",

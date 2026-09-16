@@ -29,6 +29,10 @@ import type {
   ReportLocale,
   ReportRow,
 } from "../lib/export/types";
+import {
+  localizeExportList,
+  localizeExportValue,
+} from "../lib/export-localization";
 import { effectivePermissions } from "../lib/permissions";
 import { parseOrRespond } from "../lib/validation";
 import { requireAuth } from "../middlewares/auth";
@@ -1313,8 +1317,12 @@ function filterMetadata(filters: ReportFilters, locale: ExportLocale) {
     ...(filters.search ? { [labels.search]: filters.search } : {}),
     ...(filters.treatingDoctor ? { [labels.doctor]: filters.treatingDoctor } : {}),
     ...(filters.implantSystem ? { [labels.system]: filters.implantSystem } : {}),
-    ...(filters.implantStatus ? { [labels.implantStatus]: filters.implantStatus } : {}),
-    ...(filters.caseStatus ? { [labels.caseStatus]: filters.caseStatus } : {}),
+    ...(filters.implantStatus
+      ? { [labels.implantStatus]: localizeExportValue(filters.implantStatus, locale) }
+      : {}),
+    ...(filters.caseStatus
+      ? { [labels.caseStatus]: localizeExportValue(filters.caseStatus, locale) }
+      : {}),
   };
 }
 
@@ -1329,7 +1337,10 @@ function countSection(
       { key: "name", header: labels.name, type: "text" },
       { key: "count", header: labels.count, type: "number", align: "right" },
     ],
-    rows: counts.map((item) => ({ name: item.name, count: item.count })),
+    rows: counts.map((item) => ({
+      name: localizeExportValue(item.name, labels === exportLabels.ar ? "ar" : "en"),
+      count: item.count,
+    })),
   };
 }
 
@@ -1483,15 +1494,15 @@ function operationalDefinition(
     rows: rows.map((row) => ({
       patientName: row.patientName,
       fileNumber: row.fileNumber,
-      caseStatus: row.caseStatus,
+      caseStatus: localizeExportValue(row.caseStatus, locale),
       treatingDoctor: row.treatingDoctor,
       procedureDate: dateValue(row.procedureDate),
       implantCount: row.implantCount,
-      implantSystems: row.implantSystems.join("، "),
-      implantStatuses: row.implantStatuses.join("، "),
+      implantSystems: localizeExportList(row.implantSystems, locale),
+      implantStatuses: localizeExportList(row.implantStatuses, locale),
       boneGraftProcedureCount: row.boneGraftProcedureCount,
-      boneGraftProcedureTypes: row.boneGraftProcedureTypes.join("، "),
-      adjunctProcedures: row.adjunctProcedureTypes.join("، "),
+      boneGraftProcedureTypes: localizeExportList(row.boneGraftProcedureTypes, locale),
+      adjunctProcedures: localizeExportList(row.adjunctProcedureTypes, locale),
       nextFollowup: dateValue(row.nextFollowupAt),
       isOverdue: row.isOverdue,
       isReady: row.isReady,
@@ -1500,7 +1511,7 @@ function operationalDefinition(
             finalTotal: row.finance.finalTotal,
             paid: row.finance.paid,
             remaining: row.finance.remaining,
-            paymentStatus: row.finance.paymentStatus,
+            paymentStatus: localizeExportValue(row.finance.paymentStatus, locale),
           }
         : {}),
     })),

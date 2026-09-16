@@ -112,14 +112,20 @@ async function queryAuditRows(
     .limit(10_000);
 }
 
-const AUDIT_COLUMNS: ReportColumn[] = [
-  { key: "createdAt", header: "التاريخ والوقت / Date and time", type: "date", width: 20 },
-  { key: "userName", header: "المستخدم / User", type: "text", width: 18 },
-  { key: "action", header: "الإجراء / Action", type: "text", width: 20 },
-  { key: "entityType", header: "نوع السجل / Entity", type: "text", width: 18 },
-  { key: "entityId", header: "معرّف السجل / Record ID", type: "text", width: 25 },
-  { key: "summary", header: "الملخص / Summary", type: "text", width: 35 },
-];
+const AUDIT_HEADERS = {
+  ar: ["التاريخ والوقت", "المستخدم", "الإجراء", "نوع السجل", "معرّف السجل", "الملخص"],
+  en: ["Date and time", "User", "Action", "Entity", "Record ID", "Summary"],
+} as const;
+
+const AUDIT_LABELS: Record<string, [string, string]> = {
+  audit_log: ["سجل النشاط", "Audit log"],
+  user_create: ["إنشاء مستخدم", "User created"],
+  data_export: ["تصدير بيانات", "Data export"],
+  audit_export: ["تصدير سجل النشاط", "Audit export"],
+  patient: ["مريض", "Patient"],
+  implant_case: ["حالة زراعة", "Implant case"],
+  payment: ["دفعة", "Payment"],
+};
 
 function auditReport(
   rows: Awaited<ReturnType<typeof queryAuditRows>>,
@@ -127,25 +133,29 @@ function auditReport(
   filters: AuditFilters,
   clinicName: string,
 ): ReportDefinition {
+  const language = locale === "ar" ? 0 : 1;
+  const headers = AUDIT_HEADERS[locale];
   const reportRows: ReportRow[] = rows.map((row) => ({
     createdAt: row.createdAt,
     userName: row.userName ?? "",
-    action: row.action,
-    entityType: row.entityType ?? "",
+    action: AUDIT_LABELS[row.action]?.[language] ?? row.action,
+    entityType: AUDIT_LABELS[row.entityType ?? ""]?.[language] ?? row.entityType ?? "",
     entityId: row.entityId ?? "",
     summary: row.summary ?? "",
   }));
   const filterValues: Record<string, string | number> = {};
-  if (filters.from) filterValues["من / From"] = filters.from;
-  if (filters.to) filterValues["إلى / To"] = filters.to;
-  if (filters.userId) filterValues["المستخدم / User"] = filters.userId;
-  if (filters.action) filterValues["الإجراء / Action"] = filters.action;
-  if (filters.entityType) filterValues["نوع السجل / Entity"] = filters.entityType;
-  if (filters.fileNumber) filterValues["رقم الملف / File number"] = filters.fileNumber;
+  if (filters.from) filterValues[locale === "ar" ? "من" : "From"] = filters.from;
+  if (filters.to) filterValues[locale === "ar" ? "إلى" : "To"] = filters.to;
+  if (filters.userId) filterValues[locale === "ar" ? "المستخدم" : "User"] = filters.userId;
+  if (filters.action) filterValues[locale === "ar" ? "الإجراء" : "Action"] =
+    AUDIT_LABELS[filters.action]?.[language] ?? filters.action;
+  if (filters.entityType) filterValues[locale === "ar" ? "نوع السجل" : "Entity"] =
+    AUDIT_LABELS[filters.entityType]?.[language] ?? filters.entityType;
+  if (filters.fileNumber) filterValues[locale === "ar" ? "رقم الملف" : "File number"] = filters.fileNumber;
   return {
     metadata: {
-      title: "سجل النشاط / Audit log",
-      subtitle: `عدد السجلات: ${rows.length} / Rows: ${rows.length}`,
+      title: locale === "ar" ? "سجل النشاط" : "Audit log",
+      subtitle: locale === "ar" ? `عدد السجلات: ${rows.length}` : `Rows: ${rows.length}`,
       clinicName,
       generatedBy: "Ghars",
       filters: filterValues,
@@ -154,8 +164,16 @@ function auditReport(
       orientation: "landscape",
       filename: "audit-log",
     },
-    columns: AUDIT_COLUMNS,
-    rows: reportRows,
+    sections: [{
+      title: locale === "ar" ? "سجل النشاط" : "Audit log",
+      columns: headers.map((header, index): ReportColumn => ({
+        key: ["createdAt", "userName", "action", "entityType", "entityId", "summary"][index],
+        header,
+        type: index === 0 ? "date" : "text",
+        width: [20, 18, 20, 18, 25, 35][index],
+      })),
+      rows: reportRows,
+    }],
   };
 }
 

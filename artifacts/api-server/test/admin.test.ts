@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import bcrypt from "bcryptjs";
+import ExcelJS from "exceljs";
+import type { IncomingMessage } from "node:http";
 import app from "../src/app";
 import { csvEscape } from "../src/lib/csv";
 import {
@@ -17,6 +19,18 @@ let assistant: TestAgent;
 let adminId: string;
 
 const ASSISTANT_PASSWORD = "Adm1nTestPass99";
+
+function binaryParser(
+  response: IncomingMessage,
+  callback: (error: Error | null, body: Buffer) => void,
+): void {
+  const chunks: Buffer[] = [];
+  response.on("data", (chunk: Buffer | string) => {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  });
+  response.on("end", () => callback(null, Buffer.concat(chunks)));
+  response.on("error", (error) => callback(error, Buffer.alloc(0)));
+}
 
 async function seedAssistant(username: string): Promise<TestAgent> {
   await pool.query(
@@ -736,7 +750,7 @@ describe("full data export", () => {
     expect(bad.status).toBe(400);
   });
 
-  it("exports every entity as PDF and XLSX with bilingual headings", async () => {
+  it("exports every entity as localized PDF and XLSX reports", async () => {
     for (const entity of [
       "patients",
       "cases",
@@ -747,16 +761,41 @@ describe("full data export", () => {
       "followups",
       "communications",
     ]) {
-      const pdf = await admin.get(`/api/admin/export/${entity}.pdf?locale=ar`);
-      expect(pdf.status, `${entity} PDF`).toBe(200);
-      expect(pdf.headers["content-type"]).toContain("application/pdf");
-      expect(pdf.body.length).toBeGreaterThan(100);
+      for (const locale of ["ar", "en"]) {
+        const pdf = await admin.get(`/api/admin/export/${entity}.pdf?locale=${locale}`);
+        expect(pdf.status, `${entity} ${locale} PDF`).toBe(200);
+        expect(pdf.headers["content-type"]).toContain("application/pdf");
+        expect(pdf.body.length).toBeGreaterThan(100);
+      }
 
       const xlsx = await admin.get(`/api/admin/export/${entity}.xlsx?locale=en`);
       expect(xlsx.status, `${entity} XLSX`).toBe(200);
       expect(xlsx.headers["content-type"]).toContain("spreadsheetml");
       expect(Number(xlsx.headers["content-length"])).toBeGreaterThan(100);
     }
+  });
+
+  it("uses single-locale report headings and real Excel dates", async () => {
+    const ar = await admin
+      .get("/api/admin/export/patients.xlsx?locale=ar")
+      .buffer(true)
+      .parse(binaryParser);
+    const en = await admin
+      .get("/api/admin/export/patients.xlsx?locale=en")
+      .buffer(true)
+      .parse(binaryParser);
+    const arBook = new ExcelJS.Workbook();
+    const enBook = new ExcelJS.Workbook();
+    await arBook.xlsx.load(ar.body);
+    await enBook.xlsx.load(en.body);
+    const arSheet = arBook.worksheets[0];
+    const enSheet = enBook.worksheets[0];
+    expect(arSheet.getCell("A1").text).toContain("المرضى");
+    expect(arSheet.getCell("A6").text).toBe("رقم الملف");
+    expect(enSheet.getCell("A1").text).toContain("Patients");
+    expect(enSheet.getCell("A6").text).toBe("File number");
+    const dateCell = arSheet.getCell("F7");
+    if (dateCell.value) expect(dateCell.value).toBeInstanceOf(Date);
   });
 });
 

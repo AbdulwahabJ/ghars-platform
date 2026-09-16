@@ -63,16 +63,42 @@ export function formatRiyadhTimestamp(
 ): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-GB", {
+  void locale;
+  // Deliberately use English Gregorian month names for both UI locales.  This
+  // is an export format (not UI copy), and must not vary with the machine's
+  // Arabic calendar settings.
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: DEFAULT_RIYADH_TIME_ZONE,
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("day")} ${part("month")} ${part("year")}, ${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
+}
+
+export function formatRiyadhDate(value: Date | string): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: DEFAULT_RIYADH_TIME_ZONE,
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("day")} ${part("month")} ${part("year")}`;
 }
 
 export function formatFilterValue(value: ReportCellValue, locale: ReportLocale): string {
   if (value === null || value === undefined || value === "") return "—";
   if (value instanceof Date) return formatRiyadhTimestamp(value, locale);
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value)) {
+    return value.includes("T") ? formatRiyadhTimestamp(value, locale) : formatRiyadhDate(value);
+  }
   if (typeof value === "boolean") return value ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No";
   return String(value);
 }
@@ -84,11 +110,15 @@ export function formatCellValue(
   locale: ReportLocale = "en",
 ): string {
   if (column.format) return column.format(value, row);
-  if (value === null || value === undefined) return "";
+  if (value === null || value === undefined || value === "") return "—";
   if (column.type === "date") {
-    return value instanceof Date || typeof value === "string"
-      ? formatRiyadhTimestamp(value, locale)
-      : "";
+    if (!(value instanceof Date || typeof value === "string")) return "";
+    const date = value instanceof Date ? value : new Date(value);
+    // Midnight values conventionally represent a date-only field. Values
+    // carrying a time retain the required Riyadh 12-hour timestamp.
+    return date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0
+      ? formatRiyadhDate(date)
+      : formatRiyadhTimestamp(date, locale);
   }
   if (column.type === "percentage" && typeof value === "number") {
     return `${new Intl.NumberFormat(locale === "ar" ? "ar-SA" : "en", {
@@ -96,11 +126,11 @@ export function formatCellValue(
     }).format(value * 100)}%`;
   }
   if (column.type === "currency" && typeof value === "number") {
-    return new Intl.NumberFormat(locale === "ar" ? "ar-SA" : "en", {
-      style: "currency",
-      currency: "SAR",
+    const amount = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(value);
+    return locale === "ar" ? `${amount} ر.س` : `SAR ${amount}`;
   }
   if (typeof value === "boolean") return value ? (locale === "ar" ? "نعم" : "Yes") : locale === "ar" ? "لا" : "No";
   return String(value);

@@ -44,7 +44,7 @@ const common = {
     menuLabel: "خيارات التصدير",
     preparing: "جارٍ التجهيز...",
     success: "تم تنزيل التصدير",
-    error: "تعذر التصدير",
+    error: "تعذر إنشاء ملف التصدير. يرجى المحاولة مرة أخرى.",
     formats: { pdf: "PDF", xlsx: "Excel", csv: "CSV" },
   },
   labels: {

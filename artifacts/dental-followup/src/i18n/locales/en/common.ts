@@ -44,7 +44,7 @@ const common = {
     menuLabel: "Export options",
     preparing: "Preparing...",
     success: "Export downloaded",
-    error: "Export failed",
+    error: "Unable to generate the export. Please try again.",
     formats: { pdf: "PDF", xlsx: "Excel", csv: "CSV" },
   },
   labels: {
