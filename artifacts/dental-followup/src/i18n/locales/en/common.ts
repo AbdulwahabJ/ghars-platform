@@ -139,6 +139,7 @@ const common = {
   errors: {
     generic: "Something went wrong. Please try again.",
     loadFailed: "Unable to load the data.",
+    sectionLoadFailed: "Unable to load this section.",
     saveFailed: "Unable to save the changes.",
     notFound: "The requested item was not found.",
     forbidden: "You do not have permission to perform this action.",

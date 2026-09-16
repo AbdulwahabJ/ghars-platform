@@ -29,6 +29,7 @@ import { FollowupsTab } from "@/components/followups/FollowupsTab";
 import { SummaryTab } from "@/components/summary/SummaryTab";
 import { formatSaudiDate } from "@/lib/datetime";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
+import { useTranslation } from "react-i18next";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import {
   buildPatientPath,
@@ -38,12 +39,13 @@ import {
 
 export default function PatientFile() {
   const { t } = useClinicalTranslation();
+  const { t: commonT } = useTranslation("common");
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { data, isLoading } = usePatient(id ?? "");
+  const { data, isLoading, isError, refetch } = usePatient(id ?? "");
   const archivePatient = useArchivePatient();
   const restorePatient = useRestorePatient();
   const [showArchived, setShowArchived] = useState(false);
@@ -89,6 +91,22 @@ export default function PatientFile() {
       <Shell>
         <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Shell>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Shell>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+          <AlertCircle className="mb-4 h-12 w-12 text-destructive" />
+          <h2 className="mb-4 text-xl font-bold">
+            {commonT("errors.sectionLoadFailed")}
+          </h2>
+          <Button onClick={() => void refetch()} variant="outline">
+            {commonT("actions.retry")}
+          </Button>
         </div>
       </Shell>
     );

@@ -23,6 +23,8 @@ import Privacy from '@/pages/legal/Privacy';
 import NotFound from '@/pages/not-found';
 import { LocaleProvider } from '@/i18n/LocaleProvider';
 import { ImpersonationLifecycleHandler } from '@/components/ImpersonationLifecycleHandler';
+import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
+import { Loader2 } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
@@ -43,7 +45,13 @@ function ProtectedRoute({ component: Component, path }: { component: any; path: 
     return () => window.clearInterval(timer);
   }, []);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center" role="status">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!user) {
     return <Redirect to="/login" replace />;
@@ -162,7 +170,9 @@ function App() {
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
             <ImpersonationLifecycleHandler />
-            <Router />
+            <RouteErrorBoundary onRetry={() => queryClient.resetQueries()}>
+              <Router />
+            </RouteErrorBoundary>
           </WouterRouter>
           <Toaster />
         </TooltipProvider>

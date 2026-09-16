@@ -4,16 +4,18 @@ import { Shell } from "@/components/layout/Shell";
 import { usePatients } from "@/hooks/use-patients";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, UserX, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, UserX, Loader2, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { NewPatientDialog } from "@/components/patients/NewPatientDialog";
 import { formatSaudiDate } from "@/lib/datetime";
 import { Patient } from "@workspace/shared";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { useLocale } from "@/i18n/LocaleProvider";
+import { useTranslation } from "react-i18next";
 
 export default function PatientsList() {
   const { t } = useClinicalTranslation();
+  const { t: commonT } = useTranslation("common");
   const { direction } = useLocale();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -25,7 +27,7 @@ export default function PatientsList() {
   const [page, setPage] = useState(1);
   const [newPatientOpen, setNewPatientOpen] = useState(false);
 
-  const { data, isLoading } = usePatients({
+  const { data, isLoading, isError, refetch } = usePatients({
     query: debouncedSearch,
     status: statusFilter,
     page,
@@ -92,6 +94,16 @@ export default function PatientsList() {
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
               <p>{t("patient.loading")}</p>
+            </div>
+          ) : isError ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+              <p className="text-foreground font-medium mb-4">
+                {commonT("errors.sectionLoadFailed")}
+              </p>
+              <Button variant="outline" onClick={() => void refetch()}>
+                {commonT("actions.retry")}
+              </Button>
             </div>
           ) : !data || data.items.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">

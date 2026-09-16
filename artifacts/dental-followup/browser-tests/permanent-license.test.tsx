@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const lifecycle = vi.hoisted(() => ({
@@ -11,6 +12,7 @@ vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({
     t: (key: string, fallback?: string) => fallback ?? key,
+    i18n: { language: "en" },
   }),
 }));
 
@@ -118,7 +120,11 @@ describe("permanent license customer detail", () => {
     host = document.createElement("div");
     document.body.append(host);
     root = createRoot(host);
-    root.render(<TenantDetail id={String(lifecycle.tenant.id)} onBack={() => undefined} />);
+    root.render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TenantDetail id={String(lifecycle.tenant.id)} onBack={() => undefined} />
+      </QueryClientProvider>,
+    );
   });
 
   afterEach(() => {

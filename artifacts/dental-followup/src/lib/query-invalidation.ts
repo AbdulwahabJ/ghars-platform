@@ -13,6 +13,26 @@ export function invalidateOperationalViews(queryClient: QueryClient) {
   ]);
 }
 
+export function invalidatePatientCreatedViews(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["patients"] }),
+    invalidateOperationalViews(queryClient),
+  ]);
+}
+
+export function invalidatePatientRecordViews(
+  queryClient: QueryClient,
+  patientId: string,
+) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["patient", patientId] }),
+    queryClient.invalidateQueries({
+      queryKey: ["patient", patientId, "implant-cases"],
+    }),
+    invalidateOperationalViews(queryClient),
+  ]);
+}
+
 export function invalidateFinancialViews(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: ["finance-overview"] }),

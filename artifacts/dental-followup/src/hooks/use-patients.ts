@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { PatientInput, PatientListQuery, PatientUpdate } from "@workspace/shared";
-import { invalidateOperationalViews } from "@/lib/query-invalidation";
+import {
+  invalidateOperationalViews,
+  invalidatePatientCreatedViews,
+} from "@/lib/query-invalidation";
 
 export const getPatientsQueryKey = (query: PatientListQuery) => ["patients", query];
 export const getPatientQueryKey = (id: string) => ["patient", id];
@@ -26,7 +29,7 @@ export function useCreatePatient() {
   return useMutation({
     mutationFn: (input: PatientInput) => api.createPatient(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void invalidatePatientCreatedViews(queryClient);
     },
   });
 }

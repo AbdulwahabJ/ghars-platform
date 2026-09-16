@@ -9,7 +9,7 @@ import type {
   BoneGraftProcedureInput,
   BoneGraftProcedureUpdate,
 } from "@workspace/shared";
-import { invalidateOperationalViews } from "@/lib/query-invalidation";
+import { invalidatePatientRecordViews } from "@/lib/query-invalidation";
 
 export const getImplantCasesQueryKey = (patientId: string) =>
   ["patient", patientId, "implant-cases"] as const;
@@ -34,10 +34,7 @@ function useInvalidateCases() {
   const queryClient = useQueryClient();
   return async (patientId: string) => {
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: getImplantCasesQueryKey(patientId),
-      }),
-      invalidateOperationalViews(queryClient),
+      invalidatePatientRecordViews(queryClient, patientId),
     ]);
   };
 }

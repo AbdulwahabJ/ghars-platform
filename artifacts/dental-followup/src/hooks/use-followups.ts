@@ -21,6 +21,7 @@ export function useFollowups(patientId: string) {
     queryKey: getFollowupsQueryKey(patientId),
     queryFn: () => api.getFollowups(patientId),
     select: (data) => data.followups,
+    enabled: Boolean(patientId),
   });
 }
 
@@ -29,6 +30,7 @@ export function useCommunications(patientId: string) {
     queryKey: getCommunicationsQueryKey(patientId),
     queryFn: () => api.getCommunications(patientId),
     select: (data) => data.communications,
+    enabled: Boolean(patientId),
   });
 }
 
