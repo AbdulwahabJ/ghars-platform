@@ -16,6 +16,8 @@ describe("riyadhDateOf", () => {
     expect(riyadhDateOf("2026-08-01T23:30:00+03:00")).toBe("2026-08-01");
     // 00:15 Riyadh on Aug 2 is 21:15 UTC on Aug 1 — still Aug 2 in Riyadh.
     expect(riyadhDateOf("2026-08-02T00:15:00+03:00")).toBe("2026-08-02");
+    expect(riyadhDateOf("2026-08-01T20:59:59Z")).toBe("2026-08-01");
+    expect(riyadhDateOf("2026-08-01T21:00:00Z")).toBe("2026-08-02");
   });
 });
 

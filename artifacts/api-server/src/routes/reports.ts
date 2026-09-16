@@ -400,15 +400,20 @@ router.get("/dashboard", async (req, res) => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Shared filter fragment: active cases within the date range          */
+/* Shared filter fragment: active cases and optional clinical range    */
 /* ------------------------------------------------------------------ */
 
 /**
- * WHERE fragment selecting non-archived cases of non-archived patients whose
- * value date (procedure date, falling back to the Riyadh creation date — the
- * same definition used by the finance module) falls inside [from, to].
+ * WHERE fragment selecting non-archived cases of non-archived patients.
+ * Clinical implant metrics use procedure_date only; created_at is the entry
+ * timestamp and must never substitute for a missing clinical date.
  */
-function caseFilterFragment(filters: ReportFilters, tenantId: string) {
+function caseFilterFragment(
+  filters: ReportFilters,
+  tenantId: string,
+  options: { includeProcedureDate?: boolean } = {},
+) {
+  const includeProcedureDate = options.includeProcedureDate ?? true;
   const search = filters.search ? toEnglishDigits(filters.search).trim() : "";
   const searchName = search ? normalizeArabicSearchText(search) : "";
   const searchDigits = search.replace(/\D/g, "");
@@ -444,9 +449,9 @@ function caseFilterFragment(filters: ReportFilters, tenantId: string) {
     ic.tenant_id = ${tenantId}
     AND ic.archived_at IS NULL
     AND p.archived_at IS NULL
-    AND COALESCE(ic.procedure_date::text,
-        (ic.created_at AT TIME ZONE 'Asia/Riyadh')::date::text)
-        BETWEEN ${filters.from} AND ${filters.to}
+    ${includeProcedureDate
+      ? sql`AND ic.procedure_date BETWEEN ${filters.from} AND ${filters.to}`
+      : sql``}
     ${filters.treatingDoctor ? sql`AND ic.treating_doctor = ${filters.treatingDoctor}` : sql``}
     ${filters.caseStatus ? sql`AND ic.case_status = ${filters.caseStatus}` : sql``}
     ${
@@ -499,6 +504,7 @@ function firstRow(result: { rows: unknown[] }): Record<string, unknown> {
 async function buildStatisticsHub(
   filters: ReportFilters,
   where: ReturnType<typeof sql>,
+  caseMetadataWhere: ReturnType<typeof sql>,
   grouping: "day" | "month",
   includeFinancials: boolean,
   tenantId: string,
@@ -571,13 +577,21 @@ async function buildStatisticsHub(
          FROM prosthetic_events pe
          JOIN implant_cases ic ON ic.id = pe.implant_case_id
          JOIN patients p ON p.id = ic.patient_id
-         WHERE pe.archived_at IS NULL AND ${where}
+          LEFT JOIN implants i ON i.id = pe.implant_id
+          WHERE pe.archived_at IS NULL
+            AND pe.tenant_id = ${tenantId}
+            AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+            AND ${caseMetadataWhere}
            AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}) AS "prostheticPatients",
         (SELECT count(*)
          FROM prosthetic_events pe
          JOIN implant_cases ic ON ic.id = pe.implant_case_id
          JOIN patients p ON p.id = ic.patient_id
-         WHERE pe.archived_at IS NULL AND ${where}
+          LEFT JOIN implants i ON i.id = pe.implant_id
+          WHERE pe.archived_at IS NULL
+            AND pe.tenant_id = ${tenantId}
+            AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+            AND ${caseMetadataWhere}
            AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}) AS "prostheticEvents",
         (SELECT count(*)
          FROM followups f
@@ -639,7 +653,11 @@ async function buildStatisticsHub(
       FROM prosthetic_events pe
       JOIN implant_cases ic ON ic.id = pe.implant_case_id
       JOIN patients p ON p.id = ic.patient_id
-      WHERE pe.archived_at IS NULL AND ${where}
+      LEFT JOIN implants i ON i.id = pe.implant_id
+      WHERE pe.archived_at IS NULL
+        AND pe.tenant_id = ${tenantId}
+        AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+        AND ${caseMetadataWhere}
         AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}
     `),
     db.execute(sql`
@@ -647,7 +665,11 @@ async function buildStatisticsHub(
       FROM prosthetic_events pe
       JOIN implant_cases ic ON ic.id = pe.implant_case_id
       JOIN patients p ON p.id = ic.patient_id
-      WHERE pe.archived_at IS NULL AND ${where}
+      LEFT JOIN implants i ON i.id = pe.implant_id
+      WHERE pe.archived_at IS NULL
+        AND pe.tenant_id = ${tenantId}
+        AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+        AND ${caseMetadataWhere}
         AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}
       GROUP BY 1 ORDER BY 1
     `),
@@ -656,7 +678,11 @@ async function buildStatisticsHub(
       FROM prosthetic_events pe
       JOIN implant_cases ic ON ic.id = pe.implant_case_id
       JOIN patients p ON p.id = ic.patient_id
-      WHERE pe.archived_at IS NULL AND ${where}
+      LEFT JOIN implants i ON i.id = pe.implant_id
+      WHERE pe.archived_at IS NULL
+        AND pe.tenant_id = ${tenantId}
+        AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+        AND ${caseMetadataWhere}
         AND pe.event_date BETWEEN ${filters.from} AND ${filters.to}
       GROUP BY 1 ORDER BY 2 DESC, 1
     `),
@@ -1038,10 +1064,13 @@ async function buildStatisticsReport(
 ): Promise<StatisticsResponse> {
   const grouping = rangeGrouping(filters);
   const where = caseFilterFragment(filters, tenantId);
+  const caseMetadataWhere = caseFilterFragment(filters, tenantId, {
+    includeProcedureDate: false,
+  });
   const bucketExpr =
     grouping === "day"
-      ? sql`COALESCE(ic.procedure_date::text, (ic.created_at AT TIME ZONE 'Asia/Riyadh')::date::text)`
-      : sql`LEFT(COALESCE(ic.procedure_date::text, (ic.created_at AT TIME ZONE 'Asia/Riyadh')::date::text), 7)`;
+      ? sql`ic.procedure_date::text`
+      : sql`LEFT(ic.procedure_date::text, 7)`;
   const outcomes = FOLLOWUP_OUTCOME_STATUSES as readonly string[];
 
   const [caseBuckets, implantBuckets, systems, caseStatuses, implantStatuses, boneGraftProcedureTypes, boneGraftProcedureStatuses, outcomeRows, reimplantRows, doctorRows, hub] =
@@ -1126,7 +1155,14 @@ async function buildStatisticsReport(
           AND ic.tenant_id = ${tenantId}
         ORDER BY 1
       `),
-      buildStatisticsHub(filters, where, grouping, includeFinance, tenantId),
+      buildStatisticsHub(
+        filters,
+        where,
+        caseMetadataWhere,
+        grouping,
+        includeFinance,
+        tenantId,
+      ),
     ]);
 
   const bucketMap = new Map<string, { cases: number; implants: number }>();

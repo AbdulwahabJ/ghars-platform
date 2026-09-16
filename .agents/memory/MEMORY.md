@@ -27,3 +27,4 @@
 - [Registration location compatibility](registration-location-compatibility.md) — normalized location/E.164 fields are additive; dual-write legacy city/phone and never rewrite uncertain tenant data.
 - [Cairo PDF subsets](cairo-pdf-subsets.md) — Fontsource Cairo splits Arabic/Latin glyphs; PDF renderers must select by script, normalize bidi punctuation, and reverse RTL columns.
 - [Export enum localization](export-enum-localization.md) — localize canonical Arabic enum values only at the export boundary; never rewrite stored values or filter inputs.
+- [Clinical date semantics](clinical-date-semantics.md) — implant activity follows case procedure date; prosthetic activity follows event date; entry timestamps never substitute.

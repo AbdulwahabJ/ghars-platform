@@ -520,4 +520,170 @@ describe("dashboard work summary", () => {
     expect(res.body.workSummary.month.prostheticPatients).toBeGreaterThanOrEqual(1);
     expect(res.body.workSummary.month.completedProsthetics).toBeGreaterThanOrEqual(2);
   });
+
+  it("uses clinical dates instead of entry timestamps across dashboard and statistics", async () => {
+    const historicalDate = "2025-11-14";
+    const doctor = "د. اختبار دلالات التاريخ";
+    const before = await admin.get("/api/dashboard");
+    const baselineToday = before.body.workSummary.today;
+    const baselineMonth = before.body.workSummary.month;
+
+    const patient = await admin.post("/api/patients").send({
+      fileNumber: "7099",
+      fullName: "مريض اختبار التاريخ السريري",
+    });
+    const undatedDoctor = "د. اختبار تاريخ مفقود";
+    const undatedCase = await admin
+      .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
+      .send({ treatingDoctor: undatedDoctor });
+    await admin
+      .post(`/api/implant-cases/${undatedCase.body.case.id}/implants`)
+      .send({ site: "23", system: "Undated System" });
+
+    const afterUndated = await admin.get("/api/dashboard");
+    expect(afterUndated.body.workSummary.today).toEqual(baselineToday);
+    expect(afterUndated.body.workSummary.month).toEqual(baselineMonth);
+    const undatedStats = await admin.get(
+      `/api/statistics?from=${TO}&to=${TO}&treatingDoctor=${encodeURIComponent(undatedDoctor)}`,
+    );
+    expect(undatedStats.body.hub.overview).toMatchObject({
+      implantedPatients: 0,
+      implants: 0,
+      systems: 0,
+    });
+
+    const historicalCase = await admin
+      .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
+      .send({ procedureDate: historicalDate, treatingDoctor: doctor });
+    const historicalImplant = await admin
+      .post(`/api/implant-cases/${historicalCase.body.case.id}/implants`)
+      .send({ site: "24", system: "Historical System" });
+    await admin
+      .post(`/api/implant-cases/${historicalCase.body.case.id}/prosthetic-events`)
+      .send({
+        eventType: "تركيب دائم",
+        eventDate: historicalDate,
+        implantId: historicalImplant.body.implant.id,
+      });
+
+    const afterHistorical = await admin.get("/api/dashboard");
+    expect(afterHistorical.body.workSummary.today).toEqual(baselineToday);
+    expect(afterHistorical.body.workSummary.month).toEqual(baselineMonth);
+
+    const historicalStats = await admin.get(
+      `/api/statistics?from=${historicalDate}&to=${historicalDate}&treatingDoctor=${encodeURIComponent(doctor)}`,
+    );
+    expect(historicalStats.status).toBe(200);
+    expect(historicalStats.body.hub.overview).toMatchObject({
+      implantedPatients: 1,
+      implants: 1,
+      systems: 1,
+      prostheticPatients: 1,
+      prostheticEvents: 1,
+    });
+
+    const currentCase = await admin
+      .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
+      .send({ procedureDate: TO, treatingDoctor: doctor });
+    await admin
+      .post(`/api/implant-cases/${currentCase.body.case.id}/implants`)
+      .send({ site: "25", system: "Current System" });
+    await admin
+      .post(`/api/implant-cases/${historicalCase.body.case.id}/prosthetic-events`)
+      .send({
+        eventType: "تركيب مؤقت",
+        eventDate: TO,
+        implantId: historicalImplant.body.implant.id,
+      });
+
+    const afterCurrent = await admin.get("/api/dashboard");
+    expect(afterCurrent.body.workSummary.today.implantedPatients)
+      .toBe(baselineToday.implantedPatients + 1);
+    expect(afterCurrent.body.workSummary.today.implants)
+      .toBe(baselineToday.implants + 1);
+    expect(afterCurrent.body.workSummary.today.implantSystems.count)
+      .toBe(baselineToday.implantSystems.count + 1);
+    expect(afterCurrent.body.workSummary.today.prostheticPatients)
+      .toBe(baselineToday.prostheticPatients + 1);
+    expect(afterCurrent.body.workSummary.today.completedProsthetics)
+      .toBe(baselineToday.completedProsthetics + 1);
+    expect(afterCurrent.body.workSummary.month.implants)
+      .toBe(baselineMonth.implants + 1);
+
+    const currentStats = await admin.get(
+      `/api/statistics?from=${TO}&to=${TO}&treatingDoctor=${encodeURIComponent(doctor)}`,
+    );
+    expect(currentStats.status).toBe(200);
+    expect(currentStats.body.hub.overview).toMatchObject({
+      implantedPatients: 1,
+      implants: 1,
+      systems: 1,
+      prostheticPatients: 1,
+      prostheticEvents: 1,
+    });
+    expect(currentStats.body.hub.prosthetics.overTime).toEqual([
+      { bucket: TO, count: 1 },
+    ]);
+
+    const archivedDoctor = "د. اختبار استبعاد التركيبات المؤرشفة";
+    const archivedImplantCase = await admin
+      .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
+      .send({ procedureDate: TO, treatingDoctor: archivedDoctor });
+    const implantToArchive = await admin
+      .post(`/api/implant-cases/${archivedImplantCase.body.case.id}/implants`)
+      .send({ site: "26", system: "Archive Check" });
+    await admin
+      .post(`/api/implant-cases/${archivedImplantCase.body.case.id}/prosthetic-events`)
+      .send({
+        eventType: "تركيب دائم",
+        eventDate: TO,
+        implantId: implantToArchive.body.implant.id,
+      });
+    await admin.post(`/api/implants/${implantToArchive.body.implant.id}/archive`);
+
+    const archivedCase = await admin
+      .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
+      .send({ procedureDate: TO, treatingDoctor: archivedDoctor });
+    await admin
+      .post(`/api/implant-cases/${archivedCase.body.case.id}/prosthetic-events`)
+      .send({ eventType: "تركيب دائم", eventDate: TO });
+    await admin
+      .post(`/api/implant-cases/${archivedCase.body.case.id}/archive`)
+      .send({});
+
+    const patientToArchive = await admin.post("/api/patients").send({
+      fileNumber: "7098",
+      fullName: "مريض اختبار استبعاد مؤرشف",
+    });
+    const patientArchiveCase = await admin
+      .post(`/api/patients/${patientToArchive.body.patient.id}/implant-cases`)
+      .send({ procedureDate: TO, treatingDoctor: archivedDoctor });
+    await admin
+      .post(`/api/implant-cases/${patientArchiveCase.body.case.id}/prosthetic-events`)
+      .send({ eventType: "تركيب مؤقت", eventDate: TO });
+    await admin.post(`/api/patients/${patientToArchive.body.patient.id}/archive`).send({});
+
+    const archivedEventCase = await admin
+      .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
+      .send({ procedureDate: TO, treatingDoctor: archivedDoctor });
+    const eventToArchive = await admin
+      .post(`/api/implant-cases/${archivedEventCase.body.case.id}/prosthetic-events`)
+      .send({ eventType: "تركيب مؤقت", eventDate: TO });
+    await admin.post(`/api/prosthetic-events/${eventToArchive.body.event.id}/archive`);
+
+    const archivedStats = await admin.get(
+      `/api/statistics?from=${TO}&to=${TO}&treatingDoctor=${encodeURIComponent(archivedDoctor)}`,
+    );
+    expect(archivedStats.status).toBe(200);
+    expect(archivedStats.body.hub.overview).toMatchObject({
+      prostheticPatients: 0,
+      prostheticEvents: 0,
+    });
+    expect(archivedStats.body.hub.prosthetics).toMatchObject({
+      patients: 0,
+      events: 0,
+      temporary: 0,
+      permanent: 0,
+    });
+  });
 });
