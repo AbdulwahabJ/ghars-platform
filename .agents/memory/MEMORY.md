@@ -22,6 +22,7 @@
 - [Permanent activation invariant](permanent-activation-invariant.md) — use activation history, not current status, to block trial actions and preserve permanent access through suspension.
 - [Immutable media promotion](immutable-media-promotion.md) — validate and copy the exact same staging generation into a create-only canonical object; one final object belongs to one record.
 - [Production database lifecycle](production-migration-drift.md) — live real-user DB must be preserved; Replit schema sync may leave no Drizzle journal, which alone is not drift.
+- [Schema health fingerprints](schema-health-fingerprints.md) — if dev and prod fingerprints match but health warns, check the embedded expected fingerprint before proposing migration.
 - [Wouter query state](wouter-query-state.md) — useSearch, not useLocation alone, must drive URL-query UI state and Back/Forward behavior.
 - [Registration location compatibility](registration-location-compatibility.md) — normalized location/E.164 fields are additive; dual-write legacy city/phone and never rewrite uncertain tenant data.
 - [Cairo PDF subsets](cairo-pdf-subsets.md) — Fontsource Cairo splits Arabic/Latin glyphs; PDF renderers must select by script, normalize bidi punctuation, and reverse RTL columns.

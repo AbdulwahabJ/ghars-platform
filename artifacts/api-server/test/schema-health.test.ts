@@ -9,7 +9,7 @@ const currentFingerprint = {
   table_count: 30,
   tables_signature: "f5ed5e81717db6db8c4e880d2b5ca67e",
   column_count: 327,
-  columns_signature: "f93a869a243bad7cc2442dd6aaca906d",
+  columns_signature: "cbfb2fdc81a5ca376beb81ea2ca15f55",
   constraint_count: 125,
   constraints_signature: "4d86887a47f44c160a2bc04637d9c061",
   index_count: 106,
