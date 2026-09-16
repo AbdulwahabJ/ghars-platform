@@ -1,0 +1,534 @@
+MODE: Power
+
+Investigate and fix TWO application bugs in Ghars.
+
+IMPORTANT CORRECTION:
+These bugs occurred while logged in normally using the doctor's own Tenant Admin/customer account.
+
+They did NOT occur during Platform Admin impersonation.
+
+The Platform Admin support session shown later in screenshots is NOT part of the original incident.
+
+Do not treat impersonation as the primary cause.
+
+Production contains real customer data.
+
+DO NOT:
+- delete/reset Production data
+- manually modify customer records
+- seed Production
+- publish automatically
+- run destructive DB migrations
+
+Use Production READ-ONLY for evidence.
+Reproduce/fix using Development/test data.
+
+==================================================
+BUG 1 — CREATED DATA DOES NOT APPEAR
+==================================================
+
+Observed flow:
+
+1. Log in normally as the doctor's own customer/Tenant Admin account.
+2. Add a patient record.
+3. Add an implant case.
+4. Add implants.
+
+The save actions appeared successful.
+
+But afterward:
+
+- patient/case table still showed 0
+- Dashboard cards still showed 0
+- newly added data did not appear as expected
+
+A browser refresh was later required during related behavior.
+
+==================================================
+1. VERIFY WHETHER THE DATA WAS SAVED
+==================================================
+
+Read-only inspect Production.
+
+Determine whether the created:
+
+- patient
+- implant case
+- implants
+
+actually exist.
+
+Verify:
+
+- tenant_id
+- relationships
+- created_by
+- timestamps
+- procedure date
+- case status
+- implant status
+
+Do not expose PII.
+
+Report:
+
+PATIENT SAVED: YES / NO
+CASE SAVED: YES / NO
+IMPLANTS SAVED: YES / NO
+TENANT OWNERSHIP CORRECT: YES / NO
+
+==================================================
+2. CHECK FILTERS BEFORE BLAMING CACHE
+==================================================
+
+The Patients/dashboard UI currently contains filters such as:
+
+- period = This Month
+- doctor
+- implant system
+- case status
+- implant status
+
+Determine whether the new records are being excluded by any active/default filter.
+
+Pay special attention to:
+
+- procedure date vs created_at
+- This Month filtering
+- Riyadh timezone boundaries
+- case status
+- implant status
+- doctor relation
+- missing procedure date
+
+Report the exact query/filter condition.
+
+If a newly created case does not satisfy the current filter:
+the UI behavior may be technically correct,
+but the UX must make that clear.
+
+==================================================
+3. AUDIT DATE SEMANTICS
+==================================================
+
+This is important.
+
+Determine which date the Dashboard/list uses for:
+
+- "This Month"
+- implanted patients
+- implant count
+- prosthetic patients
+- completed prosthetics
+
+Do not mix:
+
+created_at
+registration date
+procedure date
+implant placement date
+
+incorrectly.
+
+Use the canonical clinical date for each metric.
+
+Document each metric's actual counting rule.
+
+==================================================
+4. REACT QUERY CACHE / INVALIDATION
+==================================================
+
+Audit mutations for:
+
+- create patient
+- create implant case
+- create implant
+- update case
+- add surgical procedure
+
+After each successful mutation, verify the correct query keys are invalidated/refetched.
+
+Inspect:
+
+- patient list
+- case list
+- dashboard summary
+- statistics
+- implant counts
+- follow-up widgets
+
+Fix stale cache behavior using the existing React Query architecture.
+
+Do NOT solve this with:
+
+window.location.reload()
+
+or full-page refresh.
+
+==================================================
+5. QUERY KEY CONSISTENCY
+==================================================
+
+Check for query-key mismatches.
+
+Example class of bug:
+
+list uses:
+["patients", filters]
+
+mutation invalidates:
+["patients"]
+
+but actual cached query is different and remains stale.
+
+Audit all relevant query keys and centralize them if appropriate.
+
+==================================================
+6. MUTATION RESPONSE CONSISTENCY
+==================================================
+
+Inspect API responses after creating:
+
+- patient
+- case
+- implant
+
+Make sure the frontend does not receive an unexpected/partial response shape that leaves local state invalid.
+
+Check:
+
+201/200 response
+JSON shape
+IDs
+tenant context
+nested relationships
+
+==================================================
+BUG 2 — PAGE CONTENT DISAPPEARS UNTIL REFRESH
+==================================================
+
+Observed:
+
+While using the doctor's own normal account,
+the page suddenly lost/disappeared its content.
+
+A manual browser refresh restored the page.
+
+This is a separate Production-quality bug.
+
+==================================================
+7. REPRODUCE THE PAGE DISAPPEARANCE
+==================================================
+
+Reproduce safely in Development using the normal Tenant Admin account.
+
+Flow should include:
+
+- open dashboard
+- add patient
+- create case
+- add implant
+- navigate back to dashboard/patient list
+- change filters if relevant
+
+Capture:
+
+- browser console
+- React component errors
+- unhandled promise rejections
+- failed API requests
+- React Query state
+- router state
+
+Find the exact root cause.
+
+==================================================
+8. DO NOT MASK THE BUG WITH RELOAD
+==================================================
+
+Do NOT add:
+
+window.location.reload()
+location.reload()
+hard redirect
+
+as the fix.
+
+The SPA must recover/update naturally.
+
+==================================================
+9. CHECK COMMON FRONTEND CRASH PATTERNS
+==================================================
+
+Audit for:
+
+undefined.map(...)
+undefined.length
+destructuring undefined
+invalid date parsing
+unexpected null relations
+stale selected record
+filter state referencing deleted/missing option
+query returning undefined during refetch
+component assuming non-empty data
+
+One temporary API/query issue must not blank the entire page.
+
+==================================================
+10. LOADING / EMPTY / ERROR STATES
+==================================================
+
+Every affected section must correctly distinguish:
+
+LOADING
+EMPTY
+ERROR
+DATA
+
+Do not render:
+
+"0 records"
+
+while data is merely refetching.
+
+Do not crash if a query temporarily has no value.
+
+==================================================
+11. ERROR BOUNDARY
+==================================================
+
+If appropriate, use/reuse route-level error boundaries.
+
+A component failure should not blank the whole authenticated application.
+
+Arabic fallback:
+
+تعذر تحميل هذا الجزء من الصفحة.
+
+Button:
+إعادة المحاولة
+
+English:
+
+Unable to load this section.
+
+Retry
+
+Use query refetch/retry, not browser reload.
+
+==================================================
+12. TRIAL ACCOUNT — VERIFY EXPLICITLY
+==================================================
+
+The affected account may be a valid trial tenant.
+
+Verify commercial gating.
+
+During a VALID 72-hour trial, the tenant must be able to:
+
+- create patients
+- create implant cases
+- add implants
+- add procedures
+- view dashboard
+- view statistics
+- use follow-ups
+
+Trial status must NOT silently hide data or disable core clinical functionality.
+
+Only EXPIRED or SUSPENDED should block according to the current commercial rules.
+
+Report:
+
+TRIAL ACCOUNT CAUSED BUG: YES / NO
+
+If YES:
+fix it.
+
+==================================================
+13. DASHBOARD LIVE UPDATE
+==================================================
+
+After adding a valid record:
+
+Dashboard should update automatically without manual browser refresh.
+
+Verify the relevant counts according to their correct business rules.
+
+Do not fake counts client-side.
+
+Refetch authoritative backend data.
+
+==================================================
+14. PATIENT LIST LIVE UPDATE
+==================================================
+
+After adding a patient:
+
+the patient should appear immediately IF it matches the active filters.
+
+If it does not match:
+show a clear UX indication rather than making the user think the save failed.
+
+Example:
+
+تم حفظ الحالة بنجاح، لكنها لا تطابق الفلاتر الحالية.
+
+Only add this if filter exclusion is a real cause.
+
+==================================================
+15. NORMAL ACCOUNT TEST MATRIX
+==================================================
+
+Test specifically WITHOUT impersonation:
+
+A. Trial Tenant Admin creates patient
+B. Patient appears
+C. Creates implant case
+D. Case appears
+E. Adds implants
+F. Dashboard updates
+G. Navigate between pages
+H. No blank page
+I. No manual refresh required
+
+Then repeat with:
+
+ACTIVE permanent Tenant Admin.
+
+==================================================
+16. FILTER TEST MATRIX
+==================================================
+
+Test:
+
+- This Month
+- All periods
+- doctor filter
+- case status
+- implant status
+- implant system
+
+Verify newly created records appear/disappear correctly based on actual data.
+
+==================================================
+17. TIMEZONE
+==================================================
+
+Ghars uses Saudi/Riyadh display semantics.
+
+Audit date filtering around:
+
+Asia/Riyadh
+
+Do not allow UTC boundary errors to hide today's/current-month data.
+
+==================================================
+18. PRODUCTION SAFETY
+==================================================
+
+Production investigation:
+READ-ONLY.
+
+Use Development/test records to reproduce and validate fixes.
+
+No manual changes to live patient/case data.
+
+==================================================
+19. REGRESSION TESTS
+==================================================
+
+Add automated tests for:
+
+- patient creation refresh
+- case creation refresh
+- implant creation refresh
+- dashboard refetch
+- filter behavior
+- trial tenant behavior
+- active tenant behavior
+- Riyadh date boundaries
+- no page crash during mutation/refetch
+
+==================================================
+20. FINAL REPORT
+==================================================
+
+Report:
+
+BUG 1 ROOT CAUSE:
+<exact root cause>
+
+PATIENT SAVED:
+YES / NO
+
+CASE SAVED:
+YES / NO
+
+IMPLANTS SAVED:
+YES / NO
+
+FILTER CAUSED HIDDEN DATA:
+YES / NO
+
+DATE/METRIC LOGIC ISSUE:
+YES / NO
+
+REACT QUERY INVALIDATION BUG:
+YES / NO
+
+TRIAL ACCOUNT CAUSED BUG:
+YES / NO
+
+PATIENT LIST AUTO-REFRESH:
+PASS / FAIL
+
+DASHBOARD AUTO-REFRESH:
+PASS / FAIL
+
+
+BUG 2 ROOT CAUSE:
+<exact cause>
+
+FRONTEND RUNTIME ERROR:
+YES / NO
+
+PAGE BLANKING FIXED:
+PASS / FAIL
+
+MANUAL REFRESH REQUIRED:
+NO / YES
+
+ERROR RECOVERY:
+PASS / FAIL
+
+
+TRIAL TENANT FULL CORE ACCESS:
+PASS / FAIL
+
+ACTIVE TENANT:
+PASS / FAIL
+
+RIYADH DATE FILTERS:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+PRODUCTION BUILD:
+PASS / FAIL
+
+EXACT CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
