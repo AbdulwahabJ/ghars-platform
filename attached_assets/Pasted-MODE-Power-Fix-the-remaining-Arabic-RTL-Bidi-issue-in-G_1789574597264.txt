@@ -1,0 +1,372 @@
+MODE: Power
+
+Fix the remaining Arabic RTL/Bidi issue in Ghars PDF exports.
+
+CURRENT PROBLEM:
+The Arabic PDF now uses the correct font and general design, but Arabic text is still displayed in the wrong visual order.
+
+The attached screenshot shows:
+- Arabic words/phrases visually reversed or reordered
+- mixed Arabic/English values positioned incorrectly
+- date-range metadata has incorrect RTL/LTR ordering
+- some table cells have incorrect word ordering
+- English values such as dates/system names must remain LTR inside Arabic reports
+
+This is a BIDI / RTL rendering problem.
+
+IMPORTANT:
+Do NOT redesign the PDF.
+Do NOT change the current Excel implementation.
+Do NOT change business/report data.
+Do NOT publish.
+
+==================================================
+1. FIND THE ROOT CAUSE
+==================================================
+
+Audit the PDF rendering pipeline for any:
+
+- string.reverse()
+- array.reverse() used on text
+- manual Arabic character reversal
+- manual word reversal
+- custom RTL hacks
+- CSS direction overrides fighting each other
+- wrong text-align + direction combinations
+- LTR wrapper around Arabic content
+
+Report the exact cause.
+
+==================================================
+2. NEVER REVERSE ARABIC MANUALLY
+==================================================
+
+Remove any manual string reversal.
+
+Arabic strings must remain in their original Unicode logical order.
+
+Example source value:
+
+حالة جديدة
+
+must remain internally:
+
+حالة جديدة
+
+Do NOT transform it to:
+
+ةديدج ةلاح
+
+or reverse its word sequence.
+
+==================================================
+3. USE REAL RTL + BIDI
+==================================================
+
+Arabic PDF document sections must use real:
+
+direction: rtl;
+unicode-bidi: plaintext;
+
+or the correct equivalent supported by the chosen PDF/HTML renderer.
+
+For Arabic report tables:
+
+- table direction = rtl
+- Arabic text cells = rtl
+- Arabic text alignment = right
+
+Do not use visual string reversal.
+
+==================================================
+4. MIXED ARABIC / ENGLISH CONTENT
+==================================================
+
+Mixed-direction content must be explicitly isolated.
+
+Examples:
+
+14 Sep 2026, 12:00 PM
+Neodent
+Other
+3M
+SS26-001
++966501234567
+
+must remain LTR even inside an Arabic PDF.
+
+Use appropriate bidi isolation such as:
+
+dir="ltr"
+unicode-bidi: isolate
+
+for LTR values.
+
+Examples:
+
+Arabic label:
+تاريخ العملية
+
+English/date value:
+14 Sep 2026, 12:00 PM
+
+must display naturally without reversing either side.
+
+==================================================
+5. DATE RANGE METADATA
+==================================================
+
+Fix metadata such as:
+
+الفترة: 01 Sep 2026 – 16 Sep 2026
+
+تاريخ الإنشاء: 16 Sep 2026, 06:59 PM
+
+Arabic labels should be RTL.
+
+Date values should remain LTR.
+
+Do NOT place the complete mixed string inside one unmanaged bidi text node.
+
+Render label and value as separate directional spans/components.
+
+==================================================
+6. TABLE COLUMN ORDER
+==================================================
+
+For Arabic PDF:
+
+visual column order should follow RTL.
+
+Expected right-to-left beginning:
+
+المريض
+رقم الملف
+حالة الحالة
+الطبيب المعالج
+تاريخ العملية
+...
+
+Do NOT reverse the column labels themselves.
+
+Only the table layout/order should be RTL.
+
+For English PDF:
+normal LTR ordering.
+
+==================================================
+7. CELL CONTENT
+==================================================
+
+Arabic examples must render exactly naturally:
+
+حالة جديدة
+
+جاهز للتركيب
+
+تركيب مؤقت
+
+رفع الجيب الفكي
+
+مدفوع جزئيًا
+
+مدفوع بالكامل
+
+Do not concatenate words without spaces.
+
+The current screenshot shows values such as:
+
+بالكاملمدفوع
+
+or similarly reordered content.
+
+Fix formatter/layout logic so expected display is:
+
+مدفوع بالكامل
+
+==================================================
+8. ARABIC SHAPING
+==================================================
+
+Verify the current embedded Arabic font and renderer support Arabic shaping.
+
+Arabic characters must be:
+
+- connected
+- correctly shaped
+- correct joining forms
+- correct RTL order
+
+Test letters with different joining behavior.
+
+==================================================
+9. CSS / HTML PDF RENDERING
+==================================================
+
+If the PDF uses HTML/CSS rendering:
+
+set the root Arabic report container to:
+
+<html lang="ar" dir="rtl">
+
+or equivalent.
+
+Recommended semantics:
+
+body/report:
+direction: rtl;
+
+Arabic cells:
+direction: rtl;
+text-align: right;
+
+LTR values:
+direction: ltr;
+unicode-bidi: isolate;
+text-align according to the field type.
+
+Do not blindly apply rtl to numeric/date values.
+
+==================================================
+10. NUMBERS
+==================================================
+
+Numbers must not be reversed.
+
+Examples:
+
+21572
+582722
+6,666.66
++966501234567
+
+must remain exactly in logical order.
+
+==================================================
+11. TEST CURRENT BROKEN REPORT
+==================================================
+
+Recreate the exact type of operational report shown in the attached screenshot.
+
+Verify visually:
+
+- payment status wording
+- case status
+- procedures
+- doctor name
+- implant systems
+- dates
+- currency
+- report metadata
+
+Nothing should appear reversed.
+
+==================================================
+12. TEST THESE EXACT STRINGS
+==================================================
+
+Arabic:
+
+شركة مجمع السن الرقمي الطبي
+التقرير التشغيلي
+حالة جديدة
+جاهز للتركيب
+رفع الجيب الفكي
+تركيب مؤقت
+مدفوع جزئيًا
+مدفوع بالكامل
+المتابعة القادمة
+الإجراءات الإضافية
+
+Mixed:
+
+Neodent
+Other
+14 Sep 2026, 12:00 PM
+6,666.66 ر.س
+
+All must visually render correctly.
+
+==================================================
+13. ENGLISH REGRESSION
+==================================================
+
+English PDF exports must remain fully LTR and unchanged.
+
+Switch application to English and verify the same report.
+
+==================================================
+14. DO NOT TOUCH EXCEL
+==================================================
+
+Excel is currently good.
+
+Do not redesign or refactor it as part of this fix.
+
+==================================================
+15. FINAL VISUAL QA
+==================================================
+
+Do not mark PASS based only on automated tests.
+
+Actually generate and visually inspect:
+
+1. Arabic Operational Report
+2. Arabic Implant Cases
+3. Arabic Payments
+4. Arabic Patients
+5. English equivalent report
+
+==================================================
+16. FINAL REPORT
+==================================================
+
+Report:
+
+RTL/BIDI ROOT CAUSE:
+<exact cause>
+
+MANUAL STRING REVERSAL FOUND:
+YES / NO
+
+MANUAL STRING REVERSAL REMOVED:
+PASS / NOT APPLICABLE
+
+ARABIC LOGICAL ORDER:
+PASS / FAIL
+
+ARABIC SHAPING:
+PASS / FAIL
+
+MIXED AR/EN:
+PASS / FAIL
+
+DATE RANGE RTL/LTR:
+PASS / FAIL
+
+NUMBERS NOT REVERSED:
+PASS / FAIL
+
+TABLE COLUMN ORDER:
+PASS / FAIL
+
+ARABIC VISUAL QA:
+PASS / FAIL
+
+ENGLISH REGRESSION:
+PASS / FAIL
+
+EXCEL UNCHANGED:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+EXACT CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
