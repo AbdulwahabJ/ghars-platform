@@ -1,5 +1,8 @@
 import { execFileSync } from "node:child_process";
 import ExcelJS from "exceljs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   formatCellValue,
@@ -82,6 +85,19 @@ describe("shared export engine", () => {
     expect(extracted).toContain("غرس");
     expect(extracted).toContain("صفحة");
     expect(extracted).toContain("English Patient Body Text");
+  });
+
+  it("renders Arabic PDF exports independently of the process working directory", async () => {
+    const originalCwd = process.cwd();
+    const unrelatedCwd = mkdtempSync(join(tmpdir(), "ghars-export-cwd-"));
+    try {
+      process.chdir(unrelatedCwd);
+      const exported = await renderPdf(report);
+      expect(exported.data.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(unrelatedCwd, { recursive: true, force: true });
+    }
   });
 
   it("renders professional RTL XLSX cells without internal row fields", async () => {

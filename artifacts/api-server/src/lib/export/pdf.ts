@@ -1,5 +1,7 @@
 import { createRequire } from "node:module";
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import PDFDocument from "pdfkit";
 import {
   formatCellValue,
@@ -20,7 +22,16 @@ const cairoFont = require.resolve("@fontsource/cairo/files/cairo-arabic-400-norm
 const cairoBoldFont = require.resolve("@fontsource/cairo/files/cairo-arabic-700-normal.woff");
 const cairoLatinFont = require.resolve("@fontsource/cairo/files/cairo-latin-400-normal.woff");
 const cairoLatinBoldFont = require.resolve("@fontsource/cairo/files/cairo-latin-700-normal.woff");
-const cairoCompleteFont = resolve(process.cwd(), "src/assets/Cairo-Variable.ttf");
+const moduleDir = dirname(fileURLToPath(import.meta.url));
+function resolveCairoCompleteFont(): string {
+  const fontPath = [
+    resolve(moduleDir, "assets/Cairo-Variable.ttf"),
+    resolve(moduleDir, "../../assets/Cairo-Variable.ttf"),
+  ].find(existsSync);
+  if (fontPath) return fontPath;
+  throw new Error("Cairo PDF font asset is missing from the API server build");
+}
+const cairoCompleteFont = resolveCairoCompleteFont();
 const ARABIC_SCRIPT_RE = /[\u0600-\u06ff\ufb50-\ufdff\ufe70-\ufeff]/u;
 
 function fontForText(value: string, bold = false): string {
