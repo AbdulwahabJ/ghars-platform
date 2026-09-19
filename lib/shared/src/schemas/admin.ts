@@ -523,13 +523,19 @@ export const universalImportMappingPatchSchema = z.object({
     historicalPaymentStatus: z.enum(["UNKNOWN", "UNPAID", "PARTIALLY_PAID", "PAID_IN_FULL", "REVIEW_REQUIRED"]).nullable(),
     isVerified: z.boolean(),
   })).optional(),
+  caseCorrections: z.array(z.object({
+    rowNumber: z.number().int().min(1),
+    procedureDate: z.string().date(),
+    treatingDoctor: z.string().trim().min(1).max(200),
+    status: z.string().trim().min(1).max(200),
+  })).optional(),
   implantApplyToAll: z.array(z.object({
     rowNumber: z.number().int().min(1),
     fields: z.array(z.enum(["qValue", "formerValue", "graftValue"])).min(1),
   })).optional(),
   version: z.number().int().min(1).optional(),
-}).refine((value) => value.mappings.length > 0 || (value.valueMappings?.length ?? 0) > 0 || (value.rowApprovals?.length ?? 0) > 0 || (value.financeCorrections?.length ?? 0) > 0 || (value.implantApplyToAll?.length ?? 0) > 0,
-  "At least one mapping, value mapping, row approval, or finance correction is required.");
+}).refine((value) => value.mappings.length > 0 || (value.valueMappings?.length ?? 0) > 0 || (value.rowApprovals?.length ?? 0) > 0 || (value.financeCorrections?.length ?? 0) > 0 || (value.caseCorrections?.length ?? 0) > 0 || (value.implantApplyToAll?.length ?? 0) > 0,
+  "At least one mapping, value mapping, row approval, case correction, or finance correction is required.");
 export type UniversalImportMappingPatch = z.infer<typeof universalImportMappingPatchSchema>;
 
 export const universalImportCommitSchema = z.object({
@@ -596,6 +602,17 @@ export const universalImportNormalizedRowSchema = z.object({
       isVerified: z.boolean(),
     }),
     legacyNotes: z.array(z.string()),
+  }),
+  importPlan: z.object({
+    createPatient: z.boolean(),
+    createCase: z.boolean(),
+    implantCount: z.number().int().nonnegative(),
+    createBoneGraftProcedure: z.literal(false),
+    createProstheticEvent: z.literal(false),
+    paymentRecords: z.literal(0),
+    historicalFinanceEligible: z.boolean(),
+    preserveLegacyNote: z.boolean(),
+    openingRemainingBalance: z.number().int().nonnegative().nullable(),
   }),
 });
 export type UniversalImportNormalizedRow = z.infer<

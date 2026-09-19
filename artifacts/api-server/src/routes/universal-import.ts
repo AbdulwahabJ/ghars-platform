@@ -8,6 +8,7 @@ import {
   implantsTable,
   patientsTable,
   caseHistoricalFinanceTable,
+  implantSystemOptionsTable,
 } from "@workspace/db";
 import {
   UNIVERSAL_IMPORT_DESTINATIONS,
@@ -23,6 +24,7 @@ import {
   type UniversalImportMapping,
   normalizeArabicSearchText,
   normalizeMobile,
+  FDI_SITES,
 } from "@workspace/shared";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { parseCsv } from "../lib/csv";
@@ -74,6 +76,17 @@ type NormalizedRow = {
     sourceCandidates: { qValue: string | null; formerValue: string | null; graftValue: string | null };
     legacyNotes: string[];
   };
+  importPlan: {
+    createPatient: boolean;
+    createCase: boolean;
+    implantCount: number;
+    createBoneGraftProcedure: false;
+    createProstheticEvent: false;
+    paymentRecords: 0;
+    historicalFinanceEligible: boolean;
+    preserveLegacyNote: boolean;
+    openingRemainingBalance: number | null;
+  };
 };
 
 const destinationSet = new Set<string>(UNIVERSAL_IMPORT_DESTINATIONS);
@@ -81,6 +94,7 @@ const destinationSet = new Set<string>(UNIVERSAL_IMPORT_DESTINATIONS);
 function normalizeHeader(value: string): string {
   return value
     .normalize("NFKC")
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
     .toLocaleLowerCase()
     .replace(/[\s_.:/\\()-]+/g, "")
     .replace(/[؟?]/g, "");
@@ -88,17 +102,22 @@ function normalizeHeader(value: string): string {
 
 const ALIASES: Record<string, UniversalImportDestination> = {
   name: "patient.name", patient: "patient.name", patientname: "patient.name",
+  fullname: "patient.name", patientfullname: "patient.name", "اسم": "patient.name", "اسم المريض والجوال": "patient.name",
   "اسم المريض": "patient.name", "الاسم الكامل": "patient.name", "name+mobile": "patient.name",
   file: "patient.file_number", fileno: "patient.file_number", file_number: "patient.file_number",
   mrn: "patient.file_number", no: "patient.file_number", "رقم الملف": "patient.file_number",
   mobile: "patient.mobile", phone: "patient.mobile", telephone: "patient.mobile", "رقم الجوال": "patient.mobile",
+  mobilenumber: "patient.mobile", phonenumber: "patient.mobile", whatsapp: "patient.mobile", جوال: "patient.mobile", هاتف: "patient.mobile",
   age: "patient.age", العمر: "patient.age",
   date: "case.procedure_date", surgerydate: "case.procedure_date", implantdate: "case.procedure_date",
   proceduredate: "case.procedure_date", "تاريخ العملية": "case.procedure_date", "تاريخ الزراعة": "case.procedure_date",
+  dateofprocedure: "case.procedure_date", dateofimplant: "case.procedure_date", surgery: "case.procedure_date",
   system: "implant.system", implant: "implant.system", brand: "implant.system", "نظام الزرعة": "implant.system",
   implantbrand: "implant.system",
   site: "implant.site", tooth: "implant.site", toothno: "implant.site", location: "implant.site", "الموقع": "implant.site",
+  implantsite: "implant.site", toothnumber: "implant.site", fdi: "implant.site", "رقم السن": "implant.site", السن: "implant.site",
   size: "implant.size", implantsize: "implant.size", dimensions: "implant.size", "المقاس": "implant.size",
+  implantdimensions: "implant.size", "حجم الزرعة": "implant.size",
   q: "implant.q_value", qvalue: "implant.q_value",
   former: "implant.former_value", formervalue: "implant.former_value",
   graft: "implant.graft_value", graftvalue: "implant.graft_value",
@@ -161,7 +180,7 @@ function sizeNumbers(value: string | null): { diameter: string | null; length: s
   return { diameter: numbers[0] ?? null, length: numbers[1] ?? null };
 }
 
-function cleanDate(value: string): string | null {
+function parseDate(value: string): { date: string | null; ambiguous: boolean } {
   const v = normalizeDigits(value.trim());
   let year = 0;
   let month = 0;
@@ -185,14 +204,19 @@ function cleanDate(value: string): string | null {
     [, year, month, day] = match.map(Number) as [string, number, number, number];
   } else {
     match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(v);
-    if (!match) return null;
+    if (!match) return { date: null, ambiguous: false };
     [, day, month, year] = match.map(Number) as [string, number, number, number];
+    if (day <= 12 && month <= 12) return { date: null, ambiguous: true };
     if (year < 100) year += year <= 69 ? 2000 : 1900;
   }
   if (year < 1 || year > 9999 || month < 1 || month > 12 || day < 1 || day > new Date(Date.UTC(year, month, 0)).getUTCDate()) {
-    return null;
+    return { date: null, ambiguous: false };
   }
-  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return { date: `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`, ambiguous: false };
+}
+
+function cleanDate(value: string): string | null {
+  return parseDate(value).date;
 }
 
 function excelDate(value: Date): string {
@@ -414,6 +438,7 @@ function normalizeRows(
   valueMappings: Map<string, string> = new Map(),
   extractionReview?: string,
   approvedRows: Set<number> = new Set(),
+  managedSystems: Map<string, string> = new Map(),
 ): NormalizedRow[] {
   const byDestination = new Map<UniversalImportDestination, string[]>();
   for (const mapping of mappings) {
@@ -437,18 +462,34 @@ function normalizeRows(
       : { name: get(row, "patient.name"), mobile: null, review: null };
     const name = combined.name.replace(/^\s*[٠-٩۰-۹\d]+\s*[-–—.)،]\s*/u, "").trim();
     const fileNumber = normalizeDigits(get(row, "patient.file_number"));
-    const procedureDate = cleanDate(get(row, "case.procedure_date"));
-    const sites = splitValues(get(row, "implant.site"));
+    const rawDate = get(row, "case.procedure_date");
+    const parsedDate = parseDate(rawDate);
+    const procedureDate = parsedDate.date;
+    if (parsedDate.ambiguous) warnings.push("DATE_AMBIGUOUS: Numeric date is ambiguous; use YYYY-MM-DD or an explicit month name.");
+    const sites = splitValues(get(row, "implant.site")).map((site) => normalizeDigits(site).trim());
     const blocked: string[] = [];
     const sizes = splitValues(get(row, "implant.size")).map(normalizeSize);
     const rawSystems = splitValues(get(row, "implant.system"));
-    const systems = rawSystems.map((rawSystem) =>
-      valueMappings.get(`value:implant.system:${rawSystem}`) ?? rawSystem,
-    );
+    const systems = rawSystems.map((rawSystem) => {
+      const approved = valueMappings.get(`value:implant.system:${rawSystem}`);
+      if (approved) return approved;
+      const normalized = normalizeArabicSearchText(rawSystem);
+      const exact = managedSystems.get(normalized);
+      if (exact) return exact;
+      if (normalized === "rot") {
+        return [...managedSystems.entries()].find(([key]) => key === "rot / root" || key.startsWith("rot "))?.[1] ?? "";
+      }
+      return "";
+    }).filter(Boolean);
+    if (rawSystems.length && managedSystems.size && systems.length !== rawSystems.length) {
+      warnings.push("IMPLANT_SYSTEM_UNKNOWN: Implant system is not in the tenant managed list and was not written as canonical data.");
+    }
     const implantMetric = (destination: UniversalImportDestination): string[] => splitValues(get(row, destination));
     const qValues = implantMetric("implant.q_value");
     const formerValues = implantMetric("implant.former_value");
     const graftValues = implantMetric("implant.graft_value");
+    const treatingDoctor = get(row, "case.treating_doctor").trim() || "غير محدد";
+    const caseStatus = get(row, "case.status").trim() || "غير محدد";
     for (const [label, values] of [["Q", qValues], ["Former", formerValues], ["Graft", graftValues]] as const) {
       if (sites.length > 1 && values.length === 1 && values[0]) warnings.push(`${label} is a single source value for multiple implants; review explicit apply-to-all before commit.`);
       if (values.length > 1 && values.length !== sites.length) blocked.push(`${label} values must match implant site count.`);
@@ -462,8 +503,18 @@ function normalizeRows(
       graftValue: graftValues.length === sites.length ? graftValues[index] ?? null : null,
     }));
     if (combined.review) warnings.push(combined.review);
-    if ((!name && !combined.review) || !fileNumber || !procedureDate) blocked.push("Patient name, file number, and clinical date are required.");
+    if ((!name && !combined.review) || !fileNumber || (!procedureDate && !parsedDate.ambiguous)) blocked.push("Patient name, file number, and clinical date are required.");
     if (!sites.length) blocked.push("At least one implant site is required.");
+    for (const site of sites) {
+      const isFdi = (FDI_SITES as readonly string[]).includes(site);
+      const isExplicitCustom = /^custom\s*:/i.test(site) || /^مخصص\s*:/u.test(site);
+      if (!isFdi && !isExplicitCustom) {
+        warnings.push(`SITE_INVALID: Site "${site}" is not a valid FDI tooth and cannot be committed until corrected.`);
+      }
+      if (isExplicitCustom && site.replace(/^custom\s*:/i, "").replace(/^مخصص\s*:/u, "").trim().length < 1) {
+        blocked.push("Custom implant sites must include a non-empty label.");
+      }
+    }
     if (
       (sites.length > 1 && sizes.length !== sites.length) ||
       (row.confidence && sizes.length !== sites.length)
@@ -495,6 +546,12 @@ function normalizeRows(
       .filter((mapping) => mapping.destination === "legacy_note")
       .map((mapping) => `${mapping.source}: ${row.values[mapping.source] ?? ""}`)
       .filter((note) => !note.endsWith(": "));
+    const rawProsValue = get(row, "case.pros_value").trim();
+    const canonicalProsValue = rawProsValue === "2M" || rawProsValue === "3M" ? rawProsValue : null;
+    if (rawProsValue && !canonicalProsValue) {
+      legacyNotes.push(`Pros: ${rawProsValue}`);
+      if (!rowApproved) warnings.push("PROS_REVIEW_REQUIRED: Pros meaning is not proven and will be preserved as a legacy prosthetic note.");
+    }
     for (const mapping of mappings) {
       const valueConfidence = row.confidence?.[mapping.source];
       if (!rowApproved && row.values[mapping.source] && valueConfidence != null && valueConfidence < MIN_CONFIDENCE) {
@@ -519,9 +576,9 @@ function normalizeRows(
         patient: { name, fileNumber, mobile: get(row, "patient.mobile") || combined.mobile, age: parseNumber(get(row, "patient.age")) },
         case: {
           procedureDate: procedureDate ?? "",
-          treatingDoctor: get(row, "case.treating_doctor") || "د. همام",
-          status: get(row, "case.status") || "حالة جديدة",
-          prosValue: get(row, "case.pros_value") || null,
+          treatingDoctor,
+          status: caseStatus,
+          prosValue: canonicalProsValue,
           clinicalNote: get(row, "clinical_note") || null,
         },
         implants,
@@ -530,6 +587,17 @@ function normalizeRows(
         financeCandidate: finance,
         finance: parsedFinance,
         legacyNotes,
+      },
+      importPlan: {
+        createPatient: true,
+        createCase: true,
+        implantCount: implants.length,
+        createBoneGraftProcedure: false,
+        createProstheticEvent: false,
+        paymentRecords: 0,
+        historicalFinanceEligible: parsedFinance.isVerified,
+        preserveLegacyNote: Boolean(get(row, "clinical_note") || legacyNotes.length),
+        openingRemainingBalance: parsedFinance.openingRemainingBalance,
       },
     };
   });
@@ -656,12 +724,16 @@ router.post("/admin/import/universal/analyze", async (req, res): Promise<void> =
     const { rows, extractionReview, pagesProcessed, documentType } = await readSpreadsheet(filename, mime, content);
     const headers = [...new Set(rows.flatMap((row) => Object.keys(row.values)))];
     const learned = await learnedMappings(req.currentTenant!.id);
+    const managedSystemRows = await db.select({ name: implantSystemOptionsTable.name })
+      .from(implantSystemOptionsTable)
+      .where(and(eq(implantSystemOptionsTable.tenantId, req.currentTenant!.id), eq(implantSystemOptionsTable.isActive, true)));
+    const managedSystems = new Map(managedSystemRows.map((row) => [normalizeArabicSearchText(row.name), row.name]));
     // Client confidence/review flags are never trusted. Analyze always
     // recomputes deterministic and learned mappings on the server; edits use
     // the authenticated PATCH endpoint after preview.
     const mappings = makeMappings(headers, learned);
      const normalizedRows = await classifyDuplicates(
-      normalizeRows(rows, mappings, learned.values, extractionReview),
+       normalizeRows(rows, mappings, learned.values, extractionReview, new Set(), managedSystems),
       req.currentTenant!.id,
      );
     const summary = {
@@ -740,6 +812,10 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
     };
   });
   const learned = await learnedMappings(req.currentTenant!.id);
+  const managedSystemRows = await db.select({ name: implantSystemOptionsTable.name })
+    .from(implantSystemOptionsTable)
+    .where(and(eq(implantSystemOptionsTable.tenantId, req.currentTenant!.id), eq(implantSystemOptionsTable.isActive, true)));
+  const managedSystems = new Map(managedSystemRows.map((row) => [normalizeArabicSearchText(row.name), row.name]));
   const valueMappings = new Map(learned.values);
   for (const mapping of parsed.data.valueMappings ?? []) {
     valueMappings.set(`value:implant.system:${mapping.source}`, mapping.destination);
@@ -756,6 +832,7 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
       valueMappings,
       (batch.summary as { extractionReview?: string }).extractionReview,
       priorApprovals,
+      managedSystems,
     ),
     req.currentTenant!.id,
     priorApprovals,
@@ -765,8 +842,16 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
     const previous = previousRows.find((candidate) => candidate.rowNumber === row.rowNumber);
     if (!previous) continue;
     row.proposed.sourceCandidates = previous.proposed.sourceCandidates;
+    if (previous.proposed.case.treatingDoctor && previous.proposed.case.status) {
+      row.proposed.case.procedureDate = previous.proposed.case.procedureDate;
+      row.proposed.case.treatingDoctor = previous.proposed.case.treatingDoctor;
+      row.proposed.case.status = previous.proposed.case.status;
+      row.warnings = row.warnings.filter((warning) => !warning.startsWith("CASE_DETAILS_REQUIRED:"));
+    }
     if (previous.proposed.finance.isVerified) {
       row.proposed.finance = previous.proposed.finance;
+      row.importPlan.historicalFinanceEligible = previous.proposed.finance.isVerified;
+      row.importPlan.openingRemainingBalance = previous.proposed.finance.openingRemainingBalance;
       row.warnings = row.warnings.filter((warning) => !warning.includes("finance") && !warning.includes("Financial source text"));
       if (row.status === "REVIEW_REQUIRED" && row.warnings.length === 0) row.status = "READY";
     }
@@ -779,6 +864,19 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
       const label = field === "qValue" ? "Q" : field === "formerValue" ? "Former" : "Graft";
       row.warnings = row.warnings.filter((warning) => !warning.startsWith(`${label} is a single source value`));
     }
+    if (row.status === "REVIEW_REQUIRED" && row.warnings.length === 0) row.status = "READY";
+  }
+  for (const correction of parsed.data.caseCorrections ?? []) {
+    const row = rows.find((candidate) => candidate.rowNumber === correction.rowNumber);
+    if (!row) {
+      res.status(422).json({ error: `Unknown import row ${correction.rowNumber}.` });
+      return;
+    }
+    row.proposed.case.procedureDate = correction.procedureDate;
+    row.proposed.case.treatingDoctor = correction.treatingDoctor.trim();
+    row.proposed.case.status = correction.status.trim();
+    row.warnings = row.warnings.filter((warning) => !warning.startsWith("CASE_DETAILS_REQUIRED:"));
+    row.warnings = row.warnings.filter((warning) => !warning.startsWith("DATE_AMBIGUOUS:"));
     if (row.status === "REVIEW_REQUIRED" && row.warnings.length === 0) row.status = "READY";
   }
   for (const correction of parsed.data.financeCorrections ?? []) {
@@ -801,6 +899,8 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
       return;
     }
     row.proposed.finance = { ...correction };
+    row.importPlan.historicalFinanceEligible = correction.isVerified;
+    row.importPlan.openingRemainingBalance = correction.openingRemainingBalance;
     if (correction.isVerified) {
       row.proposed.financeCandidate = row.proposed.financeCandidate ?? row.raw.COST ?? null;
       row.warnings = row.warnings.filter((warning) =>
@@ -940,6 +1040,17 @@ router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void
     res.status(422).json({ error: "Only READY rows can be committed. Resolve review and blocked rows first." });
     return;
   }
+  if (chosen.some((row) => !/^\d{4}-\d{2}-\d{2}$/.test(row.proposed.case.procedureDate))) {
+    res.status(422).json({ error: "Every selected row requires an explicitly confirmed clinical procedure date." });
+    return;
+  }
+  if (chosen.some((row) => row.proposed.implants.some((implant) => {
+    const explicitCustom = /^custom\s*:/i.test(implant.site) || /^مخصص\s*:/u.test(implant.site);
+    return !(FDI_SITES as readonly string[]).includes(implant.site) && !explicitCustom;
+  }))) {
+    res.status(422).json({ error: "Every implant site must be a valid FDI tooth or an explicitly labeled custom site." });
+    return;
+  }
   if (options.data.mode === "clinical_and_verified_finance") {
     const unresolved = chosen.filter((row) => {
       const f = row.proposed.finance;
@@ -1008,6 +1119,10 @@ router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void
             fullName: firstRow.proposed.patient.name,
             fullNameNormalized: normalizeArabicSearchText(firstRow.proposed.patient.name),
             mobileNumber: canonicalMobile,
+            mobileNormalized: canonicalMobile ? (() => {
+              const normalized = normalizeMobile(canonicalMobile);
+              return normalized.ok ? normalized.normalized : null;
+            })() : null,
             age: firstRow.proposed.patient.age,
             createdBy: req.currentUser!.id,
             updatedBy: req.currentUser!.id,
@@ -1081,7 +1196,7 @@ router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void
               tenantId: req.currentTenant!.id,
               implantCaseId: caseRow.id,
               site: implant.site,
-              isCustomSite: true,
+              isCustomSite: !(FDI_SITES as readonly string[]).includes(implant.site),
               system: implant.system,
               diameter: sizeNumbers(implant.size).diameter,
               length: sizeNumbers(implant.size).length,

@@ -13,20 +13,20 @@ type QueryResult = {
 export type SchemaQueryExecutor = (query: SQL) => Promise<QueryResult>;
 
 const EXPECTED_SCHEMA = {
-  tableCount: 30,
-  tablesSignature: "f5ed5e81717db6db8c4e880d2b5ca67e",
-  columnCount: 327,
-  columnsSignature: "cbfb2fdc81a5ca376beb81ea2ca15f55",
-  constraintCount: 125,
-  constraintsSignature: "4d86887a47f44c160a2bc04637d9c061",
-  indexCount: 106,
-  indexesSignature: "9a2d08a0a853ba3a8d0883599997593e",
+  tableCount: 33,
+  tablesSignature: "3ea94766d532d3c80dddc064a4540a72",
+  columnCount: 367,
+  columnsSignature: "808c97801ffed3333f4a2c7c39619c82",
+  constraintCount: 138,
+  constraintsSignature: "e0d5ba3f033ef7ca77ef381ed2868b24",
+  indexCount: 116,
+  indexesSignature: "64ef0d46c9bf818dfea399e5b49414a4",
 } as const;
 
-const EXPECTED_MIGRATION_COUNT = 26;
+const EXPECTED_MIGRATION_COUNT = 29;
 const EXPECTED_LATEST_MIGRATION = {
-  hash: "9848a52b6425274db1f4954faf04fdacee07d0f9088599d236ff42651c953e7b",
-  createdAt: "1789481032596",
+  hash: "65b72d6cbd79b4ecf12edf4cee326138909c44cad92618d90b4b69d58708f4be",
+  createdAt: "1789841000000",
 } as const;
 
 export const schemaFingerprintQuery = sql`

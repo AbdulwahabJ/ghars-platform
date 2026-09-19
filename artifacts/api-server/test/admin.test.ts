@@ -1063,8 +1063,8 @@ describe("universal legacy import staging", () => {
       mime: "text/csv",
       content: [
         "NAME,FILE,DATE,SITE",
-        `مريض أول,${firstFile},2025-12-14,50`,
-        `مريض ثان,${secondFile},2025-12-15,51`,
+        `مريض أول,${firstFile},2025-12-14,15`,
+        `مريض ثان,${secondFile},2025-12-15,16`,
       ].join("\n"),
     });
     expect(analyzed.body.rows.every((row: { status: string }) => row.status === "READY")).toBe(true);
@@ -1358,6 +1358,84 @@ describe("universal legacy import staging", () => {
     } else {
       expect(batch.body.createdRecords.length).toBeGreaterThan(0);
     }
+  });
+
+  it("keeps canonical implant fields, exact notes, and an explicit zero-payment import plan", async () => {
+    const note = "NOTE exact: preserve | commas, Arabic: ملاحظة";
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "canonical-fields.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,SYSTEM,Q,Former,Graft,Pros,NOTE",
+        `Canonical patient,UI-CANONICAL-1,2026-02-14,"24,25","3.5x10,4.0x11",ROT,"Q1,Q2",Healing,GBR,Unknown Pros,"${note}"`,
+      ].join("\n"),
+    });
+    expect(analyzed.status).toBe(201);
+    const row = analyzed.body.rows[0];
+    expect(row.status).toBe("REVIEW_REQUIRED");
+    expect(row.raw.NOTE).toBe(note);
+    expect(row.proposed.case.clinicalNote).toBe(note);
+    expect(row.proposed.implants).toEqual([
+      expect.objectContaining({ site: "24", size: "3.5 × 10", qValue: "Q1", formerValue: null, graftValue: null }),
+      expect.objectContaining({ site: "25", size: "4.0 × 11", qValue: "Q2", formerValue: null, graftValue: null }),
+    ]);
+    expect(row.proposed.sourceCandidates).toMatchObject({ formerValue: "Healing", graftValue: "GBR" });
+    expect(row.proposed.case.prosValue).toBeNull();
+    expect(row.proposed.legacyNotes).toContain("Pros: Unknown Pros");
+    expect(row.importPlan).toMatchObject({
+      createPatient: true,
+      createCase: true,
+      implantCount: 2,
+      createBoneGraftProcedure: false,
+      createProstheticEvent: false,
+      paymentRecords: 0,
+      preserveLegacyNote: true,
+    });
+
+    const patched = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      version: analyzed.body.version,
+      implantApplyToAll: [{ rowNumber: 1, fields: ["formerValue", "graftValue"] }],
+      rowApprovals: [{ rowNumber: 1, approved: true }],
+    });
+    expect(patched.status).toBe(200);
+    expect(patched.body.rows[0].status).toBe("READY");
+    expect(patched.body.rows[0].proposed.implants).toEqual([
+      expect.objectContaining({ formerValue: "Healing", graftValue: "GBR" }),
+      expect.objectContaining({ formerValue: "Healing", graftValue: "GBR" }),
+    ]);
+  });
+
+  it("does not guess ambiguous dates, invalid FDI values, or exceed the five-patient pilot cap", async () => {
+    const ambiguous = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "ambiguous-date.csv",
+      mime: "text/csv",
+      content: "NAME,FILE,DATE,SITE\nAmbiguous date,UI-AMBIGUOUS-DATE,04/05/2025,11",
+    });
+    expect(ambiguous.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    expect(ambiguous.body.rows[0].proposed.case.procedureDate).toBe("");
+    expect(ambiguous.body.rows[0].warnings.join(" ")).toContain("DATE_AMBIGUOUS");
+
+    const invalidSite = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "invalid-fdi.csv",
+      mime: "text/csv",
+      content: "NAME,FILE,DATE,SITE\nInvalid site,UI-INVALID-FDI,2026-02-15,99",
+    });
+    expect(invalidSite.body.rows[0].warnings.join(" ")).toContain("SITE_INVALID");
+    expect((await admin.post(`/api/admin/import/universal/${invalidSite.body.id}/commit`).send({})).status).toBe(422);
+
+    const rows = ["NAME,FILE,DATE,SITE"];
+    for (let index = 1; index <= 6; index += 1) {
+      rows.push(`Pilot ${index},UI-PILOT-CAP-${index},2026-02-${String(10 + index).padStart(2, "0")},${10 + index}`);
+    }
+    const pilot = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "pilot-cap.csv",
+      mime: "text/csv",
+      content: rows.join("\n"),
+    });
+    expect(pilot.body.rows.every((row: { status: string }) => row.status === "READY")).toBe(true);
+    const response = await admin.post(`/api/admin/import/universal/${pilot.body.id}/commit`).send({ pilot: true });
+    expect(response.status).toBe(422);
+    expect(response.body.error).toContain("limited to five");
   });
 });
 

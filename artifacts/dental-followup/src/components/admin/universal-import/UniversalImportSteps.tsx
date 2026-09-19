@@ -128,13 +128,13 @@ export function UploadStep({
       </CardHeader>
       <CardContent>
         <div className="mb-4 rounded-md border p-3">
-          <p className="text-sm font-medium">Import mode</p>
-          <p className="text-xs text-muted-foreground mb-2">Historical finance is separate from future Ghars payments. Unknown values are not zero.</p>
+           <p className="text-sm font-medium">{t("import.universal.importMode")}</p>
+           <p className="text-xs text-muted-foreground mb-2">{t("import.universal.financeSeparation")}</p>
           <Select value={importMode} onValueChange={(v) => setImportMode(v as typeof importMode)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="clinical_only">Clinical data only (preserve raw COST)</SelectItem>
-              <SelectItem value="clinical_and_verified_finance">Clinical + verified historical finance</SelectItem>
+               <SelectItem value="clinical_only">{t("import.universal.modes.clinical_only")}</SelectItem>
+               <SelectItem value="clinical_and_verified_finance">{t("import.universal.modes.clinical_and_verified_finance")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -387,6 +387,8 @@ export function ReviewStep({
   const [importMode, setImportMode] = useState<"clinical_only" | "clinical_and_verified_finance">(batch.summary.importMode ?? "clinical_only");
   const [editingFinance, setEditingFinance] = useState<number | null>(null);
   const [financeDraft, setFinanceDraft] = useState<Record<string, string>>({});
+  const [editingCase, setEditingCase] = useState<number | null>(null);
+  const [caseDraft, setCaseDraft] = useState({ procedureDate: "", treatingDoctor: "", status: "" });
 
   const committedSet = useMemo(() => new Set(batch.committedRowNumbers || []), [batch.committedRowNumbers]);
 
@@ -396,6 +398,17 @@ export function ReviewStep({
   });
 
   const patch = useUniversalImportPatchMapping();
+
+  const uiNumber = (value: number) => value.toLocaleString("en-US");
+  const warningLabel = (warning: string) => {
+    // Newer API responses may provide stable warning codes; older responses
+    // contain the original warning text, which must remain visible.
+    const code = warning.split(":")[0].trim().replace(/[^a-zA-Z0-9_.-]/g, "");
+    const translated = t(`import.universal.warningCodes.${code}`, { defaultValue: "" });
+    return translated || warning;
+  };
+  const destinationLabel = (destination: string) =>
+    t(`import.universal.destinations.${destination}`, { defaultValue: destination });
 
   const handleApproveRow = (rowNumber: number) => {
     patch.mutate(
@@ -432,16 +445,16 @@ export function ReviewStep({
     const paid = cents("paid");
     const opening = cents("opening");
     if ([total, paid, opening].some((value) => Number.isNaN(value))) {
-      toast({ variant: "destructive", title: "Invalid amount", description: "Amounts must be non-negative SAR values or blank for Unspecified." });
+      toast({ variant: "destructive", title: t("import.universal.invalidAmount"), description: t("import.universal.invalidAmountDesc") });
       return;
     }
     const derivedOpening = opening == null && total != null && paid != null ? total - paid : opening;
     if (derivedOpening != null && derivedOpening < 0) {
-      toast({ variant: "destructive", title: "Contradictory finance", description: "Paid cannot exceed total." });
+      toast({ variant: "destructive", title: t("import.universal.contradictoryFinance"), description: t("import.universal.paidExceedsTotal") });
       return;
     }
     if (total != null && paid != null && derivedOpening != null && total !== paid + derivedOpening) {
-      toast({ variant: "destructive", title: "Contradictory finance", description: "Total must equal paid plus opening remaining." });
+      toast({ variant: "destructive", title: t("import.universal.contradictoryFinance"), description: t("import.universal.totalMismatch") });
       return;
     }
     patch.mutate({
@@ -459,6 +472,27 @@ export function ReviewStep({
         }],
       },
     }, { onSuccess: (updatedBatch) => { setEditingFinance(null); onNext(updatedBatch); } });
+  };
+  const saveCaseCorrection = (row: typeof batch.rows[number]) => {
+    const procedureDate = caseDraft.procedureDate.trim();
+    const treatingDoctor = caseDraft.treatingDoctor.trim();
+    const status = caseDraft.status.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(procedureDate) || !treatingDoctor || !status) {
+      toast({
+        variant: "destructive",
+        title: t("import.universal.caseCorrectionRequired"),
+        description: t("import.universal.caseCorrectionRequiredDesc"),
+      });
+      return;
+    }
+    patch.mutate({
+      id: batch.id,
+      input: {
+        version: batch.version,
+        mappings: [],
+        caseCorrections: [{ rowNumber: row.rowNumber, procedureDate, treatingDoctor, status }],
+      },
+    }, { onSuccess: (updatedBatch) => { setEditingCase(null); onNext(updatedBatch); } });
   };
 
   const toggleRow = (fileNumber: string) => {
@@ -547,7 +581,7 @@ export function ReviewStep({
     );
   };
 
-  const renderTable = (rows: typeof batch.rows) => {
+  const renderLegacyTable = (rows: typeof batch.rows) => {
     const readyRowsInView = rows.filter(r => r.status === "READY");
     const allSelected = readyRowsInView.length > 0 && readyRowsInView.every(r => selectedRows.has(r.rowNumber));
 
@@ -723,6 +757,43 @@ export function ReviewStep({
     );
   };
 
+  const renderTable = (rows: typeof batch.rows) => {
+    const readyRowsInView = rows.filter((r) => r.status === "READY");
+    const allSelected = readyRowsInView.length > 0 && readyRowsInView.every((r) => selectedRows.has(r.rowNumber));
+    const money = (cents: number | null) => cents == null ? t("import.universal.unspecified") : (cents / 100).toFixed(2);
+    const plan = (r: typeof batch.rows[number]) => (
+      <div className="rounded-md border bg-muted/30 p-3 text-sm">
+        <div className="font-semibold mb-2">{t("import.universal.importPlan")}</div>
+        <ul className="grid gap-1 sm:grid-cols-2">
+          <li>✓ {t("import.universal.planCreatePatientCase")}</li><li>✓ {t("import.universal.planImplants", { count: uiNumber(r.importPlan.implantCount) })}</li>
+          <li>✓ {t("import.universal.planGraftNo")}</li><li>✓ {t("import.universal.planProstheticNo")}</li>
+          <li>✓ {t("import.universal.planPayments")}</li><li>✓ {t("import.universal.planFinance", { mode: t(`import.universal.modes.${importMode}`), verification: importMode === "clinical_and_verified_finance" && r.importPlan.historicalFinanceEligible ? t("import.universal.verified") : t("import.universal.needsVerification") })}</li>
+          <li>✓ {t("import.universal.planOpening", { amount: money(r.importPlan.openingRemainingBalance) })}</li>
+          <li className="sm:col-span-2">{r.importPlan.preserveLegacyNote ? "✓" : "—"} {t("import.universal.planNote")}</li>
+        </ul>
+      </div>
+    );
+    return <div className="space-y-3 overflow-y-auto max-h-[560px] pe-1">
+      <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2 text-sm"><Checkbox checked={allSelected} onCheckedChange={(c) => selectAllInView(rows, !!c)} disabled={!readyRowsInView.length} /><span>{t("import.universal.selectVisible")}</span></div>
+      {rows.length === 0 ? <div className="py-8 text-center text-muted-foreground">{t("import.universal.noRows")}</div> : rows.map((r) => {
+        const isCommitted = committedSet.has(r.rowNumber); const disabled = r.status !== "READY" || isCommitted;
+        const canApproveReview = r.status === "REVIEW_REQUIRED" && r.warnings.some((w) => /confidence|Financial source|phone number/i.test(w));
+        return <Card key={r.rowNumber} className={isCommitted ? "opacity-60 border-green-300" : r.status === "BLOCKED" || r.status === "DUPLICATE" ? "border-destructive/40" : ""}>
+          <CardHeader className="pb-3"><div className="flex flex-wrap items-start justify-between gap-2"><div className="flex items-start gap-2"><Checkbox checked={isCommitted || selectedRows.has(r.rowNumber)} onCheckedChange={() => !isCommitted && toggleRow(r.proposed.patient.fileNumber)} disabled={disabled} /><div><CardTitle className="text-base">{r.proposed.patient.name}</CardTitle><CardDescription>{t("import.universal.filePrefix")}: {r.proposed.patient.fileNumber} · {t("import.universal.phone")}: {r.proposed.patient.mobile || t("import.universal.unspecified")} · {t("import.universal.age")}: {r.proposed.patient.age == null ? t("import.universal.unspecified") : uiNumber(r.proposed.patient.age)}</CardDescription></div></div><div className="flex items-center gap-2"><Badge variant={r.status === "BLOCKED" ? "destructive" : "outline"}>{isCommitted ? t("import.universal.badges.imported") : t(`import.universal.badges.${r.status === "REVIEW_REQUIRED" ? "review" : r.status.toLowerCase()}`, { defaultValue: r.status })}</Badge><span className="text-xs text-muted-foreground">#{uiNumber(r.rowNumber)}</span></div></div></CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <section><h4 className="font-semibold">{t("import.universal.case")}</h4><div className="grid gap-1 sm:grid-cols-3"><span>{t("import.universal.procedureDate")}: {r.proposed.case.procedureDate || t("import.universal.unspecified")}</span><span>{t("import.universal.treatingDoctor")}: {r.proposed.case.treatingDoctor || t("import.universal.unspecified")}</span><span>{t("import.universal.status")}: {r.proposed.case.status || t("import.universal.unspecified")}</span><span>{t("import.universal.pros")}: {r.proposed.case.prosValue || t("import.universal.unspecified")}</span></div>{(!r.proposed.case.procedureDate || !r.proposed.case.treatingDoctor || !r.proposed.case.status) && <Button variant="outline" size="sm" className="mt-2" onClick={() => { setEditingCase(r.rowNumber); setCaseDraft({ procedureDate: r.proposed.case.procedureDate, treatingDoctor: r.proposed.case.treatingDoctor, status: r.proposed.case.status }); }}>{t("import.universal.correctCase")}</Button>}{editingCase === r.rowNumber && <div className="mt-2 grid gap-2 border-t pt-2 sm:grid-cols-3"><Input type="date" value={caseDraft.procedureDate} onChange={(e) => setCaseDraft((draft) => ({ ...draft, procedureDate: e.target.value }))} /><Input placeholder={t("import.universal.treatingDoctor")} value={caseDraft.treatingDoctor} onChange={(e) => setCaseDraft((draft) => ({ ...draft, treatingDoctor: e.target.value }))} /><Input placeholder={t("import.universal.currentClinicalStatus")} value={caseDraft.status} onChange={(e) => setCaseDraft((draft) => ({ ...draft, status: e.target.value }))} /><div className="flex gap-2 sm:col-span-3"><Button size="sm" onClick={() => saveCaseCorrection(r)} disabled={patch.isPending}>{t("import.universal.saveCaseCorrection")}</Button><Button size="sm" variant="ghost" onClick={() => setEditingCase(null)}>{t("import.cancel")}</Button></div></div>}</section>
+            <section><h4 className="font-semibold mb-1">{t("import.universal.implants")}</h4><div className="grid gap-2 sm:grid-cols-2">{r.proposed.implants.map((imp, i) => <div key={i} className="rounded border p-2"><div className="font-medium">{t("import.universal.site")}: {imp.site} · {t("import.universal.size")}: {imp.size || t("import.universal.unspecified")}</div><div className="text-muted-foreground">{t("import.universal.system")}: {imp.system || t("import.universal.unspecified")} · Q: {imp.qValue || t("import.universal.unspecified")} · {t("import.universal.former")}: {imp.formerValue || t("import.universal.unspecified")} · {t("import.universal.graft")}: {imp.graftValue || t("import.universal.unspecified")}</div></div>)}</div>{r.proposed.implants.length > 1 && <div className="mt-2 flex flex-wrap gap-1">{(["qValue", "formerValue", "graftValue"] as const).filter((field) => r.proposed.sourceCandidates[field] && !r.proposed.implantApplyToAll.includes(field)).map((field) => <Button key={field} variant="outline" size="sm" className="h-7 text-xs" disabled={patch.isPending} onClick={() => patch.mutate({ id: batch.id, input: { version: batch.version, mappings: [], implantApplyToAll: [{ rowNumber: r.rowNumber, fields: [field] }] } }, { onSuccess: (updatedBatch) => onNext(updatedBatch) })}>{t("import.universal.applyToAll", { field: t(`import.universal.fields.${field}`) })}</Button>)}</div>}</section>
+            {r.proposed.case.clinicalNote && <section><h4 className="font-semibold">{t("import.universal.note")}</h4><div className="rounded border p-2 whitespace-pre-wrap">{r.proposed.case.clinicalNote}</div></section>}
+            {r.proposed.legacyNotes.length > 0 && <section><h4 className="font-semibold">{t("import.universal.legacyNote")}</h4><div className="rounded border p-2 whitespace-pre-wrap">{r.proposed.legacyNotes.join("\n")}</div></section>}
+            <section><h4 className="font-semibold">{t("import.universal.historicalFinance")}</h4><div className="rounded border p-2 grid gap-1 sm:grid-cols-2"><span>{t("import.universal.rawCost")}: {r.proposed.financeCandidate || t("import.universal.unspecified")}</span><span>{t("import.universal.financeStatus")}: {r.proposed.finance.historicalPaymentStatus || t("import.universal.unspecified")}</span><span>{t("import.universal.total")}: {money(r.proposed.finance.historicalTotalAmount)}</span><span>{t("import.universal.paid")}: {money(r.proposed.finance.historicalPaidAmount)}</span><span>{t("import.universal.opening")}: {money(r.proposed.finance.openingRemainingBalance)}</span><span>{t("import.universal.verification")}: {r.proposed.finance.isVerified ? t("import.universal.verified") : t("import.universal.needsVerification")}</span></div>{!r.proposed.finance.isVerified && <Button variant="outline" size="sm" className="mt-2" onClick={() => { setEditingFinance(r.rowNumber); setFinanceDraft({ total: r.proposed.finance.historicalTotalAmount == null ? "" : String(r.proposed.finance.historicalTotalAmount / 100), paid: r.proposed.finance.historicalPaidAmount == null ? "" : String(r.proposed.finance.historicalPaidAmount / 100), opening: r.proposed.finance.openingRemainingBalance == null ? "" : String(r.proposed.finance.openingRemainingBalance / 100), status: r.proposed.finance.historicalPaymentStatus ?? "" }); }}>{t("import.universal.correctVerify")}</Button>}{editingFinance === r.rowNumber && <div className="mt-2 space-y-1 border-t pt-2">{(["total", "paid", "opening"] as const).map((key) => <Input key={key} type="number" min="0" step="0.01" placeholder={t(`import.universal.${key}`)} value={financeDraft[key] ?? ""} onChange={(e) => setFinanceDraft((draft) => ({ ...draft, [key]: e.target.value }))} />)}<select className="w-full rounded border bg-background p-2 text-xs" value={financeDraft.status ?? ""} onChange={(e) => setFinanceDraft((draft) => ({ ...draft, status: e.target.value }))}><option value="">{t("import.universal.unspecified")}</option>{["UNKNOWN", "UNPAID", "PARTIALLY_PAID", "PAID_IN_FULL", "REVIEW_REQUIRED"].map((value) => <option key={value} value={value}>{t(`import.universal.financeStatuses.${value}`)}</option>)}</select><div className="flex gap-2"><Button size="sm" onClick={() => saveFinanceCorrection(r)} disabled={patch.isPending}>{t("import.universal.verifyCorrected")}</Button><Button size="sm" variant="ghost" onClick={() => setEditingFinance(null)}>{t("import.cancel")}</Button></div></div>}</section>
+            {r.warnings.length > 0 && <section><h4 className="font-semibold text-destructive">{t("import.universal.warnings")}</h4>{r.warnings.map((w, i) => <div key={i} className="text-destructive">• {warningLabel(w)}</div>)}</section>}
+            {plan(r)}{canApproveReview && <Button variant="outline" size="sm" onClick={() => handleApproveRow(r.rowNumber)} disabled={patch.isPending}>{t("import.universal.approveReviewedRow")}</Button>}
+          </CardContent>
+        </Card>;
+      })}
+    </div>;
+  };
+
   return (
     <Card className="flex flex-col h-full max-h-[85vh]">
       <CardHeader className="pb-4 shrink-0">
@@ -749,8 +820,8 @@ export function ReviewStep({
           <Select value={importMode} onValueChange={(v) => setImportMode(v as typeof importMode)}>
             <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="clinical_only">Clinical only</SelectItem>
-              <SelectItem value="clinical_and_verified_finance">Clinical + verified finance</SelectItem>
+               <SelectItem value="clinical_only">{t("import.universal.modes.clinical_only")}</SelectItem>
+               <SelectItem value="clinical_and_verified_finance">{t("import.universal.modes.clinical_and_verified_finance")}</SelectItem>
             </SelectContent>
           </Select>
         </div>

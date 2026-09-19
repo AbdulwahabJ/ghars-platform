@@ -6,20 +6,20 @@ import {
 } from "../src/lib/schema-health";
 
 const currentFingerprint = {
-  table_count: 30,
-  tables_signature: "f5ed5e81717db6db8c4e880d2b5ca67e",
-  column_count: 327,
-  columns_signature: "cbfb2fdc81a5ca376beb81ea2ca15f55",
-  constraint_count: 125,
-  constraints_signature: "4d86887a47f44c160a2bc04637d9c061",
-  index_count: 106,
-  indexes_signature: "9a2d08a0a853ba3a8d0883599997593e",
+  table_count: 33,
+  tables_signature: "3ea94766d532d3c80dddc064a4540a72",
+  column_count: 367,
+  columns_signature: "808c97801ffed3333f4a2c7c39619c82",
+  constraint_count: 138,
+  constraints_signature: "e0d5ba3f033ef7ca77ef381ed2868b24",
+  index_count: 116,
+  indexes_signature: "64ef0d46c9bf818dfea399e5b49414a4",
 };
 
 const currentJournal = {
-  migration_count: 26,
-  latest_hash: "9848a52b6425274db1f4954faf04fdacee07d0f9088599d236ff42651c953e7b",
-  latest_created_at: "1789481032596",
+  migration_count: 29,
+  latest_hash: "65b72d6cbd79b4ecf12edf4cee326138909c44cad92618d90b4b69d58708f4be",
+  latest_created_at: "1789841000000",
 };
 
 function executorWith(
@@ -53,7 +53,7 @@ describe("inspectSchemaHealth", () => {
     expect(result).toEqual({
       status: "healthy",
       messageCode: "schemaCurrentJournalReadable",
-      value: 26,
+      value: 29,
     });
   });
 
