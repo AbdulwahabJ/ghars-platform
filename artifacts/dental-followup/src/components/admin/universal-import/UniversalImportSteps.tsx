@@ -528,6 +528,11 @@ export function ReviewStep({
               rows.map((r) => {
                 const isCommitted = committedSet.has(r.rowNumber);
                 const disabled = r.status !== "READY" || isCommitted;
+                const canApproveReview = r.status === "REVIEW_REQUIRED" && r.warnings.some((warning) =>
+                  warning.includes("low extraction confidence") ||
+                  warning.includes("Financial source text") ||
+                  warning.includes("uses this phone number"),
+                );
                 return (
                   <TableRow key={r.rowNumber} className={r.status === "BLOCKED" || r.status === "DUPLICATE" ? "bg-red-50/50 dark:bg-red-950/20 opacity-75" : isCommitted ? "opacity-50 bg-green-50/50 dark:bg-green-950/20" : ""}>
                     <TableCell>
@@ -574,32 +579,36 @@ export function ReviewStep({
                         {Object.entries(r.raw).map(([k, v]) => (
                           <span key={k} className="me-2 mb-1 inline-block">
                             <span className="font-medium text-foreground/70">{k}:</span> {v}
+                            {r.confidence[k] != null && (
+                              <span className={r.confidence[k] < 0.8 ? "text-destructive ms-1" : "text-muted-foreground ms-1"}>
+                                ({Math.round(r.confidence[k] * 100)}%)
+                              </span>
+                            )}
                           </span>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell className="max-w-[200px]">
                       {r.warnings.map((w, i) => {
-                        const isPhoneDup = w.includes("uses this phone number");
                         return (
                           <div key={i} className="text-xs text-destructive flex items-start flex-col gap-1 mb-1">
                             <div className="flex items-start gap-1">
                               <span className="shrink-0">•</span> <span>{w}</span>
                             </div>
-                            {isPhoneDup && r.status === "REVIEW_REQUIRED" && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 text-[10px] self-end mt-1"
-                                onClick={() => handleApproveRow(r.rowNumber)}
-                                disabled={patch.isPending}
-                              >
-                                {patch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : t("import.universal.approveRow", "Approve (Separate Patient)")}
-                              </Button>
-                            )}
                           </div>
                         );
                       })}
+                      {canApproveReview && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] mt-1"
+                          onClick={() => handleApproveRow(r.rowNumber)}
+                          disabled={patch.isPending}
+                        >
+                          {patch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : t("import.universal.approveReviewedRow", "Approve reviewed row")}
+                        </Button>
+                      )}
                       {r.proposed.legacyNotes.map((n, i) => (
                         <div key={`n-${i}`} className="text-xs text-muted-foreground flex items-start gap-1 mb-1">
                           <span className="shrink-0 mt-0.5"><FileText className="h-3 w-3" /></span> <span>{n}</span>
@@ -625,6 +634,12 @@ export function ReviewStep({
             <CardDescription>
               {t("import.universal.reviewDesc", "Review the parsed records. Only READY rows can be imported.")}
             </CardDescription>
+            {batch.summary.pagesProcessed && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {t("import.universal.pagesProcessed", "Pages processed")}: {batch.summary.pagesProcessed}
+                {batch.summary.documentType ? ` · ${batch.summary.documentType}` : ""}
+              </p>
+            )}
           </div>
           <div className="flex gap-2 flex-wrap">
             <Badge variant="secondary">{batch.summary.totalRows} {t("import.universal.badges.total", "Total")}</Badge>

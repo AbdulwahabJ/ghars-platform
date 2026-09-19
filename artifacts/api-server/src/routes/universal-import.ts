@@ -26,6 +26,7 @@ import {
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { parseCsv } from "../lib/csv";
 import { writeAuditRequired } from "../lib/audit";
+import { extractVisualTable } from "../lib/visual-table-extractor";
 import { requireAuth, requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -40,7 +41,7 @@ const MAX_XLSX_UNCOMPRESSED = 64 * 1024 * 1024;
 const MAX_XLSX_ENTRIES = 2_000;
 const MAX_XLSX_ENTRY = 16 * 1024 * 1024;
 
-type RawRow = { rowNumber: number; sheet: string; values: Record<string, string> };
+type RawRow = { rowNumber: number; sheet: string; values: Record<string, string>; confidence?: Record<string, number> };
 type CreatedRecord = {
   table: string;
   id: string;
@@ -101,11 +102,17 @@ function aliasFor(header: string): UniversalImportDestination | null {
 }
 
 function splitValues(value: string): string[] {
-  return value.split(/[,\n;؛|/]+/).map((part) => part.trim()).filter(Boolean);
+  return normalizeDigits(value).split(/[,\n;؛|/]+/).map((part) => part.trim()).filter(Boolean);
+}
+
+function normalizeDigits(value: string): string {
+  return value
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
 }
 
 function normalizeSize(value: string): string {
-  return value.trim().replace(/[×Xx*]/g, " × ").replace(/\s+/g, " ").trim();
+  return normalizeDigits(value).trim().replace(/[×Xx*]/g, " × ").replace(/\s+/g, " ").trim();
 }
 
 function sizeNumbers(value: string | null): { diameter: string | null; length: string | null } {
@@ -115,9 +122,7 @@ function sizeNumbers(value: string | null): { diameter: string | null; length: s
 }
 
 function cleanDate(value: string): string | null {
-  const v = value.trim()
-    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
-    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+  const v = normalizeDigits(value.trim());
   let year = 0;
   let month = 0;
   let day = 0;
@@ -139,9 +144,10 @@ function cleanDate(value: string): string | null {
   } else if (match) {
     [, year, month, day] = match.map(Number) as [string, number, number, number];
   } else {
-    match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(v);
+    match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(v);
     if (!match) return null;
     [, day, month, year] = match.map(Number) as [string, number, number, number];
+    if (year < 100) year += year <= 69 ? 2000 : 1900;
   }
   if (year < 1 || year > 9999 || month < 1 || month > 12 || day < 1 || day > new Date(Date.UTC(year, month, 0)).getUTCDate()) {
     return null;
@@ -154,7 +160,7 @@ function excelDate(value: Date): string {
 }
 
 function parseNumber(value: string): number | null {
-  const v = value.replace(/,/g, "").trim();
+  const v = normalizeDigits(value).replace(/,/g, "").trim();
   if (!v) return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -234,7 +240,7 @@ async function readSpreadsheet(
   filename: string,
   mime: string,
   content: string,
-): Promise<{ rows: RawRow[]; extractionReview?: string }> {
+): Promise<{ rows: RawRow[]; extractionReview?: string; pagesProcessed?: number; documentType?: "TEXT" | "IMAGE" | "MIXED" }> {
   const lower = filename.toLowerCase();
   const extension = lower.includes(".") ? lower.slice(lower.lastIndexOf(".")) : "";
   const isCsv = extension === ".csv" || extension === ".txt";
@@ -252,9 +258,11 @@ async function readSpreadsheet(
   if (IMAGE_MIMES.has(mime) || /\.(pdf|png|jpe?g)$/i.test(lower)) {
     if (extension === ".pdf" && mime !== "application/pdf") throw new Error("PDF MIME type does not match the file extension.");
     if (extension !== ".pdf" && !mime.startsWith("image/")) throw new Error("Image MIME type does not match the file extension.");
+    const extracted = await extractVisualTable(filename, mime, content);
     return {
-      rows: [{ rowNumber: 1, sheet: "Extraction", values: { "Extraction status": "REVIEW_REQUIRED" } }],
-      extractionReview: "PDF/image extraction is staged for review; no OCR output is imported automatically.",
+      rows: extracted.rows,
+      pagesProcessed: extracted.pagesProcessed,
+      documentType: extracted.documentType,
     };
   }
   let headers: string[];
@@ -379,13 +387,16 @@ function normalizeRows(
   const hasCombinedNameMobile = (byDestination.get("patient.name") ?? [])
     .some((source) => normalizeHeader(source) === normalizeHeader("name+mobile"));
   return rows.map((row) => {
-    const warnings = mappings.filter((mapping) => mapping.requiresReview).map((mapping) => `${mapping.source} requires review`);
-    if (extractionReview) warnings.push(extractionReview);
+    const rowApproved = approvedRows.has(row.rowNumber);
+    const warnings = mappings
+      .filter((mapping) => mapping.requiresReview && !(rowApproved && mapping.destination === "finance.candidate"))
+      .map((mapping) => `${mapping.source} requires review`);
+    if (extractionReview && !rowApproved) warnings.push(extractionReview);
     const combined = hasCombinedNameMobile
       ? splitCombinedNameMobile(get(row, "patient.name"))
       : { name: get(row, "patient.name"), mobile: null, review: null };
-    const name = combined.name;
-    const fileNumber = get(row, "patient.file_number");
+    const name = combined.name.replace(/^\s*[٠-٩۰-۹\d]+\s*[-–—.)،]\s*/u, "").trim();
+    const fileNumber = normalizeDigits(get(row, "patient.file_number"));
     const procedureDate = cleanDate(get(row, "case.procedure_date"));
     const sites = splitValues(get(row, "implant.site"));
     const sizes = splitValues(get(row, "implant.size")).map(normalizeSize);
@@ -402,14 +413,25 @@ function normalizeRows(
     if (combined.review) warnings.push(combined.review);
     if ((!name && !combined.review) || !fileNumber || !procedureDate) blocked.push("Patient name, file number, and clinical date are required.");
     if (!sites.length) blocked.push("At least one implant site is required.");
-    if (sites.length > 1 && sizes.length !== sites.length) blocked.push("Implant site/size counts do not match; pairing is blocked.");
+    if (
+      (sites.length > 1 && sizes.length !== sites.length) ||
+      (row.confidence && sizes.length !== sites.length)
+    ) {
+      blocked.push("Implant site/size counts do not match; pairing is blocked.");
+    }
     if (systems.length > 1 && systems.length !== sites.length) blocked.push("Implant site/system counts do not match; pairing is blocked.");
     const finance = get(row, "finance.candidate") || get(row, "finance.preserve_summary") || null;
-    if (get(row, "finance.candidate")) warnings.push("Financial source text is review-only; explicitly preserve it as a historical summary or ignore it before commit.");
+    if (get(row, "finance.candidate") && !rowApproved) warnings.push("Financial source text is review-only; explicitly preserve it as a historical summary or ignore it before commit.");
     const legacyNotes = mappings
       .filter((mapping) => mapping.destination === "legacy_note")
       .map((mapping) => `${mapping.source}: ${row.values[mapping.source] ?? ""}`)
       .filter((note) => !note.endsWith(": "));
+    for (const mapping of mappings) {
+      const valueConfidence = row.confidence?.[mapping.source];
+      if (!rowApproved && row.values[mapping.source] && valueConfidence != null && valueConfidence < MIN_CONFIDENCE) {
+        warnings.push(`${mapping.source} has low extraction confidence (${Math.round(valueConfidence * 100)}%).`);
+      }
+    }
     const status = blocked.length
       ? "BLOCKED"
       : warnings.length
@@ -417,10 +439,13 @@ function normalizeRows(
         : "READY";
     return {
       rowNumber: row.rowNumber,
-      raw: { ...row.values, __sheet: row.sheet },
+      raw: { ...row.values },
       status,
       warnings: [...blocked, ...warnings],
-      confidence: Object.fromEntries(mappings.map((mapping) => [mapping.source, mapping.confidence])),
+      confidence: Object.fromEntries(mappings.map((mapping) => [
+        mapping.source,
+        Math.min(mapping.confidence, row.confidence?.[mapping.source] ?? 1),
+      ])),
       proposed: {
         patient: { name, fileNumber, mobile: get(row, "patient.mobile") || combined.mobile, age: parseNumber(get(row, "patient.age")) },
         case: {
@@ -554,7 +579,7 @@ router.post("/admin/import/universal/analyze", async (req, res): Promise<void> =
     return;
   }
   try {
-    const { rows, extractionReview } = await readSpreadsheet(filename, mime, content);
+    const { rows, extractionReview, pagesProcessed, documentType } = await readSpreadsheet(filename, mime, content);
     const headers = [...new Set(rows.flatMap((row) => Object.keys(row.values)))];
     const learned = await learnedMappings(req.currentTenant!.id);
     // Client confidence/review flags are never trusted. Analyze always
@@ -573,6 +598,9 @@ router.post("/admin/import/universal/analyze", async (req, res): Promise<void> =
       duplicate: normalizedRows.filter((row) => row.status === "DUPLICATE").length,
       patients: new Set(normalizedRows.map((row) => row.proposed.patient.fileNumber)).size,
       implants: normalizedRows.reduce((sum, row) => sum + row.proposed.implants.length, 0),
+      ...(pagesProcessed ? { pagesProcessed } : {}),
+      ...(documentType ? { documentType } : {}),
+      ...(extractionReview ? { extractionReview } : {}),
     };
     const [batch] = await db.insert(importBatchesTable).values({
       tenantId: req.currentTenant!.id,
@@ -647,7 +675,13 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
     else priorApprovals.delete(approval.rowNumber);
   }
   const rows = await classifyDuplicates(
-    normalizeRows(batch.sourceRows as RawRow[], mappings, valueMappings, undefined, priorApprovals),
+    normalizeRows(
+      batch.sourceRows as RawRow[],
+      mappings,
+      valueMappings,
+      (batch.summary as { extractionReview?: string }).extractionReview,
+      priorApprovals,
+    ),
     req.currentTenant!.id,
     priorApprovals,
   );
@@ -720,8 +754,12 @@ router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void
     eq(importBatchesTable.id, req.params.id),
     eq(importBatchesTable.tenantId, req.currentTenant!.id),
   ));
-  if (!batch || !["ANALYZED", "PILOT_COMMITTED", "PARTIAL_FAILED"].includes(batch.status)) {
-    res.status(404).json({ error: "Import staging batch not found or already finalized." });
+  if (!batch) {
+    res.status(404).json({ error: "Import staging batch not found." });
+    return;
+  }
+  if (!["ANALYZED", "PILOT_COMMITTED", "PARTIAL_FAILED"].includes(batch.status)) {
+    res.status(409).json({ error: "Import staging batch is already committing or finalized." });
     return;
   }
   const rows = batch.normalizedRows as NormalizedRow[];

@@ -573,6 +573,9 @@ export const universalImportSummarySchema = z.object({
   pilot: z.boolean().optional(),
   partial: z.boolean().optional(),
   approvedRows: z.array(z.number().int().min(1)).optional(),
+  pagesProcessed: z.number().int().min(1).optional(),
+  documentType: z.enum(["TEXT", "IMAGE", "MIXED"]).optional(),
+  extractionReview: z.string().optional(),
 });
 export type UniversalImportSummary = z.infer<typeof universalImportSummarySchema>;
 

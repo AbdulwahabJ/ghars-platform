@@ -17,6 +17,9 @@
     },
     {
       "path": "../../lib/shared"
+    },
+    {
+      "path": "../../lib/integrations-openai-ai-server"
     }
   ]
 }

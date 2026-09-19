@@ -16,6 +16,7 @@
     "@sparticuz/chromium": "^153.0.0",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/integrations-openai-ai-server": "workspace:*",
     "@workspace/shared": "workspace:*",
     "bcryptjs": "^3.0.2",
     "connect-pg-simple": "^10.0.0",

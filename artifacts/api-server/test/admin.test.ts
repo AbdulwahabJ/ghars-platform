@@ -780,16 +780,74 @@ describe("universal legacy import staging", () => {
     expect(after.rows).toHaveLength(0);
   });
 
-  it("accepts PDF/image only as extraction staging and never commits placeholders", async () => {
+  it("fails safely for an invalid PDF without creating a metadata placeholder row", async () => {
     const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
       filename: "scan.pdf",
       mime: "application/pdf",
       content: Buffer.from("not imported").toString("base64"),
     });
+    expect(analyzed.status).toBe(422);
+    expect(analyzed.body.error).not.toContain("Extraction status");
+  });
+
+  it("normalizes Arabic digits and explicit DD/MM/YY historical dates before validation", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "arabic-digits.csv",
+      mime: "text/csv",
+      content: [
+        "NAME + MOBILE,FILE,DATE,SITE,SIZE,COST",
+        "١- مريض تاريخي,٧٣,١٥/٧/٢٥,\"٢٤,٢٥\",\"٣.٥*١٠,٤.٢*١٠\",دفعة أولى ١٥٠٠",
+      ].join("\n"),
+    });
     expect(analyzed.status).toBe(201);
-    expect(analyzed.body.rows[0].status).toBe("BLOCKED");
-    const commit = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({});
-    expect(commit.status).toBe(422);
+    expect(analyzed.body.rows[0].proposed.patient).toMatchObject({
+      name: "مريض تاريخي",
+      fileNumber: "73",
+    });
+    expect(analyzed.body.rows[0].proposed.case.procedureDate).toBe("2025-07-15");
+    expect(analyzed.body.rows[0].proposed.implants).toEqual([
+      expect.objectContaining({ site: "24", size: "3.5 × 10" }),
+      expect.objectContaining({ site: "25", size: "4.2 × 10" }),
+    ]);
+    expect(analyzed.body.rows[0].proposed.financeCandidate).toBe("دفعة أولى ١٥٠٠");
+    expect(analyzed.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    const approved = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      version: analyzed.body.version,
+      rowApprovals: [{ rowNumber: 1, approved: true }],
+    });
+    expect(approved.status).toBe(200);
+    expect(approved.body.rows[0].status).toBe("READY");
+  });
+
+  it("requires explicit review approval for low-confidence extracted values", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "visual-stage.csv",
+      mime: "text/csv",
+      content: "NAME,FILE,DATE,SITE,SIZE\nمريض بصري,UI-VISUAL-1,2025-07-14,24,3.5x10",
+    });
+    const sourceRows = [{
+      rowNumber: 1,
+      sheet: "Page 1",
+      values: { NAME: "مريض بصري", FILE: "UI-VISUAL-1", DATE: "2025-07-14", SITE: "24", SIZE: "3.5x10" },
+      confidence: { NAME: 0.97, FILE: 0.99, DATE: 0.96, SITE: 0.92, SIZE: 0.68 },
+    }];
+    await pool.query("UPDATE import_batches SET source_rows = $1::jsonb WHERE id = $2", [
+      JSON.stringify(sourceRows),
+      analyzed.body.id,
+    ]);
+    const reviewed = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      version: analyzed.body.version,
+      mappings: [{ source: "NAME", destination: "patient.name" }],
+    });
+    expect(reviewed.status).toBe(200);
+    expect(reviewed.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    expect(reviewed.body.rows[0].warnings.join(" ")).toContain("low extraction confidence");
+    const approved = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      version: reviewed.body.version,
+      rowApprovals: [{ rowNumber: 1, approved: true }],
+    });
+    expect(approved.status).toBe(200);
+    expect(approved.body.rows[0].status).toBe("READY");
   });
 
   it("classifies tenant duplicates and file-number conflicts before commit", async () => {
@@ -1110,8 +1168,8 @@ describe("universal legacy import staging", () => {
     });
     expect(analyzed.status).toBe(201);
     expect(analyzed.body.rows).toHaveLength(2);
-    expect(analyzed.body.rows.map((row: { raw: Record<string, string> }) => row.raw.__sheet))
-      .toEqual(["First", "Second"]);
+    expect(analyzed.body.rows.every((row: { raw: Record<string, string> }) => !("__sheet" in row.raw)))
+      .toBe(true);
   });
 
   it("keeps pilot batches open, appends later rows, and rolls back all records", async () => {
