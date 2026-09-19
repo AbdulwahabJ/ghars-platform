@@ -1,0 +1,627 @@
+MODE: Power
+
+Fix the Ghars Legacy Import PDF extraction pipeline.
+
+CURRENT FAILURE:
+
+I uploaded the attached legacy patient PDF.
+
+The source PDF visually contains approximately 10 patient rows with structured columns such as:
+
+NAME + MOBILE
+AGE
+DATE
+FILE
+System
+site
+SIZE
+Q
+Former
+Graft
+COST
+Pros
+NOTE
+
+However, Ghars produced only ONE blocked review row and reported:
+
+- Patient name, file number, and clinical date are required.
+- At least one implant site is required.
+
+The mapping step also incorrectly exposed:
+
+"Extraction status"
+
+as if it were a source spreadsheet column.
+
+This proves that the importer did NOT actually reconstruct the PDF table.
+
+IMPORTANT:
+
+The displayed "100%" extraction status is misleading.
+It appears to indicate pipeline completion, not extraction accuracy.
+
+DO NOT import anything.
+DO NOT touch Production data.
+DO NOT publish.
+
+==================================================
+1. ROOT CAUSE FIRST
+==================================================
+
+Inspect the uploaded PDF extraction path.
+
+Determine whether the PDF contains:
+
+A. real embedded text/table structure
+B. image/scanned page content
+C. mixed content
+
+Do not assume all PDFs are text PDFs.
+
+Report the exact extraction path currently used and why this document produced only one invalid record.
+
+==================================================
+2. REMOVE INTERNAL METADATA FROM SOURCE DATA
+==================================================
+
+Fields such as:
+
+Extraction status
+_review_status
+_sheet
+confidence
+processing metadata
+
+must NEVER appear as source clinical columns or patient rows.
+
+Extraction metadata belongs only to the importer pipeline.
+
+It must not be exposed as user data.
+
+==================================================
+3. DETECT PDF TYPE AUTOMATICALLY
+==================================================
+
+Implement automatic PDF classification:
+
+TEXT PDF
+→ structured text/table extraction
+
+IMAGE / SCANNED PDF
+→ render page to high-resolution image
+→ OCR / visual table extraction
+
+MIXED PDF
+→ use the best available extraction per page/region
+
+The user should not need to choose the mode manually.
+
+==================================================
+4. SCANNED TABLE EXTRACTION
+==================================================
+
+For image/scanned PDF pages:
+
+Do NOT perform plain OCR and concatenate all text.
+
+The system must understand TABLE STRUCTURE.
+
+Reconstruct:
+
+rows
+columns
+merged/multi-line cells
+cell boundaries
+row ownership
+
+The attached source is a table, not a paragraph.
+
+==================================================
+5. EXPECTED SOURCE STRUCTURE FOR THIS SAMPLE
+==================================================
+
+For the attached test PDF, extraction should approximately identify:
+
+~10 patient rows
+
+with columns corresponding to:
+
+NAME + MOBILE
+AGE
+DATE
+FILE
+System
+site
+SIZE
+Q
+Former
+Graft
+COST
+Pros
+NOTE
+
+This is a TEST EXPECTATION only.
+
+Do NOT hardcode the importer specifically for this file.
+
+Future clinics will have different layouts.
+
+==================================================
+6. ARABIC + ENGLISH OCR
+==================================================
+
+Extraction must support mixed:
+
+Arabic
+English
+numbers
+
+Examples present in this type of source:
+
+Arabic patient names
+ROT
+BIO
+MST
+DIRECT
+IMMED
+FLAPLESS
+3M
+2M
+3.5*10
+4.2*10
+14/7/25
+
+Do not corrupt Latin abbreviations while recognizing Arabic.
+
+==================================================
+7. LATIN DIGIT NORMALIZATION
+==================================================
+
+Ghars global rule applies:
+
+All extracted numbers must normalize to Western digits:
+
+0123456789
+
+Accept source:
+
+Arabic-Indic digits
+Persian digits
+Western digits
+
+but normalize into canonical Western digits before validation.
+
+==================================================
+8. ROW RECONSTRUCTION
+==================================================
+
+The extractor must reconstruct patient rows correctly.
+
+A row may contain:
+
+- one implant
+- multiple implants
+- multi-line cost information
+- multi-line notes
+
+Do NOT accidentally treat each visual line as a new patient.
+
+Patient identity cells define the logical row boundary.
+
+==================================================
+9. MULTIPLE IMPLANTS IN ONE ROW
+==================================================
+
+Example source pattern:
+
+site:
+24
+25
+
+SIZE:
+3.5*10
+3.5*10
+
+This must become:
+
+one patient
+one implant case
+two implants
+
+Implant 1:
+site 24
+size 3.5 × 10
+
+Implant 2:
+site 25
+size 3.5 × 10
+
+If site count != size count:
+
+REVIEW REQUIRED
+
+Never guess pairings.
+
+==================================================
+10. COLUMN DETECTION MUST BE SEMANTIC
+==================================================
+
+After extracting the table, detect columns semantically.
+
+Examples:
+
+NAME + MOBILE
+→ Patient identity candidate
+
+AGE
+→ Age
+
+DATE
+→ Clinical procedure date
+
+FILE
+→ File number
+
+System
+→ Implant system
+
+site
+→ Tooth/site
+
+SIZE
+→ Implant size
+
+Graft
+→ Graft candidate
+
+COST
+→ Financial source data
+
+NOTE
+→ Legacy note
+
+Q / Former / Pros:
+do NOT guess their meaning.
+
+Use existing confirmed tenant mappings if available.
+Otherwise mark them for manual mapping/review.
+
+==================================================
+11. CONFIDENCE MUST BE PER VALUE
+==================================================
+
+Do NOT show one meaningless:
+
+Extraction = 100%
+
+Instead track confidence per extracted value.
+
+Example:
+
+Patient name: 97%
+File number: 99%
+Date: 96%
+Site: 92%
+Size: 91%
+Cost: 68%
+
+Critical low-confidence values must require review.
+
+Critical fields include:
+
+- patient identity
+- file number
+- clinical date
+- site/tooth
+- implant size
+- financial amounts
+
+==================================================
+12. EXTRACTION STATUS UX
+==================================================
+
+Replace the misleading extraction indicator.
+
+Show something useful such as:
+
+Pages processed: 1/1
+Rows detected: 10
+Rows ready: 7
+Needs review: 3
+Blocked: 0
+
+If extraction could not identify real patient rows:
+
+do NOT display 100%.
+
+Show:
+
+تعذر التعرف على الجدول بدقة
+Table extraction requires review
+
+==================================================
+13. RAW SOURCE VS PROPOSED DATA
+==================================================
+
+For every extracted row provide:
+
+RAW SOURCE
+
+and
+
+PROPOSED GHARS DATA
+
+This allows human verification.
+
+Example:
+
+RAW:
+ROT | 24 / 25 | 3.5*10 / 3.5*10
+
+PROPOSED:
+System: ROT mapping candidate
+Implant 1 → site 24, 3.5 × 10
+Implant 2 → site 25, 3.5 × 10
+
+==================================================
+14. FINANCIAL DATA — DO NOT GUESS
+==================================================
+
+COST cells contain free-form historical financial text.
+
+Examples may contain:
+
+دفعة أولى
+دفعة ثانية
+لم تدفع شيء
+amounts
+
+Do NOT automatically create payments from ambiguous OCR.
+
+Extract the raw financial text first.
+
+Then classify:
+
+STRUCTURED / HIGH CONFIDENCE
+REVIEW REQUIRED
+UNRESOLVED
+
+Never invent payment amount/date/method.
+
+==================================================
+15. CLINICAL AND FINANCIAL STATUS ARE SEPARATE
+==================================================
+
+Never infer:
+
+treatment completed
+=
+paid in full
+
+These are separate concepts.
+
+Preserve this rule during import.
+
+==================================================
+16. DATES
+==================================================
+
+Interpret source dates carefully.
+
+Example:
+
+14/7/25
+
+for this historical dataset likely represents a 2025 clinical date.
+
+But do NOT rely on naive JavaScript date parsing.
+
+Use explicit date parsing with configurable expected source date order.
+
+Preview the normalized result:
+
+14 Jul 2025
+
+before import.
+
+If date interpretation is ambiguous:
+
+REVIEW REQUIRED.
+
+==================================================
+17. ORIGINAL IMAGE CROP IN REVIEW
+==================================================
+
+For PDF/image imports, where feasible show the original row/cell crop beside the extracted values.
+
+This is especially useful for:
+
+site
+size
+cost
+patient name
+
+So the admin can visually confirm OCR without reopening the PDF.
+
+==================================================
+18. USER MUST REVIEW ONLY UNCERTAIN DATA
+==================================================
+
+Do not force manual review of every correct row.
+
+Filters:
+
+All
+Ready
+Needs Review
+Blocked
+
+High-confidence rows can be marked READY.
+
+Low-confidence clinical/financial fields require review.
+
+==================================================
+19. ABSOLUTELY NO WRITE BEFORE CONFIRMATION
+==================================================
+
+Extraction
+mapping
+normalization
+validation
+preview
+
+must all happen before any clinical database write.
+
+No patient/case/implant/payment may be created during analysis.
+
+==================================================
+20. TEST THIS EXACT PDF TYPE
+==================================================
+
+Use the attached legacy PDF as a regression case.
+
+Expected minimum result:
+
+- detects multiple patient rows, not one metadata row
+- detects names
+- detects file numbers
+- detects historical dates
+- detects implant sites
+- detects implant sizes
+- detects implant-system values
+- handles multi-implant rows
+- preserves raw COST/NOTE values
+- does not expose extraction metadata as clinical data
+
+Do NOT require every row to auto-import.
+Uncertain rows should be reviewable.
+
+==================================================
+21. TEST OTHER PDF STRUCTURES
+==================================================
+
+Also test:
+
+A. native text PDF table
+B. scanned/image PDF table
+C. mixed Arabic/English table
+D. multi-page PDF
+E. table with merged cells
+F. different column order
+G. different column names
+
+Do not design only for this doctor.
+
+==================================================
+22. IMAGE IMPORT MUST USE SAME PIPELINE
+==================================================
+
+PNG/JPG uploads must feed into the same:
+
+visual extraction
+→ staging
+→ mapping
+→ validation
+→ preview
+
+pipeline.
+
+Do not maintain a separate weaker image importer.
+
+==================================================
+23. SAFE FAILURE
+==================================================
+
+If the extractor cannot confidently identify rows:
+
+STOP.
+
+Show:
+
+تعذر استخراج الجدول بدقة، يرجى مراجعة البيانات المستخرجة.
+
+Do not create a fake empty row.
+
+Do not claim extraction succeeded.
+
+==================================================
+24. FINAL REPORT
+==================================================
+
+Return:
+
+CURRENT PDF EXTRACTION ROOT CAUSE:
+<exact explanation>
+
+PDF TYPE DETECTED:
+TEXT / IMAGE / MIXED
+
+OLD ROWS DETECTED:
+<number>
+
+NEW ROWS DETECTED:
+<number>
+
+INTERNAL METADATA LEAK:
+FIXED / FAIL
+
+TABLE STRUCTURE EXTRACTION:
+PASS / FAIL
+
+ARABIC OCR:
+PASS / FAIL
+
+MIXED AR/EN:
+PASS / FAIL
+
+MULTI-LINE ROWS:
+PASS / FAIL
+
+MULTIPLE IMPLANTS:
+PASS / FAIL
+
+DATE EXTRACTION:
+PASS / FAIL
+
+SITE EXTRACTION:
+PASS / FAIL
+
+SIZE EXTRACTION:
+PASS / FAIL
+
+FINANCIAL RAW TEXT PRESERVED:
+PASS / FAIL
+
+PER-VALUE CONFIDENCE:
+PASS / FAIL
+
+LOW-CONFIDENCE REVIEW:
+PASS / FAIL
+
+RAW SOURCE PREVIEW:
+PASS / FAIL
+
+NO DATABASE WRITE DURING ANALYSIS:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+DO NOT PUBLISH.
+DO NOT IMPORT REAL PRODUCTION RECORDS.
+Create checkpoint and STOP.
