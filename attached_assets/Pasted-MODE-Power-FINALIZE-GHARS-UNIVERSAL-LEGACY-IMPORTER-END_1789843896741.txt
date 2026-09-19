@@ -1,0 +1,1488 @@
+MODE: Power
+
+FINALIZE GHARS UNIVERSAL LEGACY IMPORTER END-TO-END.
+
+This is the final engineering pass for the Legacy Data Import feature.
+
+GOAL:
+Finish the entire import subsystem so Ghars can safely accept legacy clinic data from different doctors and different formats without forcing clinics to reformat their files manually.
+
+The final workflow must be:
+
+UPLOAD EXISTING FILE
+→ AUTOMATIC EXTRACTION
+→ SEMANTIC MAPPING
+→ VALIDATION
+→ HUMAN REVIEW ONLY WHERE NEEDED
+→ PREVIEW EXACT FINAL GHARS RECORD
+→ PILOT IMPORT
+→ SAFE FULL IMPORT
+
+Accuracy and data integrity are more important than aggressive automation.
+
+CURRENT STABLE CHECKPOINT:
+655998807ff70a29d181d9f309dbd975afa3fe0d
+
+IMPORTANT:
+Production contains real customer data.
+
+DO NOT:
+- publish
+- republish
+- apply migrations to Production
+- import real Production patients yet
+- delete Production data
+- seed Production
+- overwrite existing customer data
+- invent clinical information
+- invent payment dates
+- invent payment methods
+- use import date as a clinical date
+- use zero to represent unknown finance
+
+Use Production READ-ONLY where necessary.
+Use Development/test data for implementation and validation.
+
+==================================================
+PHASE 1 — FREEZE THE ARCHITECTURE
+==================================================
+
+Do not build more one-off fixes.
+
+Create/confirm ONE canonical universal importer architecture:
+
+Input Adapter
+→ Extraction
+→ Structured Staging
+→ Semantic Column Mapping
+→ Value Mapping
+→ Normalization
+→ Validation
+→ Duplicate Detection
+→ Review
+→ Import Plan
+→ Transactional Commit
+→ Import Batch Audit / Rollback
+
+All supported file types must eventually produce the SAME staging model.
+
+Supported:
+
+- XLSX
+- CSV
+- native text PDF
+- scanned/image PDF
+- PNG
+- JPG/JPEG
+
+No file type should bypass validation or preview.
+
+==================================================
+PHASE 2 — UNIVERSAL, NOT HARDCODED TO THIS DOCTOR
+==================================================
+
+The importer MUST NOT depend on:
+
+- exact column order
+- exact column names
+- current doctor's yellow table
+- number of columns
+- Arabic-only headers
+- English-only headers
+
+Different clinics may use:
+
+Patient
+Pt Name
+Full Name
+اسم المريض
+
+MRN
+File
+File No
+رقم الملف
+
+Surgery Date
+Implant Date
+DATE
+تاريخ الزراعة
+
+Tooth
+Site
+FDI
+الموقع
+السن
+
+Fixture
+Size
+Dimensions
+مقاس الزرعة
+
+Brand
+System
+Implant System
+نظام الزرعة
+
+Use:
+
+1. controlled global aliases
+2. value-type analysis
+3. neighboring column context
+4. semantic matching
+5. tenant-approved mapping memory
+
+Never guess unknown medical semantics.
+
+==================================================
+PHASE 3 — CURRENT SOURCE TABLE REGRESSION
+==================================================
+
+The attached current source contains:
+
+NAME + MOBILE
+AGE
+DATE
+FILE
+System
+site
+SIZE
+Q
+Former
+Graft
+COST
+Pros
+NOTE
+
+The current extraction successfully detects approximately:
+
+10 logical patients
+multiple implants
+historical clinical dates
+mixed Arabic/English
+multi-line cells
+
+Do NOT regress this.
+
+==================================================
+PHASE 4 — NAME + MOBILE
+==================================================
+
+NAME + MOBILE must not map blindly to patient name.
+
+For each raw cell:
+
+extract:
+- patient name
+- mobile number if present
+
+Normalize mobile digits to Western digits.
+
+If no phone:
+leave phone empty.
+
+Do not invent.
+
+Preserve raw source value.
+
+If extraction confidence for identity is low:
+REVIEW REQUIRED.
+
+==================================================
+PHASE 5 — AGE
+==================================================
+
+AGE is historical age information.
+
+Do NOT invent DOB from age.
+
+If Ghars has a safe age field:
+map appropriately.
+
+Otherwise:
+preserve historical age metadata.
+
+Never calculate a fake birth date.
+
+==================================================
+PHASE 6 — DATE
+==================================================
+
+DATE must map to the real clinical procedure date.
+
+Example:
+
+14/7/25
+→
+2025-07-14
+
+Use explicit parsing.
+
+Never rely on ambiguous JavaScript Date parsing.
+
+If date format is ambiguous:
+REVIEW REQUIRED.
+
+Historical clinical dates must remain historical.
+
+created_at remains import timestamp only.
+
+==================================================
+PHASE 7 — FILE NUMBER
+==================================================
+
+FILE
+→ canonical patient file number.
+
+Duplicate/conflict rules:
+
+Same file + same confirmed patient:
+DUPLICATE candidate.
+
+Same file + different identity:
+BLOCKED.
+
+Do not overwrite.
+
+No cross-tenant matching.
+
+==================================================
+PHASE 8 — SYSTEM
+==================================================
+
+System
+→ canonical Implant System.
+
+Values such as:
+
+ROT
+BIO
+
+must resolve through tenant-scoped managed-list mappings.
+
+Do NOT simply echo:
+
+ROT → ROT
+
+unless ROT is an actual valid tenant system value.
+
+Show:
+
+Source:
+ROT
+
+Proposed canonical Ghars system:
+<value>
+
+Confidence:
+%
+
+Allow admin confirmation.
+
+Remember approved value mappings for THIS tenant only.
+
+==================================================
+PHASE 9 — SITE
+==================================================
+
+site
+→ implant tooth/site.
+
+Support:
+
+single site
+multiple sites
+multi-line site values
+
+Validate FDI/site values using current Ghars rules.
+
+Never silently accept malformed site data.
+
+==================================================
+PHASE 10 — SIZE
+==================================================
+
+Normalize:
+
+3.5*10
+3.5 x 10
+3.5 X 10
+3.5×10
+
+into:
+
+3.5 × 10
+
+Preserve numeric dimensions exactly.
+
+If site count != size count:
+BLOCK / REVIEW.
+
+Never guess pairing.
+
+==================================================
+PHASE 11 — Q MUST BE CANONICAL
+==================================================
+
+Current preview still showed raw Q values while proposed implants sometimes displayed:
+
+Q: Unspecified
+
+Fix this completely.
+
+Legacy:
+
+Q
+→ canonical Implant Q field
+
+If raw source says:
+
+Q = 35
+
+the final proposed implant must contain:
+
+Q = 35
+
+not only raw metadata.
+
+Verify actual write path, not only UI display.
+
+==================================================
+PHASE 12 — FORMER MUST BE CANONICAL
+==================================================
+
+Legacy:
+
+Former
+→ canonical Implant Former field
+
+Support raw values such as:
+
+N
+Y
+MST
+MU17
+
+according to existing Ghars rules / managed lists.
+
+Do not dump known Former data into legacy notes.
+
+If value requires managed-list mapping:
+show it explicitly.
+
+==================================================
+PHASE 13 — GRAFT MUST BE CANONICAL
+==================================================
+
+Legacy:
+
+Graft
+→ canonical Implant Graft field
+
+Support:
+
+Y
+N
+
+according to existing Ghars rules.
+
+IMPORTANT:
+
+Graft = Y alone must NOT create a full Bone Graft Procedure.
+
+Do NOT invent:
+
+procedure type
+material
+membrane
+status
+clinical date
+
+Only preserve the implant-level Graft value unless enough source data exists for a real procedure.
+
+==================================================
+PHASE 14 — MULTI-IMPLANT FIELD SCOPE
+==================================================
+
+Some source rows have:
+
+2
+3
+5
+
+implants but only one Q / Former / Graft source value.
+
+Do NOT silently duplicate values.
+
+The preview must show:
+
+"Apply to all implants from this source row"
+
+or Arabic equivalent.
+
+Admin explicitly confirms.
+
+After confirmation:
+verify each intended implant receives the value.
+
+If scope cannot be proven:
+REVIEW REQUIRED.
+
+==================================================
+PHASE 15 — PROS
+==================================================
+
+Do NOT guess Pros semantics.
+
+Values include:
+
+2M
+3M
+
+Inspect actual:
+- Ghars schema
+- clinical workflows
+- prosthetic model
+- managed lists
+
+Return:
+
+PROS SEMANTICS:
+<proven meaning or UNKNOWN>
+
+CANONICAL DESTINATION:
+<field or NONE>
+
+If not provable:
+keep as a dedicated Legacy Prosthetic Note / Review Required.
+
+Do NOT create prosthetic events merely from:
+
+Pros = 3M
+
+No fake event dates.
+
+==================================================
+PHASE 16 — NOTE
+==================================================
+
+Preserve NOTE exactly.
+
+Examples:
+
+DIRECT
+IMMED
+R.R
+FLAPLESS
+other doctor-entered notes
+
+Do not translate.
+Do not reinterpret.
+Do not discard.
+
+If a value has a proven current Ghars field:
+mapping may be proposed.
+
+Otherwise:
+Legacy Clinical Note.
+
+==================================================
+PHASE 17 — OCR / PDF EXTRACTION
+==================================================
+
+For PDFs automatically classify:
+
+TEXT
+IMAGE/SCANNED
+MIXED
+
+Text PDF:
+structured extraction.
+
+Scanned:
+page render
+→ OCR/table structure extraction.
+
+Mixed:
+best extraction per page/region.
+
+Never create a synthetic placeholder row such as:
+
+Extraction status = REVIEW_REQUIRED
+
+Internal extraction metadata must NEVER appear as patient columns.
+
+==================================================
+PHASE 18 — TABLE STRUCTURE EXTRACTION
+==================================================
+
+For images/scanned PDFs understand:
+
+rows
+columns
+merged cells
+multiline cells
+continuation rows
+
+Do not treat OCR output as one text paragraph.
+
+Do not treat every visible line as a patient.
+
+==================================================
+PHASE 19 — CONFIDENCE
+==================================================
+
+Use confidence PER FIELD.
+
+Critical examples:
+
+Patient:
+98%
+
+File:
+99%
+
+Date:
+99%
+
+Site:
+95%
+
+Size:
+94%
+
+Cost:
+68%
+
+Do NOT show one misleading "Extraction 100%" score.
+
+Summary should show:
+
+Pages processed
+Rows detected
+Ready
+Needs Review
+Duplicates
+Blocked
+
+==================================================
+PHASE 20 — UNIVERSAL LAYOUT TESTS
+==================================================
+
+Create synthetic fixtures for:
+
+A. current doctor's layout
+
+B. English:
+MRN
+Patient
+Phone
+Surgery Date
+Tooth
+Fixture Size
+Implant Brand
+Paid
+Balance
+Notes
+
+C. Arabic:
+رقم الملف
+اسم المريض
+رقم الجوال
+تاريخ الزراعة
+السن
+المقاس
+النظام
+التكلفة
+المدفوع
+المتبقي
+ملاحظات
+
+D. mixed Arabic/English
+
+E. reordered columns
+
+F. missing optional columns
+
+G. unknown custom columns
+
+H. headerless/poor-header table
+
+I. multi-page PDF
+
+J. image table
+
+K. native PDF
+
+L. XLSX
+
+M. CSV
+
+Importer must not be hardcoded to Fixture A.
+
+==================================================
+PHASE 21 — MAPPING MEMORY
+==================================================
+
+Support:
+
+GLOBAL SAFE ALIASES
+
+for genuinely universal mappings.
+
+Support:
+
+TENANT-SPECIFIC MAPPING MEMORY
+
+for custom headers/value meanings.
+
+Example:
+
+Clinic A confirms:
+ROT → Root system
+
+Future Clinic A imports:
+propose same mapping.
+
+Clinic B:
+do NOT automatically inherit Clinic A's ROT meaning.
+
+==================================================
+PHASE 22 — DUPLICATE SAFETY
+==================================================
+
+Priorities:
+
+1. file number
+2. phone
+3. exact identity context
+4. name alone = warning only
+
+Never merge based only on similar names.
+
+Statuses:
+
+READY
+REVIEW REQUIRED
+DUPLICATE
+BLOCKED
+
+Current repeated staging/test records may correctly appear as duplicates.
+
+A conflicting file number for a different patient must remain BLOCKED.
+
+==================================================
+PHASE 23 — HISTORICAL FINANCE MODEL
+==================================================
+
+Use the new Historical / Opening Finance design.
+
+Existing normal Ghars payments remain unchanged.
+
+Historical finance is NOT the same as dated Payment transactions.
+
+Historical finance must support:
+
+historical_total_amount nullable
+historical_paid_amount nullable
+opening_remaining_balance nullable
+historical_payment_status nullable / UNKNOWN
+raw_source_text
+verification metadata
+import batch linkage
+
+Exact names should follow implemented architecture.
+
+==================================================
+PHASE 24 — UNKNOWN IS NOT ZERO
+==================================================
+
+Critical.
+
+Unknown:
+NULL / Unspecified
+
+Known zero:
+0
+
+Never show:
+
+0.00 SAR
+
+for unknown finance.
+
+If total unknown:
+
+غير محدد
+Unspecified
+
+Same for paid and remaining.
+
+==================================================
+PHASE 25 — COST PARSING
+==================================================
+
+COST may contain:
+
+دفعة أولى 4000
+دفعة ثانية 2000
+
+Extract candidate documented amounts:
+
+4,000
+2,000
+
+Candidate documented paid:
+6,000
+
+But DO NOT assume:
+
+Total = 6,000
+Paid in full
+Remaining = 0
+
+unless proven.
+
+Raw COST must remain visible.
+
+==================================================
+PHASE 26 — "لم تدفع شيء"
+==================================================
+
+If source explicitly says:
+
+لم تدفع شيء
+
+may propose:
+
+historical paid = 0
+status = UNPAID
+
+But:
+
+total = UNKNOWN
+remaining = UNKNOWN
+
+unless independently known.
+
+==================================================
+PHASE 27 — NO FAKE PAYMENTS
+==================================================
+
+Never create historical Payment rows without a real payment date.
+
+Do NOT use:
+
+today
+import date
+procedure date
+
+as payment date.
+
+Do not invent payment method/reference.
+
+Historical paid amount remains a verified summary/opening value.
+
+==================================================
+PHASE 28 — ACTIVE LEGACY PATIENT
+==================================================
+
+Support a patient who started in 2025 and is still receiving treatment now.
+
+Example:
+
+Procedure:
+15 Jul 2025
+
+Current clinical status:
+Ready for prosthetic
+
+Historical total:
+8,000
+
+Historical paid:
+5,000
+
+Opening remaining:
+3,000
+
+Must import as:
+
+active patient
+active case
+historical procedure date
+current clinical state
+opening balance 3,000
+
+Do NOT mark completed because old.
+
+==================================================
+PHASE 29 — CLINICAL STATUS INDEPENDENT FROM FINANCE
+==================================================
+
+Support all combinations:
+
+Completed + Paid in full
+Completed + Remaining balance
+Ongoing + Paid in full
+Ongoing + Remaining balance
+
+Never infer clinical status from finance.
+
+Never infer finance from clinical status.
+
+==================================================
+PHASE 30 — FUTURE PAYMENTS
+==================================================
+
+After import:
+
+Opening remaining:
+3,000
+
+New real Ghars Payment:
+1,000
+
+Current balance should become:
+2,000
+
+using canonical Ghars finance logic.
+
+Do not create fake historical payment history.
+
+==================================================
+PHASE 31 — FINANCE PREVIEW
+==================================================
+
+Preview must show clearly:
+
+Historical Finance
+
+Raw COST:
+<text>
+
+Historical Total:
+value / Unspecified
+
+Historical Paid:
+value / Unspecified
+
+Opening Balance:
+value / Unspecified
+
+Payment Status:
+value / Review Required
+
+Verification:
+Verified / Needs Review
+
+Do not hide ambiguity.
+
+==================================================
+PHASE 32 — IMPORT MODES
+==================================================
+
+User can explicitly choose:
+
+A.
+Clinical Data Only
+(preserve raw finance for later review)
+
+B.
+Clinical + Verified Historical Finance
+
+Default to Clinical Data Only when finance unresolved.
+
+No silent financial loss.
+
+==================================================
+PHASE 33 — PREVIEW UI
+==================================================
+
+The current review screen is too dense and mixes Arabic/English.
+
+Do NOT redesign the Ghars identity, but make review operationally clear.
+
+For each patient show compact sections:
+
+PATIENT
+- name
+- file
+- phone
+- age
+
+CASE
+- procedure date
+- current status
+
+IMPLANTS
+- Site
+- Size
+- System
+- Q
+- Former
+- Graft
+
+PROSTHETIC LEGACY
+- Pros
+
+NOTE
+- raw Note
+
+HISTORICAL FINANCE
+- Raw COST
+- parsed fields
+- verification
+
+WARNINGS
+
+Do not put all information into one long line.
+
+==================================================
+PHASE 34 — LOCALIZATION OF IMPORT UI
+==================================================
+
+The current Arabic importer still exposes English strings such as:
+
+Clinical only
+Historical finance
+Correct / verify
+Review required
+Applied to all implants...
+warning messages
+
+Fix all importer UI localization.
+
+When Ghars = Arabic:
+all SYSTEM labels/buttons/errors = Arabic.
+
+When Ghars = English:
+English.
+
+User-entered/source data remains unchanged.
+
+Use existing i18next.
+
+==================================================
+PHASE 35 — WESTERN DIGITS
+==================================================
+
+Global Ghars rule applies.
+
+Always display:
+
+0123456789
+
+even in Arabic interface.
+
+Normalize Arabic/Persian digits on import.
+
+==================================================
+PHASE 36 — EXACT PREVIEW BEFORE COMMIT
+==================================================
+
+Preview must represent exactly what will be written.
+
+Do not show values that will later be discarded.
+
+Do not hide fields that will be written.
+
+Add a final "Import Plan" per selected patient.
+
+Example:
+
+Create patient: YES
+Create case: YES
+Create implants: 2
+Create bone graft procedure: NO
+Create prosthetic event: NO
+Create Payment records: 0
+Create Historical Finance: YES/NO
+Preserve Legacy Note: YES
+
+==================================================
+PHASE 37 — TRANSACTION SAFETY
+==================================================
+
+Import one patient's complete planned record transactionally.
+
+If case/implant/finance write fails:
+
+rollback that patient's entire new import.
+
+No partial patient/case/implant relationships.
+
+==================================================
+PHASE 38 — IMPORT BATCH
+==================================================
+
+Every commit belongs to:
+
+import_batch_id
+
+Track:
+
+tenant
+source
+imported_by
+timestamp
+source row references
+created entity IDs
+warnings
+verification
+failures
+
+==================================================
+PHASE 39 — SAFE ROLLBACK
+==================================================
+
+Support rollback of records created by that import batch only.
+
+Never delete pre-existing records.
+
+If imported records have subsequently been modified or linked to live activity:
+block automatic rollback and require review.
+
+==================================================
+PHASE 40 — DATABASE MIGRATION SAFETY
+==================================================
+
+Historical finance requires an additive migration.
+
+Inspect the exact generated migration.
+
+Allowed:
+
+CREATE TABLE
+ADD nullable fields
+ADD indexes
+ADD safe foreign keys
+ADD appropriate unique constraints
+
+Forbidden:
+
+DROP TABLE
+DROP COLUMN
+TRUNCATE
+DELETE existing rows
+UPDATE existing finance
+table recreation
+fake zero backfill
+Payment rewriting
+
+Do NOT apply to Production.
+
+==================================================
+PHASE 41 — CARDINALITY
+==================================================
+
+Prevent duplicate Opening/Historical Finance snapshots for the same case unless version history is intentionally part of the implemented model.
+
+Use safe unique/cardinality constraints appropriate to the architecture.
+
+==================================================
+PHASE 42 — TEST MIGRATION ON PRODUCTION-LIKE COPY
+==================================================
+
+Use isolated DB with representative current schema/data.
+
+Before migration record counts:
+
+patients
+cases
+implants
+payments
+charges
+discounts
+prosthetics
+followups
+
+Apply migration only there.
+
+Verify all existing counts unchanged.
+
+Historical finance initially:
+0 rows before fixtures.
+
+==================================================
+PHASE 43 — REPLIT MIGRATION VALIDATION
+==================================================
+
+Run the same schema/migration validation Replit uses for Republish.
+
+Expected:
+
+Database migrations validated successfully
+
+No destructive warning.
+
+Do NOT approve publish.
+
+==================================================
+PHASE 44 — PITR / RECOVERY
+==================================================
+
+Check whether Production PITR / backups are confirmed.
+
+Return:
+
+PITR:
+CONFIRMED
+or
+NOT CONFIRMED
+
+Do NOT claim SAFE TO APPLY TO PRODUCTION without a recovery mechanism.
+
+==================================================
+PHASE 45 — PILOT IMPORT SUPPORT
+==================================================
+
+After all validation passes, support selecting a SMALL subset.
+
+Pilot target:
+
+maximum 5 representative patients.
+
+Select examples with:
+
+- one implant
+- multiple implants
+- Graft Y
+- financial text
+- active ongoing case if available
+
+Pilot must work in Development/test first.
+
+==================================================
+PHASE 46 — PILOT VERIFICATION
+==================================================
+
+After Development pilot import verify inside Ghars:
+
+patient identity
+file number
+phone
+age
+procedure date
+current case status
+implant count
+site
+size
+system
+Q
+Former
+Graft
+Pros/legacy note
+finance/opening balance
+no fake payments
+dashboard historical-date behavior
+
+==================================================
+PHASE 47 — DASHBOARD SAFETY
+==================================================
+
+Imported historical records must NOT count as current activity merely because imported today.
+
+Implants:
+procedure_date
+
+Prosthetics:
+event_date
+
+Import timestamp never drives clinical KPIs.
+
+==================================================
+PHASE 48 — REAL PRODUCTION IMPORT STILL FORBIDDEN
+==================================================
+
+Even if the Development pilot passes:
+
+DO NOT import the doctor's real Production file in this task.
+
+DO NOT publish.
+
+Stop with a readiness report.
+
+==================================================
+PHASE 49 — AUTOMATED TEST COVERAGE
+==================================================
+
+Run/add tests for:
+
+- XLSX
+- CSV
+- text PDF
+- scanned PDF
+- image
+- Arabic headers
+- English headers
+- mixed headers
+- reordered columns
+- unknown columns
+- headerless file
+- NAME+MOBILE
+- dates
+- file number
+- implant system mapping
+- multi-implant rows
+- Q
+- Former
+- Graft
+- Pros review
+- Notes
+- historical finance
+- unknown != zero
+- opening balance
+- no fake payments
+- duplicate detection
+- file conflicts
+- tenant isolation
+- historical dashboard behavior
+- import transaction rollback
+- batch rollback
+- localization
+
+==================================================
+PHASE 50 — FULL BUILD VALIDATION
+==================================================
+
+Run:
+
+API tests
+frontend tests
+import tests
+finance tests
+report/date tests
+tenant isolation tests
+TypeScript backend
+TypeScript frontend
+production API build
+production web build
+
+==================================================
+FINAL ACCEPTANCE REPORT
+==================================================
+
+Return exactly:
+
+UNIVERSAL IMPORT ARCHITECTURE:
+PASS / FAIL
+
+HARDCODED TO CURRENT DOCTOR:
+YES / NO
+
+XLSX:
+PASS / FAIL
+
+CSV:
+PASS / FAIL
+
+TEXT PDF:
+PASS / FAIL
+
+SCANNED PDF:
+PASS / FAIL
+
+IMAGE:
+PASS / FAIL
+
+TABLE STRUCTURE EXTRACTION:
+PASS / FAIL
+
+ARABIC OCR:
+PASS / FAIL
+
+MIXED AR/EN:
+PASS / FAIL
+
+DIFFERENT COLUMN ORDER:
+PASS / FAIL
+
+UNKNOWN COLUMN SAFETY:
+PASS / FAIL
+
+TENANT MAPPING MEMORY:
+PASS / FAIL
+
+NAME/MOBILE:
+PASS / FAIL
+
+DATE:
+PASS / FAIL
+
+FILE NUMBER:
+PASS / FAIL
+
+SYSTEM:
+PASS / FAIL
+
+SITE:
+PASS / FAIL
+
+SIZE:
+PASS / FAIL
+
+Q CANONICAL MAPPING:
+PASS / FAIL
+
+FORMER CANONICAL MAPPING:
+PASS / FAIL
+
+GRAFT CANONICAL MAPPING:
+PASS / FAIL
+
+NO INVENTED GRAFT PROCEDURE:
+PASS / FAIL
+
+MULTI-IMPLANT FIELD SCOPE:
+PASS / FAIL
+
+PROS SEMANTICS:
+<finding>
+
+PROS DESTINATION:
+<field / REVIEW REQUIRED>
+
+NOTE:
+PASS / FAIL
+
+HISTORICAL FINANCE MODEL:
+PASS / FAIL
+
+RAW COST:
+PASS / FAIL
+
+UNKNOWN != ZERO:
+PASS / FAIL
+
+NO FALSE TOTAL:
+PASS / FAIL
+
+NO FAKE PAYMENTS:
+PASS / FAIL
+
+NO FAKE PAYMENT DATES:
+PASS / FAIL
+
+ACTIVE LEGACY PATIENT:
+PASS / FAIL
+
+OPENING BALANCE:
+PASS / FAIL
+
+FUTURE GHARS PAYMENT:
+PASS / FAIL
+
+CLINICAL/FINANCE INDEPENDENCE:
+PASS / FAIL
+
+DUPLICATE DETECTION:
+PASS / FAIL
+
+FILE CONFLICT BLOCKING:
+PASS / FAIL
+
+PREVIEW EXACTNESS:
+PASS / FAIL
+
+IMPORT PLAN:
+PASS / FAIL
+
+IMPORT TRANSACTION SAFETY:
+PASS / FAIL
+
+IMPORT BATCH:
+PASS / FAIL
+
+SAFE BATCH ROLLBACK:
+PASS / FAIL
+
+ARABIC IMPORT UI:
+PASS / FAIL
+
+ENGLISH IMPORT UI:
+PASS / FAIL
+
+WESTERN DIGITS:
+PASS / FAIL
+
+HISTORICAL DASHBOARD SAFETY:
+PASS / FAIL
+
+MIGRATION FILE:
+<path>
+
+MIGRATION ADDITIVE ONLY:
+PASS / FAIL
+
+DROP/TRUNCATE/DELETE:
+NONE / FOUND
+
+PRODUCTION-LIKE MIGRATION:
+PASS / FAIL
+
+EXISTING ROW COUNTS PRESERVED:
+PASS / FAIL
+
+REPLIT MIGRATION VALIDATION:
+PASS / FAIL
+
+PITR:
+CONFIRMED / NOT CONFIRMED
+
+DEVELOPMENT PILOT IMPORT:
+PASS / FAIL
+
+PILOT PATIENTS TESTED:
+<number>
+
+PRODUCTION DATA MODIFIED:
+NO
+
+REAL PRODUCTION IMPORT PERFORMED:
+NO
+
+DATABASE MIGRATION SAFE:
+YES / NO
+
+SAFE TO APPLY MIGRATION:
+YES / NO
+
+IMPORT FEATURE READY FOR PRODUCTION:
+YES / NO
+
+SAFE TO REPUBLISH:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+EXACT CHECKPOINT:
+<hash>
+
+If ANY of these are FAIL:
+- Q canonical mapping
+- Former canonical mapping
+- Graft canonical mapping
+- Unknown != Zero
+- No Fake Payments
+- Duplicate Safety
+- Tenant Isolation
+- Migration Additive Only
+- Production-like Migration
+- Replit Migration Validation
+
+then:
+
+IMPORT FEATURE READY FOR PRODUCTION = NO
+
+DO NOT PUBLISH.
+DO NOT APPLY PRODUCTION MIGRATION.
+DO NOT IMPORT REAL PRODUCTION DATA.
+
+Create checkpoint and STOP.
