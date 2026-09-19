@@ -4,6 +4,7 @@ import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm"
 import {
   caseChargesTable,
   caseDiscountsTable,
+  caseHistoricalFinanceTable,
   db,
   implantCasesTable,
   installmentPlansTable,
@@ -223,6 +224,8 @@ async function userNames(ids: Array<string | null>, tenantId: string): Promise<M
 
 const money = (v: string | number | null | undefined): number =>
   v == null ? 0 : Math.round(Number(v) * 100) / 100;
+const nullableMoney = (v: string | number | null | undefined): number | null =>
+  v == null ? null : Math.round(Number(v) * 100) / 100;
 
 function toChargeDto(
   row: CaseChargeRow,
@@ -344,18 +347,29 @@ export function buildSummary(args: {
   chargesTotal: number;
   discountsTotal: number;
   paidAmount: number;
+  openingRemainingBalance?: number | null;
+  historicalTotalAmount?: number | null;
+  historicalPaidAmount?: number | null;
+  historicalPaymentStatus?: CaseFinanceSummary["historicalPaymentStatus"];
+  legacyFinanceRawText?: string | null;
 }): CaseFinanceSummary {
   const baseCents = toCents(args.baseTreatmentAmount);
   const chargesCents = toCents(args.chargesTotal);
   const discountsCents = toCents(args.discountsTotal);
   const paidCents = toCents(args.paidAmount);
-  const finalCents = baseCents + chargesCents - discountsCents;
+  const openingCents = args.openingRemainingBalance == null ? 0 : toCents(args.openingRemainingBalance);
+  const finalCents = baseCents + openingCents + chargesCents - discountsCents;
   const outstandingCents = finalCents - paidCents;
   const summary: CaseFinanceSummary = {
     implantCaseId: args.implantCaseId,
     baseTreatmentAmount: baseCents / 100,
     chargesTotal: chargesCents / 100,
     discountsTotal: discountsCents / 100,
+    openingRemainingBalance: args.openingRemainingBalance == null ? null : openingCents / 100,
+    historicalTotalAmount: args.historicalTotalAmount ?? null,
+    historicalPaidAmount: args.historicalPaidAmount ?? null,
+    historicalPaymentStatus: args.historicalPaymentStatus ?? null,
+    legacyFinanceRawText: args.legacyFinanceRawText ?? null,
     finalTotal: finalCents / 100,
     paidAmount: paidCents / 100,
     outstanding: outstandingCents / 100,
@@ -386,7 +400,7 @@ router.get(
       return;
     }
 
-    const [charges, discounts, payments, implants, plans] = await Promise.all([
+    const [charges, discounts, payments, implants, plans, historicalFinances] = await Promise.all([
       db
         .select()
         .from(caseChargesTable)
@@ -411,6 +425,11 @@ router.get(
         .from(installmentPlansTable)
         .where(and(eq(installmentPlansTable.implantCaseId, caseRow.id), eq(installmentPlansTable.tenantId, tenantId)))
         .limit(1),
+      db
+        .select()
+        .from(caseHistoricalFinanceTable)
+        .where(and(eq(caseHistoricalFinanceTable.caseId, caseRow.id), eq(caseHistoricalFinanceTable.tenantId, tenantId), eq(caseHistoricalFinanceTable.isVerified, true)))
+        .limit(1),
     ]);
     const plan = plans[0] ?? null;
     const installments = plan
@@ -433,6 +452,7 @@ router.get(
     const paidAmount = payments
       .filter((p) => !p.voidedAt)
       .reduce((s, p) => s + toCents(money(p.amount)), 0);
+    const historical = historicalFinances[0] ?? null;
 
     const body: CaseFinanceResponse = {
       summary: buildSummary({
@@ -442,6 +462,11 @@ router.get(
         chargesTotal: chargesTotal / 100,
         discountsTotal: discountsTotal / 100,
         paidAmount: paidAmount / 100,
+        openingRemainingBalance: historical ? nullableMoney(historical.openingRemainingBalance) : null,
+        historicalTotalAmount: historical ? nullableMoney(historical.historicalTotalAmount) : null,
+        historicalPaidAmount: historical ? nullableMoney(historical.historicalPaidAmount) : null,
+        historicalPaymentStatus: historical?.historicalPaymentStatus as CaseFinanceSummary["historicalPaymentStatus"] ?? null,
+        legacyFinanceRawText: historical ? null : caseRow.legacyCostNote,
       }),
       installmentPlan: plan
         ? buildInstallmentPlanDto({ plan, installments, payments })
@@ -468,7 +493,7 @@ router.put(
     const input = parseOrRespond(installmentPlanInputSchema, req.body, res);
     if (!input) return;
 
-    const [charges, discounts, existingPlan] = await Promise.all([
+    const [charges, discounts, existingPlan, historical] = await Promise.all([
       db
         .select({ amount: caseChargesTable.amount })
         .from(caseChargesTable)
@@ -482,9 +507,14 @@ router.put(
         .from(installmentPlansTable)
         .where(and(eq(installmentPlansTable.implantCaseId, caseRow.id), eq(installmentPlansTable.tenantId, tenantId)))
         .limit(1),
+      db.select({ opening: caseHistoricalFinanceTable.openingRemainingBalance })
+        .from(caseHistoricalFinanceTable)
+        .where(and(eq(caseHistoricalFinanceTable.caseId, caseRow.id), eq(caseHistoricalFinanceTable.tenantId, tenantId), eq(caseHistoricalFinanceTable.isVerified, true)))
+        .limit(1),
     ]);
     const finalCents =
       toCents(money(caseRow.baseTreatmentAmount)) +
+      toCents(money(historical[0]?.opening)) +
       charges.reduce((sum, row) => sum + toCents(money(row.amount)), 0) -
       discounts.reduce((sum, row) => sum + toCents(money(row.amount)), 0);
     if (toCents(input.totalAmount) > finalCents) {
@@ -1081,6 +1111,7 @@ interface CaseFinRow {
   charges: string | null;
   discounts: string | null;
   paid: string | null;
+  opening: string | null;
 }
 
 /** Per-case aggregates for all non-archived cases of non-archived patients. */
@@ -1099,6 +1130,7 @@ export async function loadCaseFinancials(filters: {
       ch.total::text AS charges,
       d.total::text AS discounts,
       p.total::text AS paid
+      ,hf.opening_remaining_balance::text AS opening
     FROM implant_cases ic
      JOIN patients pt ON pt.id = ic.patient_id AND pt.tenant_id = ${tenantId}
     LEFT JOIN (
@@ -1110,6 +1142,8 @@ export async function loadCaseFinancials(filters: {
     LEFT JOIN (
        SELECT implant_case_id, SUM(amount) AS total FROM payments WHERE voided_at IS NULL AND tenant_id = ${tenantId} GROUP BY implant_case_id
     ) p ON p.implant_case_id = ic.id
+     LEFT JOIN case_historical_finance hf ON hf.case_id = ic.id
+       AND hf.tenant_id = ${tenantId} AND hf.is_verified = true
      WHERE ic.tenant_id = ${tenantId}
        AND ic.archived_at IS NULL
       AND pt.archived_at IS NULL
@@ -1128,7 +1162,7 @@ export async function loadCaseFinancials(filters: {
   `);
   return (rows.rows as unknown as CaseFinRow[]).map((r) => {
     const finalCents =
-      toCents(money(r.base)) + toCents(money(r.charges)) - toCents(money(r.discounts));
+      toCents(money(r.base)) + toCents(money(r.opening)) + toCents(money(r.charges)) - toCents(money(r.discounts));
     const paidCents = toCents(money(r.paid));
     return {
       ...r,

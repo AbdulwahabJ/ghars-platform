@@ -7,6 +7,7 @@ import {
   implantCasesTable,
   implantsTable,
   patientsTable,
+  caseHistoricalFinanceTable,
 } from "@workspace/db";
 import {
   UNIVERSAL_IMPORT_DESTINATIONS,
@@ -49,7 +50,14 @@ type CreatedRecord = {
   createdAt: string;
   updatedAt: string;
 };
-type ProposedImplant = { site: string; size: string | null; system: string | null };
+type ProposedImplant = { site: string; size: string | null; system: string | null; qValue: string | null; formerValue: string | null; graftValue: string | null };
+type HistoricalFinance = {
+  historicalTotalAmount: number | null;
+  historicalPaidAmount: number | null;
+  openingRemainingBalance: number | null;
+  historicalPaymentStatus: "UNKNOWN" | "UNPAID" | "PARTIALLY_PAID" | "PAID_IN_FULL" | "REVIEW_REQUIRED" | null;
+  isVerified: boolean;
+};
 type NormalizedRow = {
   rowNumber: number;
   raw: Record<string, string>;
@@ -58,9 +66,12 @@ type NormalizedRow = {
   confidence: Record<string, number>;
   proposed: {
     patient: { name: string; fileNumber: string; mobile: string | null; age: number | null };
-    case: { procedureDate: string; treatingDoctor: string; status: string };
+    case: { procedureDate: string; treatingDoctor: string; status: string; prosValue: string | null; clinicalNote: string | null };
     implants: ProposedImplant[];
     financeCandidate: string | null;
+    finance: HistoricalFinance;
+    implantApplyToAll: Array<"qValue" | "formerValue" | "graftValue">;
+    sourceCandidates: { qValue: string | null; formerValue: string | null; graftValue: string | null };
     legacyNotes: string[];
   };
 };
@@ -88,11 +99,40 @@ const ALIASES: Record<string, UniversalImportDestination> = {
   implantbrand: "implant.system",
   site: "implant.site", tooth: "implant.site", toothno: "implant.site", location: "implant.site", "الموقع": "implant.site",
   size: "implant.size", implantsize: "implant.size", dimensions: "implant.size", "المقاس": "implant.size",
+  q: "implant.q_value", qvalue: "implant.q_value",
+  former: "implant.former_value", formervalue: "implant.former_value",
+  graft: "implant.graft_value", graftvalue: "implant.graft_value",
+  pros: "case.pros_value", prosvalue: "case.pros_value",
+  note: "clinical_note", notes: "clinical_note", "ملاحظة": "clinical_note",
   cost: "finance.candidate", price: "finance.candidate", amount: "finance.candidate", total: "finance.candidate",
+  historicaltotal: "finance.total", paid: "finance.paid", historicalpaid: "finance.paid",
+  openingremaining: "finance.opening_remaining", balance: "finance.opening_remaining",
+  paymentstatus: "finance.status",
   "التكلفة": "finance.candidate", "المبلغ": "finance.candidate",
   doctor: "case.treating_doctor", treatingdoctor: "case.treating_doctor", "الطبيب المعالج": "case.treating_doctor",
   status: "case.status", casestatus: "case.status", "حالة الحالة": "case.status",
 };
+
+/** Parse only amounts explicitly documented in COST/finance text; unknown stays null. */
+export function parseHistoricalFinance(raw: string | null): HistoricalFinance {
+  if (!raw?.trim()) return { historicalTotalAmount: null, historicalPaidAmount: null, openingRemainingBalance: null, historicalPaymentStatus: null, isVerified: false };
+  const text = raw.normalize("NFKC").replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  const parseAmount = (value: string) => {
+    const normalized = value.includes(",") && (value.split(",").pop() ?? "").length === 3
+      ? value.replace(/,/g, "")
+      : value.replace(",", ".");
+    return Math.round(Number(normalized) * 100);
+  };
+  const noPayment = /لم\s*تدفع\s*شي[ئء]|لم\s*يدفع\s*شي[ئء]|no\s+payment/i.test(text);
+  const totalMatch = text.match(/(?:total|الإجمالي|المجموع|تكلفة)[^\d]{0,20}([\d,]+(?:[.]\d{1,2})?)/i);
+  const paidMatches = [...text.matchAll(/(?:paid|مدفوع|دفعة)[^\d]{0,20}([\d,]+(?:[.]\d{1,2})?)/gi)];
+  const total = totalMatch ? parseAmount(totalMatch[1]) : null;
+  const paid = noPayment ? 0 : paidMatches.length ? paidMatches.reduce((sum, m) => sum + parseAmount(m[1]), 0) : null;
+  const remainingMatch = text.match(/(?:balance|remaining|المتبقي|الباقي)[^\d]{0,20}([\d,]+(?:[.]\d{1,2})?)/i);
+  const remaining = remainingMatch ? parseAmount(remainingMatch[1]) : (total != null && paid != null ? total - paid : null);
+  const status = noPayment ? "UNPAID" : total != null && paid != null && paid === total ? "PAID_IN_FULL" : paid != null && paid > 0 ? (remaining == null ? "REVIEW_REQUIRED" : "PARTIALLY_PAID") : null;
+  return { historicalTotalAmount: total, historicalPaidAmount: paid, openingRemainingBalance: remaining, historicalPaymentStatus: status, isVerified: false };
+}
 
 function aliasFor(header: string): UniversalImportDestination | null {
   const normalized = normalizeHeader(header);
@@ -399,17 +439,28 @@ function normalizeRows(
     const fileNumber = normalizeDigits(get(row, "patient.file_number"));
     const procedureDate = cleanDate(get(row, "case.procedure_date"));
     const sites = splitValues(get(row, "implant.site"));
+    const blocked: string[] = [];
     const sizes = splitValues(get(row, "implant.size")).map(normalizeSize);
     const rawSystems = splitValues(get(row, "implant.system"));
     const systems = rawSystems.map((rawSystem) =>
       valueMappings.get(`value:implant.system:${rawSystem}`) ?? rawSystem,
     );
+    const implantMetric = (destination: UniversalImportDestination): string[] => splitValues(get(row, destination));
+    const qValues = implantMetric("implant.q_value");
+    const formerValues = implantMetric("implant.former_value");
+    const graftValues = implantMetric("implant.graft_value");
+    for (const [label, values] of [["Q", qValues], ["Former", formerValues], ["Graft", graftValues]] as const) {
+      if (sites.length > 1 && values.length === 1 && values[0]) warnings.push(`${label} is a single source value for multiple implants; review explicit apply-to-all before commit.`);
+      if (values.length > 1 && values.length !== sites.length) blocked.push(`${label} values must match implant site count.`);
+    }
     const implants = sites.map((site, index) => ({
       site,
       size: sizes[index] ?? null,
       system: systems[index] ?? (systems.length === 1 ? systems[0] : null),
+      qValue: qValues.length === sites.length ? qValues[index] ?? null : null,
+      formerValue: formerValues.length === sites.length ? formerValues[index] ?? null : null,
+      graftValue: graftValues.length === sites.length ? graftValues[index] ?? null : null,
     }));
-    const blocked: string[] = [];
     if (combined.review) warnings.push(combined.review);
     if ((!name && !combined.review) || !fileNumber || !procedureDate) blocked.push("Patient name, file number, and clinical date are required.");
     if (!sites.length) blocked.push("At least one implant site is required.");
@@ -421,6 +472,24 @@ function normalizeRows(
     }
     if (systems.length > 1 && systems.length !== sites.length) blocked.push("Implant site/system counts do not match; pairing is blocked.");
     const finance = get(row, "finance.candidate") || get(row, "finance.preserve_summary") || null;
+    const parsedFinance = parseHistoricalFinance(finance);
+    const explicitTotal = parseNumber(get(row, "finance.total"));
+    const explicitPaid = parseNumber(get(row, "finance.paid"));
+    const explicitRemaining = parseNumber(get(row, "finance.opening_remaining"));
+    if (explicitTotal != null) parsedFinance.historicalTotalAmount = Math.round(explicitTotal * 100);
+    if (explicitPaid != null) parsedFinance.historicalPaidAmount = Math.round(explicitPaid * 100);
+    if (explicitRemaining != null) parsedFinance.openingRemainingBalance = Math.round(explicitRemaining * 100);
+    const explicitStatus = get(row, "finance.status").trim().toUpperCase();
+    if (["UNKNOWN", "UNPAID", "PARTIALLY_PAID", "PAID_IN_FULL", "REVIEW_REQUIRED"].includes(explicitStatus)) {
+      parsedFinance.historicalPaymentStatus = explicitStatus as HistoricalFinance["historicalPaymentStatus"];
+    }
+    if (parsedFinance.historicalTotalAmount != null && parsedFinance.historicalPaidAmount != null &&
+        parsedFinance.openingRemainingBalance != null &&
+        parsedFinance.historicalTotalAmount !== parsedFinance.historicalPaidAmount + parsedFinance.openingRemainingBalance) {
+      warnings.push("Historical total must equal paid plus opening remaining; finance requires correction.");
+      parsedFinance.isVerified = false;
+      parsedFinance.historicalPaymentStatus = "REVIEW_REQUIRED";
+    }
     if (get(row, "finance.candidate") && !rowApproved) warnings.push("Financial source text is review-only; explicitly preserve it as a historical summary or ignore it before commit.");
     const legacyNotes = mappings
       .filter((mapping) => mapping.destination === "legacy_note")
@@ -452,9 +521,14 @@ function normalizeRows(
           procedureDate: procedureDate ?? "",
           treatingDoctor: get(row, "case.treating_doctor") || "د. همام",
           status: get(row, "case.status") || "حالة جديدة",
+          prosValue: get(row, "case.pros_value") || null,
+          clinicalNote: get(row, "clinical_note") || null,
         },
         implants,
+        implantApplyToAll: [],
+        sourceCandidates: { qValue: qValues.length === 1 ? qValues[0] : null, formerValue: formerValues.length === 1 ? formerValues[0] : null, graftValue: graftValues.length === 1 ? graftValues[0] : null },
         financeCandidate: finance,
+        finance: parsedFinance,
         legacyNotes,
       },
     };
@@ -601,6 +675,7 @@ router.post("/admin/import/universal/analyze", async (req, res): Promise<void> =
       ...(pagesProcessed ? { pagesProcessed } : {}),
       ...(documentType ? { documentType } : {}),
       ...(extractionReview ? { extractionReview } : {}),
+      importMode: parsed.data.mode,
     };
     const [batch] = await db.insert(importBatchesTable).values({
       tenantId: req.currentTenant!.id,
@@ -685,6 +760,81 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
     req.currentTenant!.id,
     priorApprovals,
   );
+  const previousRows = batch.normalizedRows as NormalizedRow[];
+  for (const row of rows) {
+    const previous = previousRows.find((candidate) => candidate.rowNumber === row.rowNumber);
+    if (!previous) continue;
+    row.proposed.sourceCandidates = previous.proposed.sourceCandidates;
+    if (previous.proposed.finance.isVerified) {
+      row.proposed.finance = previous.proposed.finance;
+      row.warnings = row.warnings.filter((warning) => !warning.includes("finance") && !warning.includes("Financial source text"));
+      if (row.status === "REVIEW_REQUIRED" && row.warnings.length === 0) row.status = "READY";
+    }
+    for (const field of previous.proposed.implantApplyToAll) {
+      const source = previous.proposed.implants.find((implant) => implant[field] != null)?.[field] ??
+        row.proposed.implants.find((implant) => implant[field] != null)?.[field] ??
+        row.proposed.sourceCandidates[field];
+      if (source != null) row.proposed.implants = row.proposed.implants.map((implant) => ({ ...implant, [field]: source }));
+      row.proposed.implantApplyToAll = [...new Set([...row.proposed.implantApplyToAll, field])];
+      const label = field === "qValue" ? "Q" : field === "formerValue" ? "Former" : "Graft";
+      row.warnings = row.warnings.filter((warning) => !warning.startsWith(`${label} is a single source value`));
+    }
+    if (row.status === "REVIEW_REQUIRED" && row.warnings.length === 0) row.status = "READY";
+  }
+  for (const correction of parsed.data.financeCorrections ?? []) {
+    const row = rows.find((candidate) => candidate.rowNumber === correction.rowNumber);
+    if (!row) {
+      res.status(422).json({ error: `Unknown import row ${correction.rowNumber}.` });
+      return;
+    }
+    const values = [correction.historicalTotalAmount, correction.historicalPaidAmount, correction.openingRemainingBalance];
+    const consistent = correction.historicalTotalAmount != null &&
+      correction.historicalPaidAmount != null &&
+      correction.openingRemainingBalance != null &&
+      correction.historicalTotalAmount === correction.historicalPaidAmount + correction.openingRemainingBalance;
+    const statusConsistent =
+      (correction.historicalPaymentStatus === "UNPAID" && correction.historicalPaidAmount === 0) ||
+      (correction.historicalPaymentStatus === "PAID_IN_FULL" && correction.openingRemainingBalance === 0 && correction.historicalPaidAmount === correction.historicalTotalAmount) ||
+      (correction.historicalPaymentStatus === "PARTIALLY_PAID" && (correction.historicalPaidAmount ?? 0) > 0 && (correction.openingRemainingBalance ?? 0) > 0);
+    if (correction.isVerified && (!consistent || !statusConsistent || values.some((value) => value == null))) {
+      res.status(422).json({ error: "Verified finance requires total, paid, opening remaining, and total = paid + opening remaining." });
+      return;
+    }
+    row.proposed.finance = { ...correction };
+    if (correction.isVerified) {
+      row.proposed.financeCandidate = row.proposed.financeCandidate ?? row.raw.COST ?? null;
+      row.warnings = row.warnings.filter((warning) =>
+        !warning.includes("finance requires correction") &&
+        !warning.includes("finance.candidate requires review") &&
+        !warning.includes("finance.total requires review") &&
+        !warning.includes("finance.paid requires review") &&
+        !warning.includes("finance.opening_remaining requires review") &&
+        !warning.includes("finance.status requires review"));
+      if (row.status === "REVIEW_REQUIRED" && row.warnings.length === 0) row.status = "READY";
+    } else if (row.status === "READY") {
+      row.status = "REVIEW_REQUIRED";
+      row.warnings = [...row.warnings, "Finance is unresolved; choose clinical-only or verify corrected values."];
+    }
+  }
+  for (const resolution of parsed.data.implantApplyToAll ?? []) {
+    const row = rows.find((candidate) => candidate.rowNumber === resolution.rowNumber);
+    if (!row) {
+      res.status(422).json({ error: `Unknown import row ${resolution.rowNumber}.` });
+      return;
+    }
+    for (const field of resolution.fields) {
+      const source = row.proposed.implants.find((implant) => implant[field] != null)?.[field] ?? row.proposed.sourceCandidates[field];
+      if (source == null) {
+        res.status(422).json({ error: `No source ${field} value is available for row ${resolution.rowNumber}.` });
+        return;
+      }
+      row.proposed.implants = row.proposed.implants.map((implant) => ({ ...implant, [field]: source }));
+      row.proposed.implantApplyToAll = [...new Set([...row.proposed.implantApplyToAll, field])];
+      const label = field === "qValue" ? "Q" : field === "formerValue" ? "Former" : "Graft";
+      row.warnings = row.warnings.filter((warning) => !warning.startsWith(`${label} is a single source value`));
+    }
+    if (row.warnings.length === 0 && row.status === "REVIEW_REQUIRED") row.status = "READY";
+  }
   const summary = {
     ...(batch.summary as Record<string, unknown>),
     ready: rows.filter((row) => row.status === "READY").length,
@@ -790,6 +940,23 @@ router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void
     res.status(422).json({ error: "Only READY rows can be committed. Resolve review and blocked rows first." });
     return;
   }
+  if (options.data.mode === "clinical_and_verified_finance") {
+    const unresolved = chosen.filter((row) => {
+      const f = row.proposed.finance;
+      if (!f || !f.isVerified || f.historicalTotalAmount == null || f.historicalPaidAmount == null || f.openingRemainingBalance == null) return true;
+      const consistent = f.historicalTotalAmount === f.historicalPaidAmount + f.openingRemainingBalance;
+      const statusConsistent =
+        (f.historicalPaymentStatus === "UNPAID" && f.historicalPaidAmount === 0) ||
+        (f.historicalPaymentStatus === "PAID_IN_FULL" && f.openingRemainingBalance === 0 && f.historicalPaidAmount === f.historicalTotalAmount) ||
+        (f.historicalPaymentStatus === "PARTIALLY_PAID" && f.historicalPaidAmount > 0 && f.openingRemainingBalance > 0) ||
+        false;
+      return !consistent || !statusConsistent;
+    });
+    if (unresolved.length) {
+      res.status(422).json({ error: "Verified finance mode requires corrected, explicit finance for every selected row." });
+      return;
+    }
+  }
   const claimed = await db.update(importBatchesTable).set({
     status: "COMMITTING",
     version: batch.version + 1,
@@ -867,9 +1034,10 @@ router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void
             procedureDate: row.proposed.case.procedureDate,
             treatingDoctor: row.proposed.case.treatingDoctor,
             caseStatus: row.proposed.case.status,
+            prosValue: row.proposed.case.prosValue === "2M" || row.proposed.case.prosValue === "3M" ? row.proposed.case.prosValue : null,
             baseTreatmentAmount: "0",
             legacyCostNote: row.proposed.financeCandidate,
-            generalNote: row.proposed.legacyNotes.join("\n") || null,
+            generalNote: [row.proposed.case.clinicalNote, row.proposed.legacyNotes.join("\n")].filter(Boolean).join("\n") || null,
             createdBy: req.currentUser!.id,
             updatedBy: req.currentUser!.id,
           }).returning();
@@ -880,6 +1048,34 @@ router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void
             createdAt: caseRow.createdAt.toISOString(),
             updatedAt: caseRow.updatedAt.toISOString(),
           });
+          if (options.data.mode === "clinical_and_verified_finance") {
+            const finance = row.proposed.finance;
+            if (finance.historicalTotalAmount != null && finance.historicalPaidAmount != null &&
+                finance.openingRemainingBalance != null &&
+                finance.historicalTotalAmount !== finance.historicalPaidAmount + finance.openingRemainingBalance) {
+              throw new Error("Historical finance total must equal paid plus opening remaining.");
+            }
+            const [snapshot] = await tx.insert(caseHistoricalFinanceTable).values({
+              tenantId: req.currentTenant!.id,
+              caseId: caseRow.id,
+              importBatchId: batch.id,
+              rawSourceText: row.proposed.financeCandidate ?? "",
+              historicalTotalAmount: finance.historicalTotalAmount == null ? null : (finance.historicalTotalAmount / 100).toFixed(2),
+              historicalPaidAmount: finance.historicalPaidAmount == null ? null : (finance.historicalPaidAmount / 100).toFixed(2),
+              openingRemainingBalance: finance.openingRemainingBalance == null ? null : (finance.openingRemainingBalance / 100).toFixed(2),
+              historicalPaymentStatus: finance.historicalPaymentStatus,
+              isVerified: true,
+              verifiedBy: req.currentUser!.id,
+              verifiedAt: new Date(),
+            }).returning();
+            groupRecords.push({
+              table: "case_historical_finance",
+              id: snapshot.id,
+              patientId: patient.id,
+              createdAt: snapshot.createdAt.toISOString(),
+              updatedAt: snapshot.updatedAt.toISOString(),
+            });
+          }
           for (const implant of row.proposed.implants) {
             const [implantRow] = await tx.insert(implantsTable).values({
               tenantId: req.currentTenant!.id,
@@ -889,6 +1085,9 @@ router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void
               system: implant.system,
               diameter: sizeNumbers(implant.size).diameter,
               length: sizeNumbers(implant.size).length,
+              qValue: implant.qValue,
+              formerValue: implant.formerValue,
+              graftValue: implant.graftValue,
               implantNote: implant.size ? `Legacy size: ${implant.size}` : null,
               createdBy: req.currentUser!.id,
               updatedBy: req.currentUser!.id,
@@ -1024,13 +1223,17 @@ router.post("/admin/import/universal/:id/rollback", async (req, res): Promise<vo
   let rolledBackBatch: typeof importBatchesTable.$inferSelect;
   try {
     await db.transaction(async (tx) => {
-      const [currentImplants, currentCases, currentPatients] = await Promise.all([
+       // Historical finance is owned by the imported case and is removed by
+       // the case's ON DELETE CASCADE; it is intentionally not treated as an
+       // independently editable rollback record.
+       const rollbackRecords = records.filter((record) => record.table !== "case_historical_finance");
+       const [currentImplants, currentCases, currentPatients] = await Promise.all([
         implantIds.length ? tx.select({ id: implantsTable.id, createdAt: implantsTable.createdAt, updatedAt: implantsTable.updatedAt }).from(implantsTable).where(and(eq(implantsTable.tenantId, req.currentTenant!.id), inArray(implantsTable.id, implantIds))) : [],
         caseIds.length ? tx.select({ id: implantCasesTable.id, createdAt: implantCasesTable.createdAt, updatedAt: implantCasesTable.updatedAt }).from(implantCasesTable).where(and(eq(implantCasesTable.tenantId, req.currentTenant!.id), inArray(implantCasesTable.id, caseIds))) : [],
         patientIds.length ? tx.select({ id: patientsTable.id, createdAt: patientsTable.createdAt, updatedAt: patientsTable.updatedAt }).from(patientsTable).where(and(eq(patientsTable.tenantId, req.currentTenant!.id), inArray(patientsTable.id, patientIds))) : [],
       ]);
       const currentById = new Map([...currentImplants, ...currentCases, ...currentPatients].map((record) => [record.id, record]));
-      if (records.some((record) => {
+       if (rollbackRecords.some((record) => {
         const current = currentById.get(record.id);
         return !current ||
           current.createdAt.toISOString() !== record.createdAt ||

@@ -463,7 +463,16 @@ export const UNIVERSAL_IMPORT_DESTINATIONS = [
   "implant.system",
   "implant.site",
   "implant.size",
+  "implant.q_value",
+  "implant.former_value",
+  "implant.graft_value",
+  "case.pros_value",
+  "clinical_note",
   "finance.candidate",
+  "finance.total",
+  "finance.paid",
+  "finance.opening_remaining",
+  "finance.status",
   "finance.preserve_summary",
   "finance.ignore",
   "legacy_note",
@@ -487,6 +496,7 @@ export const universalImportInputSchema = z.object({
   /** UTF-8 text for CSV, base64 for XLSX/PDF/images. */
   content: z.string().min(1).max(11_000_000),
   mappings: z.array(universalImportMappingSchema).optional(),
+  mode: z.enum(["clinical_only", "clinical_and_verified_finance"]).default("clinical_only"),
 });
 export type UniversalImportInput = z.infer<typeof universalImportInputSchema>;
 
@@ -505,15 +515,28 @@ export const universalImportMappingPatchSchema = z.object({
     rowNumber: z.number().int().min(1),
     approved: z.boolean(),
   })).optional(),
+  financeCorrections: z.array(z.object({
+    rowNumber: z.number().int().min(1),
+    historicalTotalAmount: z.number().int().nonnegative().nullable(),
+    historicalPaidAmount: z.number().int().nonnegative().nullable(),
+    openingRemainingBalance: z.number().int().nonnegative().nullable(),
+    historicalPaymentStatus: z.enum(["UNKNOWN", "UNPAID", "PARTIALLY_PAID", "PAID_IN_FULL", "REVIEW_REQUIRED"]).nullable(),
+    isVerified: z.boolean(),
+  })).optional(),
+  implantApplyToAll: z.array(z.object({
+    rowNumber: z.number().int().min(1),
+    fields: z.array(z.enum(["qValue", "formerValue", "graftValue"])).min(1),
+  })).optional(),
   version: z.number().int().min(1).optional(),
-}).refine((value) => value.mappings.length > 0 || (value.valueMappings?.length ?? 0) > 0 || (value.rowApprovals?.length ?? 0) > 0,
-  "At least one mapping, value mapping, or row approval is required.");
+}).refine((value) => value.mappings.length > 0 || (value.valueMappings?.length ?? 0) > 0 || (value.rowApprovals?.length ?? 0) > 0 || (value.financeCorrections?.length ?? 0) > 0 || (value.implantApplyToAll?.length ?? 0) > 0,
+  "At least one mapping, value mapping, row approval, or finance correction is required.");
 export type UniversalImportMappingPatch = z.infer<typeof universalImportMappingPatchSchema>;
 
 export const universalImportCommitSchema = z.object({
   rowNumbers: z.array(z.number().int().min(1)).optional(),
   pilot: z.boolean().default(false),
   version: z.number().int().min(1).optional(),
+  mode: z.enum(["clinical_only", "clinical_and_verified_finance"]).default("clinical_only"),
 });
 export type UniversalImportCommit = z.infer<typeof universalImportCommitSchema>;
 
@@ -547,13 +570,31 @@ export const universalImportNormalizedRowSchema = z.object({
       procedureDate: z.string(),
       treatingDoctor: z.string(),
       status: z.string(),
+      prosValue: z.string().nullable(),
+      clinicalNote: z.string().nullable(),
     }),
     implants: z.array(z.object({
       site: z.string(),
       size: z.string().nullable(),
       system: z.string().nullable(),
+      qValue: z.string().nullable(),
+      formerValue: z.string().nullable(),
+      graftValue: z.string().nullable(),
     })),
+    implantApplyToAll: z.array(z.enum(["qValue", "formerValue", "graftValue"])),
+    sourceCandidates: z.object({
+      qValue: z.string().nullable(),
+      formerValue: z.string().nullable(),
+      graftValue: z.string().nullable(),
+    }),
     financeCandidate: z.string().nullable(),
+    finance: z.object({
+      historicalTotalAmount: z.number().int().nonnegative().nullable(),
+      historicalPaidAmount: z.number().int().nonnegative().nullable(),
+      openingRemainingBalance: z.number().int().nonnegative().nullable(),
+      historicalPaymentStatus: z.enum(["UNKNOWN", "UNPAID", "PARTIALLY_PAID", "PAID_IN_FULL", "REVIEW_REQUIRED"]).nullable(),
+      isVerified: z.boolean(),
+    }),
     legacyNotes: z.array(z.string()),
   }),
 });
@@ -576,6 +617,7 @@ export const universalImportSummarySchema = z.object({
   pagesProcessed: z.number().int().min(1).optional(),
   documentType: z.enum(["TEXT", "IMAGE", "MIXED"]).optional(),
   extractionReview: z.string().optional(),
+  importMode: z.enum(["clinical_only", "clinical_and_verified_finance"]).optional(),
 });
 export type UniversalImportSummary = z.infer<typeof universalImportSummarySchema>;
 

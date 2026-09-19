@@ -43,6 +43,12 @@ function CaseFinanceSummaryRow({ caseId }: { caseId: string }) {
   if (!data) return null;
 
   const { summary, installmentPlan } = data;
+  const historicalValue = (value: number | null) =>
+    value == null ? t("summary.unspecified") : formatMoney(value);
+  const hasHistoricalFinance =
+    summary.historicalTotalAmount != null ||
+    summary.historicalPaidAmount != null ||
+    summary.openingRemainingBalance != null;
   const paidInstallments = installmentPlan?.installments.filter(
     (installment) => installment.status === "مدفوع",
   ).length ?? 0;
@@ -55,12 +61,28 @@ function CaseFinanceSummaryRow({ caseId }: { caseId: string }) {
 
   return (
     <div className="space-y-3">
+      {hasHistoricalFinance ? (
+        <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+          <p className="mb-2 text-sm font-semibold">{t("summary.historicalFinance")}</p>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+            <Field label={t("summary.historicalTotal")} value={historicalValue(summary.historicalTotalAmount)} />
+            <Field label={t("summary.historicalPaid")} value={historicalValue(summary.historicalPaidAmount)} />
+            <Field label={t("summary.openingBalance")} value={historicalValue(summary.openingRemainingBalance)} />
+            <Field label={t("summary.historicalPaymentStatus", "Historical payment status")} value={summary.historicalPaymentStatus ?? t("summary.unspecified", "Unspecified")} />
+          </div>
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-y border-border/70 py-3 md:grid-cols-4">
         <Field label={t("summary.finalTotal")} value={formatMoney(summary.finalTotal)} />
-        <Field label={t("summary.paid")} value={formatMoney(summary.paidAmount)} />
+        <Field label={t("summary.gharsPaid", "Ghars payments")} value={formatMoney(summary.paidAmount)} />
         <Field label={t("summary.remaining")} value={formatMoney(summary.outstanding)} />
         <Field label={t("summary.paymentStatus")} value={enumLabel("paymentStatus", summary.paymentStatus)} />
       </div>
+      {!hasHistoricalFinance && summary.legacyFinanceRawText ? (
+        <div className="rounded border border-amber-300 bg-amber-50 p-2 text-xs">
+          <strong>{t("summary.unresolvedHistoricalFinance", "Unresolved historical finance")}</strong>: {summary.legacyFinanceRawText}
+        </div>
+      ) : null}
       {installmentPlan ? (
         <div className="border-s border-border ps-3 text-sm">
           <p className="font-medium text-foreground">{t("summary.installmentPlan")}</p>

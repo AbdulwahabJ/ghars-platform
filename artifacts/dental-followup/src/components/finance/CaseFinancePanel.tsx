@@ -145,13 +145,19 @@ function SummaryCard({
   const { t } = useTranslation("operations");
   const [baseOpen, setBaseOpen] = useState(false);
   const s = data.summary;
+  const hasHistoricalFinance =
+    s.historicalTotalAmount != null ||
+    s.historicalPaidAmount != null ||
+    s.openingRemainingBalance != null;
+  const historicalValue = (value: number | null) =>
+    value == null ? t("financeForms.unspecified") : formatMoney(value);
 
   const rows: Array<{ label: string; value: string; strong?: boolean }> = [
     { label: t("financeForms.baseTreatment"), value: formatMoney(s.baseTreatmentAmount) },
     { label: t("financeForms.additionalCharges"), value: formatMoney(s.chargesTotal) },
     { label: t("financeForms.discounts"), value: formatMoney(s.discountsTotal) },
     { label: t("financeForms.finalTotal"), value: formatMoney(s.finalTotal), strong: true },
-    { label: t("financeForms.summaryPaid"), value: formatMoney(s.paidAmount) },
+    { label: t("financeForms.gharsPaid", "Ghars payments"), value: formatMoney(s.paidAmount) },
     { label: t("financeForms.outstanding"), value: formatMoney(s.outstanding), strong: true },
   ];
 
@@ -175,6 +181,35 @@ function SummaryCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {hasHistoricalFinance ? (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <p className="mb-2 text-sm font-semibold">{t("financeForms.historicalSummary")}</p>
+            <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">{t("financeForms.historicalTotal")}</p>
+                <p className="font-medium tabular-nums">{historicalValue(s.historicalTotalAmount)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{t("financeForms.historicalPaid")}</p>
+                <p className="font-medium tabular-nums">{historicalValue(s.historicalPaidAmount)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{t("financeForms.openingBalance")}</p>
+                <p className="font-medium tabular-nums">{historicalValue(s.openingRemainingBalance)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{t("financeForms.historicalPaymentStatus", "Historical payment status")}</p>
+                <p className="font-medium">{s.historicalPaymentStatus ?? t("financeForms.unspecified")}</p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{t("financeForms.futurePaymentsNotice")}</p>
+          </div>
+        ) : null}
+        {!hasHistoricalFinance && s.legacyFinanceRawText ? (
+          <div className="rounded border border-amber-300 bg-amber-50 p-2 text-xs">
+            <strong>{t("financeForms.unresolvedHistoricalFinance", "Unresolved historical finance")}</strong>: {s.legacyFinanceRawText}
+          </div>
+        ) : null}
         {s.isOverpaid ? (
           <Alert variant="destructive" data-testid="alert-overpaid">
             <AlertTriangle className="h-4 w-4" />

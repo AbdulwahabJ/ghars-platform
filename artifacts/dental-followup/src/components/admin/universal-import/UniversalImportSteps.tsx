@@ -57,6 +57,7 @@ export function UploadStep({
   const { toast } = useToast();
   const analyze = useUniversalImportAnalyze();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<"clinical_only" | "clinical_and_verified_finance">("clinical_only");
 
   const handleFileChange = (file: File | undefined) => {
     if (!file) return;
@@ -87,6 +88,7 @@ export function UploadStep({
           filename: file.name,
           mime: file.type || "application/octet-stream",
           content,
+          mode: importMode,
         },
         {
           onSuccess: (batch) => {
@@ -125,6 +127,17 @@ export function UploadStep({
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 rounded-md border p-3">
+          <p className="text-sm font-medium">Import mode</p>
+          <p className="text-xs text-muted-foreground mb-2">Historical finance is separate from future Ghars payments. Unknown values are not zero.</p>
+          <Select value={importMode} onValueChange={(v) => setImportMode(v as typeof importMode)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="clinical_only">Clinical data only (preserve raw COST)</SelectItem>
+              <SelectItem value="clinical_and_verified_finance">Clinical + verified historical finance</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 text-center space-y-4">
           <FileUp className="h-10 w-10 text-muted-foreground" />
           <div>
@@ -371,6 +384,9 @@ export function ReviewStep({
   const { t } = useTranslation("admin");
   const { toast } = useToast();
   const commit = useUniversalImportCommitBatch();
+  const [importMode, setImportMode] = useState<"clinical_only" | "clinical_and_verified_finance">(batch.summary.importMode ?? "clinical_only");
+  const [editingFinance, setEditingFinance] = useState<number | null>(null);
+  const [financeDraft, setFinanceDraft] = useState<Record<string, string>>({});
 
   const committedSet = useMemo(() => new Set(batch.committedRowNumbers || []), [batch.committedRowNumbers]);
 
@@ -404,6 +420,45 @@ export function ReviewStep({
         },
       }
     );
+  };
+  const saveFinanceCorrection = (row: typeof batch.rows[number]) => {
+    const cents = (key: string) => {
+      const value = financeDraft[key]?.trim() ?? "";
+      if (!value) return null;
+      const parsed = Number(value.replace(",", "."));
+      return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : NaN;
+    };
+    const total = cents("total");
+    const paid = cents("paid");
+    const opening = cents("opening");
+    if ([total, paid, opening].some((value) => Number.isNaN(value))) {
+      toast({ variant: "destructive", title: "Invalid amount", description: "Amounts must be non-negative SAR values or blank for Unspecified." });
+      return;
+    }
+    const derivedOpening = opening == null && total != null && paid != null ? total - paid : opening;
+    if (derivedOpening != null && derivedOpening < 0) {
+      toast({ variant: "destructive", title: "Contradictory finance", description: "Paid cannot exceed total." });
+      return;
+    }
+    if (total != null && paid != null && derivedOpening != null && total !== paid + derivedOpening) {
+      toast({ variant: "destructive", title: "Contradictory finance", description: "Total must equal paid plus opening remaining." });
+      return;
+    }
+    patch.mutate({
+      id: batch.id,
+      input: {
+        version: batch.version,
+        mappings: [],
+        financeCorrections: [{
+          rowNumber: row.rowNumber,
+          historicalTotalAmount: total,
+          historicalPaidAmount: paid,
+          openingRemainingBalance: derivedOpening,
+          historicalPaymentStatus: (financeDraft.status || null) as "UNKNOWN" | "UNPAID" | "PARTIALLY_PAID" | "PAID_IN_FULL" | "REVIEW_REQUIRED" | null,
+          isVerified: true,
+        }],
+      },
+    }, { onSuccess: (updatedBatch) => { setEditingFinance(null); onNext(updatedBatch); } });
   };
 
   const toggleRow = (fileNumber: string) => {
@@ -472,7 +527,7 @@ export function ReviewStep({
     }
 
     commit.mutate(
-      { id: batch.id, input: { rowNumbers, pilot, version: batch.version } },
+      { id: batch.id, input: { rowNumbers, pilot, version: batch.version, mode: importMode } },
       {
         onSuccess: (res) => {
           onNext(res.batch);
@@ -563,15 +618,58 @@ export function ReviewStep({
                     <TableCell>
                       <div className="text-sm">{r.proposed.case.procedureDate}</div>
                       <div className="text-xs text-muted-foreground">{r.proposed.case.treatingDoctor}</div>
+                      <div className="text-xs">{r.proposed.case.status}</div>
+                      <div className="text-xs">{r.proposed.case.prosValue || "Pros: Unspecified"}</div>
+                      {r.proposed.case.clinicalNote && <div className="text-xs">NOTE: {r.proposed.case.clinicalNote}</div>}
                     </TableCell>
                     <TableCell>
                       {r.proposed.implants.map((imp, i) => (
                         <div key={i} className="text-xs border rounded px-1 py-0.5 inline-block m-0.5 bg-muted">
-                          {imp.site} {imp.size ? `(${imp.size})` : ""} {imp.system ? `[${imp.system}]` : ""}
+                           {imp.site} {imp.size ? `(${imp.size})` : ""} {imp.system ? `[${imp.system}]` : ""}
+                           {" "}Q:{imp.qValue ?? "Unspecified"} Former:{imp.formerValue ?? "Unspecified"} Graft:{imp.graftValue ?? "Unspecified"}
                         </div>
                       ))}
+                      {r.warnings.filter((warning) => warning.includes("single source value")).map((warning) => {
+                        const field = warning.startsWith("Q") ? "qValue" : warning.startsWith("Former") ? "formerValue" : "graftValue";
+                        return <Button key={field} variant="outline" size="sm" className="h-6 text-[10px] mt-1" onClick={() => patch.mutate({
+                          id: batch.id,
+                          input: { version: batch.version, mappings: [], implantApplyToAll: [{ rowNumber: r.rowNumber, fields: [field as "qValue" | "formerValue" | "graftValue"] }] },
+                        }, { onSuccess: (updatedBatch) => onNext(updatedBatch) })}>
+                          Applied to all implants from this source row
+                        </Button>;
+                      })}
                     </TableCell>
                     <TableCell>
+                      <div className="text-xs border rounded p-1 mb-1">
+                        <div className="font-medium">Historical finance</div>
+                        <div>Total: {r.proposed.finance.historicalTotalAmount == null ? "Unspecified" : (r.proposed.finance.historicalTotalAmount / 100).toFixed(2)}</div>
+                        <div>Paid: {r.proposed.finance.historicalPaidAmount == null ? "Unspecified" : (r.proposed.finance.historicalPaidAmount / 100).toFixed(2)}</div>
+                        <div>Opening: {r.proposed.finance.openingRemainingBalance == null ? "Unspecified" : (r.proposed.finance.openingRemainingBalance / 100).toFixed(2)}</div>
+                        <div>Status: {r.proposed.finance.historicalPaymentStatus ?? "Unspecified"}</div>
+                        <div>Verification: {r.proposed.finance.isVerified ? "Verified" : "Needs review"}</div>
+                        <div>Raw COST: {r.proposed.financeCandidate || "Unspecified"}</div>
+                        {!r.proposed.finance.isVerified && <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={() => {
+                          setEditingFinance(r.rowNumber);
+                          setFinanceDraft({
+                            total: r.proposed.finance.historicalTotalAmount == null ? "" : String(r.proposed.finance.historicalTotalAmount / 100),
+                            paid: r.proposed.finance.historicalPaidAmount == null ? "" : String(r.proposed.finance.historicalPaidAmount / 100),
+                            opening: r.proposed.finance.openingRemainingBalance == null ? "" : String(r.proposed.finance.openingRemainingBalance / 100),
+                            status: r.proposed.finance.historicalPaymentStatus ?? "",
+                          });
+                        }}>Correct / verify</Button>}
+                        {editingFinance === r.rowNumber && (
+                          <div className="mt-2 space-y-1 border-t pt-1">
+                            {(["total", "paid", "opening"] as const).map((key) => (
+                              <Input key={key} type="number" min="0" step="0.01" placeholder={`${key} (blank = Unspecified)`}
+                                value={financeDraft[key] ?? ""} onChange={(event) => setFinanceDraft((draft) => ({ ...draft, [key]: event.target.value }))} />
+                            ))}
+                            <select className="w-full rounded border bg-background p-1 text-xs" value={financeDraft.status ?? ""} onChange={(event) => setFinanceDraft((draft) => ({ ...draft, status: event.target.value }))}>
+                              <option value="">Status Unspecified</option><option value="UNKNOWN">Unknown</option><option value="UNPAID">Unpaid</option><option value="PARTIALLY_PAID">Partially paid</option><option value="PAID_IN_FULL">Paid in full</option><option value="REVIEW_REQUIRED">Review required</option>
+                            </select>
+                            <div className="flex gap-1"><Button size="sm" onClick={() => saveFinanceCorrection(r)} disabled={patch.isPending}>Verify corrected values</Button><Button size="sm" variant="ghost" onClick={() => setEditingFinance(null)}>Cancel</Button></div>
+                          </div>
+                        )}
+                      </div>
                       <div
                         className="text-[10px] text-muted-foreground line-clamp-3 max-w-[200px]"
                         title={Object.entries(r.raw).map(([k, v]) => `${k}: ${v}`).join("\n")}
@@ -648,6 +746,13 @@ export function ReviewStep({
             <Badge variant="destructive">{batch.summary.blocked} {t("import.universal.badges.blocked", "Blocked")}</Badge>
             {(batch.summary.duplicate ?? 0) > 0 && <Badge variant="outline">{batch.summary.duplicate} {t("import.universal.badges.duplicate", "Duplicate")}</Badge>}
           </div>
+          <Select value={importMode} onValueChange={(v) => setImportMode(v as typeof importMode)}>
+            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="clinical_only">Clinical only</SelectItem>
+              <SelectItem value="clinical_and_verified_finance">Clinical + verified finance</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
 

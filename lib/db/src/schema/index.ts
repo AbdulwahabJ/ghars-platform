@@ -23,3 +23,4 @@ export * from "./audit-logs";
 export * from "./platform-admin";
 export * from "./landing-media";
 export * from "./import-batches";
+export * from "./case-historical-finance";
