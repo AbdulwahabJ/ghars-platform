@@ -1,0 +1,1370 @@
+MODE: Power
+
+FINAL ROOT-CAUSE REBUILD OF GHARS PDF REPORT RENDERING.
+
+The current PDF system has reached a point where incremental RTL patches are no longer acceptable.
+
+I am attaching multiple current PDF screenshots showing the failures:
+
+- Arabic text appears reversed or malformed
+- words are concatenated incorrectly
+- Arabic/English mixed values break
+- report titles and metadata lose proper direction
+- tables are not consistently aligned
+- some multi-page reports waste large blank areas
+- section headings can appear separated from their content
+- wide reports are inconsistently paginated
+- some report structures visually collapse even though the basic Ghars design is good
+
+IMPORTANT:
+
+I DO NOT want a visual redesign.
+
+The existing Ghars PDF visual identity is approved:
+- white document
+- deep navy rule/header
+- Ghars branding
+- teal section accent
+- clean tables
+- compact professional layout
+
+PRESERVE THAT DESIGN.
+
+The task is to REPLACE THE BROKEN PDF TEXT/LAYOUT ENGINE with a robust implementation.
+
+Excel is currently good.
+DO NOT redesign or regress Excel.
+
+==================================================
+1. ARCHITECTURAL DECISION — STOP PATCHING RTL
+==================================================
+
+Do not add more string reversal hacks or low-level Arabic fixes to the existing renderer.
+
+Audit the current PDF implementation first.
+
+If the current renderer requires manual:
+- Arabic reversal
+- bidi manipulation
+- character shaping
+- custom line ordering
+
+then retire that PDF rendering path.
+
+Preferred final architecture:
+
+STRUCTURED REPORT DATA
+→ server-side HTML report template
+→ print-safe CSS
+→ headless Chromium PDF generation
+  using the project's appropriate browser tooling
+  (Playwright/Puppeteer/Chromium or equivalent)
+
+The generated PDF MUST contain real text.
+
+It must NOT be:
+- screenshot-based
+- canvas-based
+- image-only
+- html2canvas output
+
+Text must remain:
+- selectable
+- searchable
+- crisp at zoom
+- printable
+
+==================================================
+2. KEEP ONE SHARED PDF ENGINE
+==================================================
+
+Create ONE canonical PDF reporting engine for Ghars.
+
+Conceptual architecture:
+
+reports/
+  pdf/
+    renderer
+    template
+    branding
+    print-css
+    localization
+    bidi
+    formatters
+    report-definitions
+
+Exact file structure should follow the existing project architecture.
+
+Every report should provide structured data to the same renderer.
+
+Do not let:
+Patients
+Payments
+Implant Cases
+Statistics
+Follow-ups
+etc.
+
+each implement Arabic/PDF differently.
+
+==================================================
+3. NO DATABASE CHANGE
+==================================================
+
+Expected:
+
+DATABASE MIGRATION REQUIRED: NO
+
+If any DB migration appears necessary:
+STOP and explain why.
+
+Report generation must remain read-only.
+
+==================================================
+4. LANGUAGE MUST FOLLOW CURRENT GHARS LANGUAGE
+==================================================
+
+This is mandatory.
+
+If Ghars interface language is Arabic:
+
+PDF must use:
+
+<html lang="ar" dir="rtl">
+
+and all SYSTEM GENERATED content must be Arabic:
+
+- report title
+- subtitle
+- section titles
+- table headers
+- filter labels
+- statuses
+- booleans
+- financial labels
+- footer
+- page labels
+
+If Ghars language is English:
+
+PDF must use:
+
+<html lang="en" dir="ltr">
+
+and all SYSTEM GENERATED content must be English.
+
+No stale locale.
+
+No mixed system labels.
+
+Use the EXISTING i18next resources.
+
+Do NOT create another localization framework.
+
+==================================================
+5. USER DATA MUST NOT BE TRANSLATED
+==================================================
+
+Important distinction:
+
+SYSTEM labels follow the app language.
+
+USER/CLINICAL data stays exactly as entered.
+
+Examples:
+
+Arabic patient name in English report:
+keep Arabic patient name.
+
+English implant system in Arabic report:
+keep:
+Neodent
+Straumann
+Other
+
+Do not translate:
+- patient names
+- clinic custom text
+- custom notes
+- doctor-entered comments
+- custom managed-list values
+
+==================================================
+6. TRUE RTL — NO STRING REVERSAL
+==================================================
+
+Search the entire PDF/report implementation for:
+
+.reverse()
+split("").reverse()
+array reversal used to display RTL
+manual word reversal
+Arabic character reversal
+custom Arabic ordering hacks
+
+Remove them from presentation logic.
+
+Arabic must remain in its original Unicode logical order.
+
+Example source:
+
+مدفوع بالكامل
+
+must remain internally:
+
+مدفوع بالكامل
+
+The browser/layout engine handles visual RTL.
+
+==================================================
+7. HTML/CSS RTL STRUCTURE
+==================================================
+
+For Arabic PDF root:
+
+html[dir="rtl"]
+body {
+  direction: rtl;
+  text-align: right;
+}
+
+Use correct semantic direction per content.
+
+Arabic text:
+dir="rtl"
+
+English/numeric/date values inside Arabic reports:
+dir="ltr"
+
+Use bidi isolation where appropriate:
+
+unicode-bidi: isolate;
+
+or equivalent semantic wrappers such as:
+
+<span dir="ltr">16 Sep 2026</span>
+
+Do not put complex mixed-direction content into one unmanaged text node.
+
+==================================================
+8. MIXED ARABIC / ENGLISH VALUES
+==================================================
+
+The following must display cleanly inside Arabic reports:
+
+Neodent
+Other
+ROT / Root
+3M
+SS26-021
++966501234567
+16 Sep 2026
+04:28 PM
+SAR 3,000.00
+
+Use explicit LTR isolation for these values.
+
+Arabic labels remain RTL.
+
+Example:
+
+تاريخ الإنشاء:
+[16 Sep 2026, 04:28 PM]
+
+The label and value should be separate DOM elements/spans.
+
+==================================================
+9. NUMERAL POLICY
+==================================================
+
+Ghars has a global rule:
+
+ALL numbers use Western/Latin digits:
+
+0 1 2 3 4 5 6 7 8 9
+
+This applies even in Arabic PDFs.
+
+Never render:
+
+٠ ١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩
+
+Examples:
+
+36
+4.2 × 10
+16 Sep 2026
+3,250 ر.س
+Page 1 of 3
+
+Use the existing global numeral formatter.
+
+==================================================
+10. DATE POLICY
+==================================================
+
+Use the approved export date format:
+
+16 Sep 2026
+
+With time:
+
+16 Sep 2026, 04:28 PM
+
+Do NOT use Arabic month names such as:
+
+أيلول
+نيسان
+آذار
+
+even in Arabic PDF.
+
+==================================================
+11. FONT — EMBED A REAL ARABIC FONT
+==================================================
+
+Use the Ghars Arabic font or another properly licensed/available Arabic font already usable inside the project.
+
+Preferred:
+Cairo
+
+Alternative:
+Noto Sans Arabic
+Tajawal
+
+The print renderer must load the font before creating the PDF.
+
+Wait for:
+
+document.fonts.ready
+
+or equivalent before PDF generation.
+
+Do not render before fonts load.
+
+Use appropriate:
+Regular
+Medium
+Bold
+
+Arabic must be:
+
+- connected
+- shaped correctly
+- clean at small sizes
+- free of boxes/missing glyphs
+
+==================================================
+12. PRESERVE CURRENT VISUAL DESIGN
+==================================================
+
+DO NOT redesign.
+
+Preserve:
+
+- current top navy rule
+- Ghars logo placement
+- report title style
+- clinic name
+- teal section labels
+- navy table headers
+- white page background
+- clean compact typography
+- current professional aesthetic
+
+The task is ENGINE + LANGUAGE + PAGINATION correction.
+
+Not a branding redesign.
+
+==================================================
+13. PROFESSIONAL HEADER STRUCTURE
+==================================================
+
+Use one reusable report header.
+
+Components:
+
+Ghars branding
+Clinic/organization name
+Report title
+Optional subtitle
+Date range
+Generation timestamp
+Active filters
+
+Do not concatenate all metadata into one text node.
+
+Example Arabic:
+
+[Clinic]
+مجمع السن الرقمي الطبي
+
+[Title]
+تقرير المرضى
+
+[Date range]
+الفترة
+01 Sep 2026 – 19 Sep 2026
+
+[Generated]
+تاريخ الإنشاء
+19 Sep 2026, 04:28 PM
+
+Use semantic blocks with controlled alignment.
+
+==================================================
+14. REPORT TITLE TRANSLATIONS
+==================================================
+
+System titles must be proper translations.
+
+Examples:
+
+Arabic:
+تقرير المرضى
+تقرير حالات الزراعة
+تقرير الدفعات
+تقرير المتابعات
+تقرير سجل التواصل
+التقرير التشغيلي
+تقرير الإحصائيات
+
+English:
+Patients Report
+Implant Cases Report
+Payments Report
+Follow-ups Report
+Communication Log Report
+Operational Report
+Statistics Report
+
+Do not generate malformed strings like combined untranslated fragments.
+
+==================================================
+15. PRINT CSS
+==================================================
+
+Create dedicated print CSS.
+
+Use:
+
+@page
+
+for:
+- page size
+- orientation
+- margins
+
+Do not rely on browser-screen CSS alone.
+
+Example strategy:
+
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+For wide reports:
+A4 landscape.
+
+==================================================
+16. REPORT-SPECIFIC ORIENTATION
+==================================================
+
+Report definitions must declare orientation.
+
+Portrait:
+- Patients
+- simple follow-ups
+- simple payments
+- individual medical record
+
+Landscape:
+- Implant Cases
+- wide financial tables
+- operational reports
+- reports with many columns
+
+Do not squeeze wide reports into Portrait.
+
+==================================================
+17. TABLES — USE REAL HTML TABLE LAYOUT
+==================================================
+
+Use semantic:
+
+<table>
+<thead>
+<tbody>
+
+For multi-page print:
+
+thead {
+  display: table-header-group;
+}
+
+tfoot where appropriate.
+
+Rows:
+
+tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+Do not manually calculate every glyph position if Chromium can handle it correctly.
+
+==================================================
+18. NO VERTICAL LETTER STACKING
+==================================================
+
+Strict requirement:
+
+No Arabic word may appear as:
+
+م
+ر
+ي
+ض
+
+because the column became too narrow.
+
+Define minimum widths.
+
+If the table cannot fit:
+
+1. change to landscape
+2. remove secondary columns from main table
+3. move secondary details below row
+4. split content into sections
+
+Never destroy readability to fit every field.
+
+==================================================
+19. COLUMN PRIORITY SYSTEM
+==================================================
+
+Each report must define its own columns.
+
+Do NOT dump every DB field.
+
+Column configuration should include:
+
+key
+localized label
+priority
+min width
+preferred width
+max width
+alignment
+wrap/no-wrap
+formatter
+
+==================================================
+20. PATIENTS REPORT
+==================================================
+
+Use a simple professional table.
+
+Suggested canonical fields:
+
+Patient
+File Number
+Mobile Number
+Age
+Added At
+Archived At
+
+where appropriate.
+
+Do not display technical/internal fields.
+
+Arabic UI:
+Arabic headers.
+
+English UI:
+English headers.
+
+==================================================
+21. PAYMENTS REPORT
+==================================================
+
+Use:
+
+Patient
+File Number
+Payment Date
+Amount
+Payment Method
+Reference
+Description/Note
+Recorded By
+
+only when those fields exist.
+
+Add summary where useful:
+
+Number of payments
+Total payments
+
+Do not show columns that add no business value.
+
+==================================================
+22. IMPLANT CASES REPORT
+==================================================
+
+Use A4 Landscape.
+
+Prioritize:
+
+Patient
+File Number
+Case Status
+Treating Doctor
+Procedure Date
+Implant Count
+Systems
+Implant Status
+Associated Procedures
+Next Follow-up
+Financial Status
+
+Secondary details may appear in a row-detail block.
+
+Do not force 15–20 tiny columns.
+
+==================================================
+23. OPERATIONAL / STATISTICS REPORTS
+==================================================
+
+The screenshots show these are currently badly paginated and structurally broken.
+
+Rebuild their STRUCTURE using the same visual design.
+
+Use sections.
+
+Example:
+
+Report header
+
+Summary section
+
+Table/metric section
+
+Additional breakdowns
+
+Do not output dozens of separated navy bars with unrelated headings stranded between pages.
+
+==================================================
+24. KEEP SECTION HEADING WITH CONTENT
+==================================================
+
+Prevent:
+
+section title at bottom of page
+table on next page
+
+Use:
+
+break-after: avoid-page
+
+or suitable print CSS.
+
+A section title should stay with at least its first content block.
+
+==================================================
+25. KEEP TABLE ROWS TOGETHER
+==================================================
+
+Rows should remain intact where possible.
+
+Use:
+
+break-inside: avoid
+
+for individual business records.
+
+Do not split a patient/payment/case row awkwardly between pages.
+
+==================================================
+26. MULTI-PAGE REPORTS
+==================================================
+
+Fix all current issues:
+
+- blank first page
+- huge unused white spaces
+- headings orphaned
+- tables split incorrectly
+- excessive page count
+- duplicate headings
+- footer collision
+
+A report should use pages naturally.
+
+==================================================
+27. FOOTER
+==================================================
+
+Preserve the current subtle footer design.
+
+Arabic:
+
+غرس | صفحة 1 من 3
+
+English:
+
+Ghars | Page 1 of 3
+
+If Chromium's native page header/footer is used:
+style it consistently.
+
+If implementing inside document:
+ensure total page handling is correct.
+
+Do not overlap content.
+
+==================================================
+28. HEADER / FOOTER ON MULTIPLE PAGES
+==================================================
+
+Use one consistent strategy.
+
+Do not duplicate full large report headers unnecessarily on every page.
+
+Preferred:
+
+Page 1:
+full report header
+
+Subsequent pages:
+compact Ghars identity + report title where needed
+
+Footer:
+every page
+
+==================================================
+29. EMPTY VALUES
+==================================================
+
+Always display:
+
+—
+
+Never:
+
+null
+undefined
+NaN
+[object Object]
+
+==================================================
+30. BOOLEAN VALUES
+==================================================
+
+Arabic:
+نعم
+لا
+
+English:
+Yes
+No
+
+Never:
+TRUE
+FALSE
+
+==================================================
+31. STATUS LOCALIZATION
+==================================================
+
+Stored canonical statuses remain machine values.
+
+Presentation must be localized.
+
+Do not display enums such as:
+
+READY_FOR_PROSTHETIC
+PARTIALLY_PAID
+
+directly.
+
+Use existing i18n status maps.
+
+==================================================
+32. CURRENCY
+==================================================
+
+Arabic:
+
+3,250.00 ر.س
+
+English:
+
+SAR 3,250.00
+
+Always Western digits.
+
+Use no-wrap around normal currency values.
+
+==================================================
+33. PHONE NUMBERS / IDS
+==================================================
+
+Keep:
+
+0530869297
+21572
+SS26-021
+
+LTR isolated.
+
+Do not reorder digits in RTL documents.
+
+==================================================
+34. ARABIC USER DATA IN ENGLISH REPORT
+==================================================
+
+English report may contain an Arabic patient name.
+
+It must render naturally.
+
+Wrap data values according to content direction where necessary.
+
+Do not force an Arabic name into malformed LTR shaping.
+
+==================================================
+35. AUTO DIRECTION FOR FREE TEXT
+==================================================
+
+For user-entered free text where language is unknown:
+
+use safe bidi isolation / auto direction where appropriate:
+
+dir="auto"
+
+This can be useful for:
+- patient names
+- notes
+- descriptions
+
+But system labels must use known document locale.
+
+==================================================
+36. DO NOT TOUCH EXCEL DESIGN
+==================================================
+
+Excel is already acceptable.
+
+Preserve:
+
+- XLSX
+- real numeric cells
+- date cells
+- English month formatting
+- RTL/LTR
+- autofilter
+- freeze panes
+- widths
+- Ghars styling
+
+Only share canonical localization/formatters if necessary.
+
+Do not visually redesign Excel.
+
+==================================================
+37. ONE REPORT MODEL
+==================================================
+
+Both PDF and Excel should consume the same normalized report data model where practical.
+
+Example:
+
+ReportDefinition
+ReportMetadata
+Columns
+Rows
+Sections
+Summary
+Filters
+
+Then:
+
+PDF Renderer
+Excel Renderer
+
+This prevents PDF and Excel from giving different values or labels.
+
+==================================================
+38. SETTINGS → DATA EXPORT
+==================================================
+
+Make sure all Settings exports use the SAME new PDF engine.
+
+Datasets:
+
+Patients
+Implant Cases
+Implants
+Payments
+Charges
+Discounts
+Follow-ups
+Communication Log
+
+No legacy PDF renderer may remain connected to Settings export.
+
+==================================================
+39. REMOVE LEGACY PDF PATH
+==================================================
+
+After the new engine passes visual QA:
+
+remove/disable the old broken PDF generation path.
+
+There must be ONE production PDF path.
+
+Do not leave a fallback that randomly gets used by some modules.
+
+==================================================
+40. FAIL FAST ON FONT/RENDER FAILURE
+==================================================
+
+If Arabic font fails to load:
+
+do not silently generate a corrupted PDF.
+
+Fail with a controlled error.
+
+Arabic:
+
+تعذر إنشاء ملف PDF بشكل صحيح. يرجى المحاولة مرة أخرى.
+
+English:
+
+Unable to generate the PDF correctly. Please try again.
+
+Log technical cause safely.
+
+==================================================
+41. BROWSER RENDER DETERMINISM
+==================================================
+
+Set fixed print viewport/configuration.
+
+Wait for:
+- fonts
+- layout
+- chart assets if used
+
+before PDF generation.
+
+Do not use arbitrary sleep as the primary readiness mechanism.
+
+==================================================
+42. PDF SECURITY
+==================================================
+
+Do not expose report generation URL publicly.
+
+Require authenticated server authorization.
+
+Tenant comes from session.
+
+Never trust frontend tenantId.
+
+==================================================
+43. TENANT ISOLATION
+==================================================
+
+Verify export remains tenant scoped.
+
+Tenant A cannot generate Tenant B data.
+
+Platform Super Admin requires explicit permission.
+
+==================================================
+44. VISUAL QA IS MANDATORY
+==================================================
+
+Automated tests are NOT enough.
+
+Actually generate PDF files and inspect them visually.
+
+Required Arabic reports:
+
+1. Patients
+2. Implant Cases
+3. Payments
+4. Follow-ups
+5. Communication Log
+6. Operational Report
+7. Statistics Report
+
+Required English:
+
+8. Patients
+9. Implant Cases
+10. Payments
+11. Operational Report
+
+==================================================
+45. TEST DIFFICULT BIDI DATA
+==================================================
+
+Use test rows containing:
+
+Arabic patient:
+عبدالله محمد الحربي
+
+Mixed:
+Neodent
+
+File:
+SS26-021
+
+Phone:
+0530869297
+
+Size:
+4.2 × 10
+
+Amount:
+3,250.00 ر.س
+
+Date:
+19 Sep 2026, 04:28 PM
+
+Arabic note + English token.
+
+Verify visually.
+
+==================================================
+46. TEST MULTI-PAGE REPORTS
+==================================================
+
+Test:
+
+3 rows
+20 rows
+100 rows
+
+Verify:
+
+- no blank pages
+- correct headers
+- repeated table header
+- no row clipping
+- no section orphaning
+- readable page density
+
+==================================================
+47. SCREENSHOT COMPARISON
+==================================================
+
+Use the attached broken screenshots as regression references.
+
+The final output must NOT exhibit:
+
+- reversed Arabic
+- corrupted shaping
+- concatenated words
+- misordered numbers
+- detached section headings
+- giant blank space
+- arbitrary navy bars
+- broken multi-page tables
+
+==================================================
+48. ENGLISH/ARABIC SWITCH TEST
+==================================================
+
+Without changing report data:
+
+A.
+Set app Arabic.
+Generate PDF.
+
+Expected:
+Arabic/RTL system presentation.
+
+B.
+Set app English.
+Generate same PDF.
+
+Expected:
+English/LTR system presentation.
+
+No stale locale.
+
+==================================================
+49. TEST THE EXACT ARABIC STRINGS
+==================================================
+
+Visually confirm:
+
+غرس
+
+تقرير المرضى
+
+تقرير حالات الزراعة
+
+تقرير الدفعات
+
+التقرير التشغيلي
+
+تقرير الإحصائيات
+
+المريض
+
+رقم الملف
+
+رقم الجوال
+
+الطبيب المعالج
+
+تاريخ العملية
+
+حالة السداد
+
+مدفوع بالكامل
+
+مدفوع جزئيًا
+
+المتابعة القادمة
+
+All must appear exactly and naturally.
+
+==================================================
+50. TEST ENGLISH
+==================================================
+
+Confirm:
+
+Ghars
+
+Patients Report
+
+Implant Cases Report
+
+Payments Report
+
+Operational Report
+
+Statistics Report
+
+Patient
+
+File Number
+
+Mobile Number
+
+Treating Doctor
+
+Procedure Date
+
+Payment Status
+
+No Arabic system labels should remain.
+
+==================================================
+51. TEST SELECTABLE TEXT
+==================================================
+
+Open generated PDF.
+
+Confirm:
+
+- Arabic text can be selected
+- English text can be selected
+- search works
+- copy/paste works reasonably
+
+This proves it is not rasterized.
+
+==================================================
+52. PERFORMANCE
+==================================================
+
+Measure approximate PDF generation time for:
+
+10 rows
+100 rows
+
+Report results.
+
+Do not introduce unreasonable server memory consumption.
+
+==================================================
+53. PRODUCTION DEPLOYMENT COMPATIBILITY
+==================================================
+
+Verify the chosen Chromium rendering mechanism works in the actual Replit production environment.
+
+This is important.
+
+Do not implement a renderer that only works in Development.
+
+Confirm:
+
+PRODUCTION CHROMIUM/RUNTIME SUPPORT:
+PASS / BLOCKED
+
+If the production runtime cannot reliably host headless Chromium:
+STOP and propose the next robust server-side RTL-capable renderer.
+
+Do NOT fall back to the broken old renderer.
+
+==================================================
+54. NO DESIGN CHANGES
+==================================================
+
+Explicitly confirm:
+
+GHARS PDF VISUAL DESIGN PRESERVED:
+PASS / FAIL
+
+Do not add new visual styles unless technically required for print stability.
+
+==================================================
+55. AUTOMATED TESTS
+==================================================
+
+Add regression coverage for:
+
+- Arabic locale selection
+- English locale selection
+- status localization
+- booleans
+- Western digits
+- date formatter
+- amount formatter
+- field privacy
+- tenant isolation
+- report definitions
+- pagination model where testable
+
+==================================================
+56. FINAL VALIDATION
+==================================================
+
+Run:
+
+frontend TypeScript
+backend TypeScript
+export tests
+API tests
+tenant isolation tests
+production frontend build
+production backend build
+
+==================================================
+57. FINAL REPORT
+==================================================
+
+Return:
+
+OLD PDF ENGINE:
+<name/approach>
+
+ROOT CAUSE OF ARABIC FAILURE:
+<exact explanation>
+
+NEW PDF ENGINE:
+<exact implementation>
+
+SCREENSHOT/CANVAS PDF:
+REMOVED / NOT PRESENT
+
+REAL SEARCHABLE PDF TEXT:
+PASS / FAIL
+
+GHARS DESIGN PRESERVED:
+PASS / FAIL
+
+ARABIC SHAPING:
+PASS / FAIL
+
+ARABIC RTL:
+PASS / FAIL
+
+MIXED AR/EN BIDI:
+PASS / FAIL
+
+WESTERN DIGITS:
+PASS / FAIL
+
+PHONE/ID DIRECTION:
+PASS / FAIL
+
+ARABIC SYSTEM LABELS:
+PASS / FAIL
+
+ENGLISH SYSTEM LABELS:
+PASS / FAIL
+
+LOCALE SWITCH:
+PASS / FAIL
+
+PATIENTS PDF:
+PASS / FAIL
+
+IMPLANT CASES PDF:
+PASS / FAIL
+
+PAYMENTS PDF:
+PASS / FAIL
+
+FOLLOWUPS PDF:
+PASS / FAIL
+
+COMMUNICATION LOG PDF:
+PASS / FAIL
+
+OPERATIONAL PDF:
+PASS / FAIL
+
+STATISTICS PDF:
+PASS / FAIL
+
+MULTI-PAGE PAGINATION:
+PASS / FAIL
+
+NO BLANK PAGES:
+PASS / FAIL
+
+NO ORPHAN HEADINGS:
+PASS / FAIL
+
+REPEATED TABLE HEADERS:
+PASS / FAIL
+
+EXCEL REGRESSION:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+PRODUCTION CHROMIUM/RUNTIME SUPPORT:
+PASS / BLOCKED
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+EXACT CHECKPOINT:
+<hash>
+
+Also provide the paths/names of the generated visual-QA PDF samples.
+
+DO NOT PUBLISH.
+
+Create checkpoint and STOP.

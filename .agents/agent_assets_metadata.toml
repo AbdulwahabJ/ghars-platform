@@ -84,3 +84,45 @@ mtime_ms = 1789321442533
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/d28528ab-0a28-4964-b1ee-d75f76d87e4b/9c92802a-4463-4dda-97ea-450957ba6a45"
 storage_version_token = "1789321484407201"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "cS5n7_VYbizcPv4mWkatO"
+uri = "file://.agents/outputs/ghars-pdf-qa/contact-sheet.png"
+type = "image"
+title = "Ghars PDF QA Contact Sheet"
+description = "First and last rendered pages from the Arabic and English 3-row, 20-row, and 100-row PDF QA samples."
+logical_id = "8e4c56e7-e9d1-40b5-b845-ccd2afe14db4"
+content_hash = "sha256:73c99a41190ab19060a4b9de7e2377debd1d8ff55e9709595e28920955b1874a"
+size = 760372
+mtime_ms = 1789826060458
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/8e4c56e7-e9d1-40b5-b845-ccd2afe14db4/ce9c1700-2a09-46f9-8f2a-466473ec8d3c"
+storage_version_token = "1789826585481434"
+content_type = "image/png"
+
+[[outputs]]
+id = "lApWDae1cKzWJbl4dS6z6"
+uri = "file://.agents/outputs/ghars-pdf-qa/real-routes/patient-record-ar.pdf"
+type = "pdf"
+title = "Arabic Patient Record PDF"
+description = "PDF generated through the authenticated real patient-record export route."
+logical_id = "aa85e187-0203-42bf-b64a-d22c06296932"
+content_hash = "sha256:9d3b031810a5f5b1ab5566642acea21dd000d297b6084b03a0c0ba0968aeef44"
+size = 220683
+mtime_ms = 1789826513049
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/aa85e187-0203-42bf-b64a-d22c06296932/828bdfac-a8a6-4281-88d8-4579ea2e5f1d"
+storage_version_token = "1789826586862181"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "LSADw3iOcwpDcRwuDbhJc"
+uri = "file://.agents/outputs/ghars-pdf-qa/real-routes/patient-record-en.pdf"
+type = "pdf"
+title = "English Patient Record PDF"
+description = "English PDF generated through the authenticated real patient-record export route."
+logical_id = "08113ae4-4440-45f6-b5b3-66acac9446ed"
+content_hash = "sha256:1e209d58ff18843145d42e38bf5e01621622f21af79254a0aa957e1ba847d8d2"
+size = 155653
+mtime_ms = 1789826513897
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8e809eb4-dddf-4536-bb58-8d2e1583be83/08113ae4-4440-45f6-b5b3-66acac9446ed/f9ffceda-3128-4395-a320-95a07500f737"
+storage_version_token = "1789826588207641"
+content_type = "application/pdf"
