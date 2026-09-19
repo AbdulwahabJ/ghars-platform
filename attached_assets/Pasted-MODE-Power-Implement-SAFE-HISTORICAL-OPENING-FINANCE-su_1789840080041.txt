@@ -1,0 +1,644 @@
+MODE: Power
+
+Implement SAFE HISTORICAL / OPENING FINANCE support for Ghars Legacy Import.
+
+IMPORTANT CONTEXT:
+
+Ghars must support TWO types of legacy patients:
+
+1. Historical completed patients
+   - treatment happened in the past
+   - may already be financially settled
+
+2. Historical but STILL ACTIVE patients
+   - treatment started in the past
+   - implants/procedures may have occurred in 2024/2025
+   - treatment may still be ongoing today
+   - prosthetic work may still be pending
+   - patient may still have an outstanding balance
+   - future payments/follow-ups/prosthetic events will continue normally inside Ghars
+
+This distinction is CRITICAL.
+
+Production contains live customer data.
+
+DO NOT:
+- invent payment dates
+- invent payment methods
+- treat unknown amounts as zero
+- mark old patients as completed simply because they are historical
+- create fake prosthetic events
+- overwrite existing Production finance
+- publish automatically
+
+Use Development/test data only.
+
+==================================================
+1. KEEP EXISTING GHARS FINANCE INTACT
+==================================================
+
+Existing Ghars finance remains canonical for normal activity:
+
+- Payments
+- Charges
+- Discounts
+- Installments
+- canonical financial calculations
+
+Do NOT change the meaning of existing Payment records.
+
+Historical/imported finance must be represented separately and safely.
+
+==================================================
+2. ADD HISTORICAL / OPENING FINANCE SNAPSHOT
+==================================================
+
+Create an additive tenant-scoped model conceptually such as:
+
+case_historical_finance
+
+or another architecture-appropriate name.
+
+It should support:
+
+id
+tenant_id
+case_id
+import_batch_id
+
+raw_source_text
+
+historical_total_amount nullable
+historical_paid_amount nullable
+opening_remaining_balance nullable
+
+historical_payment_status nullable / UNKNOWN capable
+
+is_verified
+verified_by
+verified_at
+
+created_at
+updated_at
+
+Use current project conventions.
+
+==================================================
+3. NULL IS NOT ZERO
+==================================================
+
+Critical:
+
+Unknown:
+NULL
+
+Actual confirmed zero:
+0
+
+Examples:
+
+Unknown Total:
+NULL
+
+Unknown Paid:
+NULL
+
+Unknown Remaining:
+NULL
+
+Do NOT display unknown finance as:
+
+0.00 SAR
+
+Show:
+
+غير محدد
+Unspecified
+
+==================================================
+4. SUPPORT ACTIVE LEGACY PATIENTS
+==================================================
+
+A legacy patient may have started treatment in 2025 and still be active today.
+
+Example:
+
+Procedure date:
+15 Jul 2025
+
+Treatment status:
+Ongoing
+
+Historical total:
+8,000 SAR
+
+Historical paid:
+5,000 SAR
+
+Opening remaining balance:
+3,000 SAR
+
+This patient must be imported as:
+
+- active patient
+- active clinical case
+- historical procedure date preserved
+- current treatment status preserved
+- opening balance = 3,000 SAR
+- future Ghars activity continues normally
+
+Do NOT mark case completed merely because procedure_date is old.
+
+==================================================
+5. CLINICAL DATE VS CURRENT STATUS
+==================================================
+
+Keep separate:
+
+Historical clinical date
+vs
+Current treatment status
+
+Example:
+
+procedure_date:
+15 Jul 2025
+
+current status:
+Ready for prosthetic
+
+This is valid.
+
+Old date does NOT mean completed case.
+
+==================================================
+6. PROSTHETIC SAFETY
+==================================================
+
+If the patient has NOT yet received the prosthetic:
+
+DO NOT create a prosthetic event.
+
+If the source proves a historical prosthetic event:
+use its real event_date.
+
+Never default historical prosthetic event_date to import date or today.
+
+==================================================
+7. OPENING BALANCE
+==================================================
+
+For active legacy cases, support a verified opening balance.
+
+Example:
+
+Total:
+8,000
+
+Paid before Ghars:
+5,000
+
+Opening Remaining:
+3,000
+
+The 3,000 SAR represents the amount still owed when the patient enters Ghars.
+
+This must be distinguishable from a new Ghars charge/payment.
+
+==================================================
+8. FUTURE PAYMENTS AFTER IMPORT
+==================================================
+
+After import, all NEW payments must use normal canonical Ghars Payment records.
+
+Example:
+
+Opening remaining:
+3,000 SAR
+
+New Ghars Payment:
+1,000 SAR
+Date:
+25 Sep 2026
+
+New remaining balance:
+2,000 SAR
+
+Do NOT create fake historical payment rows to represent the old 5,000 SAR.
+
+==================================================
+9. FINANCE CALCULATION INTEGRATION
+==================================================
+
+Audit current canonical finance logic.
+
+Determine the safest way to include verified opening balance in current balance calculation.
+
+Target behavior conceptually:
+
+Opening Remaining Balance
++
+new canonical charges
+-
+new discounts where applicable
+-
+new Ghars payments
+=
+current remaining balance
+
+BUT reuse Ghars canonical finance rules.
+
+Do not introduce duplicate/conflicting arithmetic.
+
+Report exact integration design before finalizing.
+
+==================================================
+10. DISPLAY HISTORICAL FINANCE SEPARATELY
+==================================================
+
+Patient finance UI should clearly distinguish:
+
+Arabic:
+الملخص المالي السابق
+or
+الرصيد الافتتاحي
+
+English:
+Historical Financial Summary
+or
+Opening Balance
+
+Example:
+
+إجمالي العلاج السابق:
+8,000 ر.س
+
+المدفوع قبل غرس:
+5,000 ر.س
+
+الرصيد عند بدء استخدام غرس:
+3,000 ر.س
+
+Then separately:
+
+الدفعات المسجلة في غرس:
+1,000 ر.س
+
+المتبقي الحالي:
+2,000 ر.س
+
+The user must understand which amounts came from legacy data and which occurred inside Ghars.
+
+==================================================
+11. UNKNOWN TOTAL BUT KNOWN PAID
+==================================================
+
+Legacy source may say:
+
+دفعة أولى 4000
+دفعة ثانية 2000
+
+without giving treatment total.
+
+Safe interpretation:
+
+Historical Paid Candidate:
+6,000
+
+Historical Total:
+UNKNOWN
+
+Opening Remaining:
+UNKNOWN
+
+Status:
+REVIEW REQUIRED
+
+Do NOT assume total = 6,000.
+
+==================================================
+12. "لم تدفع شيء"
+==================================================
+
+If source explicitly says:
+
+لم تدفع شيء
+
+May propose:
+
+Historical Paid:
+0
+
+Historical payment status:
+UNPAID
+
+But:
+
+Total:
+UNKNOWN
+Opening Remaining:
+UNKNOWN
+
+unless total is independently known.
+
+==================================================
+13. COMPLETED AND PAID CASE
+==================================================
+
+If source clearly proves:
+
+Total = 6,000
+Paid = 6,000
+Treatment completed
+
+after explicit confirmation:
+
+Historical total:
+6,000
+
+Historical paid:
+6,000
+
+Opening remaining:
+0
+
+Payment status:
+PAID_IN_FULL
+
+Clinical status:
+Completed
+
+Still:
+NO fake historical Payment rows.
+
+==================================================
+14. COMPLETED TREATMENT WITH BALANCE
+==================================================
+
+Must support:
+
+Treatment:
+Completed
+
+Total:
+8,000
+
+Paid:
+6,000
+
+Remaining:
+2,000
+
+This is valid.
+
+Do NOT force financial completion because treatment is complete.
+
+==================================================
+15. ONGOING TREATMENT BUT PAID IN FULL
+==================================================
+
+Must also support:
+
+Treatment:
+Ongoing
+
+Total:
+8,000
+
+Paid:
+8,000
+
+Remaining:
+0
+
+Payment Status:
+Paid in Full
+
+Clinical status and financial status remain independent.
+
+==================================================
+16. IMPORT PREVIEW
+==================================================
+
+For every legacy patient show:
+
+PATIENT
+
+CLINICAL:
+- Historical procedure date
+- Current treatment status
+- Prosthetic status
+
+HISTORICAL FINANCE:
+- Raw COST text
+- Historical total
+- Historical paid
+- Opening remaining balance
+- Historical payment status
+- Verification status
+
+FUTURE GHARS FINANCE:
+Explain that new payments will be recorded normally after import.
+
+==================================================
+17. IMPORT MODES
+==================================================
+
+Allow:
+
+A. Clinical Data Only
+
+B. Clinical + Verified Historical Finance
+
+If finance is unresolved:
+default to Clinical Data Only.
+
+Do not silently convert unresolved finance to zero.
+
+==================================================
+18. IMPORTER MUST NOT DETERMINE COMPLETION FROM AGE OF RECORD
+==================================================
+
+Never infer:
+
+old case = completed
+
+Use actual current clinical status or explicit human confirmation.
+
+==================================================
+19. DASHBOARD SAFETY
+==================================================
+
+Historical procedure dates remain historical.
+
+Example:
+
+procedure_date = Jul 2025
+
+Importing today must NOT increase:
+
+Patients Implanted Today
+Implants Today
+Systems Used Today
+
+If a new prosthetic event occurs today:
+THAT event may correctly affect today's prosthetic metrics.
+
+==================================================
+20. FUTURE WORKFLOW CONTINUITY
+==================================================
+
+After import, an active historical patient must behave exactly like any normal active Ghars patient.
+
+They must support:
+
+- new follow-ups
+- new communications
+- new prosthetic events
+- new payments
+- new charges/discounts
+- clinical status updates
+
+without losing historical context.
+
+==================================================
+21. MIGRATION SAFETY
+==================================================
+
+A database migration is expected.
+
+It must be ADDITIVE ONLY.
+
+Allowed:
+- CREATE TABLE
+- ADD nullable fields if absolutely required
+- ADD foreign keys
+- ADD indexes
+
+Forbidden:
+- DROP
+- TRUNCATE
+- rewriting existing payments
+- changing existing finance meanings
+- fake-zero backfills
+- modifying Production customer records
+
+Do NOT apply migration to Production.
+
+==================================================
+22. TEST SCENARIOS
+==================================================
+
+Test at least:
+
+A.
+Historical completed + paid in full
+
+B.
+Historical completed + remaining balance
+
+C.
+Historical ongoing + remaining balance
+
+D.
+Historical ongoing + paid in full
+
+E.
+Known paid amount + unknown total
+
+F.
+No payment made + unknown total
+
+G.
+Historical patient receives new Ghars payment after import
+
+H.
+Historical implant from 2025 + new prosthetic event in 2026
+
+Verify all balances and Dashboard semantics.
+
+==================================================
+23. FINAL REPORT
+==================================================
+
+Return:
+
+HISTORICAL FINANCE MODEL:
+PASS / FAIL
+
+ACTIVE LEGACY PATIENT SUPPORT:
+PASS / FAIL
+
+OPENING BALANCE:
+PASS / FAIL
+
+UNKNOWN != ZERO:
+PASS / FAIL
+
+CLINICAL STATUS INDEPENDENT FROM FINANCE:
+PASS / FAIL
+
+ONGOING HISTORICAL CASE:
+PASS / FAIL
+
+COMPLETED CASE WITH BALANCE:
+PASS / FAIL
+
+ONGOING CASE PAID IN FULL:
+PASS / FAIL
+
+NO FAKE PAYMENTS:
+PASS / FAIL
+
+NO FAKE PAYMENT DATES:
+PASS / FAIL
+
+FUTURE GHARS PAYMENTS:
+PASS / FAIL
+
+OPENING BALANCE CALCULATION:
+PASS / FAIL
+
+HISTORICAL DATE DASHBOARD SAFETY:
+PASS / FAIL
+
+PROSTHETIC CONTINUITY:
+PASS / FAIL
+
+CLINICAL-ONLY IMPORT:
+PASS / FAIL
+
+CLINICAL + VERIFIED FINANCE:
+PASS / FAIL
+
+EXISTING FINANCE REGRESSION:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES
+
+MIGRATION ADDITIVE ONLY:
+PASS / FAIL
+
+PRODUCTION DATA MODIFIED:
+NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+DO NOT PUBLISH.
+DO NOT APPLY MIGRATION TO PRODUCTION.
+DO NOT IMPORT REAL PRODUCTION DATA.
+Create checkpoint and STOP.
