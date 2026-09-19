@@ -562,14 +562,14 @@ describe("dashboard work summary", () => {
     const historicalImplant = await admin
       .post(`/api/implant-cases/${historicalCase.body.case.id}/implants`)
       .send({ site: "24", system: "Historical System" });
-    await admin
+    const historicalPermanent = await admin
       .post(`/api/implant-cases/${historicalCase.body.case.id}/prosthetic-events`)
       .send({
         eventType: "تركيب دائم",
         eventDate: historicalDate,
         implantId: historicalImplant.body.implant.id,
       });
-    await admin
+    const historicalTemporary = await admin
       .post(`/api/implant-cases/${historicalCase.body.case.id}/prosthetic-events`)
       .send({
         eventType: "تركيب مؤقت",
@@ -577,6 +577,20 @@ describe("dashboard work summary", () => {
         implantId: historicalImplant.body.implant.id,
         note: "Historical event entered during the current period",
       });
+
+    // Harmless edits update administrative timestamps only. They must not move
+    // historical clinical work into today's or this month's KPI windows.
+    await pool.query(
+      `UPDATE implant_cases SET updated_at = now(), general_note = $1 WHERE id = $2`,
+      ["Historical case edited today", historicalCase.body.case.id],
+    );
+    await pool.query(
+      `UPDATE prosthetic_events SET note = $1 WHERE id = ANY($2::uuid[])`,
+      [
+        "Historical event edited today",
+        [historicalPermanent.body.event.id, historicalTemporary.body.event.id],
+      ],
+    );
 
     const afterHistorical = await admin.get("/api/dashboard");
     expect(afterHistorical.body.workSummary.today).toEqual(baselineToday);
@@ -594,6 +608,11 @@ describe("dashboard work summary", () => {
       prostheticEvents: 2,
     });
 
+    const undatedProsthetic = await admin
+      .post(`/api/implant-cases/${historicalCase.body.case.id}/prosthetic-events`)
+      .send({ eventType: "تركيب دائم" });
+    expect(undatedProsthetic.status).toBe(400);
+
     const currentCase = await admin
       .post(`/api/patients/${patient.body.patient.id}/implant-cases`)
       .send({ procedureDate: TO, treatingDoctor: doctor });
@@ -604,6 +623,13 @@ describe("dashboard work summary", () => {
       .post(`/api/implant-cases/${historicalCase.body.case.id}/prosthetic-events`)
       .send({
         eventType: "تركيب مؤقت",
+        eventDate: TO,
+        implantId: historicalImplant.body.implant.id,
+      });
+    await admin
+      .post(`/api/implant-cases/${historicalCase.body.case.id}/prosthetic-events`)
+      .send({
+        eventType: "تركيب دائم",
         eventDate: TO,
         implantId: historicalImplant.body.implant.id,
       });
@@ -618,11 +644,11 @@ describe("dashboard work summary", () => {
     expect(afterCurrent.body.workSummary.today.prostheticPatients)
       .toBe(baselineToday.prostheticPatients + 1);
     expect(afterCurrent.body.workSummary.today.completedProsthetics)
-      .toBe(baselineToday.completedProsthetics);
+      .toBe(baselineToday.completedProsthetics + 1);
     expect(afterCurrent.body.workSummary.month.prostheticPatients)
       .toBe(baselineMonth.prostheticPatients + 1);
     expect(afterCurrent.body.workSummary.month.completedProsthetics)
-      .toBe(baselineMonth.completedProsthetics);
+      .toBe(baselineMonth.completedProsthetics + 1);
     expect(afterCurrent.body.workSummary.month.implants)
       .toBe(baselineMonth.implants + 1);
 
@@ -635,11 +661,17 @@ describe("dashboard work summary", () => {
       implants: 1,
       systems: 1,
       prostheticPatients: 1,
-      prostheticEvents: 1,
+      prostheticEvents: 2,
     });
     expect(currentStats.body.hub.prosthetics.overTime).toEqual([
-      { bucket: TO, count: 1 },
+      { bucket: TO, count: 2 },
     ]);
+    expect(currentStats.body.hub.prosthetics).toMatchObject({
+      patients: 1,
+      events: 2,
+      temporary: 1,
+      permanent: 1,
+    });
 
     const archivedDoctor = "د. اختبار استبعاد التركيبات المؤرشفة";
     const archivedImplantCase = await admin

@@ -324,7 +324,7 @@ export function CaseCard({
               {sourceCase && (
                 <p>
                    <span className="text-muted-foreground">{t("implant.sourceCase")}: </span>
-                   {t("implant.case")} {formatSaudiDate(sourceCase.procedureDate ?? sourceCase.createdAt)} — {enumLabel("caseStatus", sourceCase.caseStatus)}
+                   {t("implant.case")} {sourceCase.procedureDate ? formatSaudiDate(sourceCase.procedureDate) : t("implant.unspecified")} — {enumLabel("caseStatus", sourceCase.caseStatus)}
                 </p>
               )}
             </div>

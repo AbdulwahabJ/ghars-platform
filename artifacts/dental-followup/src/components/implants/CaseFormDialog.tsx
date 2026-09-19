@@ -314,7 +314,7 @@ function CaseForm({
                      <SelectItem value={NONE}>{t("implant.noLink")}</SelectItem>
                     {sourceOptions.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                         {`${t("implant.case")} ${formatSaudiDate(c.procedureDate ?? c.createdAt)} — ${enumLabel("caseStatus", c.caseStatus)}`}
+                         {`${t("implant.case")} ${c.procedureDate ? formatSaudiDate(c.procedureDate) : t("implant.unspecified")} — ${enumLabel("caseStatus", c.caseStatus)}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
