@@ -1,0 +1,857 @@
+MODE: Power
+
+FINAL REFINEMENT OF GHARS LEGACY IMPORT MAPPING + FINANCE.
+
+IMPORTANT CONTEXT:
+
+The PDF extraction itself is now working correctly.
+
+The real source produced:
+- 10 logical patients
+- multiple implant cases
+- multiple implants per case
+- correct historical clinical dates
+- sites and sizes
+
+DO NOT rebuild OCR/table extraction.
+
+The remaining problems are MAPPING and HISTORICAL FINANCE.
+
+Current preview shows:
+
+1. Q / Former / Graft / Pros / NOTE are being collapsed into case text such as:
+   Q: 35 Former: N Graft: N Pros: 3M NOTE: DIRECT
+
+2. The actual implant cards still show Q as blank and do not contain the extracted implant metadata correctly.
+
+3. COST data was not imported into the financial area at all.
+   The patient now incorrectly appears as:
+   Total = 0.00 SAR
+   Paid = 0.00 SAR
+   Remaining = 0.00 SAR
+   Payment Status = Unspecified
+
+This is misleading because the legacy source contains financial information.
+
+We need ONE safe final mapping solution.
+
+DO NOT:
+- publish
+- modify Production existing data
+- invent financial totals
+- invent payment dates
+- invent payment methods
+- overwrite existing patient data
+
+Use Development/test data only.
+
+==================================================
+1. DO NOT USE 0.00 FOR UNKNOWN FINANCE
+==================================================
+
+Critical:
+
+UNKNOWN financial information is NOT the same as zero.
+
+If legacy Total is unknown:
+
+display:
+غير محدد
+
+NOT:
+0.00 ر.س
+
+If Paid is unknown:
+
+display:
+غير محدد
+
+If Remaining is unknown:
+
+display:
+غير محدد
+
+If Payment Status cannot be proven:
+
+display:
+غير محدد
+
+Never convert missing legacy finance into numeric zero.
+
+==================================================
+2. NAME + MOBILE
+==================================================
+
+For:
+
+NAME + MOBILE
+
+extract independently:
+
+Patient Name
+Mobile Number
+
+If mobile is present:
+normalize to Latin digits.
+
+If mobile is absent:
+leave empty.
+
+Never include phone digits inside patient name.
+
+Preserve raw source value for audit.
+
+==================================================
+3. Q MUST MAP TO THE ACTUAL IMPLANT FIELD
+==================================================
+
+Ghars already has Q on the implant model/UI.
+
+Map:
+
+Legacy Q
+→ canonical Implant.Q
+
+Example:
+
+Q = 35
+
+must appear inside the actual implant record as:
+
+Q: 35
+
+NOT only in:
+case notes
+legacy notes
+summary text
+
+==================================================
+4. FORMER MUST MAP TO THE ACTUAL IMPLANT FIELD
+==================================================
+
+Ghars already supports Former.
+
+Map:
+
+Legacy Former
+→ canonical Implant.Former
+
+Preserve source values such as:
+
+N
+Y
+MST
+MU17
+
+using the existing Ghars managed-list/domain behavior.
+
+Do not reinterpret unknown values.
+
+If source value does not exist in tenant list:
+propose mapping/review before import.
+
+==================================================
+5. GRAFT MUST MAP TO THE ACTUAL IMPLANT FIELD
+==================================================
+
+Map:
+
+Legacy Graft
+→ canonical Implant.Graft
+
+Examples:
+
+N
+Y
+
+must appear on the implant.
+
+IMPORTANT:
+
+Graft = Y alone does NOT justify creating a full Bone Graft Procedure.
+
+Do NOT invent:
+
+- procedure type
+- material
+- membrane
+- status
+- procedure date
+
+If source only says Graft = Y:
+
+store the implant-level Graft value.
+
+A full surgical procedure should be created only when enough source information exists.
+
+==================================================
+6. MULTIPLE IMPLANTS + Q / FORMER / GRAFT
+==================================================
+
+This is critical.
+
+Some legacy rows contain:
+
+2, 3, or 5 implants
+
+while Q / Former / Graft may appear once for the entire source row.
+
+Inspect the table structure.
+
+If the single source value clearly applies to every implant in that row:
+
+propose applying it to every implant.
+
+Example:
+
+Sites:
+35
+36
+
+Sizes:
+3.5x10
+3.5x10
+
+Q:
+35
+
+Then preview explicitly:
+
+Implant 1:
+Site 35
+Size 3.5 × 10
+Q 35
+
+Implant 2:
+Site 36
+Size 3.5 × 10
+Q 35
+
+Do not perform this silently.
+
+Show:
+"Applied to all implants from this source row"
+
+If scope is ambiguous:
+REVIEW REQUIRED.
+
+==================================================
+7. PROS — DETERMINE REAL SEMANTICS
+==================================================
+
+Source values include:
+
+3M
+2M
+
+Do NOT automatically store Pros as Legacy Note.
+
+Inspect:
+
+- Ghars schema
+- existing prosthetic workflow
+- current managed lists
+- current business meaning
+
+Determine whether Pros has an existing canonical destination.
+
+Report:
+
+PROS SOURCE MEANING:
+<proven meaning or UNKNOWN>
+
+GHARS CANONICAL DESTINATION:
+<field or NONE>
+
+If meaning is not provable:
+
+keep as:
+Legacy Prosthetic Note / Review Required
+
+Do NOT create a prosthetic event from:
+
+Pros = 3M
+
+unless source semantics explicitly prove an actual prosthetic event and its clinical date.
+
+Never create a prosthetic event using import date.
+
+==================================================
+8. NOTE
+==================================================
+
+Legacy NOTE contains values such as:
+
+DIRECT
+IMMED
+R.R
+FLAPLESS
+عمل مؤقت متحرك
+
+Preserve original value.
+
+Inspect whether any value has an EXISTING canonical Ghars field.
+
+Only map when meaning is proven.
+
+Otherwise store as:
+
+Legacy Clinical Note
+
+Do not translate.
+Do not reinterpret.
+Do not discard.
+
+==================================================
+9. IMPLANT SYSTEM MAPPING
+==================================================
+
+Source values include:
+
+ROT
+BIO
+
+Compare against the actual current tenant's Implant Systems managed list.
+
+Do NOT merely preserve the abbreviation if the tenant already has a canonical matching value.
+
+Show:
+
+Source:
+ROT
+
+Proposed Ghars System:
+<actual managed-list value>
+
+Confidence:
+%
+
+Allow admin confirmation.
+
+Once confirmed:
+remember mapping for THIS tenant.
+
+Do the same for BIO.
+
+Do not share tenant-specific abbreviations globally.
+
+==================================================
+10. FINANCE — PARSE COST SAFELY
+==================================================
+
+The legacy COST column contains meaningful finance text.
+
+Examples:
+
+دفعة أولى 4000
+دفعة ثانية 2000
+
+or:
+
+لم تدفع شيء
+
+or multiple installment amounts.
+
+Create a safe parser that extracts:
+
+RAW COST TEXT
+
+and candidate components such as:
+
+Installment / payment amount 1
+Installment / payment amount 2
+etc.
+
+Example:
+
+RAW:
+دفعة أولى 4000
+دفعة ثانية 2000
+
+PARSED CANDIDATES:
+
+Documented amount 1:
+4,000 SAR
+
+Documented amount 2:
+2,000 SAR
+
+Candidate documented paid total:
+6,000 SAR
+
+But:
+
+TOTAL TREATMENT PRICE:
+UNKNOWN
+
+unless explicitly present in source.
+
+REMAINING:
+UNKNOWN
+
+unless Total is known.
+
+==================================================
+11. DO NOT ASSUME INSTALLMENT SUM = TREATMENT TOTAL
+==================================================
+
+This is mandatory.
+
+Example:
+
+4000 + 2000
+
+does NOT automatically mean:
+
+Total treatment cost = 6000
+
+It only means the source contains two documented financial amounts.
+
+Do not infer:
+
+Paid in full
+
+unless source clearly proves it.
+
+==================================================
+12. "لم تدفع شيء"
+==================================================
+
+If source explicitly says:
+
+لم تدفع شيء
+
+then:
+
+Documented Paid Amount:
+0
+
+may be proposed.
+
+But:
+
+Total:
+UNKNOWN
+
+Remaining:
+UNKNOWN
+
+Payment Status:
+UNPAID
+
+only if the phrase clearly proves no payment.
+
+Do not invent treatment total.
+
+==================================================
+13. HISTORICAL PAYMENT RECORDS
+==================================================
+
+Inspect the existing Ghars canonical finance model.
+
+Determine whether a historical payment can be represented safely WITHOUT inventing:
+
+- payment date
+- payment method
+
+If the canonical payment model supports unknown/null historical metadata safely:
+
+allow creation only after explicit user confirmation.
+
+If it REQUIRES a date/method:
+
+DO NOT create fake Payment rows.
+
+Never use:
+
+- today's date
+- import date
+- clinical procedure date
+
+as a fake payment date.
+
+==================================================
+14. SAFE HISTORICAL FINANCE REPRESENTATION
+==================================================
+
+Audit the existing finance architecture and choose the safest EXISTING canonical representation.
+
+Priority:
+
+A.
+Existing supported historical/opening financial summary
+
+OR
+
+B.
+Verified legacy paid summary without fabricated transactions
+
+OR
+
+C.
+If neither exists:
+keep finance as REVIEW REQUIRED and preserve raw COST text.
+
+Do NOT create a new financial architecture casually.
+
+If a schema/database change is required to safely support historical finance:
+
+STOP and report it before implementing.
+
+==================================================
+15. FINANCE PREVIEW
+==================================================
+
+Before import, every patient should show:
+
+FINANCE SOURCE
+
+Raw:
+دفعة أولى 4000
+دفعة ثانية 2000
+
+Parsed:
+
+Documented amounts:
+4,000 SAR
+2,000 SAR
+
+Documented Paid Candidate:
+6,000 SAR
+
+Treatment Total:
+Unknown
+
+Remaining:
+Unknown
+
+Payment Status:
+Needs Review
+
+Then allow admin to confirm/correct:
+
+Total
+Paid
+Remaining
+Status
+
+where appropriate.
+
+==================================================
+16. FINANCIAL CONSISTENCY
+==================================================
+
+If admin provides:
+
+Total = 8,000
+Paid = 6,000
+
+system derives:
+
+Remaining = 2,000
+
+using canonical Ghars financial logic.
+
+Do not permit contradictory combinations.
+
+Examples to block:
+
+Paid > Total
+
+Remaining != Total - Paid
+
+unless canonical finance logic includes charges/discounts that explain the difference.
+
+Reuse the existing Ghars finance calculation functions.
+
+==================================================
+17. CLINICAL STATUS AND FINANCE ARE SEPARATE
+==================================================
+
+Never infer:
+
+Treatment completed
+=
+Paid in full
+
+Never infer:
+
+Paid in full
+=
+Treatment completed
+
+Keep clinical and financial status independent.
+
+==================================================
+18. HISTORICAL DATES
+==================================================
+
+Continue preserving:
+
+DATE source
+→ procedure_date
+
+Example:
+
+15/7/25
+→
+15 Jul 2025
+
+created_at remains import timestamp.
+
+Do not change this behavior.
+
+==================================================
+19. IMPORT PREVIEW MUST SHOW THE REAL FINAL RECORD
+==================================================
+
+Before confirmation show for each patient:
+
+PATIENT
+- Name
+- File Number
+- Phone
+- Age
+
+CASE
+- Clinical Date
+- Doctor
+- Status
+
+IMPLANTS
+
+Implant 1:
+- Site
+- Size
+- System
+- Q
+- Former
+- Graft
+
+Implant 2:
+...
+
+LEGACY PROSTHETIC DATA:
+- Pros
+
+LEGACY NOTE:
+- Note
+
+FINANCE:
+- Raw COST
+- Parsed amounts
+- Total
+- Paid
+- Remaining
+- Payment Status
+- Review status
+
+This preview must reflect exactly what will be written.
+
+==================================================
+20. DO NOT HIDE RAW SOURCE AFTER MAPPING
+==================================================
+
+Keep:
+
+RAW SOURCE
+
+beside:
+
+PROPOSED GHARS RECORD
+
+until final confirmation.
+
+This is especially important for:
+
+Q
+Former
+Graft
+Pros
+NOTE
+COST
+
+==================================================
+21. ROW STATUS
+==================================================
+
+Use:
+
+READY
+REVIEW REQUIRED
+BLOCKED
+
+A row with unresolved finance MAY still be clinically importable,
+but finance must remain unresolved rather than becoming zero.
+
+Clearly distinguish:
+
+Clinical Ready
+Finance Needs Review
+
+This prevents finance uncertainty from blocking valid clinical migration if admin chooses that mode.
+
+==================================================
+22. IMPORT MODE
+==================================================
+
+Allow:
+
+A. Import Clinical Data Only
+   Skip unresolved finance safely
+
+B. Import Clinical + Confirmed Finance
+
+Make the selection explicit before commit.
+
+Never silently omit finance.
+
+==================================================
+23. PILOT IMPORT
+==================================================
+
+Do not import all 10 patients immediately.
+
+After corrections:
+
+allow selecting 5 READY representative patients.
+
+Import only those in Development/test.
+
+Then verify:
+
+- patient data
+- case date
+- implants
+- Q
+- Former
+- Graft
+- system
+- notes
+- finance
+
+before any real Production use.
+
+==================================================
+24. REQUIRED TEST OF CURRENT SAMPLE
+==================================================
+
+Using the current extracted sample verify:
+
+- patient with 1 implant
+- patient with 2 implants
+- patient with 3 implants
+- patient with 5 implants
+- Graft Y
+- Graft N
+- Former N
+- Former Y
+- Former MST
+- financial multi-line text
+- "لم تدفع شيء"
+- Pros 2M
+- Pros 3M
+- DIRECT
+- IMMED
+- FLAPLESS
+
+==================================================
+25. NO PRODUCTION WRITE
+==================================================
+
+Do NOT modify the currently imported Production records.
+
+Do NOT import real patients.
+
+Development/test only.
+
+==================================================
+26. FINAL REPORT
+==================================================
+
+Return:
+
+NAME/MOBILE:
+PASS / FAIL
+
+Q REAL IMPLANT FIELD:
+PASS / FAIL
+
+FORMER REAL IMPLANT FIELD:
+PASS / FAIL
+
+GRAFT REAL IMPLANT FIELD:
+PASS / FAIL
+
+MULTI-IMPLANT FIELD ASSOCIATION:
+PASS / FAIL
+
+GRAFT PROCEDURE NOT INVENTED:
+PASS / FAIL
+
+PROS SEMANTICS:
+<finding>
+
+PROS DESTINATION:
+<field / legacy review>
+
+NOTE:
+PASS / FAIL
+
+ROT MAPPING:
+<result>
+
+BIO MAPPING:
+<result>
+
+COST PARSER:
+PASS / FAIL
+
+RAW COST PRESERVED:
+PASS / FAIL
+
+DOCUMENTED AMOUNTS EXTRACTED:
+PASS / FAIL
+
+NO FALSE TOTAL:
+PASS / FAIL
+
+NO FAKE PAYMENT DATE:
+PASS / FAIL
+
+UNKNOWN FINANCE != ZERO:
+PASS / FAIL
+
+FINANCE REVIEW:
+PASS / FAIL
+
+CLINICAL-ONLY IMPORT:
+PASS / FAIL
+
+CLINICAL + FINANCE IMPORT:
+PASS / FAIL
+
+HISTORICAL DATE:
+PASS / FAIL
+
+NO DATABASE WRITE DURING ANALYSIS:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+DO NOT PUBLISH.
+DO NOT IMPORT PRODUCTION DATA.
+Create checkpoint and STOP.
