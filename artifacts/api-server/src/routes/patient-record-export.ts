@@ -23,6 +23,7 @@ import {
   prostheticEventsTable,
 } from "@workspace/db";
 import {
+  formatRiyadhTimestamp,
   renderPdf,
   renderXlsx,
   type ReportColumn,
@@ -378,7 +379,15 @@ function buildDefinition(
   sections.push(
     section(l.patientInfo, [
       { key: "field", header: l.field, type: "text", width: 180 },
-      { key: "value", header: l.value, type: "text" },
+      {
+        key: "value",
+        header: l.value,
+        type: "text",
+        format: (value, row) =>
+          row.field === l.createdAt && (value instanceof Date || typeof value === "string")
+            ? formatRiyadhTimestamp(value, locale)
+            : asText(value) ?? "—",
+      },
     ], [
       { field: l.name, value: patient.fullName },
        { field: l.fileNumber, value: normalizeSystemDigits(patient.fileNumber) },

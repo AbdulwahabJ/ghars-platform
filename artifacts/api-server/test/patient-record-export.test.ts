@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { mkdir, writeFile } from "node:fs/promises";
 import type { IncomingMessage } from "node:http";
 import ExcelJS from "exceljs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -135,6 +136,10 @@ describe("patient record exports", () => {
     expect(Buffer.isBuffer(response.body)).toBe(true);
     expect(response.body.subarray(0, 5).toString("ascii")).toBe("%PDF-");
     expect(response.body.length).toBeGreaterThan(1_000);
+    if (process.env.EXPORT_QA_DIR) {
+      await mkdir(process.env.EXPORT_QA_DIR, { recursive: true });
+      await writeFile(`${process.env.EXPORT_QA_DIR}/patient-record-ar.pdf`, response.body);
+    }
   });
 
   it("returns actual XLSX bytes for an authorized patient record", async () => {
@@ -212,5 +217,9 @@ describe("patient record exports", () => {
     );
     expect(included.status).toBe(200);
     expect(included.body.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    if (process.env.EXPORT_QA_DIR) {
+      await mkdir(process.env.EXPORT_QA_DIR, { recursive: true });
+      await writeFile(`${process.env.EXPORT_QA_DIR}/patient-record-en.pdf`, included.body);
+    }
   });
 });

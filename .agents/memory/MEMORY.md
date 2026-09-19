@@ -31,3 +31,4 @@
 - [Legacy import safety](legacy-import-safety.md) — staging is server-owned; approval is exact and tenant-scoped; patient groups, pilot lifecycle, CAS, and rollback tracking are mandatory.
 - [Latin-digit boundary](latin-digit-boundary.md) — system values use ASCII digits everywhere; normalize numeric-compatible input/export fields without rewriting free-text content.
 - [Dashboard decoration RTL](dashboard-decoration-rtl.md) — decorative layers need physical left/right anchors when the parent uses RTL.
+- [Packaged Chromium on Replit](packaged-chromium-replit.md) — @sparticuz/chromium still needs Replit Nix NSS/NSPR libraries; validate with NODE_ENV=production.

@@ -9,7 +9,7 @@ import {
   formatFilterValue,
   formatRiyadhDate,
   formatRiyadhTimestamp,
-  pdfVisualText,
+  renderReportHtml,
   renderPdf,
   renderXlsx,
 } from "../src/lib/export";
@@ -67,6 +67,14 @@ describe("shared export engine", () => {
   });
 
   it("renders a selectable Arabic multi-page PDF with safe filenames", async () => {
+    const html = renderReportHtml(report);
+    expect(html).toContain('<html lang="ar" dir="rtl">');
+    expect(html).toContain("مريض");
+    expect(html).toContain("<thead>");
+    expect(html).toContain("break-inside:avoid");
+    expect(html).toContain('dir="auto"');
+    expect(html).toContain('class="no-wrap"');
+    expect(html).not.toContain(".reverse(");
     const exported = await renderPdf(report);
 
     expect(exported.contentType).toBe("application/pdf");
@@ -85,46 +93,6 @@ describe("shared export engine", () => {
     // retain Arabic glyphs and the unchanged LTR content.
     expect(extracted).toMatch(/[\u0600-\u06ff]/u);
     expect(extracted).toContain("English Patient Body Text");
-  });
-
-  it("applies Unicode Bidi visual ordering without mutating logical source strings", () => {
-    const cases = [
-      "شركة مجمع السن الرقمي الطبي",
-      "التقرير التشغيلي",
-      "حالة جديدة",
-      "جاهز للتركيب",
-      "رفع الجيب الفكي",
-      "تركيب مؤقت",
-      "مدفوع جزئيًا",
-      "مدفوع بالكامل",
-      "المتابعة القادمة",
-      "الإجراءات الإضافية",
-    ];
-    for (const logical of cases) {
-      const source = logical;
-      const visual = pdfVisualText(logical, "rtl");
-      expect(logical).toBe(source);
-      expect(visual).not.toBe(logical);
-      expect(Array.from(visual).sort()).toEqual(Array.from(logical).sort());
-    }
-
-    for (const ltr of [
-      "Neodent",
-      "Other",
-      "14 Sep 2026, 12:00 PM",
-      "21572",
-      "582722",
-      "+966501234567",
-    ]) {
-      expect(pdfVisualText(ltr, "rtl")).toBe(ltr);
-    }
-    expect(pdfVisualText("6,666.66 ر.س", "rtl")).toContain("6,666.66");
-    expect(
-      pdfVisualText("تاريخ الإنشاء: \u206616 Sep 2026, 06:59 PM\u2069", "rtl"),
-    ).toContain("16 Sep 2026, 06:59 PM");
-    expect(
-      pdfVisualText("الفترة: \u206601 Sep 2026 – 16 Sep 2026\u2069", "rtl"),
-    ).toContain("01 Sep 2026 – 16 Sep 2026");
   });
 
   it("renders Arabic PDF exports independently of the process working directory", async () => {
@@ -286,9 +254,14 @@ describe("shared export engine", () => {
     };
     const exported = await renderPdf(english);
     const extracted = pdfText(exported.data);
+    const metadata = execFileSync("pdfinfo", ["-"], {
+      input: exported.data,
+      encoding: "utf8",
+    });
     expect(extracted).toContain("Implant Cases");
     expect(extracted).toContain("Ghars | Page 1 of 1");
     expect(extracted).toContain("16 Sep 2026, 04:20 PM");
+    expect(metadata).toMatch(/Page size:\s+841\.(?:89|92) x 59[45]\.(?:28|96) pts/u);
   });
 
   it("generates 10, 100, and 500-row backend exports within safe bounds", async () => {
