@@ -60,7 +60,9 @@ export type WorkSummaryPeriod = z.infer<typeof workSummaryPeriodSchema>;
 /**
  * Clinical work completed today and month-to-date in Riyadh calendar time.
  * Implant work is anchored to the case procedure date; prosthetic work is
- * anchored to explicit, dated prosthetic event records.
+ * anchored to explicit, dated prosthetic event records. Prosthetic patients
+ * include any canonical prosthetic event, while completed prosthetics count
+ * final ("تركيب دائم") events only.
  */
 export const workSummarySchema = z.object({
   today: workSummaryPeriodSchema,

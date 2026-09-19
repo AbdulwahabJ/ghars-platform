@@ -4,6 +4,7 @@ export const PROSTHETIC_EVENT_TYPES = [
   "تركيب مؤقت",
   "تركيب دائم",
 ] as const;
+export const COMPLETED_PROSTHETIC_EVENT_TYPE = "تركيب دائم" as const;
 export const prostheticEventTypeSchema = z.enum(PROSTHETIC_EVENT_TYPES);
 export type ProstheticEventType = z.infer<typeof prostheticEventTypeSchema>;
 

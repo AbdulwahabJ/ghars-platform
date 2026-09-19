@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
+  COMPLETED_PROSTHETIC_EVENT_TYPE,
   CLOSED_FOLLOWUP_STATUSES,
   FOLLOWUP_OUTCOME_STATUSES,
   OPEN_FOLLOWUP_STATUS,
@@ -203,6 +204,7 @@ router.get("/dashboard", async (req, res) => {
        WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
          AND p.archived_at IS NULL AND pe.tenant_id = ${tenantId}
          AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+          AND pe.event_type = ${COMPLETED_PROSTHETIC_EVENT_TYPE}
          AND pe.event_date = ${today}::date) AS "todayCompletedProsthetics",
       (SELECT count(DISTINCT p.id)
        FROM implants i
@@ -256,6 +258,7 @@ router.get("/dashboard", async (req, res) => {
        WHERE pe.archived_at IS NULL AND ic.archived_at IS NULL
          AND p.archived_at IS NULL AND pe.tenant_id = ${tenantId}
          AND (pe.implant_id IS NULL OR i.archived_at IS NULL)
+          AND pe.event_type = ${COMPLETED_PROSTHETIC_EVENT_TYPE}
          AND pe.event_date >= ${monthStart}::date
          AND pe.event_date <= ${today}::date) AS "monthCompletedProsthetics"
   `);

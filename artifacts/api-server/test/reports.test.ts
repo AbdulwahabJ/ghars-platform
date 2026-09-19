@@ -464,6 +464,8 @@ describe("GET /api/reports/operational binary exports", () => {
 
 describe("dashboard work summary", () => {
   it("counts distinct patients, implants, systems, and dated prosthetic events while excluding archived records", async () => {
+    const before = await admin.get("/api/dashboard");
+    const baselineMonth = before.body.workSummary.month;
     const todayCase = await admin
       .post(`/api/patients/${patientAId}/implant-cases`)
       .send({ procedureDate: TO });
@@ -512,17 +514,19 @@ describe("dashboard work summary", () => {
         names: expect.arrayContaining(["Nobel Biocare", "Straumann"]),
       },
       prostheticPatients: 1,
-      completedProsthetics: 2,
+      completedProsthetics: 1,
     });
-    // Month-to-date includes today's records and never leaks archived events.
-    expect(res.body.workSummary.month.implantedPatients).toBeGreaterThanOrEqual(1);
-    expect(res.body.workSummary.month.implants).toBeGreaterThanOrEqual(2);
-    expect(res.body.workSummary.month.prostheticPatients).toBeGreaterThanOrEqual(1);
-    expect(res.body.workSummary.month.completedProsthetics).toBeGreaterThanOrEqual(2);
+    // Month-to-date includes today's records, excludes archived events, and
+    // counts only the permanent event as completed.
+    expect(res.body.workSummary.month.implants).toBe(baselineMonth.implants + 2);
+    expect(res.body.workSummary.month.prostheticPatients)
+      .toBe(baselineMonth.prostheticPatients + 1);
+    expect(res.body.workSummary.month.completedProsthetics)
+      .toBe(baselineMonth.completedProsthetics + 1);
   });
 
   it("uses clinical dates instead of entry timestamps across dashboard and statistics", async () => {
-    const historicalDate = "2025-11-14";
+    const historicalDate = "2025-09-15";
     const doctor = "د. اختبار دلالات التاريخ";
     const before = await admin.get("/api/dashboard");
     const baselineToday = before.body.workSummary.today;
@@ -565,6 +569,14 @@ describe("dashboard work summary", () => {
         eventDate: historicalDate,
         implantId: historicalImplant.body.implant.id,
       });
+    await admin
+      .post(`/api/implant-cases/${historicalCase.body.case.id}/prosthetic-events`)
+      .send({
+        eventType: "تركيب مؤقت",
+        eventDate: historicalDate,
+        implantId: historicalImplant.body.implant.id,
+        note: "Historical event entered during the current period",
+      });
 
     const afterHistorical = await admin.get("/api/dashboard");
     expect(afterHistorical.body.workSummary.today).toEqual(baselineToday);
@@ -579,7 +591,7 @@ describe("dashboard work summary", () => {
       implants: 1,
       systems: 1,
       prostheticPatients: 1,
-      prostheticEvents: 1,
+      prostheticEvents: 2,
     });
 
     const currentCase = await admin
@@ -606,7 +618,11 @@ describe("dashboard work summary", () => {
     expect(afterCurrent.body.workSummary.today.prostheticPatients)
       .toBe(baselineToday.prostheticPatients + 1);
     expect(afterCurrent.body.workSummary.today.completedProsthetics)
-      .toBe(baselineToday.completedProsthetics + 1);
+      .toBe(baselineToday.completedProsthetics);
+    expect(afterCurrent.body.workSummary.month.prostheticPatients)
+      .toBe(baselineMonth.prostheticPatients + 1);
+    expect(afterCurrent.body.workSummary.month.completedProsthetics)
+      .toBe(baselineMonth.completedProsthetics);
     expect(afterCurrent.body.workSummary.month.implants)
       .toBe(baselineMonth.implants + 1);
 

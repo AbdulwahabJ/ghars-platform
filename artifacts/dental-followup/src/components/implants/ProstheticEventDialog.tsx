@@ -22,13 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { OperationalDatePicker, todayInRiyadh } from "@/components/dashboard/OperationalDatePicker";
+import { OperationalDatePicker } from "@/components/dashboard/OperationalDatePicker";
 import { FieldLabel } from "./FieldLabel";
 import { useCreateProstheticEvent } from "@/hooks/use-implant-cases";
 import { useToast } from "@/hooks/use-toast";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { localizeErrorMessage } from "@/lib/localize-error";
 import { useEnumTranslation } from "@/i18n/use-enum-translation";
+import { initialProstheticEventDate } from "@/lib/prosthetic-event-date";
 
 const CASE_LEVEL = "__case_level__";
 
@@ -89,7 +90,10 @@ function ProstheticEventForm({
   const [eventType, setEventType] = useState<ProstheticEventType>(
     initialEventType ?? "تركيب دائم",
   );
-  const [eventDate, setEventDate] = useState(todayInRiyadh);
+  // Never infer a clinical event date from the entry timestamp. Requiring an
+  // explicit choice prevents historical work entered today from becoming
+  // current-period activity.
+  const [eventDate, setEventDate] = useState(initialProstheticEventDate);
   const [implantId, setImplantId] = useState(initialImplantId ?? CASE_LEVEL);
   const [note, setNote] = useState("");
   const activeImplants = caseItem.implants.filter((implant) => implant.status === "active");
