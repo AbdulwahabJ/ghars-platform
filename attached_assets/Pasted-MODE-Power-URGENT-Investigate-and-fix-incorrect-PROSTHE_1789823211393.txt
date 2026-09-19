@@ -1,0 +1,414 @@
+MODE: Power
+
+URGENT: Investigate and fix incorrect PROSTHETIC Dashboard date aggregation in Ghars.
+
+OBSERVED BUG:
+
+The Dashboard currently shows:
+
+- Prosthetic Patients — This Month: 2
+- Completed Prosthetics — This Month: 3
+
+However, the actual prosthetic work for these records happened approximately one year ago.
+
+These are historical records.
+
+They must NOT appear in the current month's clinical metrics merely because:
+- the patient/case was entered into Ghars recently
+- the row was created recently
+- the record was edited recently
+- implant status currently indicates prosthetic completion
+
+Production contains real customer data.
+
+DO NOT:
+- modify Production data
+- change historical event dates
+- recreate records
+- publish
+- run destructive migrations
+
+Production inspection must be READ-ONLY.
+Use Development for reproduction/fix testing.
+
+==================================================
+1. VERIFY THE ACTUAL PRODUCTION RECORDS
+==================================================
+
+For the affected tenant, inspect read-only:
+
+- prosthetic_events
+- implant_cases
+- implants
+- patients
+
+For the records contributing to:
+
+Prosthetic Patients = 2
+Completed Prosthetics = 3
+
+report anonymized values for:
+
+- prosthetic event type
+- event_date
+- created_at
+- updated_at
+- implant status
+- case procedure_date
+
+Do not expose patient PII.
+
+Determine exactly WHY each record is being counted in Sep 2026.
+
+==================================================
+2. AUDIT BOTH PROSTHETIC DASHBOARD CARDS
+==================================================
+
+Audit the exact backend query/calculation for:
+
+A.
+مرضى التركيب
+Prosthetic Patients
+
+B.
+التركيبات التي تمت
+Completed Prosthetics
+
+For EACH card report:
+
+- source table
+- joins
+- statuses
+- date field used for Today
+- date field used for This Month
+- DISTINCT logic
+- whether created_at or updated_at is used
+- whether implant current status is being used instead of event history
+
+==================================================
+3. CANONICAL DATE RULE
+==================================================
+
+Clinical prosthetic metrics must be based on the ACTUAL CLINICAL PROSTHETIC EVENT DATE.
+
+Use:
+
+prosthetic_events.event_date
+
+or the existing canonical equivalent.
+
+Do NOT use:
+
+created_at
+updated_at
+patient registration date
+case creation date
+import date
+
+for clinical period metrics.
+
+==================================================
+4. PROSTHETIC PATIENTS DEFINITION
+==================================================
+
+"Prosthetic Patients" for a period should mean:
+
+distinct patients who have the canonical qualifying prosthetic event(s)
+whose event_date falls inside that clinical period.
+
+Do NOT count the same patient multiple times merely because they have multiple implants/events, unless the approved product definition explicitly says otherwise.
+
+Document the exact qualifying event types.
+
+==================================================
+5. COMPLETED PROSTHETICS DEFINITION
+==================================================
+
+"Completed Prosthetics" should count the actual qualifying completed/final prosthetic events during the selected period.
+
+Do NOT count:
+
+- historical prosthetics entered today
+- current implant status alone
+- database row creation
+- unrelated case updates
+
+Document whether the canonical definition is:
+
+FINAL prosthetic event only
+
+or another currently approved event/status.
+
+Do not silently change product semantics without checking existing Ghars rules.
+
+==================================================
+6. HISTORICAL RECORD ENTERED TODAY TEST
+==================================================
+
+Reproduce exactly:
+
+Current date:
+Sep 2026
+
+Today create/import a historical patient/case.
+
+Add:
+
+prosthetic event_date:
+15 Sep 2025
+
+created_at:
+today
+
+Expected Dashboard:
+
+TODAY:
+Prosthetic Patients contribution = 0
+Completed Prosthetics contribution = 0
+
+THIS MONTH (Sep 2026):
+Prosthetic Patients contribution = 0
+Completed Prosthetics contribution = 0
+
+Historical period Sep 2025:
+record is counted appropriately.
+
+==================================================
+7. HISTORICAL RECORD EDITED TODAY TEST
+==================================================
+
+Take a historical prosthetic event:
+
+event_date = Sep 2025
+
+Update a harmless field today.
+
+Expected:
+
+It must NOT suddenly appear in Sep 2026 Dashboard metrics.
+
+updated_at must never drive clinical period metrics.
+
+==================================================
+8. CURRENT EVENT TEST
+==================================================
+
+Create a prosthetic event with:
+
+event_date = today
+
+Expected:
+
+Today:
+counted
+
+This Month:
+counted
+
+==================================================
+9. TEMPORARY VS FINAL PROSTHETICS
+==================================================
+
+Audit:
+
+- temporary prosthetic
+- final prosthetic
+- replacement/revision if supported
+
+Make sure each Dashboard card uses the intended event types.
+
+Do not treat every prosthetic-related event as "completed prosthetics".
+
+==================================================
+10. SEARCH FOR CREATED_AT / UPDATED_AT LEAKAGE
+==================================================
+
+Search all Dashboard/statistics prosthetic aggregations for:
+
+created_at
+updated_at
+
+where event_date should be used.
+
+Also inspect:
+
+- SQL/Drizzle queries
+- report helpers
+- statistics aggregations
+- frontend transformations
+
+Fix the canonical aggregation layer, not just the displayed number.
+
+==================================================
+11. DASHBOARD AND STATISTICS CONSISTENCY
+==================================================
+
+Dashboard and Statistics must use identical prosthetic date semantics.
+
+A 2025 prosthetic event must not appear:
+
+Dashboard → Sep 2026
+
+while:
+
+Statistics → Sep 2025
+
+Use shared canonical aggregation logic where practical.
+
+==================================================
+12. RIYADH DATE SEMANTICS
+==================================================
+
+Respect Saudi/Riyadh date boundaries.
+
+For date-only event_date fields:
+do not introduce UTC conversion bugs.
+
+==================================================
+13. HISTORICAL IMPORT SAFETY
+==================================================
+
+This is critical for the upcoming legacy-data import feature.
+
+Historical records imported today must remain historical.
+
+Import timestamp must NEVER affect:
+
+- Patients Implanted
+- Implant Count
+- Systems Used
+- Prosthetic Patients
+- Completed Prosthetics
+
+clinical-period metrics.
+
+==================================================
+14. AUDIT ALL 5 DASHBOARD CARDS AGAIN
+==================================================
+
+Because historical data is being entered/imported, re-verify all five cards:
+
+1. Patients Implanted
+2. Implant Count
+3. Systems Used
+4. Prosthetic Patients
+5. Completed Prosthetics
+
+For each report:
+
+METRIC
+SOURCE ENTITY
+CANONICAL CLINICAL DATE FIELD
+TODAY FILTER
+MONTH FILTER
+
+There should be NO use of created_at for clinical activity metrics.
+
+==================================================
+15. PRODUCTION READ-ONLY EXPECTED OUTPUT
+==================================================
+
+For the currently affected live tenant report:
+
+PROSTHETIC EVENTS TOTAL:
+<number>
+
+EVENTS WITH event_date IN SEP 2026:
+<number>
+
+EVENTS WITH event_date IN 2025:
+<number>
+
+CURRENT DASHBOARD PROSTHETIC PATIENTS:
+<number>
+
+CORRECT EXPECTED PROSTHETIC PATIENTS:
+<number>
+
+CURRENT DASHBOARD COMPLETED PROSTHETICS:
+<number>
+
+CORRECT EXPECTED COMPLETED PROSTHETICS:
+<number>
+
+Explain every discrepancy.
+
+==================================================
+16. REGRESSION TESTS
+==================================================
+
+Add automated tests for:
+
+- historical prosthetic entered today
+- historical prosthetic edited today
+- temporary prosthetic historical event
+- final prosthetic historical event
+- current-day prosthetic
+- current-month prosthetic
+- previous-year prosthetic
+- multiple events for same patient
+- Dashboard/Statistics consistency
+- Riyadh date boundary
+
+==================================================
+17. FINAL REPORT
+==================================================
+
+Report:
+
+ROOT CAUSE:
+<exact cause>
+
+PROSTHETIC PATIENTS CURRENT DATE FIELD:
+<field>
+
+PROSTHETIC PATIENTS CORRECT DATE FIELD:
+<field>
+
+COMPLETED PROSTHETICS CURRENT DATE FIELD:
+<field>
+
+COMPLETED PROSTHETICS CORRECT DATE FIELD:
+<field>
+
+CREATED_AT LEAKAGE:
+YES / NO
+
+UPDATED_AT LEAKAGE:
+YES / NO
+
+CURRENT STATUS INCORRECTLY USED AS PERIOD EVENT:
+YES / NO
+
+HISTORICAL 2025 PROSTHETICS EXCLUDED FROM SEP 2026:
+PASS / FAIL
+
+CURRENT PROSTHETICS COUNTED:
+PASS / FAIL
+
+DASHBOARD / STATISTICS CONSISTENCY:
+PASS / FAIL
+
+ALL 5 DASHBOARD CARDS CLINICAL-DATE SAFE:
+PASS / FAIL
+
+HISTORICAL IMPORT SAFE:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+DO NOT PUBLISH.
+Create checkpoint and STOP.

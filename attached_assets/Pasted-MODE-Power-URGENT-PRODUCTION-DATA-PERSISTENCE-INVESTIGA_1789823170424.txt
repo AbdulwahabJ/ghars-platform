@@ -1,0 +1,440 @@
+MODE: Power
+
+URGENT PRODUCTION DATA-PERSISTENCE INVESTIGATION FOR GHARS.
+
+Observed problem:
+
+After Republish, records that were previously visible in the live Patients/Cases table appear to disappear.
+
+Today I also created a new case, but it did not appear in the table.
+
+The current screenshot shows:
+- Dashboard still has some counts
+- Patients/Cases table shows 0
+- Period filter currently shows "Today"
+
+IMPORTANT:
+Do NOT assume the data was deleted.
+Do NOT assume this is only a filter issue.
+
+We need to determine with evidence whether:
+1. Production rows are actually being deleted,
+2. rows still exist but are hidden by filters/query logic,
+3. tenant context changed,
+4. deployment is connecting to a different database,
+5. startup/build/publish scripts are resetting/seeding/synchronizing data destructively.
+
+THIS IS A LIVE PRODUCTION SYSTEM WITH REAL CUSTOMER DATA.
+
+DO NOT:
+- publish
+- republish
+- delete data
+- reset any database
+- seed Production
+- run cleanup scripts
+- run destructive migrations
+- change existing Production records
+- manually recreate missing records
+
+Production investigation must be READ-ONLY.
+
+==================================================
+1. CHECK WHETHER THE "MISSING" DATA STILL EXISTS
+==================================================
+
+Read Production directly and report anonymized counts for the affected tenant:
+
+- patients
+- implant_cases
+- implants
+- payments
+- followups
+- prosthetic_events
+- bone_graft_procedures
+
+Also inspect the recently created record.
+
+Verify:
+
+RECENT PATIENT EXISTS IN DB: YES / NO
+RECENT CASE EXISTS IN DB: YES / NO
+RECENT IMPLANTS EXIST IN DB: YES / NO
+
+Do not expose patient PII.
+
+==================================================
+2. VERIFY TENANT OWNERSHIP
+==================================================
+
+For the recently created records verify:
+
+- tenant_id
+- patient → tenant
+- case → tenant
+- implant → tenant
+- creator membership
+
+Confirm they belong to the currently logged-in doctor's tenant.
+
+Report:
+
+TENANT OWNERSHIP CORRECT: YES / NO
+
+==================================================
+3. CHECK THE CURRENT TABLE FILTER
+==================================================
+
+The screenshot currently shows:
+
+Period = Today
+
+Determine exactly which field this table uses for the period filter:
+
+- created_at?
+- procedure_date?
+- registration_date?
+- another field?
+
+Check whether the recently created case has:
+
+created_at = today
+
+but:
+procedure_date = another date
+
+If so, explain whether the row is correctly excluded by the "Today" filter.
+
+Then test read-only query equivalent for:
+
+Today
+This Month
+All
+
+Report row counts for each.
+
+==================================================
+4. VERIFY TABLE QUERY VS DASHBOARD QUERY
+==================================================
+
+Audit the backend queries used by:
+
+A. Dashboard cards
+B. Patients/Cases table
+C. Statistics
+
+For the same tenant, determine why Dashboard may show counts while the table shows 0.
+
+Report exact differences in:
+- date field
+- filters
+- statuses
+- joins
+- tenant scope
+
+==================================================
+5. INVESTIGATE REPUBLISH DATA PERSISTENCE
+==================================================
+
+This is the most important part.
+
+Audit the Production deployment configuration and determine whether every Republish continues using the SAME persistent Production database.
+
+Verify WITHOUT exposing credentials:
+
+- current Production DB identity/fingerprint
+- database host identity/fingerprint
+- database name/fingerprint
+- whether previous deployment revisions pointed to the same DB
+- whether DATABASE_URL changes across deployments
+- whether Replit creates/replaces a DB during Republish
+
+Do not print secrets.
+
+Report:
+
+PRODUCTION DB PERSISTENT ACROSS REPUBLISH:
+YES / NO / NOT PROVABLE
+
+==================================================
+6. AUDIT BUILD / START / DEPLOY SCRIPTS
+==================================================
+
+Search the entire repository for anything that may alter data during:
+
+- build
+- startup
+- deploy
+- publish
+- migration
+- health initialization
+
+Search for commands/code such as:
+
+db:push
+drizzle push
+migrate
+seed
+reset
+truncate
+delete
+cleanup
+drop
+recreate
+bootstrap
+sync schema
+force sync
+demo cleanup
+
+Inspect:
+
+package.json
+Replit deployment command
+server startup
+database initialization
+migration runner
+seed/bootstrap scripts
+
+Report every database-affecting command that can execute automatically.
+
+==================================================
+7. CRITICAL: STARTUP MUST NOT RESET DATA
+==================================================
+
+Confirm application startup does NOT:
+
+- recreate schema
+- drop tables
+- truncate tables
+- delete old tenants
+- reseed customer tables
+- copy Development data
+- run demo cleanup
+- wipe tables before migrations
+
+If any such behavior exists:
+
+STOP and classify it as CRITICAL.
+
+Do not execute it.
+
+==================================================
+8. REPLIT GENERATED MIGRATIONS
+==================================================
+
+Inspect what Replit would currently generate on the NEXT Republish.
+
+Do NOT approve or execute it.
+
+Search for:
+
+DROP TABLE
+DROP COLUMN
+TRUNCATE
+DELETE
+table recreation
+column recreation
+unsafe NOT NULL
+primary-key replacement
+schema reset
+
+Report exact risky operations.
+
+==================================================
+9. CHECK PRODUCTION DATABASE HISTORY
+==================================================
+
+Use available read-only evidence/logs/metrics to determine whether row counts dropped around previous deployment timestamps.
+
+Compare:
+
+before/after publish times
+
+for:
+- patients
+- implant_cases
+- implants
+
+If historical counts are not available, say NOT PROVABLE.
+
+Do not invent evidence.
+
+==================================================
+10. CHECK SOFT DELETE / ARCHIVE LOGIC
+==================================================
+
+Audit whether records can become hidden because of:
+
+deleted_at
+archived
+inactive
+status flags
+tenant suspension
+visibility flags
+
+Check whether Republish or migrations changed any default behavior.
+
+==================================================
+11. CHECK CACHE / REACT QUERY
+==================================================
+
+If database rows still exist:
+
+verify whether stale query cache or failed refetch causes the UI to display 0.
+
+Inspect:
+
+- query keys
+- default filters
+- cache hydration
+- session/tenant change
+- mutation invalidation
+
+Do not use browser reload as the fix.
+
+==================================================
+12. VERIFY "ALL" VIEW
+==================================================
+
+In Development/reproduction:
+
+Create:
+- one patient
+- one case dated today
+- one historical case
+
+Verify:
+
+Today:
+only today's clinical record
+
+This Month:
+current-month records
+
+All:
+all records
+
+Then restart the application.
+
+Verify the same rows remain.
+
+Then simulate a production build/restart.
+
+Verify the same rows remain.
+
+==================================================
+13. DEPLOYMENT-PERSISTENCE TEST
+==================================================
+
+Use an isolated Development/test database.
+
+Create known sentinel records.
+
+Perform the same build/start/deployment lifecycle used by Production.
+
+After restart/redeploy verify:
+
+sentinel records still exist.
+
+No database reset is allowed.
+
+==================================================
+14. PRODUCTION DATA RECOVERY STATUS
+==================================================
+
+Check whether Replit Production DB Point-in-Time Recovery is currently enabled.
+
+Report:
+
+PITR AVAILABLE: YES / NO / NOT CONFIRMED
+
+Do not restore anything.
+
+==================================================
+15. DO NOT FIX BY HIDING THE SYMPTOM
+==================================================
+
+Do NOT solve this by:
+
+- changing the default filter to All
+- forcing a refresh
+- re-seeding customer records
+- recreating data manually
+
+unless evidence proves the records are present and only the filter/UI is wrong.
+
+Find the true root cause first.
+
+==================================================
+16. FINAL REPORT
+==================================================
+
+Return:
+
+RECENT PATIENT EXISTS IN PRODUCTION:
+YES / NO
+
+RECENT CASE EXISTS IN PRODUCTION:
+YES / NO
+
+RECENT IMPLANTS EXIST IN PRODUCTION:
+YES / NO
+
+TENANT OWNERSHIP:
+CORRECT / ISSUE
+
+TODAY FILTER HIDES RECORD:
+YES / NO
+
+THIS MONTH RESULT:
+<count>
+
+ALL RESULT:
+<count>
+
+TABLE QUERY ROOT CAUSE:
+<exact explanation>
+
+DASHBOARD/TABLE QUERY CONSISTENCY:
+PASS / FAIL
+
+PRODUCTION DB PERSISTENT ACROSS REPUBLISH:
+YES / NO / NOT PROVABLE
+
+DATABASE URL/DB IDENTITY STABLE:
+YES / NO / NOT PROVABLE
+
+AUTOMATIC STARTUP DATA MUTATION:
+NONE / FOUND
+
+DANGEROUS BUILD/START SCRIPT:
+NONE / FOUND
+
+NEXT REPUBLISH MIGRATION RISK:
+NONE / FOUND
+
+ACTUAL PRODUCTION ROW LOSS CONFIRMED:
+YES / NO / NOT PROVABLE
+
+PITR:
+AVAILABLE / NOT CONFIRMED
+
+ROOT CAUSE:
+<exact cause>
+
+DATA PRESERVATION FIX REQUIRED:
+<exact action>
+
+SAFE TO REPUBLISH:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+Create a checkpoint if code changes are required.
+
+DO NOT PUBLISH.
+STOP.
