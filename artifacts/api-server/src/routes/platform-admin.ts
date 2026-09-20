@@ -376,7 +376,8 @@ router.get("/platform-admin/overview", async (_req, res) => {
         .leftJoin(usersTable, eq(usersTable.id, auditLogsTable.userId))
         .leftJoin(tenantsTable, eq(tenantsTable.id, auditLogsTable.tenantId))
         .where(and(
-          sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%')`,
+         sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%'
+           OR ${auditLogsTable.action} IN ('LEGACY_IMPORT_FEATURE_ENABLED', 'LEGACY_IMPORT_FEATURE_DISABLED'))`,
           or(isNull(auditLogsTable.tenantId), eq(tenantsTable.isInternal, false)),
         ))
         .orderBy(desc(auditLogsTable.createdAt)).limit(8),
@@ -804,7 +805,8 @@ router.get("/platform-admin/audit", async (req, res) => {
   const input = parseOrRespond(platformAuditInputSchema, req.query, res);
   if (!input) return;
   const conditions: SQL[] = [
-    sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%')`,
+    sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%'
+      OR ${auditLogsTable.action} IN ('LEGACY_IMPORT_FEATURE_ENABLED', 'LEGACY_IMPORT_FEATURE_DISABLED'))`,
     or(isNull(auditLogsTable.tenantId), eq(tenantsTable.isInternal, false))!,
   ];
   if (input.actor) conditions.push(ilike(usersTable.fullName, `%${input.actor}%`));
@@ -836,7 +838,8 @@ router.get("/platform-admin/audit", async (req, res) => {
     db.selectDistinct({ action: auditLogsTable.action }).from(auditLogsTable)
       .leftJoin(tenantsTable, eq(tenantsTable.id, auditLogsTable.tenantId))
       .where(and(
-        sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%')`,
+        sql`(${auditLogsTable.action} ILIKE 'platform_%' OR ${auditLogsTable.action} ILIKE 'TENANT_%'
+          OR ${auditLogsTable.action} IN ('LEGACY_IMPORT_FEATURE_ENABLED', 'LEGACY_IMPORT_FEATURE_DISABLED'))`,
         or(isNull(auditLogsTable.tenantId), eq(tenantsTable.isInternal, false)),
       ))
       .orderBy(asc(auditLogsTable.action)),
@@ -857,6 +860,7 @@ router.get("/platform-admin/settings", async (_req, res) => {
 router.patch("/platform-admin/settings", async (req, res) => {
   const input = parseOrRespond(updatePlatformSettingsInputSchema, req.body, res);
   if (!input) return;
+  const [previous] = await db.select().from(platformSettingsTable).where(eq(platformSettingsTable.id, "global")).limit(1);
   const [settings] = await db.insert(platformSettingsTable).values({
     id: "global",
     ...input,
@@ -875,12 +879,28 @@ router.patch("/platform-admin/settings", async (req, res) => {
     summary: "تحديث إعدادات المنصة",
     details: { keys: Object.keys(input) },
   });
+  if (input.legacyImportEnabled !== undefined &&
+      input.legacyImportEnabled !== (previous?.legacyImportEnabled ?? false)) {
+    await writeAudit({
+      tenantId: null,
+      userId: req.currentUser!.id,
+      action: input.legacyImportEnabled
+        ? "LEGACY_IMPORT_FEATURE_ENABLED"
+        : "LEGACY_IMPORT_FEATURE_DISABLED",
+      entityType: "platform_settings",
+      entityId: "global",
+      summary: input.legacyImportEnabled
+        ? "تم تفعيل استيراد البيانات القديم"
+        : "تم تعطيل استيراد البيانات القديم",
+    });
+  }
   res.json({
     settings: {
       supportWhatsapp: settings.supportWhatsapp,
       supportPhone: settings.supportPhone,
       supportEmail: settings.supportEmail,
       defaultTrialHours: settings.defaultTrialHours,
+      legacyImportEnabled: settings.legacyImportEnabled,
       updatedAt: settings.updatedAt.toISOString(),
     },
   });

@@ -114,6 +114,7 @@ export function usePlatformUpdateSettings() {
     mutationFn: (input: UpdatePlatformSettingsInput) => api.platformUpdateSettings(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PLATFORM_SETTINGS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["features"] });
       queryClient.invalidateQueries({ queryKey: PLATFORM_AUDIT_KEY });
     },
   });

@@ -8,8 +8,8 @@ import {
 const currentFingerprint = {
   table_count: 33,
   tables_signature: "3ea94766d532d3c80dddc064a4540a72",
-  column_count: 367,
-  columns_signature: "808c97801ffed3333f4a2c7c39619c82",
+  column_count: 368,
+  columns_signature: "ec082f73ba9406b2a32d8800727cd1a6",
   constraint_count: 138,
   constraints_signature: "e0d5ba3f033ef7ca77ef381ed2868b24",
   index_count: 116,
@@ -17,9 +17,9 @@ const currentFingerprint = {
 };
 
 const currentJournal = {
-  migration_count: 29,
-  latest_hash: "65b72d6cbd79b4ecf12edf4cee326138909c44cad92618d90b4b69d58708f4be",
-  latest_created_at: "1789841000000",
+  migration_count: 30,
+  latest_hash: "9db38891976cdaa7f59107d2dd458dc7e53c94d47b78e6443f15b68c6a2deec5",
+  latest_created_at: "1789900000000",
 };
 
 function executorWith(
@@ -53,7 +53,7 @@ describe("inspectSchemaHealth", () => {
     expect(result).toEqual({
       status: "healthy",
       messageCode: "schemaCurrentJournalReadable",
-      value: 29,
+      value: 30,
     });
   });
 

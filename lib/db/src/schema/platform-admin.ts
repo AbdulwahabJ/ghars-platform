@@ -16,6 +16,7 @@ export const platformSettingsTable = pgTable("platform_settings", {
   supportPhone: text("support_phone"),
   supportEmail: text("support_email"),
   defaultTrialHours: integer("default_trial_hours").notNull().default(72),
+  legacyImportEnabled: boolean("legacy_import_enabled").notNull().default(false),
   updatedBy: uuid("updated_by").references(() => usersTable.id),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

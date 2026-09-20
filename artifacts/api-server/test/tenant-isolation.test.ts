@@ -20,6 +20,13 @@ let patientBId: string;
 
 beforeAll(async () => {
   tenantA = await freshAdminSession(app, pool);
+  // This suite exercises the legacy CSV isolation behavior, so explicitly
+  // opt into the production feature gate after the fresh database reset.
+  await pool.query(
+    `INSERT INTO platform_settings (id, legacy_import_enabled, updated_at)
+     VALUES ('global', true, now())
+     ON CONFLICT (id) DO UPDATE SET legacy_import_enabled = true, updated_at = now()`,
+  );
 
   const tenant = await pool.query<{ id: string }>(
     `INSERT INTO tenants

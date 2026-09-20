@@ -48,6 +48,11 @@ async function approve(batch: any, mode: "clinical_only" | "clinical_and_verifie
 
 beforeAll(async () => {
   admin = await freshAdminSession(app, pool);
+  await pool.query(
+    `INSERT INTO platform_settings (id, legacy_import_enabled, updated_at)
+     VALUES ('global', true, now())
+     ON CONFLICT (id) DO UPDATE SET legacy_import_enabled = true, updated_at = now()`,
+  );
 });
 
 afterAll(async () => {

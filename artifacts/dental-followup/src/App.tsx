@@ -32,10 +32,6 @@ function FinanceRedirect() {
   return <Redirect to="/statistics" replace />;
 }
 
-function RemovedSettingsTabRedirect() {
-  return <Redirect to="/settings" replace />;
-}
-
 function ProtectedRoute({ component: Component, path }: { component: any; path: string }) {
   const { user, currentTenant, isPlatformAdmin, impersonation, isLoading } = useAuth();
   const [now, setNow] = useState(() => Date.now());
@@ -152,9 +148,15 @@ function Router() {
       <Route path="/statistics">
         {() => <ProtectedRoute component={Statistics} path="/statistics" />}
       </Route>
-      <Route path="/settings/system" component={RemovedSettingsTabRedirect} />
-      <Route path="/settings/templates" component={RemovedSettingsTabRedirect} />
-      <Route path="/settings/import" component={RemovedSettingsTabRedirect} />
+      <Route path="/settings/system">
+        <Redirect to="/settings?tab=lookups" replace />
+      </Route>
+      <Route path="/settings/templates">
+        <Redirect to="/settings?tab=users" replace />
+      </Route>
+      <Route path="/settings/import">
+        <Redirect to="/settings?tab=import" replace />
+      </Route>
       <Route path="/settings">
         {() => <ProtectedRoute component={Settings} path="/settings" />}
       </Route>

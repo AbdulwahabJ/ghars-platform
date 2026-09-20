@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "./use-auth";
 
 export const APP_SETTINGS_QUERY_KEY = ["app-settings"];
+export const FEATURES_QUERY_KEY = ["features"];
 
 /**
  * Application settings for any authenticated user (clinic branding and
@@ -24,4 +25,13 @@ export function useAppSettings(): {
     settings: query.data?.settings ?? (APP_SETTINGS_DEFAULTS as AppSettings),
     isLoading: query.isLoading,
   };
+}
+
+export function useFeatures() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: FEATURES_QUERY_KEY,
+    queryFn: () => api.getFeatures(),
+    enabled: !!user,
+  });
 }

@@ -86,6 +86,12 @@ async function seedPatientWithCase(
 
 beforeAll(async () => {
   admin = await freshAdminSession(app, pool);
+  // Importer tests intentionally opt into the production feature gate.
+  await pool.query(
+    `INSERT INTO platform_settings (id, legacy_import_enabled, updated_at)
+     VALUES ('global', true, now())
+     ON CONFLICT (id) DO UPDATE SET legacy_import_enabled = true, updated_at = now()`,
+  );
   const me = await admin.get("/api/auth/me");
   adminId = me.body.user.id;
   assistant = await seedAssistant("admin-suite-assistant");

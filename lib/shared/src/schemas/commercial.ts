@@ -456,6 +456,7 @@ export const platformSettingsSchema = z.object({
   supportPhone: z.string().nullable(),
   supportEmail: z.string().email().nullable(),
   defaultTrialHours: z.number().int().min(1).max(720),
+  legacyImportEnabled: z.boolean(),
   updatedAt: z.string().nullable(),
 });
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
@@ -480,7 +481,8 @@ export const updatePlatformSettingsInputSchema = z.object({
     z.string().email().nullable(),
   ),
   defaultTrialHours: z.number().int().min(1).max(720),
-});
+  legacyImportEnabled: z.boolean(),
+}).partial();
 export type UpdatePlatformSettingsInput = z.infer<
   typeof updatePlatformSettingsInputSchema
 >;

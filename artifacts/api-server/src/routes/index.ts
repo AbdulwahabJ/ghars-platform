@@ -22,11 +22,13 @@ import preferencesRouter from "./preferences";
 import reportsRouter from "./reports";
 import settingsRouter from "./settings";
 import landingMediaRouter from "./landing-media";
+import featuresRouter from "./features";
 import {
   requireAuth,
   requireOperationalTenant,
   requirePlatformAdmin,
 } from "../middlewares/auth";
+import { requireLegacyImportEnabled } from "../middlewares/legacy-import";
 
 const router: IRouter = Router();
 
@@ -37,10 +39,15 @@ router.use(landingMediaRouter);
 // These authenticated lifecycle surfaces must remain reachable for suspended,
 // expired-trial, and pending-verification customers.
 router.use(commercialRouter);
+router.use("/features", requireAuth);
+router.use(featuresRouter);
 router.use("/platform-admin", requireAuth, requirePlatformAdmin);
 router.use(platformAdminRouter);
 router.use(preferencesRouter);
 router.use(requireAuth, requireOperationalTenant);
+// Every tenant-facing importer route is under /admin/import, including the
+// universal importer. Keep the platform-admin settings API outside this gate.
+router.use("/admin/import", requireLegacyImportEnabled);
 router.use(patientsRouter);
 router.use(patientRecordExportRouter);
 router.use(implantCasesRouter);

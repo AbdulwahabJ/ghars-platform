@@ -403,6 +403,9 @@ export const api = {
       json: input,
     }),
 
+  // Features
+  getFeatures: () => request<{ legacyImportEnabled: boolean }>("/features"),
+
   // Public landing page media
   getLandingMedia: () =>
     request<LandingMediaPublicResponse>("/landing-media"),

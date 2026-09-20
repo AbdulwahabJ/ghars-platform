@@ -5,6 +5,7 @@ export const DEFAULT_PLATFORM_SETTINGS = {
   supportPhone: process.env.SUPPORT_PHONE ?? null,
   supportEmail: process.env.SUPPORT_EMAIL ?? null,
   defaultTrialHours: 72,
+  legacyImportEnabled: false,
   updatedAt: null as string | null,
 };
 
@@ -16,6 +17,7 @@ export async function loadPlatformSettings() {
     supportPhone: row.supportPhone,
     supportEmail: row.supportEmail,
     defaultTrialHours: row.defaultTrialHours,
+    legacyImportEnabled: row.legacyImportEnabled,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

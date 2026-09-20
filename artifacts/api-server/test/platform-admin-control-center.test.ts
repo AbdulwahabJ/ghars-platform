@@ -147,6 +147,35 @@ describe("platform admin control center", () => {
     const loaded = await platformAdmin.get("/api/platform-admin/settings");
     expect(loaded.body.settings.supportEmail).toBe("support@example.test");
 
+    const enabled = await platformAdmin.patch("/api/platform-admin/settings")
+      .send({ legacyImportEnabled: true });
+    expect(enabled.status).toBe(200);
+    expect(enabled.body.settings.legacyImportEnabled).toBe(true);
+    const unchanged = await platformAdmin.patch("/api/platform-admin/settings")
+      .send({ legacyImportEnabled: true });
+    expect(unchanged.status).toBe(200);
+    const disabled = await platformAdmin.patch("/api/platform-admin/settings")
+      .send({ legacyImportEnabled: false });
+    expect(disabled.status).toBe(200);
+    expect(disabled.body.settings.legacyImportEnabled).toBe(false);
+    const audit = await platformAdmin.get(
+      "/api/platform-admin/audit?action=LEGACY_IMPORT_FEATURE_ENABLED",
+    );
+    expect(audit.status).toBe(200);
+    expect(audit.body.items.some(
+      (item: { action: string }) => item.action === "LEGACY_IMPORT_FEATURE_ENABLED",
+    )).toBe(true);
+    const disableAudit = await platformAdmin.get(
+      "/api/platform-admin/audit?action=LEGACY_IMPORT_FEATURE_DISABLED",
+    );
+    expect(disableAudit.body.items.some(
+      (item: { action: string }) => item.action === "LEGACY_IMPORT_FEATURE_DISABLED",
+    )).toBe(true);
+    const tenantToggle = await clinicAdmin.patch("/api/platform-admin/settings")
+      .send({ legacyImportEnabled: true });
+    expect(tenantToggle.status).toBe(403);
+    expect(tenantToggle.body.code).toBe("PLATFORM_ADMIN_REQUIRED");
+
     const invalidSettings = await platformAdmin.patch("/api/platform-admin/settings").send({
       supportWhatsapp: "not-a-phone",
       supportPhone: "12",
@@ -191,7 +220,7 @@ describe("platform admin control center", () => {
     expect(health.body.components.schema).toMatchObject({
       status: "healthy",
       messageCode: "schemaCurrentJournalReadable",
-      value: 29,
+      value: 30,
     });
     for (const component of Object.values(health.body.components) as Array<Record<string, unknown>>) {
       expect(component.messageCode).toEqual(expect.any(String));

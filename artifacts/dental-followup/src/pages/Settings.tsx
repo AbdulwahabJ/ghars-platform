@@ -15,7 +15,9 @@ const TABS = ["users", "lookups", "audit", "export", "import"] as const;
 export default function Settings() {
   const { t } = useTranslation("admin");
   const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const searchParams = new URLSearchParams(window.location.search);
+  const activeTab = searchParams.get("tab") || "users";
 
   // Backend enforces ADMIN on every endpoint; this just avoids a dead page.
   useEffect(() => {
@@ -24,6 +26,10 @@ export default function Settings() {
     }
   }, [isLoading, user, setLocation]);
 
+  const handleTabChange = (value: string) => {
+    setLocation(`/settings?tab=${value}`);
+  };
+
   return (
     <Shell decorated>
       {user?.role === "ADMIN" && (
@@ -31,7 +37,7 @@ export default function Settings() {
           <h1 className="text-2xl font-bold" data-testid="text-settings-title">
              {t("settings.title")}
           </h1>
-          <Tabs defaultValue="users">
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="flex flex-wrap h-auto justify-start gap-1">
               {TABS.map((tab) => (
                 <TabsTrigger
