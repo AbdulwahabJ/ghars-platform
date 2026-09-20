@@ -34,3 +34,4 @@
 - [Packaged Chromium on Replit](packaged-chromium-replit.md) — @sparticuz/chromium still needs Replit Nix NSS/NSPR libraries; validate with NODE_ENV=production.
 - [Historical opening finance](historical-opening-finance.md) — verified legacy balances are snapshots, never fake payments; only canonical Ghars activity changes them after import.
 - [Importer canonical header authority](importer-canonical-header-authority.md) — recognized Q/Former/Graft/Pros/NOTE headers stay canonical even if stale learned mappings say legacy note.
+- [Permanent clinical deletion](permanent-clinical-deletion.md) — destructive selection identifies cases explicitly; confirmation uses a tenant-bound preview token rechecked inside the transaction.

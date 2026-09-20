@@ -31,7 +31,7 @@ import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient,
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS, PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
 import { useArchivePatient, useBulkPatientAction, usePatient, useUpdatePatient } from "@/hooks/use-patients";
-import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useArchiveProstheticEvent, useArchiveBoneGraftProcedure, useImplantOptions } from "@/hooks/use-implant-cases";
+import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useArchiveProstheticEvent, useArchiveBoneGraftProcedure, useImplantOptions, useBulkPermanentDeleteCases } from "@/hooks/use-implant-cases";
 import { useFollowups, useCreateFollowup, useUpdateFollowup, useAssignableUsers } from "@/hooks/use-followups";
 import { useCreatePayment, useUpdatePayment, useVoidPayment, useCaseFinance } from "@/hooks/use-finance";
 import { useAuth } from "@/hooks/use-auth";
@@ -1803,9 +1803,13 @@ function OperationalInstallmentRow({
 function PatientExpandedRow({
   group,
   showFinance,
+  selectedCaseIds,
+  onCaseSelectedChange,
 }: {
   group: PatientGroup;
   showFinance: boolean;
+  selectedCaseIds: Set<string>;
+  onCaseSelectedChange: (caseId: string, selected: boolean) => void;
 }) {
   const { t } = useTranslation("operations");
   const { user } = useAuth();
@@ -2159,19 +2163,31 @@ function PatientExpandedRow({
                   <InlineCaseEdit c={c} patientId={group.patientId} onDone={() => setEditingCaseId(null)} />
                 ) : (
                   <div className="flex flex-wrap gap-3 justify-between items-start">
-                    <div className="space-y-1 text-sm flex-1">
-                      <div className="flex gap-2 flex-wrap">
-                        <Badge variant="outline" className="text-[11px]">{enumLabel("caseStatus", c.caseStatus)}</Badge>
-                        {c.prosValue && (
-                          <Badge variant="secondary" className="text-[11px] notranslate">Pros: {c.prosValue}</Badge>
-                        )}
+                    <div className="flex items-start gap-3 flex-1">
+                      {user?.role === "ADMIN" && (
+                        <div className="mt-1">
+                          <Checkbox
+                            id={`case-select-${c.id}`}
+                            checked={selectedCaseIds.has(c.id)}
+                            onCheckedChange={(checked) => onCaseSelectedChange(c.id, checked === true)}
+                            aria-label={t("dashboard.selectCase", { defaultValue: "Select case" })}
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-1 text-sm flex-1">
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge variant="outline" className="text-[11px]">{enumLabel("caseStatus", c.caseStatus)}</Badge>
+                          {c.prosValue && (
+                            <Badge variant="secondary" className="text-[11px] notranslate">Pros: {c.prosValue}</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground notranslate">
+                          {c.treatingDoctor}
+                          {c.procedureDate ? ` — ${formatSaudiDate(c.procedureDate)}` : ""}
+                           {c.expectedProstheticDate ? ` — ${t("dashboard.prosthetic")}: ${formatSaudiDate(c.expectedProstheticDate)}` : ""}
+                        </p>
+                        {c.generalNote && <p className="text-xs text-muted-foreground">{c.generalNote}</p>}
                       </div>
-                      <p className="text-xs text-muted-foreground notranslate">
-                        {c.treatingDoctor}
-                        {c.procedureDate ? ` — ${formatSaudiDate(c.procedureDate)}` : ""}
-                         {c.expectedProstheticDate ? ` — ${t("dashboard.prosthetic")}: ${formatSaudiDate(c.expectedProstheticDate)}` : ""}
-                      </p>
-                      {c.generalNote && <p className="text-xs text-muted-foreground">{c.generalNote}</p>}
                     </div>
                      <div className="flex flex-wrap items-center gap-1 shrink-0">
                        <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => startEditCase(c.id)}>
@@ -2778,6 +2794,8 @@ function PatientCard({
   selected,
   onSelectedChange,
   onAction,
+  selectedCaseIds,
+  onCaseSelectedChange,
 }: {
   group: PatientGroup;
   showFinance: boolean;
@@ -2787,6 +2805,8 @@ function PatientCard({
   selected: boolean;
   onSelectedChange: (selected: boolean) => void;
   onAction: () => void;
+  selectedCaseIds: Set<string>;
+  onCaseSelectedChange: (caseId: string, selected: boolean) => void;
 }) {
   const { enumLabel } = useEnumTranslation();
   const overdue = hasOverdue(group.rows);
@@ -2839,7 +2859,12 @@ function PatientCard({
       >
         <div className="min-h-0 overflow-hidden">
           {expanded && (
-            <PatientExpandedRow group={group} showFinance={showFinance} />
+            <PatientExpandedRow
+              group={group}
+              showFinance={showFinance}
+              selectedCaseIds={selectedCaseIds}
+              onCaseSelectedChange={onCaseSelectedChange}
+            />
           )}
         </div>
       </div>
@@ -2856,11 +2881,15 @@ function ExpandedRowWrapper({
   showFinance,
   colSpan,
   expanded,
+  selectedCaseIds,
+  onCaseSelectedChange,
 }: {
   group: PatientGroup;
   showFinance: boolean;
   colSpan: number;
   expanded: boolean;
+  selectedCaseIds: Set<string>;
+  onCaseSelectedChange: (caseId: string, selected: boolean) => void;
 }) {
   return (
     <tr>
@@ -2874,7 +2903,12 @@ function ExpandedRowWrapper({
         >
           <div className="min-h-0 overflow-hidden">
             {expanded && (
-              <PatientExpandedRow group={group} showFinance={showFinance} />
+              <PatientExpandedRow
+                group={group}
+                showFinance={showFinance}
+                selectedCaseIds={selectedCaseIds}
+                onCaseSelectedChange={onCaseSelectedChange}
+              />
             )}
           </div>
         </div>
@@ -2928,6 +2962,15 @@ export function OperationalTable({
     impact: Awaited<ReturnType<typeof bulkAction.mutateAsync>>["impact"];
   }>(null);
 
+  const bulkPermanentDelete = useBulkPermanentDeleteCases();
+  const [deleteDialog, setDeleteDialog] = useState<null | {
+    caseIds: string[];
+    impact?: any;
+    importBatchContext?: string[];
+    previewToken?: string;
+    confirmed: boolean;
+  }>(null);
+
   const groups = data ? groupByPatient(data.rows) : [];
   const totalGroups = groups.length;
   const totalPages = Math.max(1, Math.ceil(totalGroups / PAGE_SIZE));
@@ -2941,8 +2984,16 @@ export function OperationalTable({
   const selectedGroups = groups.filter((group) => selectedIds.has(group.patientId));
   const activeSelectedIds = selectedGroups.filter((group) => group.status === "active").map((group) => group.patientId);
   const archivedSelectedIds = selectedGroups.filter((group) => group.status === "archived").map((group) => group.patientId);
+  const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(new Set());
+
   const clearSelection = () => setSelectedIds(new Set());
+  const clearCaseSelection = () => setSelectedCaseIds(new Set());
   const setSelected = (id: string, selected: boolean) => setSelectedIds((current) => {
+    const next = new Set(current);
+    if (selected) next.add(id); else next.delete(id);
+    return next;
+  });
+  const setCaseSelected = (id: string, selected: boolean) => setSelectedCaseIds((current) => {
     const next = new Set(current);
     if (selected) next.add(id); else next.delete(id);
     return next;
@@ -2968,6 +3019,36 @@ export function OperationalTable({
       setExpandedPatientId(null);
     } catch (error) {
       toast({ variant: "destructive", title: localizeErrorMessage(error) });
+    }
+  };
+
+  const openDeleteDialog = async () => {
+    const caseIds = Array.from(selectedCaseIds);
+    if (caseIds.length === 0) return;
+    setDeleteDialog({ caseIds, confirmed: false });
+    try {
+      const res = await bulkPermanentDelete.mutateAsync({ caseIds, preview: true });
+      setDeleteDialog(prev => prev ? { ...prev, impact: res.impact, importBatchContext: res.importBatchContext, previewToken: res.previewToken } : null);
+    } catch (error) {
+      toast({ variant: "destructive", title: dashboardText("deleteFailed") });
+      setDeleteDialog(null);
+    }
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!deleteDialog || !deleteDialog.confirmed) return;
+    try {
+      await bulkPermanentDelete.mutateAsync({ caseIds: deleteDialog.caseIds, preview: false, confirmed: true, previewToken: deleteDialog.previewToken });
+      toast({ title: dashboardText("deleteSuccess") });
+      setDeleteDialog(null);
+      clearCaseSelection();
+    } catch (error: any) {
+      if (error?.message?.includes("409")) {
+        toast({ variant: "destructive", title: dashboardText("stalePreviewError", { defaultValue: "Preview expired, please try again." }) });
+        setDeleteDialog(null);
+      } else {
+        toast({ variant: "destructive", title: dashboardText("deleteFailed") });
+      }
     }
   };
 
@@ -3054,9 +3135,11 @@ export function OperationalTable({
         />
       </div>
       <CardContent className="p-0">
-        {isAdmin && selectedIds.size > 0 && (
+        {(isAdmin && selectedIds.size > 0 || (isAdmin && selectedCaseIds.size > 0)) && (
           <div className="mx-4 mb-3 flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2 print:hidden" data-testid="bulk-action-bar">
-            <span className="text-sm font-medium">{dashboardText("selectedCount", { count: selectedIds.size })}</span>
+            <span className="text-sm font-medium">
+              {dashboardText("selectedCount", { count: selectedIds.size + selectedCaseIds.size })}
+            </span>
             <div className="flex gap-2">
               {activeSelectedIds.length > 0 && (
                 <Button size="sm" variant="destructive" onClick={() => void openBulkDialog(activeSelectedIds, "archive")} disabled={bulkAction.isPending}>
@@ -3070,7 +3153,18 @@ export function OperationalTable({
                   {dashboardText("restoreSelected")}
                 </Button>
               )}
-              <Button size="sm" variant="ghost" onClick={clearSelection}>{dashboardText("clearSelection")}</Button>
+              {selectedCaseIds.size > 0 && (
+                <Button size="sm" variant="destructive" onClick={() => void openDeleteDialog()} disabled={bulkPermanentDelete.isPending}>
+                  <Trash2 className="h-4 w-4" />
+                  {dashboardText("deletePermanently")}
+                </Button>
+              )}
+              {selectedCaseIds.size > 0 && (
+                <Button size="sm" variant="ghost" onClick={clearCaseSelection}>{dashboardText("clearCaseSelection")}</Button>
+              )}
+              {selectedIds.size > 0 && (
+                <Button size="sm" variant="ghost" onClick={clearSelection}>{dashboardText("clearSelection")}</Button>
+              )}
             </div>
           </div>
         )}
@@ -3180,6 +3274,8 @@ export function OperationalTable({
                             showFinance={showFinance}
                             colSpan={colSpan}
                             expanded={visibleExpandedPatientId === group.patientId}
+                            selectedCaseIds={selectedCaseIds}
+                            onCaseSelectedChange={setCaseSelected}
                           />
                         </React.Fragment>
                       ))}
@@ -3200,6 +3296,8 @@ export function OperationalTable({
                       selected={selectedIds.has(group.patientId)}
                       onSelectedChange={(selected) => setSelected(group.patientId, selected)}
                       onAction={() => void openBulkDialog([group.patientId], group.status === "active" ? "archive" : "restore")}
+                      selectedCaseIds={selectedCaseIds}
+                      onCaseSelectedChange={setCaseSelected}
                     />
                   ))}
                 </div>
@@ -3277,6 +3375,65 @@ export function OperationalTable({
             <AlertDialogAction onClick={(event) => { event.preventDefault(); void confirmBulkAction(); }} disabled={bulkAction.isPending} className={dialog?.action === "archive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}>
               {bulkAction.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               {dashboardText(dialog?.action === "restore" ? "confirmRestore" : "confirmArchive")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteDialog !== null} onOpenChange={(open) => { if (!open && !bulkPermanentDelete.isPending) setDeleteDialog(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">{dashboardText("confirmBulkDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {dashboardText("confirmBulkDeleteDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            {!deleteDialog?.impact ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm space-y-1 font-medium">
+                  {deleteDialog.impact.cases > 0 && <p>{dashboardText("impactCases")}: {deleteDialog.impact.cases.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.implants > 0 && <p>{dashboardText("impactImplants")}: {deleteDialog.impact.implants.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.boneGraftProcedures > 0 && <p>{dashboardText("impactBoneGraftProcedures")}: {deleteDialog.impact.boneGraftProcedures.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.prostheticEvents > 0 && <p>{dashboardText("impactProstheticEvents")}: {deleteDialog.impact.prostheticEvents.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.followups > 0 && <p>{dashboardText("impactFollowups")}: {deleteDialog.impact.followups.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.communications > 0 && <p>{dashboardText("impactCommunications")}: {deleteDialog.impact.communications.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.payments > 0 && <p>{dashboardText("impactPayments")}: {deleteDialog.impact.payments.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.charges > 0 && <p>{dashboardText("impactCharges")}: {deleteDialog.impact.charges.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.discounts > 0 && <p>{dashboardText("impactDiscounts")}: {deleteDialog.impact.discounts.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.installmentPlans > 0 && <p>{dashboardText("impactInstallmentPlans")}: {deleteDialog.impact.installmentPlans.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.installments > 0 && <p>{dashboardText("impactInstallments")}: {deleteDialog.impact.installments.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.historicalFinance > 0 && <p>{dashboardText("impactHistoricalFinance")}: {deleteDialog.impact.historicalFinance.toLocaleString("en-US")}</p>}
+                  {deleteDialog.impact.importedCases > 0 && <p>{dashboardText("impactImportedCases")}: {deleteDialog.impact.importedCases.toLocaleString("en-US")}</p>}
+                  {deleteDialog.importBatchContext && deleteDialog.importBatchContext.length > 0 && (
+                    <p>{dashboardText("impactImportBatchContext")}: {deleteDialog.importBatchContext.length.toLocaleString("en-US")}</p>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="confirm-bulk-delete"
+                    checked={deleteDialog.confirmed}
+                    onCheckedChange={(checked) => setDeleteDialog(prev => prev ? { ...prev, confirmed: checked === true } : null)}
+                  />
+                  <Label htmlFor="confirm-bulk-delete" className="text-sm font-semibold cursor-pointer">
+                    {dashboardText("deleteAcknowledgment")}
+                  </Label>
+                </div>
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkPermanentDelete.isPending}>{dashboardText("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => { event.preventDefault(); void confirmDeleteAction(); }}
+              disabled={bulkPermanentDelete.isPending || !deleteDialog?.impact || !deleteDialog?.confirmed}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkPermanentDelete.isPending ? <Loader2 className="h-4 w-4 animate-spin ms-2" /> : dashboardText("deletePermanently")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -15,6 +15,7 @@ interface PatientDetailsSectionProps {
   onArchive: () => void;
   onRestore: () => void;
   isRestoring: boolean;
+  onPermanentDelete?: () => void;
 }
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -32,6 +33,7 @@ export function PatientDetailsSection({
   onArchive,
   onRestore,
   isRestoring,
+  onPermanentDelete,
 }: PatientDetailsSectionProps) {
   const { t } = useClinicalTranslation();
   const { toast } = useToast();
@@ -99,10 +101,17 @@ export function PatientDetailsSection({
                {t("patient.restore")}
             </Button>
           ) : canArchive && !isEditing ? (
-            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={onArchive}>
-              <Archive className="h-4 w-4 ms-1.5" />
-               {t("patient.archive")}
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={onArchive}>
+                <Archive className="h-4 w-4 ms-1.5" />
+                 {t("patient.archive")}
+              </Button>
+              {onPermanentDelete && (
+                <Button variant="destructive" size="sm" onClick={onPermanentDelete}>
+                  {t("operations:dashboard.deletePatientPermanently", { defaultValue: "Delete Patient Permanently" })}
+                </Button>
+              )}
+            </>
           ) : null}
         </div>
       </div>

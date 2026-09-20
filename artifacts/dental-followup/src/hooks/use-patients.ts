@@ -91,3 +91,24 @@ export function useCheckFileNumber() {
     mutationFn: (fileNumber: string) => api.checkFileNumber(fileNumber),
   });
 }
+
+export function usePermanentDeletePatient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: { preview: boolean; confirmed?: boolean; previewToken?: string } }) =>
+      api.permanentDeletePatient(id, input),
+    onSuccess: (response, variables) => {
+      if (response.preview || !variables.input.confirmed) return;
+      queryClient.removeQueries({ queryKey: getPatientQueryKey(variables.id) });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patient"] });
+      void invalidateOperationalViews(queryClient);
+      void invalidatePatientCreatedViews(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["case-finance"] });
+    },
+  });
+}

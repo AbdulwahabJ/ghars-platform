@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +20,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { usePatient, useArchivePatient, useRestorePatient } from "@/hooks/use-patients";
+import { usePatient, useArchivePatient, useRestorePatient, usePermanentDeletePatient } from "@/hooks/use-patients";
 import { useToast } from "@/hooks/use-toast";
 import { PatientDetailsSection } from "@/components/patients/PatientDetailsSection";
 import { ImplantsTab } from "@/components/implants/ImplantsTab";
@@ -48,8 +59,10 @@ export default function PatientFile() {
   const { data, isLoading, isError, refetch } = usePatient(id ?? "");
   const archivePatient = useArchivePatient();
   const restorePatient = useRestorePatient();
+  const permanentDeletePatient = usePermanentDeletePatient();
   const [showArchived, setShowArchived] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [deleteState, setDeleteState] = useState<{ open: boolean; impact?: any; importBatchContext?: string[]; confirmed: boolean }>({ open: false, confirmed: false });
   const deepLink = parsePatientDeepLink(search);
   const [activeTab, setActiveTab] = useState<PatientFileTab>(deepLink.tab);
 
@@ -84,6 +97,39 @@ export default function PatientFile() {
       onError: (error: Error) =>
         toast({ variant: "destructive", title: t("patient.restoreFailed"), description: localizeErrorMessage(error) }),
     });
+  };
+
+  const handlePermanentDeletePreview = () => {
+    if (!id) return;
+    setDeleteState({ open: true, confirmed: false });
+    permanentDeletePatient.mutate(
+      { id, input: { preview: true } },
+      {
+        onSuccess: (res: any) => {
+          setDeleteState((prev) => ({ ...prev, impact: res.impact, importBatchContext: res.importBatchContext }));
+        },
+        onError: (error: Error) => {
+          toast({ variant: "destructive", title: commonT("errors.actionFailed", { defaultValue: "Error" }), description: localizeErrorMessage(error) });
+          setDeleteState({ open: false, confirmed: false });
+        },
+      }
+    );
+  };
+
+  const handlePermanentDeleteConfirm = () => {
+    if (!id) return;
+    permanentDeletePatient.mutate(
+      { id, input: { preview: false, confirmed: true } },
+      {
+        onSuccess: () => {
+          toast({ title: t("operations:dashboard.deleteSuccess", { defaultValue: "Deleted successfully" }) });
+          setDeleteState({ open: false, confirmed: false });
+          setLocation("/patients");
+        },
+        onError: (error: Error) =>
+          toast({ variant: "destructive", title: commonT("errors.actionFailed", { defaultValue: "Error" }), description: localizeErrorMessage(error) }),
+      }
+    );
   };
 
   if (isLoading) {
@@ -232,6 +278,7 @@ export default function PatientFile() {
                   onArchive={() => setShowArchiveConfirm(true)}
                   onRestore={handleRestore}
                   isRestoring={restorePatient.isPending}
+                  onPermanentDelete={canArchive ? handlePermanentDeletePreview : undefined}
                 />
               </section>
               <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
@@ -279,6 +326,73 @@ export default function PatientFile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteState.open} onOpenChange={(open) => setDeleteState(prev => ({ ...prev, open }))}>
+        <AlertDialogContent className="text-start sm:max-w-md" dir={document.documentElement.dir}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold text-destructive">{t("operations:dashboard.confirmBulkDeleteTitle", { defaultValue: "Permanent Delete" })}</AlertDialogTitle>
+            <AlertDialogDescription className="mt-4 text-base leading-relaxed text-foreground">
+              {t("operations:dashboard.confirmPatientDeleteDescription", { defaultValue: "This action will permanently delete the patient and all related data. This action cannot be undone." })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="py-4">
+            {!deleteState.impact ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm space-y-1 font-medium">
+                  {deleteState.impact.cases > 0 && <p>{t("operations:dashboard.impactCases")}: {deleteState.impact.cases.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.implants > 0 && <p>{t("operations:dashboard.impactImplants")}: {deleteState.impact.implants.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.boneGraftProcedures > 0 && <p>{t("operations:dashboard.impactBoneGraftProcedures")}: {deleteState.impact.boneGraftProcedures.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.prostheticEvents > 0 && <p>{t("operations:dashboard.impactProstheticEvents")}: {deleteState.impact.prostheticEvents.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.followups > 0 && <p>{t("operations:dashboard.impactFollowups")}: {deleteState.impact.followups.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.communications > 0 && <p>{t("operations:dashboard.impactCommunications")}: {deleteState.impact.communications.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.payments > 0 && <p>{t("operations:dashboard.impactPayments")}: {deleteState.impact.payments.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.charges > 0 && <p>{t("operations:dashboard.impactCharges")}: {deleteState.impact.charges.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.discounts > 0 && <p>{t("operations:dashboard.impactDiscounts")}: {deleteState.impact.discounts.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.installmentPlans > 0 && <p>{t("operations:dashboard.impactInstallmentPlans")}: {deleteState.impact.installmentPlans.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.installments > 0 && <p>{t("operations:dashboard.impactInstallments")}: {deleteState.impact.installments.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.historicalFinance > 0 && <p>{t("operations:dashboard.impactHistoricalFinance")}: {deleteState.impact.historicalFinance.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.importedCases > 0 && <p>{t("operations:dashboard.impactImportedCases")}: {deleteState.impact.importedCases.toLocaleString("en-US")}</p>}
+                  {deleteState.impact.patients > 0 && <p>{t("operations:dashboard.impactPatients")}: {deleteState.impact.patients.toLocaleString("en-US")}</p>}
+                  {deleteState.importBatchContext && deleteState.importBatchContext.length > 0 && (
+                    <p>{t("operations:dashboard.impactImportBatchContext")}: {deleteState.importBatchContext.length.toLocaleString("en-US")}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="confirm-delete"
+                    checked={deleteState.confirmed}
+                    onCheckedChange={(checked) => setDeleteState(prev => ({ ...prev, confirmed: checked === true }))}
+                  />
+                  <Label htmlFor="confirm-delete" className="text-sm font-semibold cursor-pointer">
+                    {t("operations:dashboard.deleteAcknowledgment", { defaultValue: "I fully understand that this deletion is permanent and cannot be undone." })}
+                  </Label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter className="mt-5 flex-row gap-3 sm:justify-start">
+            <Button
+              onClick={handlePermanentDeleteConfirm}
+              disabled={!deleteState.impact || !deleteState.confirmed || permanentDeletePatient.isPending}
+              variant="destructive"
+            >
+              {permanentDeletePatient.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("operations:dashboard.deletePatientPermanently", { defaultValue: "Delete Patient Permanently" })}
+            </Button>
+            <AlertDialogCancel asChild>
+              <Button variant="outline" onClick={() => setDeleteState(prev => ({ ...prev, open: false }))}>
+                {t("patient.cancel")}
+              </Button>
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 }

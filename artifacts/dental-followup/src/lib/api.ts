@@ -486,6 +486,11 @@ export const api = {
       method: "POST",
       json: input,
     }),
+  permanentDeletePatient: (id: string, input: { preview: boolean; confirmed?: boolean; previewToken?: string }) =>
+    request<any>(`/patients/${id}/permanent-delete`, {
+      method: "POST",
+      json: input,
+    }),
 
   // Phase 2 — implant cases & implants
   getImplantOptions: () =>
@@ -509,6 +514,11 @@ export const api = {
   restoreImplantCase: (id: string) =>
     request<{ case: ImplantCase }>(`/implant-cases/${id}/restore`, {
       method: "POST",
+    }),
+  bulkPermanentDeleteCases: (input: { caseIds: string[]; preview: boolean; confirmed?: boolean; previewToken?: string }) =>
+    request<any>("/implant-cases/bulk-permanent-delete", {
+      method: "POST",
+      json: input,
     }),
   createImplant: (caseId: string, input: ImplantInput) =>
     request<{ implant: Implant }>(`/implant-cases/${caseId}/implants`, {

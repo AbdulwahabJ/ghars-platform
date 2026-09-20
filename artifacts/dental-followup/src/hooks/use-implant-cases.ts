@@ -9,7 +9,7 @@ import type {
   BoneGraftProcedureInput,
   BoneGraftProcedureUpdate,
 } from "@workspace/shared";
-import { invalidatePatientRecordViews } from "@/lib/query-invalidation";
+import { invalidatePatientRecordViews, invalidateOperationalViews } from "@/lib/query-invalidation";
 
 export const getImplantCasesQueryKey = (patientId: string) =>
   ["patient", patientId, "implant-cases"] as const;
@@ -83,6 +83,27 @@ export function useRestoreImplantCase() {
     mutationFn: ({ id }: { id: string; patientId: string }) =>
       api.restoreImplantCase(id),
     onSuccess: (_res, vars) => invalidate(vars.patientId),
+  });
+}
+
+export function useBulkPermanentDeleteCases() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { caseIds: string[]; preview: boolean; confirmed?: boolean; previewToken?: string }) =>
+      api.bulkPermanentDeleteCases(input),
+    onSuccess: (response, variables) => {
+      if (response.preview || !variables.confirmed) return;
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patient"] });
+      void invalidateOperationalViews(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      for (const id of variables.caseIds) {
+        queryClient.removeQueries({ queryKey: ["case-finance", id] });
+      }
+    },
   });
 }
 
