@@ -1,0 +1,681 @@
+MODE: Power
+
+FINAL SOURCE-AWARE MAPPING FIX FOR THE CURRENT GHARS LEGACY IMPORT.
+
+Use the ATTACHED CURRENT SOURCE TABLE and CURRENT MAPPING SCREEN as the source of truth.
+
+DO NOT rebuild OCR.
+DO NOT redesign the importer.
+DO NOT import anything.
+DO NOT publish.
+
+The extraction is already correct.
+
+The remaining problem is that the Mapping screen still shows:
+
+Q → Legacy Note
+Former → Legacy Note
+Graft → Legacy Note
+Pros → Legacy Note
+
+This is incorrect.
+
+==================================================
+1. CURRENT SOURCE PROVES THESE ARE STRUCTURED COLUMNS
+==================================================
+
+The attached original table has explicit independent columns:
+
+Q
+Former
+Graft
+Pros
+NOTE
+
+They are NOT one generic notes column.
+
+Therefore stale tenant mappings that route these fields to Legacy Note must be invalidated.
+
+==================================================
+2. Q
+==================================================
+
+Map:
+
+Q → canonical Implant.Q
+
+Examples visible in the attached source include:
+
+80
+35
+10
+
+These values must reach the actual proposed implant record.
+
+Example:
+
+Raw:
+Q = 80
+
+Preview:
+Q: 80
+
+Commit payload:
+implant.q = 80
+
+Never:
+Q → Legacy Note
+
+==================================================
+3. FORMER
+==================================================
+
+Map:
+
+Former → canonical Implant.Former
+
+Attached source contains values such as:
+
+Y
+N
+MST
+
+They must populate the actual Former field.
+
+Do not convert them into free-text notes.
+
+==================================================
+4. GRAFT
+==================================================
+
+Map:
+
+Graft → canonical Implant.Graft
+
+Attached source includes:
+
+Y
+N
+
+Populate implant-level Graft.
+
+Do NOT automatically create a Bone Graft Procedure from Graft=Y.
+
+No invented:
+- procedure type
+- material
+- membrane
+- status
+- date
+
+==================================================
+5. PROS
+==================================================
+
+The attached source contains recognized values:
+
+2M
+3M
+
+Use the already-proven canonical mapping:
+
+Pros → case.prosValue
+
+2M → 2M
+3M → 3M
+
+If a future Pros value is unknown:
+REVIEW REQUIRED
+and preserve raw value.
+
+Do NOT map recognized 2M/3M to generic Legacy Note.
+
+==================================================
+6. NOTE
+==================================================
+
+NOTE is the real free-text/legacy clinical note field.
+
+Values visible include:
+
+IMMED
+DIRECT
+Sas101
+and similar source notes.
+
+Preserve exactly.
+
+Do not translate or reinterpret automatically.
+
+==================================================
+7. CRITICAL — MULTI-IMPLANT LINE-BY-LINE PAIRING
+==================================================
+
+The attached source proves that some multi-implant rows contain aligned multiline values.
+
+Example pattern:
+
+SITE:
+45
+44
+43
+34
+35
+15
+
+SIZE:
+3.8×10
+3.8×10
+3.8×10
+3.8×10
+3.8×10
+3.8×12
+
+Q:
+35
+35
+35
+35
+35
+35
+
+Former:
+MST
+MST
+MST
+MST
+MST
+MST
+
+Graft:
+N
+N
+N
+N
+N
+N
+
+These are line-aligned values.
+
+Pair by source line order:
+
+Implant 1:
+site[1]
+size[1]
+Q[1]
+Former[1]
+Graft[1]
+
+Implant 2:
+site[2]
+size[2]
+Q[2]
+Former[2]
+Graft[2]
+
+etc.
+
+DO NOT collapse these arrays into Legacy Note.
+
+==================================================
+8. APPLY-TO-ALL ONLY WHEN SOURCE HAS ONE VALUE
+==================================================
+
+If a multi-implant row has:
+
+multiple sites
+multiple sizes
+
+but only ONE Q / Former / Graft value,
+
+then and only then use:
+
+"Apply to all implants"
+
+when the source structure reasonably indicates row-level scope.
+
+If uncertain:
+REVIEW REQUIRED.
+
+If source contains the same number of values as implants:
+pair line-by-line automatically.
+
+==================================================
+9. COUNT VALIDATION
+==================================================
+
+For every multi-implant row compare:
+
+site count
+size count
+Q count if per-implant
+Former count if per-implant
+Graft count if per-implant
+
+Required site/size mismatch:
+BLOCK.
+
+Optional field count mismatch:
+REVIEW REQUIRED unless a single row-level value clearly applies to all.
+
+Never guess positional pairing.
+
+==================================================
+10. IMPLANT SIZE DIRECTION
+==================================================
+
+Clinical sizes are LTR values even inside Arabic UI.
+
+Source:
+
+4.8 × 10
+
+must display exactly:
+
+4.8 × 10
+
+NOT:
+
+10 × 4.8
+
+Likewise:
+
+3.8 × 08
+3.5 × 10
+4.2 × 12
+3.5 × 12
+
+Preserve diameter and length order.
+
+==================================================
+11. NAME + MOBILE
+==================================================
+
+Keep the smart split behavior:
+
+NAME + MOBILE
+→ Patient Name + Mobile
+
+The current source rows may contain only names.
+
+If no mobile exists:
+leave mobile blank.
+
+Do not fabricate it.
+
+Mapping UI should say:
+
+اسم المريض + رقم الجوال
+
+not just:
+
+اسم المريض
+
+because the transformation supports both.
+
+==================================================
+12. COST / HISTORICAL FINANCE
+==================================================
+
+Map:
+
+COST → Historical Finance
+
+NOT normal Payments.
+
+Preserve exact raw COST text.
+
+The attached source contains different finance patterns.
+
+Example A:
+
+"تم دفع كامل المبلغ 10000"
+
+This may be proposed as:
+
+Historical Total: 10,000
+Historical Paid: 10,000
+Opening Balance: 0
+Status: PAID_IN_FULL
+
+ONLY if the phrase and amount were extracted with high confidence and the user verifies it.
+
+Example B:
+
+دفعة أولى 1500
+دفعة ثانية 1500
+
+May propose:
+
+Documented paid candidate: 3,000
+
+But:
+
+Total: Unspecified
+Opening Balance: Unspecified
+Status: Review Required
+
+Do NOT assume installment sum equals total treatment price.
+
+==================================================
+13. UNKNOWN FINANCE MUST NOT BECOME ZERO
+==================================================
+
+Unknown Total:
+NULL / غير محدد
+
+Unknown Paid:
+NULL / غير محدد
+
+Unknown Opening:
+NULL / غير محدد
+
+Only explicit known zero is 0.
+
+No fake payments.
+No fake dates.
+No fake payment methods.
+
+==================================================
+14. CLEAR STALE TENANT MAPPINGS
+==================================================
+
+Current UI shows:
+
+Approved tenant mapping
+
+for incorrect destinations.
+
+Find and invalidate only stale mappings:
+
+Q → Legacy Note
+Former → Legacy Note
+Graft → Legacy Note
+Pros → Legacy Note
+
+Do NOT erase valid tenant mappings for:
+
+DATE
+FILE
+System
+site
+SIZE
+AGE
+etc.
+
+After correction save the new approved tenant mappings.
+
+==================================================
+15. MAPPING PRIORITY GUARD
+==================================================
+
+A stale tenant mapping must not override a canonical semantic field.
+
+If Ghars has:
+
+Implant.Q
+
+then:
+
+Q → Legacy Note
+
+must be considered invalid.
+
+Same for:
+
+Former
+Graft
+Pros 2M/3M
+
+Add validation so this cannot recur.
+
+==================================================
+16. REBUILD CURRENT STAGING BATCH
+==================================================
+
+Recompute the CURRENT staging mapping without requiring a re-upload if technically possible.
+
+Expected Mapping screen:
+
+NAME + MOBILE
+→ اسم المريض + رقم الجوال
+
+AGE
+→ العمر
+
+DATE
+→ تاريخ العملية
+
+FILE
+→ رقم الملف
+
+System
+→ نظام الزرعة
+
+site
+→ موقع الزرعة (السن)
+
+SIZE
+→ مقاس الزرعة
+
+Q
+→ Q
+
+Former
+→ Former
+
+Graft
+→ Graft
+
+COST
+→ المالية التاريخية
+
+Pros
+→ Pros
+
+NOTE
+→ الملاحظة القديمة / الملاحظة السريرية
+
+==================================================
+17. CURRENT SOURCE VISUAL QA
+==================================================
+
+Actually reopen the current Mapping screen.
+
+Do not rely only on unit tests.
+
+Visually verify:
+
+Q ≠ Legacy Note
+Former ≠ Legacy Note
+Graft ≠ Legacy Note
+Pros 2M/3M ≠ Legacy Note
+
+==================================================
+18. CURRENT SOURCE PREVIEW QA
+==================================================
+
+Proceed internally to Preview WITHOUT COMMITTING.
+
+Verify a source row containing:
+
+Q 80
+Former Y
+Graft N
+Pros 3M
+NOTE IMMED
+
+shows:
+
+Q: 80
+Former: Y
+Graft: N
+Pros: 3M
+Note: IMMED
+
+==================================================
+19. MULTI-IMPLANT QA
+==================================================
+
+Use the attached multi-implant rows.
+
+Verify every site is paired with the correct:
+
+size
+Q
+Former
+Graft
+
+based on source line order.
+
+Report exact counts.
+
+Example output:
+
+Patient row X:
+Sites: 6
+Sizes: 6
+Q: 6
+Former: 6
+Graft: 6
+Pairing: PASS
+
+==================================================
+20. STRUCTURED VALUES MUST NOT DUPLICATE INTO NOTES
+==================================================
+
+Once mapped canonically:
+
+Q
+Former
+Graft
+Pros
+
+must not also be repeated inside Legacy Note.
+
+Legacy Note should contain actual NOTE/free text only.
+
+==================================================
+21. CLINICAL ONLY MODE
+==================================================
+
+If import mode is Clinical Only:
+
+finance requiring review must NOT block a clinically valid row.
+
+Raw COST must still be preserved.
+
+Clinical structural problems still BLOCK.
+
+==================================================
+22. NO BUSINESS DATA WRITE
+==================================================
+
+This task is validation/mapping only.
+
+Do NOT create:
+
+patients
+cases
+implants
+payments
+historical finance records
+
+Do NOT modify Production.
+
+==================================================
+23. FINAL REPORT
+==================================================
+
+Return:
+
+STALE MAPPING ROOT CAUSE:
+<exact cause>
+
+CURRENT MAPPING SCREEN VISUALLY VERIFIED:
+PASS / FAIL
+
+NAME + MOBILE:
+<destination>
+
+Q:
+<destination>
+
+FORMER:
+<destination>
+
+GRAFT:
+<destination>
+
+COST:
+<destination>
+
+PROS:
+<destination>
+
+NOTE:
+<destination>
+
+Q CANONICAL VALUE:
+PASS / FAIL
+
+FORMER CANONICAL VALUE:
+PASS / FAIL
+
+GRAFT CANONICAL VALUE:
+PASS / FAIL
+
+PROS 2M/3M:
+PASS / FAIL
+
+LINE-BY-LINE MULTI-IMPLANT PAIRING:
+PASS / FAIL
+
+APPLY-TO-ALL FALLBACK:
+PASS / FAIL
+
+SITE/SIZE MISMATCH BLOCK:
+PASS / FAIL
+
+SIZE LTR DISPLAY:
+PASS / FAIL
+
+STRUCTURED VALUES REMOVED FROM LEGACY NOTE:
+PASS / FAIL
+
+RAW COST PRESERVED:
+PASS / FAIL
+
+FULL-PAID PHRASE REVIEW:
+PASS / FAIL
+
+INSTALLMENT SUM DOES NOT BECOME FALSE TOTAL:
+PASS / FAIL
+
+UNKNOWN FINANCE != ZERO:
+PASS / FAIL
+
+NO FAKE PAYMENTS:
+PASS / FAIL
+
+CURRENT STAGING REBUILT:
+PASS / FAIL
+
+NO BUSINESS DATA WRITE:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+DO NOT PUBLISH.
+DO NOT IMPORT.
+Create checkpoint and STOP.

@@ -1,0 +1,870 @@
+MODE: Power
+
+SIMPLIFY AND FINALIZE GHARS LEGACY IMPORT UX FOR RELEASE.
+
+IMPORTANT DIRECTION CHANGE:
+
+The current universal importer became too complex for normal clinic users.
+
+DO NOT throw away the working extraction/backend architecture.
+
+KEEP:
+- XLSX / CSV / PDF / scanned PDF / image support
+- table extraction
+- semantic mapping
+- tenant mapping memory
+- duplicate detection
+- Q / Former / Graft / Pros support
+- historical dates
+- historical finance raw preservation
+- tenant isolation
+- import batches
+- transactional safety
+- rollback safety
+
+BUT radically SIMPLIFY THE USER EXPERIENCE.
+
+The final product should feel like:
+
+UPLOAD FILE
+→ GHARS UNDERSTANDS IT
+→ REVIEW ONLY WHAT NEEDS ATTENTION
+→ EDIT DIRECTLY
+→ IMPORT
+
+Do NOT expose internal importer complexity to normal users.
+
+DO NOT publish.
+DO NOT import Production data.
+
+==================================================
+1. PRIMARY UX GOAL
+==================================================
+
+A clinic should NOT need to understand:
+
+- mapping architecture
+- confidence engines
+- normalization
+- staging
+- field paths
+- canonical model names
+- import internals
+
+The user experience should be simple enough for a clinic administrator.
+
+Main flow:
+
+STEP 1
+Upload file
+
+STEP 2
+Automatic analysis
+
+STEP 3
+Review data
+
+STEP 4
+Import ready records
+
+==================================================
+2. HIDE MAPPING STEP WHEN EVERYTHING IS UNDERSTOOD
+==================================================
+
+Do NOT show the full field-mapping screen by default.
+
+If Ghars confidently understands:
+
+NAME → Patient
+FILE → File Number
+DATE → Procedure Date
+site → Implant Site
+SIZE → Implant Size
+Q → Q
+Former → Former
+Graft → Graft
+Pros → Pros
+NOTE → Note
+
+then proceed directly to Review.
+
+Only show mapping UI when:
+
+- a column is unknown
+- mapping confidence is insufficient
+- a tenant-specific meaning needs confirmation
+
+==================================================
+3. UNKNOWN COLUMN EXPERIENCE
+==================================================
+
+If a source contains an unknown column:
+
+Example:
+
+XYZ
+
+Show one simple question:
+
+"ما هو هذا الحقل؟"
+
+Dropdown:
+- choose Ghars field
+- حفظ كملاحظة
+- تجاهل
+
+Once confirmed:
+remember mapping for this tenant.
+
+Do not expose technical terms such as:
+
+canonical field
+deterministic alias
+semantic inference
+
+==================================================
+4. REVIEW SCREEN = SMART EDITABLE TABLE
+==================================================
+
+Replace the current large complicated cards with a clear editable table.
+
+Recommended columns:
+
+Status
+Patient
+File Number
+Procedure Date
+Implants
+System
+Q
+Former
+Graft
+Pros
+Historical Finance
+Notes
+Actions
+
+Keep it horizontally manageable.
+
+Use row expansion for detailed implant data.
+
+==================================================
+5. STATUS SYSTEM
+==================================================
+
+Use only three clear statuses:
+
+READY
+Arabic:
+جاهز
+
+REVIEW REQUIRED
+Arabic:
+يحتاج مراجعة
+
+BLOCKED
+Arabic:
+مشكلة تمنع الاستيراد
+
+Colors:
+
+Ready = subtle green
+Review = subtle amber
+Blocked = subtle red
+
+Do not overload the user with technical warnings.
+
+==================================================
+6. TOP SUMMARY
+==================================================
+
+At top show only:
+
+الإجمالي: 10
+جاهز: 7
+يحتاج مراجعة: 2
+محظور: 1
+
+English equivalent in English UI.
+
+Clicking a count filters the table.
+
+==================================================
+7. INLINE EDITING
+==================================================
+
+Allow direct editing inside Review.
+
+User should be able to click and correct:
+
+- patient name
+- file number
+- procedure date
+- implant system
+- site
+- size
+- Q
+- Former
+- Graft
+- Pros
+- notes
+
+No need to return to the source file.
+
+After editing:
+revalidate immediately.
+
+If corrected:
+row can move automatically from Review/Blocked to Ready.
+
+==================================================
+8. MULTIPLE IMPLANTS
+==================================================
+
+For a patient with multiple implants:
+
+Main row shows:
+
+3 زرعات
+
+Click to expand.
+
+Expanded section shows a simple table:
+
+Site | Size | System | Q | Former | Graft
+
+Each implant row can be edited directly.
+
+Do NOT show raw arrays or technical pairing structures.
+
+==================================================
+9. SAFE MISMATCH HANDLING
+==================================================
+
+Example:
+
+6 sites
+5 sizes
+
+Show clearly:
+
+"عدد مواقع الزرعات لا يطابق عدد المقاسات."
+
+Highlight only the problematic implant section.
+
+Allow user to:
+
+- add missing size
+- remove incorrect site
+- correct values
+
+Once counts align:
+revalidate.
+
+Do NOT guess.
+
+==================================================
+10. RAW SOURCE ACCESS
+==================================================
+
+Do not clutter the main review screen with raw OCR data.
+
+Add a small action:
+
+"عرض المصدر"
+
+When clicked:
+show the original row/crop/source values beside the proposed Ghars record.
+
+Use this only when user wants to verify extraction.
+
+==================================================
+11. Q / FORMER / GRAFT / PROS
+==================================================
+
+Keep canonical mappings.
+
+Q:
+→ Implant Q
+
+Former:
+→ Implant Former
+
+Graft:
+→ Implant Graft
+
+Pros:
+2M / 3M → case.prosValue
+
+Unknown Pros:
+Review Required
+
+Do NOT duplicate successfully mapped structured values into Legacy Note.
+
+==================================================
+12. NOTE
+==================================================
+
+NOTE remains:
+
+Legacy Clinical Note / Clinical Note
+
+Preserve source text exactly.
+
+Do not translate or reinterpret source notes automatically.
+
+==================================================
+13. HISTORICAL FINANCE — SIMPLIFY FOR V1
+==================================================
+
+Do NOT aggressively interpret complex legacy finance.
+
+Main goal for V1:
+
+Preserve the original COST text safely.
+
+Show in review:
+
+المالية السابقة
+<raw COST>
+
+Button:
+
+مراجعة المالية
+
+==================================================
+14. FINANCE REVIEW DIALOG
+==================================================
+
+When user clicks:
+
+مراجعة المالية
+
+open a simple dialog.
+
+Show:
+
+النص الأصلي:
+<raw COST>
+
+Optional fields:
+
+إجمالي العلاج السابق
+[ optional ]
+
+المدفوع سابقًا
+[ optional ]
+
+الرصيد الافتتاحي
+[ optional ]
+
+حالة السداد
+[ optional ]
+
+Buttons:
+
+حفظ
+تخطي الآن
+
+Unknown fields remain NULL.
+
+Do NOT force the user to complete them.
+
+==================================================
+15. OPENING BALANCE
+==================================================
+
+For old patients still active:
+
+allow user to enter:
+
+Opening Balance
+
+Example:
+
+الرصيد الافتتاحي:
+3,000 SAR
+
+This is enough to continue future Ghars finance safely.
+
+Do NOT require reconstructing every historical payment.
+
+==================================================
+16. DO NOT CREATE FAKE PAYMENTS
+==================================================
+
+Legacy COST text must NEVER automatically create dated Payment records without verified dates.
+
+No invented:
+
+- payment date
+- payment method
+- payment reference
+
+Future real payments use normal Ghars Payments.
+
+==================================================
+17. CLINICAL ONLY DEFAULT
+==================================================
+
+Default import mode:
+
+Clinical Data Only
+
+Historical raw COST is preserved.
+
+User may optionally add verified historical/opening finance.
+
+Do not force a global import-mode dropdown if it complicates the experience.
+
+Prefer per-patient finance review.
+
+==================================================
+18. FINANCE MUST NOT BLOCK CLINICAL IMPORT
+==================================================
+
+If clinical data is valid but finance is unresolved:
+
+Row can still become:
+
+READY FOR CLINICAL IMPORT
+
+Show finance indicator:
+
+"المالية تحتاج مراجعة"
+
+But allow clinical import.
+
+Structural clinical errors still block import.
+
+==================================================
+19. SELECTION
+==================================================
+
+Add checkboxes to Review rows.
+
+Support:
+
+- select one
+- select multiple
+- select all READY visible rows
+
+Do not allow BLOCKED rows to be selected for import.
+
+==================================================
+20. FINAL ACTION
+==================================================
+
+Primary CTA:
+
+Arabic:
+استيراد السجلات الجاهزة (7)
+
+English:
+Import Ready Records (7)
+
+If user manually selects rows:
+
+استيراد المحدد (5)
+
+==================================================
+21. PILOT IMPORT
+==================================================
+
+For first use support a safe pilot.
+
+Add optional action:
+
+استيراد تجريبي
+
+Maximum:
+5 records
+
+This imports only selected READY rows.
+
+Do not require all rows to be fixed before a pilot.
+
+==================================================
+22. IMPORT PLAN — SIMPLE
+==================================================
+
+Before final confirmation show a concise summary:
+
+سيتم إنشاء:
+
+5 مرضى
+5 حالات
+9 زرعات
+0 دفعات قديمة
+2 أرصدة افتتاحية
+
+Rows skipped:
+2
+
+Rows blocked:
+1
+
+Do not show internal object structures unless in developer mode.
+
+==================================================
+23. CONFIRMATION
+==================================================
+
+Use Ghars styled dialog.
+
+Arabic:
+
+تأكيد الاستيراد
+
+سيتم استيراد 5 سجلات جاهزة.
+لن يتم استيراد السجلات التي تحتاج مراجعة أو السجلات المحظورة.
+
+Buttons:
+
+إلغاء
+تأكيد الاستيراد
+
+==================================================
+24. AFTER IMPORT
+==================================================
+
+Show a simple result:
+
+تم الاستيراد بنجاح
+
+Patients:
+5
+
+Cases:
+5
+
+Implants:
+9
+
+Skipped:
+2
+
+Failed:
+0
+
+Provide:
+
+عرض المرضى المستوردين
+
+==================================================
+25. DUPLICATES
+==================================================
+
+Keep existing duplicate safety.
+
+If likely duplicate:
+
+show:
+
+مكرر
+
+Actions:
+
+عرض السجل الموجود
+تخطي
+
+Do NOT automatically merge.
+
+==================================================
+26. FILE CONFLICT
+==================================================
+
+If same file number belongs to a different patient:
+
+BLOCK.
+
+Show clearly:
+
+"رقم الملف مستخدم لمريض آخر."
+
+Allow user to fix file number manually.
+
+==================================================
+27. LANGUAGE
+==================================================
+
+Arabic UI must be fully Arabic.
+
+No system strings such as:
+
+Approved tenant mapping
+Historical finance
+Review required
+Correct / verify
+Clinical only
+
+should appear in Arabic mode.
+
+English UI:
+English.
+
+Use existing i18next.
+
+==================================================
+28. WESTERN DIGITS
+==================================================
+
+Ghars global rule:
+
+All numbers display with:
+
+0-9
+
+even in Arabic UI.
+
+==================================================
+29. DO NOT SHOW TECHNICAL CONFIDENCE EVERYWHERE
+==================================================
+
+Normal users do NOT need to see:
+
+92%
+99%
+100%
+
+on every cell.
+
+Use confidence internally.
+
+Only expose uncertainty through:
+
+جاهز
+يحتاج مراجعة
+مشكلة
+
+If needed, detailed confidence may appear inside:
+"عرض المصدر / التفاصيل"
+
+==================================================
+30. DO NOT REMOVE UNIVERSAL IMPORT SUPPORT
+==================================================
+
+Important:
+
+Simplifying UX must NOT reduce backend capabilities.
+
+Still support different doctor layouts.
+
+Do not require one Ghars template.
+
+Do not hardcode the current source table.
+
+==================================================
+31. KEEP OCR SAFETY
+==================================================
+
+For scanned PDF/image:
+
+OCR output goes through staging and review.
+
+Never write OCR output directly to clinical tables.
+
+==================================================
+32. IMPORT TRANSACTION SAFETY
+==================================================
+
+Keep patient-level transactional import.
+
+If one selected patient's import fails:
+rollback that patient's newly created entities.
+
+No partial patient record.
+
+==================================================
+33. BATCH AUDIT / ROLLBACK
+==================================================
+
+Keep existing:
+
+import batch
+audit log
+safe rollback
+
+Do not expose unnecessary technical controls in normal UI.
+
+==================================================
+34. DO NOT REGRESS EXISTING WORK
+==================================================
+
+Preserve all currently validated backend behavior:
+
+- Q canonical mapping
+- Former canonical mapping
+- Graft canonical mapping
+- Pros
+- multi-implant pairing
+- historical date safety
+- finance unknown != zero
+- no fake payments
+- duplicate protection
+- tenant isolation
+- historical dashboard safety
+
+==================================================
+35. CURRENT SOURCE TEST
+==================================================
+
+Use the current doctor source as a regression test.
+
+Expected user experience:
+
+Upload
+→ automatic analysis
+→ directly reach Review unless unknown mapping exists
+
+Review:
+
+most correct rows require no interaction.
+
+Only problematic cells/rows are highlighted.
+
+User fixes them directly.
+
+No long technical mapping workflow.
+
+==================================================
+36. SECOND DIFFERENT SOURCE TEST
+==================================================
+
+Also use a synthetic completely different clinic table to verify the simplified UX still works.
+
+The user should not need to modify the source file first.
+
+==================================================
+37. VISUAL DESIGN
+==================================================
+
+Keep current Ghars identity.
+
+Use:
+
+- white cards
+- navy
+- teal accent
+- subtle statuses
+- clean table
+- no excessive decoration
+
+The review screen should feel like a professional data-cleaning spreadsheet, not a developer debugging console.
+
+==================================================
+38. FINAL ACCEPTANCE
+==================================================
+
+The feature is successful only if a non-technical clinic admin can:
+
+1. upload an existing file
+2. understand what is wrong
+3. correct a row directly
+4. import good records
+
+without learning Ghars database structure.
+
+==================================================
+39. FINAL REPORT
+==================================================
+
+Return:
+
+SIMPLIFIED IMPORT FLOW:
+PASS / FAIL
+
+FULL MAPPING SCREEN HIDDEN WHEN UNNECESSARY:
+PASS / FAIL
+
+UNKNOWN COLUMN REVIEW:
+PASS / FAIL
+
+EDITABLE REVIEW TABLE:
+PASS / FAIL
+
+ROW EXPANSION FOR MULTIPLE IMPLANTS:
+PASS / FAIL
+
+INLINE CORRECTION:
+PASS / FAIL
+
+READY / REVIEW / BLOCKED:
+PASS / FAIL
+
+RAW SOURCE ON DEMAND:
+PASS / FAIL
+
+FINANCE REVIEW DIALOG:
+PASS / FAIL
+
+OPENING BALANCE:
+PASS / FAIL
+
+FINANCE DOES NOT BLOCK CLINICAL IMPORT:
+PASS / FAIL
+
+NO FAKE PAYMENTS:
+PASS / FAIL
+
+DUPLICATE SAFETY:
+PASS / FAIL
+
+FILE CONFLICT:
+PASS / FAIL
+
+SELECT READY ROWS:
+PASS / FAIL
+
+PILOT MAX 5:
+PASS / FAIL
+
+SIMPLE IMPORT PLAN:
+PASS / FAIL
+
+TRANSACTION SAFETY:
+PASS / FAIL
+
+IMPORT BATCH / ROLLBACK:
+PASS / FAIL
+
+ARABIC:
+PASS / FAIL
+
+ENGLISH:
+PASS / FAIL
+
+WESTERN DIGITS:
+PASS / FAIL
+
+UNIVERSAL FILE SUPPORT PRESERVED:
+PASS / FAIL
+
+HARDCODED TO CURRENT DOCTOR:
+YES / NO
+
+CURRENT SOURCE TEST:
+PASS / FAIL
+
+SECOND DIFFERENT SOURCE TEST:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+DO NOT PUBLISH.
+DO NOT IMPORT PRODUCTION DATA.
+
+Create checkpoint and STOP.
