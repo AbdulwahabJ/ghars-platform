@@ -1,0 +1,560 @@
+MODE: Power
+
+Add professional ADMIN-ONLY row selection and bulk record management to the Ghars Patients / Cases operational table shown in the attached screenshot.
+
+GOAL:
+
+Allow authorized Tenant Admin users to:
+
+- select one row
+- select multiple rows
+- select all visible rows
+- archive selected records in one action
+- restore archived records from an archived view
+
+Do NOT expose this capability to normal employees/users.
+
+Because Ghars contains clinical and financial records, destructive deletion must be handled very carefully.
+
+Do NOT publish automatically.
+
+==================================================
+1. ADD ROW SELECTION
+==================================================
+
+Add a checkbox at the start of every operational table row.
+
+Add a master checkbox in the table header.
+
+Behavior:
+
+- click row checkbox → select/unselect that row
+- header checkbox → select/unselect all currently visible filtered rows
+- support indeterminate state when only some rows are selected
+
+Do not select rows when the user clicks elsewhere on the row.
+
+==================================================
+2. BULK ACTION BAR
+==================================================
+
+When one or more rows are selected, show a compact bulk-action bar.
+
+Arabic example:
+
+تم تحديد 3 حالات
+
+Actions:
+
+أرشفة المحدد
+إلغاء التحديد
+
+English:
+
+3 cases selected
+
+Archive selected
+Clear selection
+
+Do not permanently occupy table space when nothing is selected.
+
+==================================================
+3. ADMIN ONLY
+==================================================
+
+Only authorized Tenant Admin / Owner roles may see:
+
+- row checkboxes
+- bulk archive action
+- restore action
+- any destructive action
+
+Normal users must not see these controls.
+
+Enforce this on BOTH:
+
+frontend
+and
+backend
+
+Do not rely on hidden buttons as authorization.
+
+==================================================
+4. DEFAULT ACTION = ARCHIVE, NOT HARD DELETE
+==================================================
+
+For clinical records, the primary action must be:
+
+Arabic:
+أرشفة
+
+English:
+Archive
+
+Archiving should remove the record from the active operational table and current operational counts where existing Ghars archive semantics already require that.
+
+Do not physically delete related clinical/financial records.
+
+Reuse existing archive behavior if already implemented.
+
+==================================================
+5. SINGLE ROW ACTION
+==================================================
+
+Also add a row-level action menu:
+
+⋯
+
+Actions:
+
+Archive
+Restore (if archived)
+
+If safe hard deletion exists according to the rules below:
+Delete permanently
+
+Do not clutter the main table with many buttons.
+
+==================================================
+6. BULK ARCHIVE CONFIRMATION DIALOG
+==================================================
+
+Do NOT use browser confirm().
+
+Use Ghars styled AlertDialog.
+
+Arabic example:
+
+العنوان:
+أرشفة الحالات المحددة؟
+
+النص:
+سيتم أرشفة 3 حالات وإزالتها من العرض التشغيلي، مع الاحتفاظ بالسجلات والبيانات المرتبطة بها.
+
+Buttons:
+
+إلغاء
+أرشفة 3 حالات
+
+English equivalent when locale = English.
+
+==================================================
+7. SHOW EXACT IMPACT
+==================================================
+
+Before confirmation show:
+
+Patients selected: X
+Cases selected: X
+
+If relevant:
+
+Implants: X
+Payments: X
+Follow-ups: X
+Prosthetic events: X
+
+These related records are NOT deleted during archive.
+
+Make that clear.
+
+==================================================
+8. BULK API
+==================================================
+
+Do not send one API request per selected row.
+
+Implement/reuse a proper tenant-scoped bulk endpoint/service.
+
+Conceptually:
+
+POST /.../bulk-archive
+
+with record IDs only.
+
+Backend must:
+
+- derive tenant from authenticated session
+- verify admin permission
+- verify every selected entity belongs to the same tenant
+- perform operation transactionally where appropriate
+- reject cross-tenant IDs
+- audit the action
+
+Never trust frontend tenantId.
+
+==================================================
+9. PARTIAL FAILURE SAFETY
+==================================================
+
+Prefer atomic bulk archive.
+
+If 5 rows are selected and one is unauthorized/invalid:
+
+do not archive a random subset silently.
+
+Either:
+
+- reject whole operation
+
+or
+
+- return explicit per-record results if existing architecture requires partial behavior
+
+Never silently fail.
+
+==================================================
+10. SELECT ALL SEMANTICS
+==================================================
+
+The header checkbox should select:
+
+ALL CURRENTLY VISIBLE ROWS ON THE CURRENT FILTER/PAGE
+
+not every record in the database.
+
+If pagination exists:
+label clearly if selection is only current page.
+
+Do NOT unexpectedly select hundreds of hidden records.
+
+==================================================
+11. FILTER CHANGES
+==================================================
+
+If the user changes:
+
+- period
+- doctor
+- implant system
+- case status
+- implant status
+- search
+
+clear selection safely unless the selected records remain explicitly visible and selection persistence is intentionally implemented.
+
+Prefer clearing selection to avoid accidental bulk actions on hidden rows.
+
+==================================================
+12. ARCHIVED VIEW
+==================================================
+
+Add a clear way for Admin to view archived records.
+
+Example filter:
+
+الحالة:
+نشط
+مؤرشف
+الكل
+
+or an appropriate existing Ghars archive filter.
+
+Archived rows should have an obvious but subtle archived badge.
+
+==================================================
+13. RESTORE
+==================================================
+
+Admin must be able to restore:
+
+one archived record
+or
+multiple selected archived records
+
+Use the same bulk-selection pattern.
+
+Confirmation dialog:
+
+استعادة الحالات المحددة؟
+
+Restore should preserve all original relationships/data.
+
+==================================================
+14. PERMANENT DELETE — STRICT SAFETY
+==================================================
+
+Do NOT make permanent delete the normal workflow.
+
+Permanent deletion should be allowed ONLY if existing Ghars data-retention rules permit it and the record is safely deletable.
+
+At minimum block hard delete if linked to meaningful clinical/financial history such as:
+
+- implants
+- payments
+- charges
+- discounts
+- prosthetic events
+- follow-ups
+- communications
+- surgical procedures
+- historical finance
+- audit-sensitive imported records
+
+If linked data exists:
+
+do NOT offer hard deletion.
+
+Use Archive instead.
+
+==================================================
+15. EMPTY / ACCIDENTAL RECORD HARD DELETE
+==================================================
+
+If Ghars already supports permanent deletion and the record is truly empty/unreferenced, Admin may be allowed to permanently delete it.
+
+Examples:
+
+- accidental draft patient
+- no case
+- no implant
+- no payment
+- no clinical history
+
+Use a very explicit destructive confirmation.
+
+Arabic:
+
+حذف نهائي
+
+سيتم حذف هذا السجل نهائيًا ولا يمكن استعادته.
+
+Require deliberate confirmation.
+
+Do NOT use hard delete for normal completed patient records.
+
+==================================================
+16. IMPORT BATCH RECORDS
+==================================================
+
+For records created by Legacy Import:
+
+prefer the existing Import Batch Rollback mechanism when undoing an entire import batch.
+
+Do not manually hard-delete individual imported records in a way that breaks batch/audit integrity.
+
+If an imported record has since received live Ghars activity:
+automatic batch rollback should remain blocked according to existing rules.
+
+==================================================
+17. AUDIT LOG
+==================================================
+
+Audit:
+
+PATIENT_ARCHIVED
+PATIENT_RESTORED
+BULK_ARCHIVE
+BULK_RESTORE
+PERMANENT_DELETE (if allowed)
+
+Include safely:
+
+actor
+timestamp
+record IDs / counts
+tenant
+
+Do not unnecessarily log sensitive patient content.
+
+==================================================
+18. DASHBOARD / REPORT CONSISTENCY
+==================================================
+
+After archiving:
+
+- active operational table updates immediately
+- Dashboard follows existing active/archive semantics
+- Statistics follows existing semantics
+- no manual browser refresh required
+
+Use React Query invalidation correctly.
+
+Do NOT use window.location.reload().
+
+==================================================
+19. UI DETAILS
+==================================================
+
+Keep current Ghars design.
+
+Use existing:
+
+Checkbox
+DropdownMenu
+AlertDialog
+Button
+Toast
+
+Selected rows may have a subtle selected state.
+
+Do not redesign the table.
+
+==================================================
+20. ARABIC / ENGLISH
+==================================================
+
+Use existing i18next.
+
+Arabic example:
+
+تحديد الكل
+تم تحديد 3 حالات
+أرشفة المحدد
+استعادة المحدد
+إلغاء التحديد
+مؤرشف
+حذف نهائي
+
+English:
+
+Select all
+3 cases selected
+Archive selected
+Restore selected
+Clear selection
+Archived
+Delete permanently
+
+No hardcoded mixed-language text.
+
+==================================================
+21. WESTERN DIGITS
+==================================================
+
+Ghars global numeral rule applies.
+
+Always show:
+
+1 2 3 4 5
+
+not Arabic-Indic numerals.
+
+Example:
+
+تم تحديد 5 حالات
+
+==================================================
+22. TEST PERMISSIONS
+==================================================
+
+Test:
+
+Tenant Admin:
+can select/archive/restore
+
+Normal employee:
+cannot see controls
+API returns forbidden if called directly
+
+Other tenant Admin:
+cannot archive another tenant's records
+
+Platform Super Admin:
+follow existing platform-access rules; do not automatically grant tenant clinical deletion unless current architecture explicitly permits it.
+
+==================================================
+23. TEST BULK ACTIONS
+==================================================
+
+Test:
+
+- one row
+- multiple rows
+- all visible rows
+- filtered rows
+- search results
+- selection cleared after filter change
+- archive
+- restore
+- unauthorized call
+- cross-tenant IDs
+- transaction failure
+- React Query refresh
+
+==================================================
+24. FINAL REPORT
+==================================================
+
+Return:
+
+ROW CHECKBOXES:
+PASS / FAIL
+
+HEADER SELECT ALL:
+PASS / FAIL
+
+SELECT VISIBLE ONLY:
+PASS / FAIL
+
+BULK ACTION BAR:
+PASS / FAIL
+
+ADMIN ONLY UI:
+PASS / FAIL
+
+ADMIN ONLY API:
+PASS / FAIL
+
+BULK ARCHIVE:
+PASS / FAIL
+
+BULK RESTORE:
+PASS / FAIL
+
+ARCHIVED VIEW:
+PASS / FAIL
+
+STYLED CONFIRMATION DIALOG:
+PASS / FAIL
+
+NO BROWSER CONFIRM:
+PASS / FAIL
+
+RELATED DATA PRESERVED:
+PASS / FAIL
+
+PERMANENT DELETE SAFETY:
+PASS / FAIL
+
+IMPORT BATCH SAFETY:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+AUDIT LOG:
+PASS / FAIL
+
+DASHBOARD REFRESH:
+PASS / FAIL
+
+TABLE REFRESH:
+PASS / FAIL
+
+ARABIC:
+PASS / FAIL
+
+ENGLISH:
+PASS / FAIL
+
+WESTERN DIGITS:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.

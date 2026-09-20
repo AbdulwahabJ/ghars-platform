@@ -1,0 +1,663 @@
+MODE: Power
+
+FINAL IMPORT DATA-APPLICATION FIX.
+
+The attached CURRENT Review screen is the source of truth.
+
+Extraction is already working.
+Universal import architecture is already implemented.
+Historical finance architecture is already implemented.
+
+DO NOT rebuild the importer.
+DO NOT weaken validation.
+DO NOT import anything.
+DO NOT publish.
+
+We have one remaining class of bugs:
+EXTRACTED STRUCTURED VALUES ARE NOT BEING APPLIED TO THE FINAL PROPOSED GHARS RECORD.
+
+==================================================
+1. CURRENT PROOF OF THE BUG
+==================================================
+
+Example visible in the current Review screen:
+
+RAW / extracted source contains:
+
+Q: 80
+Former: Y
+Graft: N
+Pros: 3M
+NOTE: IMMED
+
+But the proposed implant shows:
+
+Q: Unspecified
+Former: Unspecified
+Graft: Unspecified
+
+and case Pros remains Unspecified.
+
+Therefore extraction is correct, but normalization/application into canonical Ghars fields is not.
+
+Fix the DATA APPLICATION layer, not OCR.
+
+==================================================
+2. Q MUST REACH THE FINAL IMPLANT
+==================================================
+
+If extracted source contains:
+
+Q = 80
+
+and mapping is canonical:
+
+Q → Implant.Q
+
+then the final proposed implant MUST show:
+
+Q: 80
+
+and the eventual import plan must write:
+
+implant.q = 80
+
+Do not preserve it only inside raw metadata or Legacy Note.
+
+Test actual proposed object and actual commit mapper.
+
+==================================================
+3. FORMER MUST REACH THE FINAL IMPLANT
+==================================================
+
+If source contains:
+
+Former = Y
+Former = N
+Former = MST
+Former = MU17
+
+apply the mapped value to the correct canonical Implant.Former field.
+
+The Preview must show the actual value.
+
+Do not leave:
+
+Former: Unspecified
+
+when raw data was successfully extracted and mapped.
+
+==================================================
+4. GRAFT MUST REACH THE FINAL IMPLANT
+==================================================
+
+If source contains:
+
+Graft = Y
+or
+Graft = N
+
+apply it to canonical Implant.Graft.
+
+Do NOT create a Bone Graft Procedure from this alone.
+
+Expected:
+
+Implant.Graft = Y
+
+Bone Graft Procedures Created = 0
+
+unless detailed graft procedure information exists separately.
+
+==================================================
+5. PROS MUST REACH THE CASE
+==================================================
+
+Previous implementation established:
+
+2M / 3M are recognized canonical Pros values.
+
+Therefore:
+
+Pros = 2M
+→ case.prosValue = 2M
+
+Pros = 3M
+→ case.prosValue = 3M
+
+Unknown Pros values:
+→ REVIEW REQUIRED
+→ raw value preserved
+
+Do not leave recognized 2M/3M as:
+
+Pros: Unspecified
+
+==================================================
+6. STRUCTURED DATA MUST NOT ALSO POLLUTE LEGACY NOTE
+==================================================
+
+Currently Legacy Note contains duplicated structured values such as:
+
+Q:35
+35
+35
+35
+Former:MST
+MST
+MST
+Graft:N
+N
+N
+Pros:3M
+NOTE:IMMED
+
+This is wrong.
+
+Once a source value is successfully mapped into a canonical field:
+
+Q
+Former
+Graft
+Pros
+
+remove it from generic Legacy Note output.
+
+Legacy Note should contain ONLY genuinely unmapped/free-text content, primarily NOTE and unknown preserved values.
+
+Example:
+
+NOTE: IMMED
+
+may remain.
+
+But canonical Q/Former/Graft/Pros should not be duplicated into notes.
+
+==================================================
+7. MULTI-IMPLANT ROW ALIGNMENT
+==================================================
+
+This is critical.
+
+Some source rows contain multiple:
+
+sites
+sizes
+Q values
+Former values
+Graft values
+
+Support two cases:
+
+CASE A — ONE VALUE FOR ALL IMPLANTS
+
+Example:
+
+sites:
+35
+36
+
+sizes:
+3.5×10
+3.5×10
+
+Q:
+35
+
+If source structure shows Q is a row-level value:
+show:
+
+Apply Q=35 to all implants
+
+Require explicit confirmation where scope is ambiguous.
+
+After confirmation:
+both implants must actually receive Q=35.
+
+CASE B — ONE VALUE PER IMPLANT
+
+Example:
+
+6 sites
+6 sizes
+6 Former values
+
+Pair values by logical table-row/line order.
+
+Implant 1 ← Site1 / Size1 / Q1 / Former1 / Graft1
+Implant 2 ← Site2 / Size2 / Q2 / Former2 / Graft2
+...
+
+Do NOT collapse the values into a Legacy Note.
+
+==================================================
+8. DO NOT GUESS MISMATCHED ARRAYS
+==================================================
+
+Keep the current safe behavior.
+
+If:
+
+site count != size count
+
+or required per-implant pairing cannot be proven:
+
+BLOCK the row.
+
+The current warning:
+
+Implant site/size counts do not match; pairing is blocked.
+
+is correct behavior.
+
+DO NOT relax this validation.
+
+==================================================
+9. SIZE DISPLAY / RTL
+==================================================
+
+Audit implant-size display in Arabic.
+
+Canonical source:
+
+3.8 × 10
+
+must visually display:
+
+3.8 × 10
+
+NOT:
+
+10 × 3.8
+
+because of RTL/Bidi.
+
+Treat clinical numeric dimensions as an LTR-isolated value even inside Arabic UI.
+
+Apply the same rule to:
+
+3.5 × 10
+4.2 × 10
+4.6 × 12
+4.8 × 12
+
+Do not swap diameter and length.
+
+Verify stored values separately from visual order.
+
+==================================================
+10. HISTORICAL FINANCE — KEEP CURRENT SAFE BEHAVIOR
+==================================================
+
+Do NOT loosen finance validation.
+
+Current desired behavior:
+
+Raw COST preserved.
+
+Possible documented paid amount may be extracted.
+
+Unknown Total:
+Unspecified / NULL
+
+Unknown Opening:
+Unspecified / NULL
+
+Status:
+Review Required
+
+No Payment rows.
+No fake dates.
+No fake methods.
+No false Paid-in-Full.
+
+COST requiring review is acceptable.
+
+==================================================
+11. BLOCKED VS REVIEW REQUIRED
+==================================================
+
+Use:
+
+BLOCKED
+when structural integrity prevents safe import.
+
+Examples:
+- site/size mismatch
+- conflicting patient identity/file number
+
+Use:
+
+REVIEW REQUIRED
+when data can be resolved manually.
+
+Examples:
+- uncertain financial interpretation
+- unclear apply-to-all scope
+- unknown Pros value
+
+Do not turn financial review alone into a destructive clinical block when user selected Clinical Only mode.
+
+==================================================
+12. CLINICAL-ONLY MODE
+==================================================
+
+When mode is:
+
+Clinical Only
+
+unresolved historical finance must NOT prevent an otherwise safe clinical import.
+
+Preserve raw COST for later review.
+
+However:
+structural clinical problems still BLOCK.
+
+==================================================
+13. LOCALIZE THE CURRENT REVIEW SCREEN
+==================================================
+
+The attached Arabic screen still contains English system messages such as:
+
+Implant site/size counts do not match; pairing is blocked.
+COST requires review.
+Financial source text is review-only...
+Historical finance
+Pros
+etc. where they are system labels.
+
+Use existing i18next.
+
+Arabic UI:
+all system explanations/actions/warnings in Arabic.
+
+English UI:
+English.
+
+Raw source values remain exactly as entered.
+
+Suggested Arabic:
+
+"عدد مواقع الزرعات لا يطابق عدد المقاسات، لذلك تم إيقاف الاستيراد لهذا السجل."
+
+"COST يحتاج إلى مراجعة."
+
+"البيانات المالية التاريخية تحتاج إلى مراجعة قبل اعتمادها."
+
+Do not translate patient-entered/source content.
+
+==================================================
+14. MAKE REVIEW SCREEN OPERATIONALLY CLEAR
+==================================================
+
+Do NOT redesign Ghars.
+
+Improve only clarity.
+
+For every patient show:
+
+بيانات المريض
+
+الحالة
+
+الزرعات
+
+For each implant show clearly:
+
+الموقع
+المقاس
+النظام
+Q
+Former
+Graft
+
+Then:
+
+Pros
+
+الملاحظة القديمة
+
+المالية التاريخية
+
+التحذيرات
+
+خطة الاستيراد
+
+Do not place important canonical information in one long mixed text line.
+
+==================================================
+15. IMPORT PLAN MUST MATCH THE REAL WRITE
+==================================================
+
+The Import Plan must be generated from the SAME normalized object that commit will use.
+
+Example:
+
+Create patient: YES
+Create case: YES
+Create implants: 6
+
+Implant 1:
+Site 47
+Size 4.2 × 10
+Q 35
+Former MST
+Graft N
+
+...
+
+Pros:
+3M
+
+Bone graft procedures:
+0
+
+Payments:
+0
+
+Historical finance:
+Review / confirmed
+
+No difference is allowed between Preview and actual commit payload.
+
+==================================================
+16. TEST THE CURRENT REAL STAGING BATCH
+==================================================
+
+Use the CURRENT staging batch in Development.
+
+Do not write patients.
+
+Validate representative rows including:
+
+- Q 80 / Former Y / Graft N / Pros 3M
+- Q 35 / Former MST / Graft N
+- Graft Y
+- multiple implants
+- single implant
+- COST requiring review
+- site/size mismatch
+
+==================================================
+17. EXPECTED VISUAL RESULT
+==================================================
+
+A row whose raw source contains:
+
+Q: 80
+Former: Y
+Graft: N
+Pros: 3M
+NOTE: IMMED
+
+should visually show:
+
+Implant:
+Q: 80
+Former: Y
+Graft: N
+
+Pros:
+3M
+
+Legacy Note:
+IMMED
+
+NOT:
+
+Q: Unspecified
+Former: Unspecified
+Graft: Unspecified
+
+==================================================
+18. ACTUAL OBJECT ASSERTIONS
+==================================================
+
+Do not rely only on screenshots.
+
+Add assertions/tests against the normalized Import Plan object.
+
+Verify:
+
+implant.q
+implant.former
+implant.graft
+case.prosValue
+
+contain the expected values.
+
+Then verify the commit mapper consumes those exact fields.
+
+==================================================
+19. NO DATA WRITE
+==================================================
+
+For this task:
+
+NO Production writes.
+NO patient import.
+NO case creation.
+NO implant creation.
+NO finance creation.
+NO migration application.
+NO publish.
+
+Development staging/configuration changes are allowed.
+
+==================================================
+20. FINAL REPORT
+==================================================
+
+Return:
+
+ROOT CAUSE OF CANONICAL VALUES STAYING UNSPECIFIED:
+<exact cause>
+
+Q EXTRACTION:
+PASS / FAIL
+
+Q NORMALIZED OBJECT:
+PASS / FAIL
+
+Q PREVIEW:
+PASS / FAIL
+
+Q COMMIT MAPPER:
+PASS / FAIL
+
+FORMER EXTRACTION:
+PASS / FAIL
+
+FORMER NORMALIZED OBJECT:
+PASS / FAIL
+
+FORMER PREVIEW:
+PASS / FAIL
+
+FORMER COMMIT MAPPER:
+PASS / FAIL
+
+GRAFT EXTRACTION:
+PASS / FAIL
+
+GRAFT NORMALIZED OBJECT:
+PASS / FAIL
+
+GRAFT PREVIEW:
+PASS / FAIL
+
+GRAFT COMMIT MAPPER:
+PASS / FAIL
+
+NO INVENTED GRAFT PROCEDURE:
+PASS / FAIL
+
+PROS 2M:
+PASS / FAIL
+
+PROS 3M:
+PASS / FAIL
+
+UNKNOWN PROS:
+REVIEW REQUIRED / FAIL
+
+STRUCTURED VALUES REMOVED FROM LEGACY NOTE:
+PASS / FAIL
+
+NOTE PRESERVED:
+PASS / FAIL
+
+MULTI-IMPLANT PER-VALUE PAIRING:
+PASS / FAIL
+
+MULTI-IMPLANT APPLY-TO-ALL:
+PASS / FAIL
+
+SITE/SIZE MISMATCH REMAINS BLOCKED:
+PASS / FAIL
+
+IMPLANT SIZE RTL/LTR:
+PASS / FAIL
+
+CLINICAL ONLY + FINANCE REVIEW:
+PASS / FAIL
+
+UNKNOWN FINANCE != ZERO:
+PASS / FAIL
+
+NO FAKE PAYMENTS:
+PASS / FAIL
+
+ARABIC REVIEW UI:
+PASS / FAIL
+
+ENGLISH REVIEW UI:
+PASS / FAIL
+
+PREVIEW = IMPORT PLAN:
+PASS / FAIL
+
+IMPORT PLAN = COMMIT PAYLOAD:
+PASS / FAIL
+
+CURRENT STAGING VISUAL QA:
+PASS / FAIL
+
+NO BUSINESS DATA WRITE:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Do not import.
+Create checkpoint and STOP.
