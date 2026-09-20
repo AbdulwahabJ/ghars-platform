@@ -4,8 +4,11 @@ import { formatDate, formatSaudiDate, formatTime } from "@/lib/datetime";
 import { formatMoney, formatNumber, formatPercentage } from "@/lib/money";
 import {
   isNumericCompatibleField,
+  finalizeDecimalInput,
   normalizeDigits,
+  normalizeDecimalInput,
   normalizeNumericValues,
+  parseImplantDimension,
 } from "@/lib/digits";
 
 const FORBIDDEN_DIGITS = /[٠-٩۰-۹]/u;
@@ -37,6 +40,26 @@ describe("global Latin-digit regression coverage", () => {
     expect(normalizeDigits("۰۱۲۳۴۵۶۷۸۹")).toBe("0123456789");
     expect(normalizeDigits("المريض ۱۲٣ - A/B")).toBe("المريض 123 - A/B");
     expect(normalizeDigits(normalizeDigits("١٢۳"))).toBe("123");
+  });
+
+  it("preserves decimal editing states and normalizes implant dimensions at the boundary", () => {
+    expect(normalizeDecimalInput("4.")).toBe("4.");
+    expect(normalizeDecimalInput("4,")).toBe("4.");
+    expect(normalizeDecimalInput("4٫")).toBe("4.");
+    expect(finalizeDecimalInput("4.")).toBe("4");
+
+    expect(parseImplantDimension("4.5")).toBe(4.5);
+    expect(parseImplantDimension("3,8")).toBe(3.8);
+    expect(parseImplantDimension("4٫5")).toBe(4.5);
+    expect(parseImplantDimension("٤٫٥")).toBe(4.5);
+    expect(parseImplantDimension("۴٫۵")).toBe(4.5);
+    expect(parseImplantDimension("3.75")).toBe(3.75);
+    expect(parseImplantDimension("5.0")).toBe(5);
+    expect(parseImplantDimension("")).toBeNull();
+
+    for (const invalid of ["4..5", "abc", "-4.5", "4.567", "0", "100"]) {
+      expect(Number.isNaN(parseImplantDimension(invalid))).toBe(true);
+    }
   });
 
   it("detects numeric-compatible fields from type, input mode, and names", () => {

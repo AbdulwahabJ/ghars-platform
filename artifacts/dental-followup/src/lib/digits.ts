@@ -11,6 +11,26 @@ export function normalizeDigits(value: string): string {
   });
 }
 
+/** Normalize localized decimal input without collapsing in-progress text such as "4.". */
+export function normalizeDecimalInput(value: string): string {
+  return normalizeDigits(value).replace(/[,\u066B]/g, '.');
+}
+
+/** Remove a trailing decimal separator when the user leaves a decimal field. */
+export function finalizeDecimalInput(value: string): string {
+  const normalized = normalizeDecimalInput(value).trim();
+  return /^\d+\.$/.test(normalized) ? normalized.slice(0, -1) : normalized;
+}
+
+/** Parse a positive implant dimension with at most two decimal places. */
+export function parseImplantDimension(value: string): number | null {
+  const normalized = finalizeDecimalInput(value);
+  if (!normalized) return null;
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return Number.NaN;
+  const parsed = Number(normalized);
+  return parsed > 0 && parsed <= 99.99 ? parsed : Number.NaN;
+}
+
 // Match complete semantic field names, not arbitrary substrings.  This is
 // intentionally conservative: metadata such as `barcodeLabel`, `siteNote`,
 // or chart `count` must remain free text.

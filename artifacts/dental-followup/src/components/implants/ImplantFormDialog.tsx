@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { finalizeDecimalInput, parseImplantDimension } from "@/lib/digits";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -162,14 +163,8 @@ function ImplantForm({
        toast({ variant: "destructive", title: t("implant.chooseSiteFirst") });
       return;
     }
-    const parseSize = (v: string): number | null => {
-      if (!v.trim()) return null;
-      const n = Number(v);
-      if (!Number.isFinite(n) || n <= 0) return NaN as unknown as number;
-      return Math.round(n * 100) / 100;
-    };
-    const d = parseSize(diameter);
-    const l = parseSize(length);
+    const d = parseImplantDimension(diameter);
+    const l = parseImplantDimension(length);
     if ((d !== null && Number.isNaN(d)) || (l !== null && Number.isNaN(l))) {
       toast({
         variant: "destructive",
@@ -274,25 +269,23 @@ function ImplantForm({
           <div className="flex items-center gap-3" dir="ltr">
             <Input
                aria-label={t("implant.diameter")}
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              min="0"
               placeholder="3.5"
               value={diameter}
               onChange={(e) => setDiameter(e.target.value)}
+              onBlur={() => setDiameter((value) => finalizeDecimalInput(value))}
               className="max-w-[120px] text-center"
             />
             <span className="text-muted-foreground font-semibold">×</span>
             <Input
                aria-label={t("implant.length")}
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              min="0"
               placeholder="10"
               value={length}
               onChange={(e) => setLength(e.target.value)}
+              onBlur={() => setLength((value) => finalizeDecimalInput(value))}
               className="max-w-[120px] text-center"
             />
             <span className="text-muted-foreground text-sm">mm</span>
