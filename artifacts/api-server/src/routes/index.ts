@@ -23,6 +23,7 @@ import reportsRouter from "./reports";
 import settingsRouter from "./settings";
 import landingMediaRouter from "./landing-media";
 import featuresRouter from "./features";
+import clientErrorsRouter from "./client-errors";
 import {
   requireAuth,
   requireOperationalTenant,
@@ -33,6 +34,8 @@ import { requireLegacyImportEnabled } from "../middlewares/legacy-import";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+// Client runtime diagnostics must also work for public lazy routes.
+router.use(clientErrorsRouter);
 router.use(authRouter);
 // Public landing-page media read/proxy must remain outside the admin mount.
 router.use(landingMediaRouter);

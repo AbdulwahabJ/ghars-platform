@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Redirect, Route, Switch, Router as WouterRouter } from 'wouter';
+import { Redirect, Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -25,6 +25,7 @@ import { LocaleProvider } from '@/i18n/LocaleProvider';
 import { ImpersonationLifecycleHandler } from '@/components/ImpersonationLifecycleHandler';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { Loader2 } from 'lucide-react';
+import { clearChunkRecoveryAttempt } from '@/lib/runtime-errors';
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,16 @@ function RouteLoading() {
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   );
+}
+
+function RouteRecoveryMarker() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    clearChunkRecoveryAttempt(location);
+  }, [location]);
+
+  return null;
 }
 
 function ProtectedRoute({ component: Component, path }: { component: any; path: string }) {
@@ -183,6 +194,7 @@ function App() {
             <RouteErrorBoundary onRetry={() => queryClient.resetQueries()}>
               <Suspense fallback={<RouteLoading />}>
                 <Router />
+                <RouteRecoveryMarker />
               </Suspense>
             </RouteErrorBoundary>
           </WouterRouter>

@@ -36,3 +36,4 @@
 - [Importer canonical header authority](importer-canonical-header-authority.md) — recognized Q/Former/Graft/Pros/NOTE headers stay canonical even if stale learned mappings say legacy note.
 - [Permanent clinical deletion](permanent-clinical-deletion.md) — destructive selection identifies cases explicitly; confirmation uses a tenant-bound preview token rechecked inside the transaction.
 - [Legacy import availability](legacy-import-availability.md) — importer availability is a fail-closed global platform flag; tests must opt in explicitly while the release default stays disabled.
+- [Lazy chunk recovery](lazy-chunk-recovery.md) — route chunk failures get one build-and-route-scoped reload; successful render clears the guard, persistent failures keep the boundary.

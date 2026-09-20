@@ -2,6 +2,7 @@ import path from 'path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import { execFileSync } from 'node:child_process';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
@@ -25,12 +26,27 @@ function resolvePort(): number {
 // The app is served from the domain root in production.
 const basePath = process.env.BASE_PATH ?? '/';
 
+function resolveBuildId(): string {
+  if (process.env.APP_VERSION) return process.env.APP_VERSION;
+  if (process.env.REPLIT_DEPLOYMENT_ID) return process.env.REPLIT_DEPLOYMENT_ID;
+  try {
+    return execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {
+      encoding: 'utf8',
+    }).trim();
+  } catch {
+    return 'development';
+  }
+}
+
 export default defineConfig(async ({ command, mode }) => {
   // Vitest loads Vite with command === "serve" and mode === "test", but it
   // does not expose the application HTTP server and therefore needs no port.
   const port = command === 'serve' && mode !== 'test' ? resolvePort() : 0;
   return {
   base: basePath,
+  define: {
+    __APP_BUILD_ID__: JSON.stringify(resolveBuildId()),
+  },
   plugins: [
     react(),
     tailwindcss(),

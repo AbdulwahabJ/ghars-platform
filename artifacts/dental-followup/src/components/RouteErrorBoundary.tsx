@@ -1,6 +1,10 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  recoverFromChunkLoadError,
+  reportClientError,
+} from "@/lib/runtime-errors";
 
 interface RouteErrorBoundaryProps {
   children: ReactNode;
@@ -22,7 +26,8 @@ export class RouteErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Route render failed", error, info);
+    reportClientError(error, info.componentStack ?? undefined);
+    recoverFromChunkLoadError(error);
   }
 
   private retry = async () => {
