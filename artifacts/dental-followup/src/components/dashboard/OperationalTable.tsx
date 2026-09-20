@@ -1,10 +1,17 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
-import { Loader2, Plus, Printer, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Calendar, CalendarCheck2, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard, Archive } from "lucide-react";
+import { Loader2, Plus, Printer, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Calendar, CalendarCheck2, Banknote, Stethoscope, Activity, ClipboardList, Pencil, Check, X, Search, Trash2, AlertCircle, CreditCard, Archive, MoreHorizontal, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +30,7 @@ import { formatMoney, todayIso } from "@/lib/money";
 import type { OperationalReportResponse, OperationalRow, ReportFilters, Patient, ImplantCaseWithImplants, Implant, ImplantStatus, Followup, FollowupType, Payment, ProstheticEventType, BoneGraftProcedure } from "@workspace/shared";
 import { CASE_STATUSES, IMPLANT_STATUSES, FDI_SITES, FOLLOWUP_TYPES, PAYMENT_LABELS, PAYMENT_METHODS, PROSTHETIC_EVENT_TYPE_BY_IMPLANT_STATUS } from "@workspace/shared";
 import { followupStatusClasses } from "@/components/followups/followup-utils";
-import { useArchivePatient, usePatient, useUpdatePatient } from "@/hooks/use-patients";
+import { useArchivePatient, useBulkPatientAction, usePatient, useUpdatePatient } from "@/hooks/use-patients";
 import { useImplantCases, useCreateImplant, useUpdateImplantCase, useUpdateImplant, useArchiveImplant, useArchiveProstheticEvent, useArchiveBoneGraftProcedure, useImplantOptions } from "@/hooks/use-implant-cases";
 import { useFollowups, useCreateFollowup, useUpdateFollowup, useAssignableUsers } from "@/hooks/use-followups";
 import { useCreatePayment, useUpdatePayment, useVoidPayment, useCaseFinance } from "@/hooks/use-finance";
@@ -59,6 +66,7 @@ interface PatientGroup {
   patientName: string;
   fileNumber: string;
   rows: OperationalRow[];
+  status: "active" | "archived";
 }
 
 interface ProstheticEventContext {
@@ -109,7 +117,7 @@ function groupByPatient(rows: OperationalRow[]): PatientGroup[] {
   for (const row of rows) {
     let group = map.get(row.patientId);
     if (!group) {
-      group = { patientId: row.patientId, patientName: row.patientName, fileNumber: row.fileNumber, rows: [] };
+      group = { patientId: row.patientId, patientName: row.patientName, fileNumber: row.fileNumber, status: row.patientStatus, rows: [] };
       map.set(row.patientId, group);
     }
     group.rows.push(row);
@@ -2656,11 +2664,19 @@ function PatientSummaryRow({
   showFinance,
   expanded,
   onToggle,
+  selectable,
+  selected,
+  onSelectedChange,
+  onAction,
 }: {
   group: PatientGroup;
   showFinance: boolean;
   expanded: boolean;
   onToggle: () => void;
+  selectable: boolean;
+  selected: boolean;
+  onSelectedChange: (selected: boolean) => void;
+  onAction: () => void;
 }) {
   const overdue = hasOverdue(group.rows);
   const ready = hasReady(group.rows);
@@ -2675,6 +2691,15 @@ function PatientSummaryRow({
       onClick={onToggle}
       data-testid={`report-row-${group.patientId}`}
     >
+      {selectable && (
+        <td className="ps-4 py-3 w-10" onClick={(event) => event.stopPropagation()}>
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(value) => onSelectedChange(value === true)}
+            aria-label={dashboardText("selectPatient", { patient: group.patientName })}
+          />
+        </td>
+      )}
       <td className="px-4 py-3">
         <div className="flex items-start gap-2">
           <div className="min-w-0">
@@ -2719,6 +2744,23 @@ function PatientSummaryRow({
           </td>
         </>
       )}
+      {selectable && (
+        <td className="pe-3 py-3 w-10" onClick={(event) => event.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={dashboardText("rowActions")}>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={onAction}>
+                {group.status === "active" ? <Archive /> : <RotateCcw />}
+                {dashboardText(group.status === "active" ? "archiveSelected" : "restoreSelected")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </td>
+      )}
     </tr>
   );
 }
@@ -2732,11 +2774,19 @@ function PatientCard({
   showFinance,
   expanded,
   onToggle,
+  selectable,
+  selected,
+  onSelectedChange,
+  onAction,
 }: {
   group: PatientGroup;
   showFinance: boolean;
   expanded: boolean;
   onToggle: () => void;
+  selectable: boolean;
+  selected: boolean;
+  onSelectedChange: (selected: boolean) => void;
+  onAction: () => void;
 }) {
   const { enumLabel } = useEnumTranslation();
   const overdue = hasOverdue(group.rows);
@@ -2745,11 +2795,9 @@ function PatientCard({
   const payStatus = showFinance ? summaryPaymentStatus(group.rows) : null;
   return (
     <div className="border border-border rounded-xl overflow-hidden">
-      <button
-        className={`w-full text-start p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors ${expanded ? "bg-muted/30" : "bg-card"}`}
-        onClick={onToggle}
-        data-testid={`report-card-${group.patientId}`}
-      >
+      <div className={`w-full text-start p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors ${expanded ? "bg-muted/30" : "bg-card"}`} data-testid={`report-card-${group.patientId}`}>
+        {selectable && <Checkbox checked={selected} onCheckedChange={(value) => onSelectedChange(value === true)} aria-label={dashboardText("selectPatient", { patient: group.patientName })} />}
+        <button className="flex flex-1 min-w-0 items-start gap-3 text-start" onClick={onToggle}>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
              <p className="font-semibold notranslate" dir="auto">{group.patientName}</p>
@@ -2776,7 +2824,9 @@ function PatientCard({
         <span className="text-muted-foreground shrink-0 mt-1">
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </span>
-      </button>
+        </button>
+        {selectable && <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onAction} aria-label={dashboardText("rowActions")}><MoreHorizontal className="h-4 w-4" /></Button>}
+      </div>
 
       {/* Expanded content */}
       <div
@@ -2863,16 +2913,63 @@ export function OperationalTable({
   systemOptions: string[];
 }) {
   const { t } = useTranslation("guidance");
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const bulkAction = useBulkPatientAction();
+  const isAdmin = user?.role === "ADMIN";
   const showFinance = Boolean(data?.financialsIncluded);
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const [showNewRecord, setShowNewRecord] = useState(false);
   const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [dialog, setDialog] = useState<null | {
+    action: "archive" | "restore";
+    patientIds: string[];
+    impact: Awaited<ReturnType<typeof bulkAction.mutateAsync>>["impact"];
+  }>(null);
 
   const groups = data ? groupByPatient(data.rows) : [];
   const totalGroups = groups.length;
   const totalPages = Math.max(1, Math.ceil(totalGroups / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagedGroups = groups.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pageIds = pagedGroups.map((group) => group.patientId);
+  const selectedOnPage = pageIds.filter((id) => selectedIds.has(id)).length;
+  const allPageSelected = pageIds.length > 0 && selectedOnPage === pageIds.length;
+  const headerChecked = allPageSelected ? true : selectedOnPage > 0 ? "indeterminate" : false;
+  const selectionAction = filterState.archiveStatus === "archived" ? "restore" : "archive";
+  const selectedGroups = groups.filter((group) => selectedIds.has(group.patientId));
+  const activeSelectedIds = selectedGroups.filter((group) => group.status === "active").map((group) => group.patientId);
+  const archivedSelectedIds = selectedGroups.filter((group) => group.status === "archived").map((group) => group.patientId);
+  const clearSelection = () => setSelectedIds(new Set());
+  const setSelected = (id: string, selected: boolean) => setSelectedIds((current) => {
+    const next = new Set(current);
+    if (selected) next.add(id); else next.delete(id);
+    return next;
+  });
+  const openBulkDialog = async (
+    patientIds: string[],
+    action: "archive" | "restore" = selectionAction,
+  ) => {
+    try {
+      const response = await bulkAction.mutateAsync({ patientIds, action, preview: true });
+      setDialog({ action, patientIds, impact: response.impact });
+    } catch (error) {
+      toast({ variant: "destructive", title: localizeErrorMessage(error) });
+    }
+  };
+  const confirmBulkAction = async () => {
+    if (!dialog) return;
+    try {
+      await bulkAction.mutateAsync({ patientIds: dialog.patientIds, action: dialog.action, preview: false });
+      toast({ title: dashboardText(dialog.action === "archive" ? "bulkArchiveSuccess" : "bulkRestoreSuccess", { count: dialog.patientIds.length }) });
+      setDialog(null);
+      clearSelection();
+      setExpandedPatientId(null);
+    } catch (error) {
+      toast({ variant: "destructive", title: localizeErrorMessage(error) });
+    }
+  };
 
   const visibleExpandedPatientId = pagedGroups.some(
     (group) => group.patientId === expandedPatientId,
@@ -2888,6 +2985,7 @@ export function OperationalTable({
     if (value !== searchValue) {
       setExpandedPatientId(null);
       setPage(1);
+      clearSelection();
     }
     onSearchChange(value);
   };
@@ -2895,10 +2993,11 @@ export function OperationalTable({
   const handleFilterChange = (next: ReportFilterState) => {
     setPage(1);
     setExpandedPatientId(null);
+    clearSelection();
     onFilterChange(next);
   };
 
-  const colSpan = showFinance ? 9 : 7;
+  const colSpan = (showFinance ? 9 : 7) + (isAdmin ? 2 : 0);
 
   return (
     <Card data-testid="card-operational-report">
@@ -2907,6 +3006,16 @@ export function OperationalTable({
           {t("dashboard.casesPatients", { count: totalGroups })}
         </CardTitle>
         <div className="flex gap-2 print:hidden flex-wrap">
+          {isAdmin && (
+            <Select value={filterState.archiveStatus} onValueChange={(value) => handleFilterChange({ ...filterState, archiveStatus: value as ReportFilterState["archiveStatus"] })}>
+              <SelectTrigger className="w-[150px]" data-testid="select-archive-view"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">{dashboardText("activeRecords")}</SelectItem>
+                <SelectItem value="archived">{dashboardText("archivedRecords")}</SelectItem>
+                <SelectItem value="all">{dashboardText("allRecords")}</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Button
             variant="default"
             size="sm"
@@ -2945,6 +3054,26 @@ export function OperationalTable({
         />
       </div>
       <CardContent className="p-0">
+        {isAdmin && selectedIds.size > 0 && (
+          <div className="mx-4 mb-3 flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2 print:hidden" data-testid="bulk-action-bar">
+            <span className="text-sm font-medium">{dashboardText("selectedCount", { count: selectedIds.size })}</span>
+            <div className="flex gap-2">
+              {activeSelectedIds.length > 0 && (
+                <Button size="sm" variant="destructive" onClick={() => void openBulkDialog(activeSelectedIds, "archive")} disabled={bulkAction.isPending}>
+                  <Archive className="h-4 w-4" />
+                  {dashboardText("archiveSelected")}
+                </Button>
+              )}
+              {archivedSelectedIds.length > 0 && (
+                <Button size="sm" onClick={() => void openBulkDialog(archivedSelectedIds, "restore")} disabled={bulkAction.isPending}>
+                  <RotateCcw className="h-4 w-4" />
+                  {dashboardText("restoreSelected")}
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={clearSelection}>{dashboardText("clearSelection")}</Button>
+            </div>
+          </div>
+        )}
         <div className="px-4 pb-3 print:hidden">
           <div className="relative">
             <Search className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -3010,6 +3139,13 @@ export function OperationalTable({
                   <table className="w-full text-start text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
+                        {isAdmin && <th className="ps-4 py-3 w-10"><Checkbox checked={headerChecked} onCheckedChange={(checked) => {
+                          setSelectedIds((current) => {
+                            const next = new Set(current);
+                            for (const id of pageIds) checked === true ? next.add(id) : next.delete(id);
+                            return next;
+                          });
+                        }} aria-label={dashboardText("selectVisiblePage")} /></th>}
                         <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.patient")}</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.fileNumber")}</th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.caseStatus")}</th>
@@ -3023,6 +3159,7 @@ export function OperationalTable({
                             <th className="px-4 py-3 font-medium text-muted-foreground">{t("dashboard.paymentStatus")}</th>
                           </>
                         )}
+                        {isAdmin && <th className="pe-3 py-3 w-10"><span className="sr-only">{dashboardText("rowActions")}</span></th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -3033,6 +3170,10 @@ export function OperationalTable({
                             showFinance={showFinance}
                             expanded={visibleExpandedPatientId === group.patientId}
                             onToggle={() => handleToggle(group.patientId)}
+                            selectable={isAdmin}
+                            selected={selectedIds.has(group.patientId)}
+                            onSelectedChange={(selected) => setSelected(group.patientId, selected)}
+                            onAction={() => void openBulkDialog([group.patientId], group.status === "active" ? "archive" : "restore")}
                           />
                           <ExpandedRowWrapper
                             group={group}
@@ -3055,6 +3196,10 @@ export function OperationalTable({
                       showFinance={showFinance}
                       expanded={expandedPatientId === group.patientId}
                       onToggle={() => handleToggle(group.patientId)}
+                      selectable={isAdmin}
+                      selected={selectedIds.has(group.patientId)}
+                      onSelectedChange={(selected) => setSelected(group.patientId, selected)}
+                      onAction={() => void openBulkDialog([group.patientId], group.status === "active" ? "archive" : "restore")}
                     />
                   ))}
                 </div>
@@ -3071,7 +3216,7 @@ export function OperationalTable({
                         size="icon"
                         className="h-7 w-7"
                         disabled={safePage === 1}
-                        onClick={() => { setPage(1); setExpandedPatientId(null); }}
+                        onClick={() => { setPage(1); setExpandedPatientId(null); clearSelection(); }}
                         title={t("dashboard.firstPage")}
                       >
                         <span className="text-sm leading-none">«</span>
@@ -3081,7 +3226,7 @@ export function OperationalTable({
                         size="icon"
                         className="h-7 w-7"
                         disabled={safePage === 1}
-                        onClick={() => { setPage((p) => Math.max(1, p - 1)); setExpandedPatientId(null); }}
+                        onClick={() => { setPage((p) => Math.max(1, p - 1)); setExpandedPatientId(null); clearSelection(); }}
                         title={t("dashboard.previousPage")}
                       >
                         <span className="text-sm leading-none">‹</span>
@@ -3091,7 +3236,7 @@ export function OperationalTable({
                         size="icon"
                         className="h-7 w-7"
                         disabled={safePage === totalPages}
-                        onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); setExpandedPatientId(null); }}
+                        onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); setExpandedPatientId(null); clearSelection(); }}
                         title={t("dashboard.nextPage")}
                       >
                         <span className="text-sm leading-none">›</span>
@@ -3101,7 +3246,7 @@ export function OperationalTable({
                         size="icon"
                         className="h-7 w-7"
                         disabled={safePage === totalPages}
-                        onClick={() => { setPage(totalPages); setExpandedPatientId(null); }}
+                        onClick={() => { setPage(totalPages); setExpandedPatientId(null); clearSelection(); }}
                         title={t("dashboard.lastPage")}
                       >
                         <span className="text-sm leading-none">»</span>
@@ -3114,6 +3259,28 @@ export function OperationalTable({
           </>
         )}
       </CardContent>
+      <AlertDialog open={dialog !== null} onOpenChange={(open) => { if (!open && !bulkAction.isPending) setDialog(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dashboardText(dialog?.action === "restore" ? "confirmBulkRestoreTitle" : "confirmBulkArchiveTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{dashboardText(dialog?.action === "restore" ? "confirmBulkRestoreDescription" : "confirmBulkArchiveDescription")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          {dialog && (
+            <dl className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/30 p-3 text-sm tabular-nums">
+              {(["patients", "cases", "implants", "payments", "followups", "prostheticEvents"] as const).map((key) => (
+                <div key={key} className="flex justify-between gap-3"><dt>{dashboardText(`impact.${key}`)}</dt><dd>{dialog.impact[key]}</dd></div>
+              ))}
+            </dl>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkAction.isPending}>{dashboardText("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={(event) => { event.preventDefault(); void confirmBulkAction(); }} disabled={bulkAction.isPending} className={dialog?.action === "archive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}>
+              {bulkAction.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {dashboardText(dialog?.action === "restore" ? "confirmRestore" : "confirmArchive")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { PatientInput, PatientListQuery, PatientUpdate } from "@workspace/shared";
+import { PatientBulkAction, PatientInput, PatientListQuery, PatientUpdate } from "@workspace/shared";
 import {
   invalidateOperationalViews,
   invalidatePatientCreatedViews,
@@ -66,6 +66,21 @@ export function useRestorePatient() {
     onSuccess: (response, id) => {
       queryClient.setQueryData(getPatientQueryKey(id), response);
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void invalidateOperationalViews(queryClient);
+    },
+  });
+}
+
+export function useBulkPatientAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PatientBulkAction) => api.bulkPatientAction(input),
+    onSuccess: (response) => {
+      if (response.preview) return;
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      for (const id of response.patientIds) {
+        queryClient.invalidateQueries({ queryKey: getPatientQueryKey(id) });
+      }
       void invalidateOperationalViews(queryClient);
     },
   });

@@ -64,6 +64,7 @@ export default function Dashboard() {
     implantSystem: ALL,
     implantStatus: ALL,
     caseStatus: ALL,
+    archiveStatus: "active",
   });
   const [operationalSearch, setOperationalSearch] = useState("");
   const debouncedOperationalSearch = useDebounce(operationalSearch, 275);
@@ -103,6 +104,7 @@ export default function Dashboard() {
           ? undefined
           : (filterState.caseStatus as ReportFilters["caseStatus"]),
       search: debouncedOperationalSearch.trim() || undefined,
+      archiveStatus: filterState.archiveStatus,
     };
   }, [debouncedOperationalSearch, filterState, today]);
 

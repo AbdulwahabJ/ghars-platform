@@ -71,6 +71,32 @@ export const patientListResponseSchema = z.object({
 });
 export type PatientListResponse = z.infer<typeof patientListResponseSchema>;
 
+export const patientBulkActionSchema = z.object({
+  patientIds: z.array(z.string().uuid()).min(1).max(100),
+  action: z.enum(["archive", "restore"]),
+  preview: z.boolean().default(false),
+});
+export type PatientBulkAction = z.input<typeof patientBulkActionSchema>;
+
+export const patientBulkImpactSchema = z.object({
+  patients: z.number().int().nonnegative(),
+  cases: z.number().int().nonnegative(),
+  implants: z.number().int().nonnegative(),
+  payments: z.number().int().nonnegative(),
+  followups: z.number().int().nonnegative(),
+  prostheticEvents: z.number().int().nonnegative(),
+});
+export type PatientBulkImpact = z.infer<typeof patientBulkImpactSchema>;
+
+export const patientBulkActionResponseSchema = z.object({
+  action: z.enum(["archive", "restore"]),
+  preview: z.boolean(),
+  affected: z.number().int().nonnegative(),
+  patientIds: z.array(z.string().uuid()),
+  impact: patientBulkImpactSchema,
+});
+export type PatientBulkActionResponse = z.infer<typeof patientBulkActionResponseSchema>;
+
 export const FILE_NUMBER_CHECK_STATUSES = [
   "available",
   "active",

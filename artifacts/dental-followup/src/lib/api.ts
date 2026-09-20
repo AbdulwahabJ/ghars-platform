@@ -45,6 +45,8 @@ import type {
   PatientInput,
   PatientListQuery,
   PatientListResponse,
+  PatientBulkAction,
+  PatientBulkActionResponse,
   PatientUpdate,
   Preferences,
   PublicUser,
@@ -479,6 +481,11 @@ export const api = {
     request<{ patient: Patient }>(`/patients/${id}/restore`, {
       method: "POST",
     }),
+  bulkPatientAction: (input: PatientBulkAction) =>
+    request<PatientBulkActionResponse>("/patients/bulk-action", {
+      method: "POST",
+      json: input,
+    }),
 
   // Phase 2 — implant cases & implants
   getImplantOptions: () =>
@@ -815,6 +822,7 @@ export function reportQs(filters: ReportFilters): string {
   if (filters.implantSystem) params.set("implantSystem", filters.implantSystem);
   if (filters.implantStatus) params.set("implantStatus", filters.implantStatus);
   if (filters.caseStatus) params.set("caseStatus", filters.caseStatus);
+  if (filters.archiveStatus) params.set("archiveStatus", filters.archiveStatus);
   return params.toString();
 }
 

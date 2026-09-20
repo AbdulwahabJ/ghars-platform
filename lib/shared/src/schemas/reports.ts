@@ -23,6 +23,7 @@ export const reportFiltersSchema = z
     implantSystem: z.string().trim().min(1).max(200).optional(),
     implantStatus: z.string().trim().min(1).max(100).optional(),
     caseStatus: caseStatusSchema.optional(),
+    archiveStatus: z.enum(["active", "archived", "all"]).default("active"),
   })
   .refine((v) => v.from <= v.to, {
     message: "بداية الفترة يجب أن تكون قبل نهايتها.",
@@ -246,6 +247,7 @@ export const operationalRowSchema = z.object({
   patientId: z.string(),
   patientName: z.string(),
   fileNumber: z.string(),
+  patientStatus: z.enum(["active", "archived"]),
   caseStatus: z.string(),
   treatingDoctor: z.string(),
   procedureDate: z.string().nullable(),

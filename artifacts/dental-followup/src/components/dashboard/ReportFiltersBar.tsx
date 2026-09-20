@@ -23,6 +23,7 @@ export interface ReportFilterState {
   implantSystem: string;
   implantStatus: string;
   caseStatus: string;
+  archiveStatus: "active" | "archived" | "all";
 }
 
 /**

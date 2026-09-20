@@ -414,7 +414,7 @@ router.get("/dashboard", async (req, res) => {
 function caseFilterFragment(
   filters: ReportFilters,
   tenantId: string,
-  options: { includeProcedureDate?: boolean } = {},
+  options: { includeProcedureDate?: boolean; patientArchiveStatus?: "active" | "archived" | "all" } = {},
 ) {
   const includeProcedureDate = options.includeProcedureDate ?? true;
   const search = filters.search ? toEnglishDigits(filters.search).trim() : "";
@@ -451,7 +451,11 @@ function caseFilterFragment(
   return sql`
     ic.tenant_id = ${tenantId}
     AND ic.archived_at IS NULL
-    AND p.archived_at IS NULL
+    ${options.patientArchiveStatus === "archived"
+      ? sql`AND p.archived_at IS NOT NULL`
+      : options.patientArchiveStatus === "all"
+        ? sql``
+        : sql`AND p.archived_at IS NULL`}
     ${includeProcedureDate
       ? sql`AND ic.procedure_date BETWEEN ${filters.from} AND ${filters.to}`
       : sql``}
@@ -1671,6 +1675,7 @@ async function buildOperationalRows(
       ic.patient_id AS "patientId",
       p.full_name AS "patientName",
       p.file_number AS "fileNumber",
+      CASE WHEN p.archived_at IS NULL THEN 'active' ELSE 'archived' END AS "patientStatus",
       ic.case_status AS "caseStatus",
       ic.treating_doctor AS "treatingDoctor",
       ic.procedure_date::text AS "procedureDate",
@@ -1717,7 +1722,7 @@ async function buildOperationalRows(
         ) AS "isOverdue"
     FROM implant_cases ic
     JOIN patients p ON p.id = ic.patient_id
-    WHERE ${caseFilterFragment(filters, tenantId)}
+    WHERE ${caseFilterFragment(filters, tenantId, { patientArchiveStatus: filters.archiveStatus })}
     ORDER BY ic.created_at DESC, p.full_name ASC
   `);
 
@@ -1741,6 +1746,7 @@ async function buildOperationalRows(
       patientId: String(r.patientId),
       patientName: String(r.patientName),
       fileNumber: String(r.fileNumber),
+      patientStatus: r.patientStatus === "archived" ? "archived" : "active",
       caseStatus: String(r.caseStatus),
       treatingDoctor: String(r.treatingDoctor),
       procedureDate: r.procedureDate ? String(r.procedureDate) : null,

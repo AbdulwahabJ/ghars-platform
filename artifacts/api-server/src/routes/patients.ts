@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, count, desc, eq, ilike, isNotNull, isNull, like, ne, or, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, isNotNull, isNull, like, ne, or, sql, type SQL } from "drizzle-orm";
 import { db, patientsTable, type PatientRow } from "@workspace/db";
 import {
   DUPLICATE_ACTIVE,
@@ -7,12 +7,13 @@ import {
   normalizeArabicSearchText,
   normalizeMobile,
   patientInputSchema,
+  patientBulkActionSchema,
   patientListQuerySchema,
   patientUpdateSchema,
   toEnglishDigits,
   type Patient,
 } from "@workspace/shared";
-import { writeAudit } from "../lib/audit";
+import { writeAudit, writeAuditRequired } from "../lib/audit";
 import { parseOrRespond } from "../lib/validation";
 import { requireAuth, requireRole } from "../middlewares/auth";
 
@@ -423,7 +424,7 @@ router.post(
 
 router.post(
   "/patients/:id/restore",
-  requireRole("ADMIN", "DOCTOR"),
+  requireRole("ADMIN"),
   async (req, res) => {
     const tenantId = req.currentTenant!.id;
     const id = String(req.params.id);
@@ -459,6 +460,90 @@ router.post(
       summary: `استعادة ملف المريض ${updated.fileNumber}`,
     });
     res.json({ patient: toPatientDto(updated) });
+  },
+);
+
+router.post(
+  "/patients/bulk-action",
+  requireRole("ADMIN"),
+  async (req, res) => {
+    const input = parseOrRespond(patientBulkActionSchema, req.body, res);
+    if (!input) return;
+    const tenantId = req.currentTenant!.id;
+    const user = req.currentUser!;
+    const patientIds = [...new Set(input.patientIds)];
+    const patients = await db.select().from(patientsTable).where(and(
+      eq(patientsTable.tenantId, tenantId),
+      inArray(patientsTable.id, patientIds),
+    ));
+    if (patients.length !== patientIds.length) {
+      res.status(422).json({ error: "تعذر تنفيذ العملية لأن سجلًا واحدًا على الأقل غير صالح.", code: "BULK_INVALID_SELECTION" });
+      return;
+    }
+    const wrongState = patients.some((patient) =>
+      input.action === "archive" ? patient.archivedAt !== null : patient.archivedAt === null,
+    );
+    if (wrongState) {
+      res.status(409).json({ error: "حالة سجل واحد على الأقل لا تطابق العملية المطلوبة.", code: "BULK_STATE_CONFLICT" });
+      return;
+    }
+    const idSql = sql.join(patientIds.map((id) => sql`${id}::uuid`), sql`, `);
+    const impactRows = await db.execute(sql`
+      SELECT
+        ${patientIds.length}::int AS patients,
+        (SELECT count(*)::int FROM implant_cases WHERE tenant_id = ${tenantId} AND patient_id IN (${idSql})) AS cases,
+        (SELECT count(*)::int FROM implants i JOIN implant_cases c ON c.id = i.implant_case_id
+          WHERE i.tenant_id = ${tenantId} AND c.patient_id IN (${idSql})) AS implants,
+        (SELECT count(*)::int FROM payments p JOIN implant_cases c ON c.id = p.implant_case_id
+          WHERE p.tenant_id = ${tenantId} AND c.patient_id IN (${idSql})) AS payments,
+        (SELECT count(*)::int FROM followups WHERE tenant_id = ${tenantId} AND patient_id IN (${idSql})) AS followups,
+        (SELECT count(*)::int FROM prosthetic_events pe JOIN implant_cases c ON c.id = pe.implant_case_id
+          WHERE pe.tenant_id = ${tenantId} AND c.patient_id IN (${idSql})) AS "prostheticEvents"
+    `);
+    const raw = impactRows.rows[0] as Record<string, unknown>;
+    const impact = {
+      patients: Number(raw.patients ?? 0),
+      cases: Number(raw.cases ?? 0),
+      implants: Number(raw.implants ?? 0),
+      payments: Number(raw.payments ?? 0),
+      followups: Number(raw.followups ?? 0),
+      prostheticEvents: Number(raw.prostheticEvents ?? 0),
+    };
+    if (input.preview) {
+      res.json({ action: input.action, preview: true, affected: 0, patientIds, impact });
+      return;
+    }
+    const now = new Date();
+    await db.transaction(async (tx) => {
+      const updated = await tx.update(patientsTable)
+        .set({ archivedAt: input.action === "archive" ? now : null, updatedBy: user.id, updatedAt: now })
+        .where(and(
+          eq(patientsTable.tenantId, tenantId),
+          inArray(patientsTable.id, patientIds),
+          input.action === "archive" ? isNull(patientsTable.archivedAt) : isNotNull(patientsTable.archivedAt),
+        ))
+        .returning({ id: patientsTable.id });
+      if (updated.length !== patientIds.length) throw new Error("BULK_PATIENT_STATE_CHANGED");
+      for (const patientId of patientIds) {
+        await writeAuditRequired({
+          tenantId,
+          userId: user.id,
+          action: input.action === "archive" ? "PATIENT_ARCHIVED" : "PATIENT_RESTORED",
+          entityType: "patient",
+          entityId: patientId,
+          summary: input.action === "archive" ? "Patient archived" : "Patient restored",
+        }, tx);
+      }
+      await writeAuditRequired({
+        tenantId,
+        userId: user.id,
+        action: input.action === "archive" ? "BULK_ARCHIVE" : "BULK_RESTORE",
+        entityType: "patient",
+        summary: input.action === "archive" ? "Bulk patient archive" : "Bulk patient restore",
+        details: { patientIds, count: patientIds.length, impact },
+      }, tx);
+    });
+    res.json({ action: input.action, preview: false, affected: patientIds.length, patientIds, impact });
   },
 );
 

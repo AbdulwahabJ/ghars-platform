@@ -140,6 +140,7 @@ export default function Statistics() {
     implantSystem: ALL,
     implantStatus: ALL,
     caseStatus: ALL,
+    archiveStatus: "active",
   });
   const { data: implantOptions } = useImplantOptions();
 
@@ -161,6 +162,7 @@ export default function Statistics() {
           : reportPeriodRange(filterState.period, today);
     return {
       ...range,
+      archiveStatus: "active",
       treatingDoctor:
         filterState.treatingDoctor === ALL ? undefined : filterState.treatingDoctor,
       implantSystem:

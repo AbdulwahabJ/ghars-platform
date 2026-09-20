@@ -129,6 +129,60 @@ describe("patients CRUD, duplicates, and search", () => {
     expect(restored.body.patient.archivedAt).toBeNull();
   });
 
+  it("previews and atomically applies an audited bulk archive and restore", async () => {
+    const second = await agent.post("/api/patients").send({
+      fileNumber: "3000",
+      fullName: "مريض عملية جماعية",
+    });
+    expect(second.status).toBe(201);
+    const patientIds = [patientId, second.body.patient.id];
+
+    const preview = await agent.post("/api/patients/bulk-action").send({
+      patientIds,
+      action: "archive",
+      preview: true,
+    });
+    expect(preview.status).toBe(200);
+    expect(preview.body).toMatchObject({
+      action: "archive",
+      preview: true,
+      affected: 0,
+      patientIds,
+      impact: { patients: 2 },
+    });
+
+    const archived = await agent.post("/api/patients/bulk-action").send({
+      patientIds,
+      action: "archive",
+    });
+    expect(archived.status).toBe(200);
+    expect(archived.body.affected).toBe(2);
+
+    const invalidState = await agent.post("/api/patients/bulk-action").send({
+      patientIds,
+      action: "archive",
+    });
+    expect(invalidState.status).toBe(409);
+    expect(invalidState.body.code).toBe("BULK_STATE_CONFLICT");
+
+    const restored = await agent.post("/api/patients/bulk-action").send({
+      patientIds,
+      action: "restore",
+    });
+    expect(restored.status).toBe(200);
+    expect(restored.body.affected).toBe(2);
+
+    const audit = await pool.query(
+      "SELECT action, count(*)::int AS n FROM audit_logs WHERE action IN ('PATIENT_ARCHIVED', 'PATIENT_RESTORED', 'BULK_ARCHIVE', 'BULK_RESTORE') GROUP BY action",
+    );
+    expect(Object.fromEntries(audit.rows.map((row) => [row.action, row.n]))).toMatchObject({
+      PATIENT_ARCHIVED: 2,
+      PATIENT_RESTORED: 2,
+      BULK_ARCHIVE: 1,
+      BULK_RESTORE: 1,
+    });
+  });
+
   it("searches by normalized Arabic name", async () => {
     // أحمد vs الاحمد: hamza/normalization must not matter.
     const res = await agent.get("/api/patients?query=الاحمد");
