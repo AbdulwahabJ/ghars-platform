@@ -1,0 +1,229 @@
+MODE: Power
+
+FIX SETTINGS TAB NAVIGATION STALE/FROZEN UI BUG.
+
+I reproduced this in the deployed Ghars UI.
+
+Observed behavior:
+
+1. Settings page is open on Legacy Import.
+2. Click Activity Log.
+3. Browser URL changes to:
+   /settings?tab=audit
+
+BUT the visible content remains Legacy Import.
+
+4. Click Lookups.
+5. URL changes to:
+   /settings?tab=lookups
+
+BUT the visible content still remains Legacy Import.
+
+6. Eventually another navigation causes the correct tab content to render.
+
+This makes the application appear frozen.
+
+IMPORTANT:
+This is a real UI/navigation bug.
+Do not redesign Settings.
+Do not publish.
+
+==================================================
+1. ROOT CAUSE
+==================================================
+
+Trace exactly how the Settings active tab is determined.
+
+Check for patterns such as:
+
+useState(initialTabFromSearchParams)
+
+where state is initialized once but does not react when URL query parameters change.
+
+Also inspect:
+
+- Wouter location handling
+- URLSearchParams
+- activeTab state
+- tab click handlers
+- feature-flag rendering
+- Legacy Import component state
+- React Query loading boundaries
+- memoization
+- effects depending on location/search params
+
+Identify the exact root cause.
+
+==================================================
+2. URL MUST BE SOURCE OF TRUTH
+==================================================
+
+Preferred behavior:
+
+/settings?tab=users
+/settings?tab=lookups
+/settings?tab=audit
+/settings?tab=export
+/settings?tab=import
+
+The visible content must always correspond to the current URL.
+
+Do not maintain competing stale tab state.
+
+If local activeTab state is required:
+synchronize it immediately whenever URL/search params change.
+
+==================================================
+3. IMMEDIATE TAB SWITCH
+==================================================
+
+When clicking a Settings tab:
+
+- selected tab visual state updates immediately
+- corresponding content renders immediately
+- previous tab content disappears
+- no need for page refresh
+- no multi-second stale screen
+
+==================================================
+4. LEGACY IMPORT FLAG
+==================================================
+
+The disabled/Coming Soon Legacy Import feature must not interfere with Settings navigation.
+
+When import is disabled:
+
+/settings?tab=import
+
+shows the Coming Soon state.
+
+Switching to another tab must immediately unmount/replace that content.
+
+==================================================
+5. NO FULL PAGE RELOAD
+==================================================
+
+Do not solve this using:
+
+window.location.reload()
+location.href
+
+Keep normal SPA navigation.
+
+==================================================
+6. RAPID CLICK TEST
+==================================================
+
+Test rapid switching:
+
+Import
+→ Audit
+→ Lookups
+→ Users
+→ Export
+→ Import
+
+Every click must display the correct tab immediately.
+
+URL and visible content must always match.
+
+==================================================
+7. BROWSER BACK/FORWARD
+==================================================
+
+Verify browser Back / Forward.
+
+If URL changes from:
+
+?tab=audit
+to
+?tab=users
+
+the content must update correctly.
+
+==================================================
+8. DIRECT URL
+==================================================
+
+Opening directly:
+
+/settings?tab=users
+/settings?tab=audit
+/settings?tab=lookups
+/settings?tab=export
+/settings?tab=import
+
+must render the correct content on first load.
+
+==================================================
+9. LOADING STATES
+==================================================
+
+If a tab's API request takes time:
+
+show a proper local loading/skeleton state for THAT tab.
+
+Never leave the previous tab's content visible while the new tab is loading.
+
+==================================================
+10. VERIFY OTHER APP NAVIGATION
+==================================================
+
+Quickly verify that this stale navigation problem is limited to Settings.
+
+Check:
+
+Dashboard
+Patients
+Statistics
+Settings
+
+Do not modify unrelated navigation unless the same root cause affects it.
+
+==================================================
+11. FINAL REPORT
+==================================================
+
+Return:
+
+ROOT CAUSE:
+<exact technical cause>
+
+URL / CONTENT SYNC:
+PASS / FAIL
+
+IMMEDIATE TAB SWITCH:
+PASS / FAIL
+
+RAPID TAB SWITCH:
+PASS / FAIL
+
+BACK/FORWARD:
+PASS / FAIL
+
+DIRECT URL:
+PASS / FAIL
+
+IMPORT COMING-SOON DOES NOT BLOCK NAVIGATION:
+PASS / FAIL
+
+NO FULL PAGE RELOAD:
+PASS / FAIL
+
+OTHER MAIN NAVIGATION:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
