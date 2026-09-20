@@ -613,6 +613,15 @@ export const universalImportNormalizedRowSchema = z.object({
     historicalFinanceEligible: z.boolean(),
     preserveLegacyNote: z.boolean(),
     openingRemainingBalance: z.number().int().nonnegative().nullable(),
+    implants: z.array(z.object({
+      site: z.string(),
+      size: z.string().nullable(),
+      system: z.string().nullable(),
+      qValue: z.string().nullable(),
+      formerValue: z.string().nullable(),
+      graftValue: z.string().nullable(),
+    })),
+    prosValue: z.string().nullable(),
   }),
 });
 export type UniversalImportNormalizedRow = z.infer<

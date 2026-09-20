@@ -53,6 +53,14 @@ type CreatedRecord = {
   updatedAt: string;
 };
 type ProposedImplant = { site: string; size: string | null; system: string | null; qValue: string | null; formerValue: string | null; graftValue: string | null };
+type StructuredNoteValues = {
+  qValues: string[];
+  formerValues: string[];
+  graftValues: string[];
+  prosValues: string[];
+  noteValues: string[];
+  residualText: string;
+};
 type HistoricalFinance = {
   historicalTotalAmount: number | null;
   historicalPaidAmount: number | null;
@@ -86,6 +94,8 @@ type NormalizedRow = {
     historicalFinanceEligible: boolean;
     preserveLegacyNote: boolean;
     openingRemainingBalance: number | null;
+    implants: ProposedImplant[];
+    prosValue: string | null;
   };
 };
 
@@ -162,6 +172,48 @@ function aliasFor(header: string): UniversalImportDestination | null {
 
 function splitValues(value: string): string[] {
   return normalizeDigits(value).split(/[,\n;؛|/]+/).map((part) => part.trim()).filter(Boolean);
+}
+
+function parseStructuredNote(value: string): StructuredNoteValues {
+  const sections: Record<"q" | "former" | "graft" | "pros" | "note", string[]> = {
+    q: [],
+    former: [],
+    graft: [],
+    pros: [],
+    note: [],
+  };
+  const residual: string[] = [];
+  let active: keyof typeof sections | null = null;
+  for (const sourceLine of value.replace(/\r\n?/g, "\n").split("\n")) {
+    const line = sourceLine.trim();
+    const match = /^(Q|Former|Graft|Pros|NOTE)\s*[:：]\s*(.*)$/i.exec(line);
+    if (match) {
+      active = match[1].toLowerCase() as keyof typeof sections;
+      if (match[2].trim()) sections[active].push(normalizeDigits(match[2].trim()));
+      continue;
+    }
+    if (!line) continue;
+    if (active) sections[active].push(normalizeDigits(line));
+    else residual.push(sourceLine);
+  }
+  const noteValues = sections.note.length > 1 && sections.note.every((entry) => entry === sections.note[0])
+    ? [sections.note[0]]
+    : sections.note;
+  return {
+    qValues: sections.q,
+    formerValues: sections.former,
+    graftValues: sections.graft,
+    prosValues: sections.pros,
+    noteValues,
+    residualText: residual.join("\n").trim(),
+  };
+}
+
+function syncImportPlan(row: NormalizedRow): void {
+  row.importPlan.implants = row.proposed.implants.map((implant) => ({ ...implant }));
+  row.importPlan.prosValue = row.proposed.case.prosValue;
+  row.importPlan.implantCount = row.proposed.implants.length;
+  row.importPlan.preserveLegacyNote = Boolean(row.proposed.case.clinicalNote || row.proposed.legacyNotes.length);
 }
 
 function normalizeDigits(value: string): string {
@@ -462,6 +514,29 @@ function normalizeRows(
       : { name: get(row, "patient.name"), mobile: null, review: null };
     const name = combined.name.replace(/^\s*[٠-٩۰-۹\d]+\s*[-–—.)،]\s*/u, "").trim();
     const fileNumber = normalizeDigits(get(row, "patient.file_number"));
+    const intrinsicDestination = (source: string): UniversalImportDestination | null => aliasFor(source);
+    const isDedicatedStructuredSource = (source: string): boolean =>
+      ["implant.q_value", "implant.former_value", "implant.graft_value", "case.pros_value"].includes(intrinsicDestination(source) ?? "");
+    const structuredSources = [...new Set([
+      ...(byDestination.get("clinical_note") ?? []).filter((source) => !isDedicatedStructuredSource(source)),
+      ...(byDestination.get("legacy_note") ?? []).filter((source) => !isDedicatedStructuredSource(source)),
+      ...mappings.filter((mapping) => intrinsicDestination(mapping.source) === "clinical_note").map((mapping) => mapping.source),
+    ])];
+    const parsedStructured = structuredSources.map((source) => ({
+      source,
+      destination: intrinsicDestination(source) === "clinical_note"
+        ? "clinical_note"
+        : mappings.find((mapping) => mapping.source === source)?.destination,
+      parsed: parseStructuredNote(row.values[source] ?? ""),
+    }));
+    const embedded = parsedStructured.reduce<StructuredNoteValues>((result, entry) => ({
+      qValues: [...result.qValues, ...entry.parsed.qValues],
+      formerValues: [...result.formerValues, ...entry.parsed.formerValues],
+      graftValues: [...result.graftValues, ...entry.parsed.graftValues],
+      prosValues: [...result.prosValues, ...entry.parsed.prosValues],
+      noteValues: [...result.noteValues, ...entry.parsed.noteValues],
+      residualText: [result.residualText, entry.parsed.residualText].filter(Boolean).join("\n"),
+    }), { qValues: [], formerValues: [], graftValues: [], prosValues: [], noteValues: [], residualText: "" });
     const rawDate = get(row, "case.procedure_date");
     const parsedDate = parseDate(rawDate);
     const procedureDate = parsedDate.date;
@@ -484,10 +559,14 @@ function normalizeRows(
     if (rawSystems.length && managedSystems.size && systems.length !== rawSystems.length) {
       warnings.push("IMPLANT_SYSTEM_UNKNOWN: Implant system is not in the tenant managed list and was not written as canonical data.");
     }
-    const implantMetric = (destination: UniversalImportDestination): string[] => splitValues(get(row, destination));
-    const qValues = implantMetric("implant.q_value");
-    const formerValues = implantMetric("implant.former_value");
-    const graftValues = implantMetric("implant.graft_value");
+    const implantMetric = (destination: UniversalImportDestination, embeddedValues: string[]): string[] => {
+      const recognizedSource = mappings.find((mapping) => intrinsicDestination(mapping.source) === destination)?.source;
+      const explicit = splitValues(recognizedSource ? row.values[recognizedSource] ?? "" : get(row, destination));
+      return explicit.length ? explicit : embeddedValues;
+    };
+    const qValues = implantMetric("implant.q_value", embedded.qValues);
+    const formerValues = implantMetric("implant.former_value", embedded.formerValues);
+    const graftValues = implantMetric("implant.graft_value", embedded.graftValues);
     const treatingDoctor = get(row, "case.treating_doctor").trim() || "غير محدد";
     const caseStatus = get(row, "case.status").trim() || "غير محدد";
     for (const [label, values] of [["Q", qValues], ["Former", formerValues], ["Graft", graftValues]] as const) {
@@ -542,14 +621,28 @@ function normalizeRows(
       parsedFinance.historicalPaymentStatus = "REVIEW_REQUIRED";
     }
     if (get(row, "finance.candidate") && !rowApproved) warnings.push("Financial source text is review-only; explicitly preserve it as a historical summary or ignore it before commit.");
-    const legacyNotes = mappings
-      .filter((mapping) => mapping.destination === "legacy_note")
-      .map((mapping) => `${mapping.source}: ${row.values[mapping.source] ?? ""}`)
-      .filter((note) => !note.endsWith(": "));
-    const rawProsValue = get(row, "case.pros_value").trim();
-    const canonicalProsValue = rawProsValue === "2M" || rawProsValue === "3M" ? rawProsValue : null;
-    if (rawProsValue && !canonicalProsValue) {
-      legacyNotes.push(`Pros: ${rawProsValue}`);
+    const legacyNotes = parsedStructured
+      .filter((entry) => entry.destination === "legacy_note")
+      .map((entry) => ({
+        source: entry.source,
+        value: [entry.parsed.residualText, ...entry.parsed.noteValues].filter(Boolean).join("\n"),
+      }))
+      .filter((entry) => Boolean(entry.value))
+      .map((entry) => `${entry.source}: ${entry.value}`);
+    const directClinicalNote = parsedStructured
+      .filter((entry) => entry.destination === "clinical_note")
+      .flatMap((entry) => [entry.parsed.residualText, ...entry.parsed.noteValues])
+      .filter(Boolean);
+    const clinicalNote = [...new Set(directClinicalNote)].join("\n") || null;
+    const recognizedProsSource = mappings.find((mapping) => intrinsicDestination(mapping.source) === "case.pros_value")?.source;
+    const explicitProsValues = splitValues(recognizedProsSource ? row.values[recognizedProsSource] ?? "" : get(row, "case.pros_value"));
+    const prosValues = explicitProsValues.length ? explicitProsValues : embedded.prosValues;
+    const distinctProsValues = [...new Set(prosValues.map((value) => value.trim()).filter(Boolean))];
+    const canonicalProsValue = distinctProsValues.length === 1 && (distinctProsValues[0] === "2M" || distinctProsValues[0] === "3M")
+      ? distinctProsValues[0]
+      : null;
+    if (distinctProsValues.length && !canonicalProsValue) {
+      legacyNotes.push(`Pros: ${distinctProsValues.join("\n")}`);
       if (!rowApproved) warnings.push("PROS_REVIEW_REQUIRED: Pros meaning is not proven and will be preserved as a legacy prosthetic note.");
     }
     for (const mapping of mappings) {
@@ -579,7 +672,7 @@ function normalizeRows(
           treatingDoctor,
           status: caseStatus,
           prosValue: canonicalProsValue,
-          clinicalNote: get(row, "clinical_note") || null,
+          clinicalNote,
         },
         implants,
         implantApplyToAll: [],
@@ -596,8 +689,10 @@ function normalizeRows(
         createProstheticEvent: false,
         paymentRecords: 0,
         historicalFinanceEligible: parsedFinance.isVerified,
-        preserveLegacyNote: Boolean(get(row, "clinical_note") || legacyNotes.length),
+        preserveLegacyNote: Boolean(clinicalNote || legacyNotes.length),
         openingRemainingBalance: parsedFinance.openingRemainingBalance,
+        implants: implants.map((implant) => ({ ...implant })),
+        prosValue: canonicalProsValue,
       },
     };
   });
@@ -935,6 +1030,7 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
     }
     if (row.warnings.length === 0 && row.status === "REVIEW_REQUIRED") row.status = "READY";
   }
+  for (const row of rows) syncImportPlan(row);
   const summary = {
     ...(batch.summary as Record<string, unknown>),
     ready: rows.filter((row) => row.status === "READY").length,

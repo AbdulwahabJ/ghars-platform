@@ -1405,6 +1405,122 @@ describe("universal legacy import staging", () => {
     ]);
   });
 
+  it("applies labeled structured NOTE values to the proposed object, import plan, and commit payload", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "structured-note-values.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,SYSTEM,NOTE,COST",
+        'Structured note patient,UI-STRUCTURED-NOTE-1,2026-03-01,36,4.8x10,ROT,"Q: 80',
+        "Former: Y",
+        "Graft: N",
+        "Pros: 3M",
+        'NOTE: IMMED","documented payment requires review"',
+      ].join("\n"),
+    });
+    expect(analyzed.status).toBe(201);
+    const row = analyzed.body.rows[0];
+    expect(row.proposed.implants).toEqual([
+      expect.objectContaining({ site: "36", size: "4.8 × 10", qValue: "80", formerValue: "Y", graftValue: "N" }),
+    ]);
+    expect(row.proposed.case).toMatchObject({ prosValue: "3M", clinicalNote: "IMMED" });
+    expect(row.proposed.legacyNotes.join("\n")).not.toMatch(/Q:|Former:|Graft:|Pros:/);
+    expect(row.importPlan).toMatchObject({
+      implants: [expect.objectContaining({ site: "36", size: "4.8 × 10", qValue: "80", formerValue: "Y", graftValue: "N" })],
+      prosValue: "3M",
+      paymentRecords: 0,
+      createBoneGraftProcedure: false,
+    });
+
+    const approved = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      version: analyzed.body.version,
+      rowApprovals: [{ rowNumber: 1, approved: true }],
+    });
+    expect(approved.status).toBe(200);
+    expect(approved.body.rows[0].status).toBe("READY");
+    const committed = await admin.post(`/api/admin/import/universal/${analyzed.body.id}/commit`).send({
+      rowNumbers: [1],
+      mode: "clinical_only",
+      version: approved.body.version,
+    });
+    expect(committed.status).toBe(200);
+    const persisted = await pool.query(
+      `SELECT c.pros_value, c.general_note, i.q_value, i.former_value, i.graft_value
+       FROM patients p
+       JOIN implant_cases c ON c.patient_id = p.id
+       JOIN implants i ON i.implant_case_id = c.id
+       WHERE p.file_number = 'UI-STRUCTURED-NOTE-1'`,
+    );
+    expect(persisted.rows).toEqual([
+      expect.objectContaining({ pros_value: "3M", general_note: "IMMED", q_value: "80", former_value: "Y", graft_value: "N" }),
+    ]);
+  });
+
+  it("pairs multiline canonical values and synchronizes explicit apply-to-all into the import plan", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "structured-note-multi.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,SYSTEM,NOTE",
+        'Structured multi patient,UI-STRUCTURED-MULTI-1,2026-03-02,"35,36","3.5x10,3.5x10",ROT,"Q: 35',
+        "Former: MST",
+        "MST",
+        "Graft: N",
+        "N",
+        "Pros: 3M",
+        'NOTE: IMMED"',
+      ].join("\n"),
+    });
+    expect(analyzed.status).toBe(201);
+    expect(analyzed.body.rows[0].proposed.implants).toEqual([
+      expect.objectContaining({ site: "35", size: "3.5 × 10", qValue: null, formerValue: "MST", graftValue: "N" }),
+      expect.objectContaining({ site: "36", size: "3.5 × 10", qValue: null, formerValue: "MST", graftValue: "N" }),
+    ]);
+    expect(analyzed.body.rows[0].proposed.sourceCandidates.qValue).toBe("35");
+    expect(analyzed.body.rows[0].warnings.join(" ")).toContain("Q is a single source value");
+
+    const applied = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      version: analyzed.body.version,
+      implantApplyToAll: [{ rowNumber: 1, fields: ["qValue"] }],
+    });
+    expect(applied.status).toBe(200);
+    expect(applied.body.rows[0].status).toBe("READY");
+    expect(applied.body.rows[0].proposed.implants.map((implant: { qValue: string | null }) => implant.qValue)).toEqual(["35", "35"]);
+    expect(applied.body.rows[0].importPlan.implants.map((implant: { qValue: string | null }) => implant.qValue)).toEqual(["35", "35"]);
+    expect(applied.body.rows[0].importPlan.prosValue).toBe("3M");
+  });
+
+  it("does not let learned legacy mappings suppress recognized canonical headers", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "recognized-headers.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,SYSTEM,Q,Former,Graft,Pros,NOTE",
+        "Recognized header patient,UI-RECOGNIZED-HEADERS-1,2026-03-03,36,4.8x10,ROT,80,Y,N,3M,IMMED",
+      ].join("\n"),
+    });
+    expect(analyzed.status).toBe(201);
+    const patched = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      version: analyzed.body.version,
+      mappings: [
+        { source: "Q", destination: "legacy_note" },
+        { source: "Former", destination: "legacy_note" },
+        { source: "Graft", destination: "legacy_note" },
+        { source: "Pros", destination: "legacy_note" },
+        { source: "NOTE", destination: "legacy_note" },
+      ],
+    });
+    expect(patched.status).toBe(200);
+    const row = patched.body.rows[0];
+    expect(row.proposed.implants).toEqual([
+      expect.objectContaining({ site: "36", qValue: "80", formerValue: "Y", graftValue: "N" }),
+    ]);
+    expect(row.proposed.case).toMatchObject({ prosValue: "3M", clinicalNote: "IMMED" });
+    expect(row.proposed.legacyNotes.join("\n")).not.toMatch(/Q:|Former:|Graft:|Pros:|NOTE:/);
+    expect(row.importPlan.implants).toEqual(row.proposed.implants);
+    expect(row.importPlan.prosValue).toBe("3M");
+  });
+
   it("does not guess ambiguous dates, invalid FDI values, or exceed the five-patient pilot cap", async () => {
     const ambiguous = await admin.post("/api/admin/import/universal/analyze").send({
       filename: "ambiguous-date.csv",
