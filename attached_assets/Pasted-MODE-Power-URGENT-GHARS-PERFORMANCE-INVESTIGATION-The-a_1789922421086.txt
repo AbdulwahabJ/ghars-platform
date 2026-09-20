@@ -1,0 +1,398 @@
+MODE: Power
+
+URGENT GHARS PERFORMANCE INVESTIGATION.
+
+The application recently became noticeably slow.
+
+Observed symptoms:
+- UI sometimes feels frozen / hangs.
+- Full browser refresh takes much longer than before.
+- This started after recent Settings / Legacy Import work.
+- The last build passed but reported existing chunk-size warnings.
+
+DO NOT add features.
+DO NOT redesign UI.
+DO NOT publish.
+DO NOT blindly optimize or rollback.
+
+First measure and identify the actual bottleneck.
+
+==================================================
+1. REPRODUCE THE ISSUE
+==================================================
+
+Test the application using a production build, not only Vite dev mode.
+
+Measure:
+
+A. Cold page load / hard refresh
+B. Warm refresh
+C. Dashboard navigation
+D. Patients navigation
+E. Statistics navigation
+F. Settings navigation
+G. Settings tab switching
+
+Test authenticated user flow.
+
+Report actual timings.
+
+==================================================
+2. BREAK LOAD TIME INTO COMPONENTS
+==================================================
+
+For a hard refresh identify:
+
+- document TTFB
+- JS download time
+- JS parse/evaluation time
+- React mount/render time
+- authentication/session request time
+- initial API request time
+- database query time where applicable
+
+Do not simply report "slow".
+
+Identify exactly where time is spent.
+
+==================================================
+3. NETWORK WATERFALL
+==================================================
+
+Inspect browser Network during hard refresh.
+
+Report:
+
+- number of initial requests
+- slowest requests
+- duplicate requests
+- requests firing repeatedly
+- requests blocked/waiting
+- API calls >500 ms
+- large JS/CSS assets
+- total JS transferred
+- largest JS chunks
+
+Check whether React Query or Effects are generating request loops.
+
+==================================================
+4. INVESTIGATE MAIN BUNDLE SIZE
+==================================================
+
+The Legacy Import feature now supports:
+
+- XLSX
+- CSV
+- PDF
+- scanned PDF
+- images
+- OCR
+- extraction/review
+
+Audit whether heavy importer dependencies are being included eagerly in the normal Ghars application bundle.
+
+Specifically inspect packages/modules related to:
+
+- XLSX
+- PDF parsing/rendering
+- OCR
+- image processing
+- import/review UI
+- export/PDF generation
+- charts
+
+Report which heavy libraries are inside the initial application chunks.
+
+==================================================
+5. LEGACY IMPORT MUST BE LAZY
+==================================================
+
+Legacy Import is currently feature-disabled / Coming Soon.
+
+Its heavy frontend implementation MUST NOT be part of the initial bundle for:
+
+Dashboard
+Patients
+Statistics
+normal Settings tabs
+
+If currently eagerly imported:
+
+convert the importer UI to route/component-level lazy loading using the existing React architecture.
+
+Only load importer code when the Import feature/page is actually opened AND enabled.
+
+Do not delete importer code.
+
+==================================================
+6. SETTINGS COMPONENT IMPORTS
+==================================================
+
+Inspect Settings.tsx.
+
+Make sure it is not eagerly importing every large Settings feature just because Settings renders.
+
+Especially Legacy Import.
+
+Tabs that contain large modules should be lazy-loaded when appropriate.
+
+Do not break the recent URL/search synchronization fix.
+
+==================================================
+7. REACT RENDER LOOP AUDIT
+==================================================
+
+Inspect recent changes for unnecessary or repeated renders.
+
+Especially:
+
+- useSearch()
+- useLocation()
+- useEffect dependencies
+- URLSearchParams
+- state synchronized with URL
+- feature flag queries
+- React Query invalidations
+- settings queries
+
+Check for:
+
+- infinite render loops
+- repeated query refetches
+- state updates on every render
+- unstable query keys
+- unnecessary global rerenders
+
+Use React profiling where useful.
+
+==================================================
+8. AUTH / SESSION PERFORMANCE
+==================================================
+
+A hard refresh may wait on authentication/session resolution.
+
+Measure:
+
+- session endpoint latency
+- requireAuth latency
+- session database lookup latency
+
+Verify there is no repeated session validation waterfall.
+
+Example bad pattern:
+
+session request
+→ settings request waits
+→ permissions request waits
+→ dashboard request waits
+
+Parallelize safe independent requests where appropriate.
+
+==================================================
+9. DATABASE PERFORMANCE
+==================================================
+
+Measure actual database request times for initial pages.
+
+Especially:
+
+Dashboard
+Settings
+Patients
+
+Check for:
+
+- N+1 queries
+- missing indexes
+- expensive COUNT/JOIN queries
+- repeated identical queries
+- unnecessary loading of full datasets
+
+Do not add indexes blindly.
+
+Only propose/add an index if a measured query needs it.
+
+==================================================
+10. SERVER STARTUP / COLD START
+==================================================
+
+Determine whether refresh slowness comes from frontend or server cold start.
+
+Measure:
+
+- server process startup
+- first request after inactivity
+- subsequent requests
+
+Check whether startup is doing expensive work such as:
+
+- migrations
+- schema introspection
+- seed/bootstrap
+- import initialization
+- font loading
+- PDF/OCR initialization
+- large filesystem scans
+
+None of these should run unnecessarily on every request.
+
+==================================================
+11. STATIC ASSETS
+==================================================
+
+Audit:
+
+- logo/images
+- fonts
+- landing media
+- large screenshots
+- cache headers
+
+Do not preload heavy assets that are not needed on the current page.
+
+==================================================
+12. CODE SPLITTING
+==================================================
+
+Inspect generated Vite chunks.
+
+Provide the top 10 largest chunks/modules.
+
+If the main bundle is unnecessarily large:
+
+use safe route-level/component-level code splitting.
+
+Good candidates may include:
+
+- Legacy Import
+- PDF generation
+- Excel export
+- charts
+- Platform Admin-only pages
+
+Do NOT fragment tiny components unnecessarily.
+
+==================================================
+13. PRESERVE FUNCTIONALITY
+==================================================
+
+Any optimization must preserve:
+
+- authentication
+- Dashboard
+- Patients
+- Statistics
+- Settings
+- URL tab sync
+- feature flags
+- Arabic/English
+- tenant isolation
+
+No functional regression.
+
+==================================================
+14. PERFORMANCE COMPARISON
+==================================================
+
+After the fix, compare BEFORE vs AFTER:
+
+Hard refresh
+Warm refresh
+Initial JS size
+Largest chunk
+Dashboard usable time
+Settings usable time
+Initial API calls
+
+Use actual measured numbers.
+
+==================================================
+15. IMPORTANT
+==================================================
+
+Do not hide loading problems by adding arbitrary spinners or delays.
+
+We need the actual bottleneck fixed.
+
+Do not use:
+
+window.location.reload()
+
+as a solution.
+
+Do not disable functionality merely to improve scores.
+
+==================================================
+16. FINAL REPORT
+==================================================
+
+Return:
+
+ROOT CAUSE:
+<exact measured cause(s)>
+
+HARD REFRESH BEFORE:
+<timing>
+
+HARD REFRESH AFTER:
+<timing>
+
+TTFB:
+<before / after>
+
+INITIAL JS:
+<before / after>
+
+LARGEST CHUNK:
+<before / after>
+
+LEGACY IMPORT IN INITIAL BUNDLE BEFORE:
+YES / NO
+
+LEGACY IMPORT LAZY LOADED:
+PASS / FAIL
+
+REPEATED API REQUESTS:
+<details or NONE>
+
+RENDER LOOP:
+FOUND / NOT FOUND
+
+SESSION LATENCY:
+<timing>
+
+DATABASE BOTTLENECK:
+<details or NONE>
+
+COLD START ISSUE:
+YES / NO + details
+
+DASHBOARD PERFORMANCE:
+PASS / FAIL
+
+PATIENTS PERFORMANCE:
+PASS / FAIL
+
+STATISTICS PERFORMANCE:
+PASS / FAIL
+
+SETTINGS PERFORMANCE:
+PASS / FAIL
+
+SETTINGS URL SYNC PRESERVED:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
