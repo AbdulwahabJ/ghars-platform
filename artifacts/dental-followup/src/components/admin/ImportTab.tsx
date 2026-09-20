@@ -25,8 +25,27 @@ export function ImportTab() {
   const currentBatch = useUniversalImportCurrentBatch(!batch);
 
   useEffect(() => {
-    if (!batch && currentBatch.data) setBatch(currentBatch.data);
+    if (!batch && currentBatch.data) {
+      setBatch(currentBatch.data);
+      // Auto-skip mapping step if no mappings require review
+      if (currentBatch.data.status === "ANALYZED") {
+        const needsReview = currentBatch.data.mappings.some(m => m.requiresReview);
+        if (!needsReview) {
+          setIsMappingConfirmed(true);
+        }
+      }
+    }
   }, [batch, currentBatch.data]);
+
+  const handleAnalyzed = (b: UniversalImportBatch) => {
+    setBatch(b);
+    if (b.status === "ANALYZED") {
+      const needsReview = b.mappings.some(m => m.requiresReview);
+      if (!needsReview) {
+        setIsMappingConfirmed(true);
+      }
+    }
+  };
 
   const reset = () => {
     setBatch(null);
@@ -49,7 +68,7 @@ export function ImportTab() {
 
         <TabsContent value="universal" className="mt-6">
           {!batch && (
-            <UploadStep onAnalyzed={(b) => setBatch(b)} />
+            <UploadStep onAnalyzed={handleAnalyzed} />
           )}
 
           {batch && batch.status === "ANALYZED" && !isMappingConfirmed && (

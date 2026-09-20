@@ -529,12 +529,36 @@ export const universalImportMappingPatchSchema = z.object({
     treatingDoctor: z.string().trim().min(1).max(200),
     status: z.string().trim().min(1).max(200),
   })).optional(),
+  rowCorrections: z.array(z.object({
+    rowNumber: z.number().int().min(1),
+    patient: z.object({
+      name: z.string().trim().min(1).max(300),
+      fileNumber: z.string().trim().min(1).max(100),
+      mobile: z.string().trim().max(50).nullable(),
+      age: z.number().int().min(0).max(150).nullable(),
+    }),
+    case: z.object({
+      procedureDate: z.string().date(),
+      treatingDoctor: z.string().trim().min(1).max(200),
+      status: z.string().trim().min(1).max(200),
+      prosValue: z.enum(["2M", "3M"]).nullable(),
+      clinicalNote: z.string().max(10_000).nullable(),
+    }),
+    implants: z.array(z.object({
+      site: z.string().trim().min(1).max(100),
+      size: z.string().trim().max(100).nullable(),
+      system: z.string().trim().max(200).nullable(),
+      qValue: z.string().trim().max(200).nullable(),
+      formerValue: z.string().trim().max(200).nullable(),
+      graftValue: z.string().trim().max(200).nullable(),
+    })).min(1).max(100),
+  })).optional(),
   implantApplyToAll: z.array(z.object({
     rowNumber: z.number().int().min(1),
     fields: z.array(z.enum(["qValue", "formerValue", "graftValue"])).min(1),
   })).optional(),
   version: z.number().int().min(1).optional(),
-}).refine((value) => value.mappings.length > 0 || (value.valueMappings?.length ?? 0) > 0 || (value.rowApprovals?.length ?? 0) > 0 || (value.financeCorrections?.length ?? 0) > 0 || (value.caseCorrections?.length ?? 0) > 0 || (value.implantApplyToAll?.length ?? 0) > 0,
+}).refine((value) => value.mappings.length > 0 || (value.valueMappings?.length ?? 0) > 0 || (value.rowApprovals?.length ?? 0) > 0 || (value.financeCorrections?.length ?? 0) > 0 || (value.caseCorrections?.length ?? 0) > 0 || (value.rowCorrections?.length ?? 0) > 0 || (value.implantApplyToAll?.length ?? 0) > 0,
   "At least one mapping, value mapping, row approval, case correction, or finance correction is required.");
 export type UniversalImportMappingPatch = z.infer<typeof universalImportMappingPatchSchema>;
 

@@ -810,7 +810,7 @@ describe("universal legacy import staging", () => {
       expect.objectContaining({ site: "25", size: "4.2 × 10" }),
     ]);
     expect(analyzed.body.rows[0].proposed.financeCandidate).toBe("دفعة أولى ١٥٠٠");
-    expect(analyzed.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    expect(analyzed.body.rows[0].status).toBe("READY");
     const approved = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
       version: analyzed.body.version,
       rowApprovals: [{ rowNumber: 1, approved: true }],
@@ -1020,7 +1020,7 @@ describe("universal legacy import staging", () => {
         "مريض مالي,UI-MAP-FINANCE,2025-07-15,47,1200",
       ].join("\n"),
     });
-    expect(finance.body.rows[0].status).toBe("REVIEW_REQUIRED");
+    expect(finance.body.rows[0].status).toBe("READY");
     const financePatch = await admin
       .patch(`/api/admin/import/universal/${finance.body.id}/mapping`)
       .send({ mappings: [{ source: "AMOUNT", destination: "finance.preserve_summary" }] });
@@ -1637,6 +1637,63 @@ describe("universal legacy import staging", () => {
       historicalPaymentStatus: "REVIEW_REQUIRED",
       isVerified: false,
     });
+  });
+
+  it("persists direct staged-row corrections and revalidates the clinical import plan", async () => {
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "inline-correction.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,SYSTEM,Q,Former,Graft,Pros,NOTE,COST",
+        'Original patient,UI-INLINE-EDIT-1,2026-04-01,"99,36",4.8x10,ROT,40,Y,N,2M,Original note,"legacy amount unknown"',
+      ].join("\n"),
+    });
+    expect(analyzed.status).toBe(201);
+    expect(analyzed.body.rows[0].status).toBe("BLOCKED");
+
+    const corrected = await admin.patch(`/api/admin/import/universal/${analyzed.body.id}/mapping`).send({
+      version: analyzed.body.version,
+      rowCorrections: [{
+        rowNumber: 1,
+        patient: {
+          name: "Corrected patient",
+          fileNumber: "UI-INLINE-EDIT-1",
+          mobile: null,
+          age: null,
+        },
+        case: {
+          procedureDate: "2026-04-02",
+          treatingDoctor: "Dr Test",
+          status: "Active",
+          prosValue: "3M",
+          clinicalNote: "Corrected note",
+        },
+        implants: [
+          { site: "36", size: "4.8x10", system: "ROT / Root", qValue: "45", formerValue: "MST", graftValue: "N" },
+          { site: "35", size: "3.8x12", system: "ROT / Root", qValue: "40", formerValue: "MST", graftValue: "Y" },
+        ],
+      }],
+    });
+    expect(corrected.status).toBe(200);
+    expect(corrected.body.rows[0]).toMatchObject({
+      status: "READY",
+      proposed: {
+        patient: { name: "Corrected patient", fileNumber: "UI-INLINE-EDIT-1" },
+        case: { procedureDate: "2026-04-02", treatingDoctor: "Dr Test", status: "Active", prosValue: "3M", clinicalNote: "Corrected note" },
+        implants: [
+          { site: "36", size: "4.8 × 10", system: "ROT / Root", qValue: "45", formerValue: "MST", graftValue: "N" },
+          { site: "35", size: "3.8 × 12", system: "ROT / Root", qValue: "40", formerValue: "MST", graftValue: "Y" },
+        ],
+        financeCandidate: "legacy amount unknown",
+      },
+      importPlan: {
+        implantCount: 2,
+        paymentRecords: 0,
+        prosValue: "3M",
+      },
+    });
+    expect(corrected.body.rows[0].raw.NAME).toBe("Original patient");
+    expect(corrected.body.rows[0].warnings.join(" ")).toContain("Financial source text");
   });
 
   it("does not guess ambiguous dates, invalid FDI values, or exceed the five-patient pilot cap", async () => {

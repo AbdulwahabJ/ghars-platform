@@ -53,6 +53,17 @@ type CreatedRecord = {
   updatedAt: string;
 };
 type ProposedImplant = { site: string; size: string | null; system: string | null; qValue: string | null; formerValue: string | null; graftValue: string | null };
+
+function isFinanceOnlyWarning(warning: string): boolean {
+  return warning.includes("Financial source text") ||
+    warning.includes("finance requires correction") ||
+    warning.includes("Finance is unresolved") ||
+    warning.includes("finance.candidate requires review") ||
+    warning.includes("finance.total requires review") ||
+    warning.includes("finance.paid requires review") ||
+    warning.includes("finance.opening_remaining requires review") ||
+    warning.includes("finance.status requires review");
+}
 type StructuredNoteValues = {
   qValues: string[];
   formerValues: string[];
@@ -532,7 +543,7 @@ function makeMappings(
       destination: destination ?? "legacy_note",
       confidence,
       reason: learnedDestination ? "Approved tenant mapping" : destination ? "Deterministic header alias" : "Unknown column preserved for review",
-      requiresReview: !destination || confidence < MIN_CONFIDENCE || destination === "finance.candidate",
+      requiresReview: !destination || confidence < MIN_CONFIDENCE,
     };
   });
 }
@@ -737,9 +748,10 @@ function normalizeRows(
         warnings.push(`${mapping.source} has low extraction confidence (${Math.round(valueConfidence * 100)}%).`);
       }
     }
+    const clinicalWarnings = warnings.filter((warning) => !isFinanceOnlyWarning(warning));
     const status = blocked.length
       ? "BLOCKED"
-      : warnings.length
+      : clinicalWarnings.length
         ? "REVIEW_REQUIRED"
         : "READY";
     return {
@@ -1008,7 +1020,7 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
     if (approval.approved) priorApprovals.add(approval.rowNumber);
     else priorApprovals.delete(approval.rowNumber);
   }
-  const rows = await classifyDuplicates(
+  let rows = await classifyDuplicates(
     normalizeRows(
       batch.sourceRows as RawRow[],
       mappings,
@@ -1062,6 +1074,45 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
     row.warnings = row.warnings.filter((warning) => !warning.startsWith("DATE_AMBIGUOUS:"));
     if (row.status === "REVIEW_REQUIRED" && row.warnings.length === 0) row.status = "READY";
   }
+  for (const correction of parsed.data.rowCorrections ?? []) {
+    const row = rows.find((candidate) => candidate.rowNumber === correction.rowNumber);
+    if (!row) {
+      res.status(422).json({ error: `Unknown import row ${correction.rowNumber}.` });
+      return;
+    }
+    row.proposed.patient = {
+      name: correction.patient.name.trim(),
+      fileNumber: normalizeDigits(correction.patient.fileNumber.trim()),
+      mobile: correction.patient.mobile?.trim() || null,
+      age: correction.patient.age,
+    };
+    row.proposed.case = {
+      procedureDate: correction.case.procedureDate,
+      treatingDoctor: correction.case.treatingDoctor.trim(),
+      status: correction.case.status.trim(),
+      prosValue: correction.case.prosValue,
+      clinicalNote: correction.case.clinicalNote,
+    };
+    row.proposed.implants = correction.implants.map((implant) => ({
+      site: normalizeDigits(implant.site.trim()),
+      size: implant.size ? normalizeSize(implant.size) : null,
+      system: implant.system?.trim() || null,
+      qValue: implant.qValue?.trim() || null,
+      formerValue: implant.formerValue?.trim() || null,
+      graftValue: implant.graftValue?.trim() || null,
+    }));
+    row.proposed.implantApplyToAll = [];
+    const financeWarnings = row.warnings.filter(isFinanceOnlyWarning);
+    const clinicalProblems: string[] = [];
+    for (const implant of row.proposed.implants) {
+      const isFdi = (FDI_SITES as readonly string[]).includes(implant.site);
+      const isCustom = /^custom\s*:/i.test(implant.site) || /^مخصص\s*:/u.test(implant.site);
+      if (!isFdi && !isCustom) clinicalProblems.push(`SITE_INVALID: Site "${implant.site}" is not a valid FDI tooth and cannot be committed until corrected.`);
+      if (!implant.size) clinicalProblems.push("Implant site/size counts do not match; pairing is blocked.");
+    }
+    row.warnings = [...new Set([...clinicalProblems, ...financeWarnings])];
+    row.status = clinicalProblems.length ? "BLOCKED" : "READY";
+  }
   for (const correction of parsed.data.financeCorrections ?? []) {
     const row = rows.find((candidate) => candidate.rowNumber === correction.rowNumber);
     if (!row) {
@@ -1094,9 +1145,6 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
         !warning.includes("finance.opening_remaining requires review") &&
         !warning.includes("finance.status requires review"));
       if (row.status === "REVIEW_REQUIRED" && row.warnings.length === 0) row.status = "READY";
-    } else if (row.status === "READY") {
-      row.status = "REVIEW_REQUIRED";
-      row.warnings = [...row.warnings, "Finance is unresolved; choose clinical-only or verify corrected values."];
     }
   }
   for (const resolution of parsed.data.implantApplyToAll ?? []) {
@@ -1117,6 +1165,9 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
       row.warnings = row.warnings.filter((warning) => !warning.startsWith(`${label} is a single source value`));
     }
     if (row.warnings.length === 0 && row.status === "REVIEW_REQUIRED") row.status = "READY";
+  }
+  if ((parsed.data.rowCorrections?.length ?? 0) > 0) {
+    rows = await classifyDuplicates(rows, req.currentTenant!.id, priorApprovals);
   }
   for (const row of rows) syncImportPlan(row);
   const summary = {
