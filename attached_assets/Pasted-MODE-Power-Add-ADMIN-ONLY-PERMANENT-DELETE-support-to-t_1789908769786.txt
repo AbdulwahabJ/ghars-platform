@@ -1,0 +1,527 @@
+MODE: Power
+
+Add ADMIN-ONLY PERMANENT DELETE support to the main Ghars operational table.
+
+IMPORTANT:
+Archive already exists.
+
+I ALSO need a real permanent delete option for selected rows.
+
+The delete behavior must be explicit, safe, transactional, and tenant-scoped.
+
+DO NOT publish automatically.
+
+==================================================
+1. MAIN TABLE ACTIONS
+==================================================
+
+In the main Patients / Cases operational table:
+
+Keep the existing row checkboxes.
+
+When Admin selects one or more rows, show:
+
+Arabic:
+
+أرشفة المحدد
+حذف نهائي
+إلغاء التحديد
+
+English:
+
+Archive Selected
+Delete Permanently
+Clear Selection
+
+Permanent Delete must be visually destructive/red.
+
+==================================================
+2. ADMIN ONLY
+==================================================
+
+Only authorized Tenant Admin / Owner can:
+
+- see Permanent Delete
+- call Permanent Delete API
+
+Normal employees/users:
+- do not see the option
+- backend returns 403 if they try to call it directly
+
+Enforce authorization server-side.
+
+==================================================
+3. DEFINE WHAT A TABLE ROW MEANS
+==================================================
+
+Audit the current operational table.
+
+If each row represents an Implant Case:
+
+Permanent Delete from THIS table should delete:
+
+- selected implant case
+- implants belonging to that case
+- adjunct procedures belonging to that case
+- prosthetic events belonging to that case
+- follow-ups linked only to that case
+- communications linked only to that case
+- payments/charges/discounts/installments belonging to that case
+- historical/opening finance belonging to that case
+- case-specific legacy/import metadata
+
+BUT:
+
+Do NOT automatically delete the Patient record if that patient has:
+- another case
+- unrelated patient-level records
+- another treatment history
+
+The patient remains unless explicitly deleted separately.
+
+==================================================
+4. PATIENT FULL DELETE MUST BE SEPARATE
+==================================================
+
+Create/keep a separate action inside the Patient File:
+
+Arabic:
+حذف ملف المريض نهائيًا
+
+English:
+Delete Patient Permanently
+
+This is NOT the same as deleting one case from the operational table.
+
+Patient-level permanent delete may delete the entire patient and all related records only after a dedicated impact review and explicit confirmation.
+
+Do not mix these two actions.
+
+==================================================
+5. BULK PERMANENT DELETE
+==================================================
+
+Admin can select:
+
+1 row
+multiple rows
+all visible selected rows
+
+and choose:
+
+حذف نهائي
+
+Do not send one request per row.
+
+Use one tenant-scoped bulk-delete service/endpoint.
+
+==================================================
+6. IMPACT PREVIEW BEFORE DELETE
+==================================================
+
+Before permanent deletion, calculate and show exactly what will be deleted.
+
+Example Arabic:
+
+حذف نهائي للحالات المحددة؟
+
+سيتم حذف:
+
+3 حالات
+7 زرعات
+2 متابعات
+1 تركيب
+4 دفعات
+2 رسوم
+1 خصم
+
+لن يمكن استعادة هذه البيانات بعد الحذف.
+
+Patients that have other cases will remain.
+
+Buttons:
+
+إلغاء
+حذف نهائي
+
+English equivalent in English UI.
+
+==================================================
+7. NO BROWSER CONFIRM
+==================================================
+
+Do NOT use:
+
+window.confirm()
+confirm()
+
+Use the existing Ghars styled AlertDialog.
+
+==================================================
+8. STRONG CONFIRMATION
+==================================================
+
+For Permanent Delete:
+
+Require one deliberate confirmation step.
+
+For example:
+
+checkbox:
+أفهم أن الحذف نهائي ولا يمكن التراجع عنه
+
+Then enable:
+
+حذف نهائي
+
+For a very large bulk delete, optionally require typing:
+
+DELETE
+
+or Arabic equivalent if already consistent with product UX.
+
+Do not require this for simple Archive.
+
+==================================================
+9. TRANSACTIONAL DELETE
+==================================================
+
+The permanent delete must be transactional.
+
+For one selected case:
+
+either ALL related records are deleted successfully
+
+or NONE are deleted.
+
+No partial deletion.
+
+For bulk deletion:
+use a transaction strategy that cannot leave broken relationships.
+
+==================================================
+10. DELETE ORDER
+==================================================
+
+Respect foreign keys.
+
+Delete child records safely before parent records where required.
+
+Do not rely on unsafe broad cascade unless existing schema intentionally defines it.
+
+Audit actual relationships first.
+
+==================================================
+11. PATIENT PRESERVATION
+==================================================
+
+After deleting selected cases:
+
+if the patient still has another case:
+keep patient active.
+
+If patient has zero remaining cases:
+do NOT automatically delete patient.
+
+The patient may remain as a patient record.
+
+Full patient deletion must remain a separate explicit action.
+
+==================================================
+12. IMPORTED RECORDS
+==================================================
+
+If selected case was created by Legacy Import:
+
+show import-batch context in the impact preview.
+
+If the user is trying to undo an entire recent import batch, prefer:
+
+Rollback Import Batch
+
+instead of deleting rows one-by-one.
+
+However, Admin may still permanently delete individual imported cases if safe and explicitly confirmed.
+
+Audit consistency must remain intact.
+
+==================================================
+13. AUDIT LOG
+==================================================
+
+Before deletion, write an audit event containing safe metadata:
+
+PERMANENT_CASE_DELETE
+
+Include:
+
+actor
+tenant
+timestamp
+case IDs
+count of deleted related entities
+import batch reference if relevant
+
+Do not log unnecessary patient clinical content.
+
+If deleting the patient file entirely:
+
+PERMANENT_PATIENT_DELETE
+
+==================================================
+14. SOFT DELETE VS HARD DELETE
+==================================================
+
+Keep both options:
+
+Archive
+= reversible
+
+Permanent Delete
+= actual database deletion
+
+Do not silently turn Permanent Delete into Archive.
+
+==================================================
+15. TABLE REFRESH
+==================================================
+
+After successful deletion:
+
+- remove rows immediately
+- refresh Dashboard
+- refresh Statistics
+- refresh patient/case lists
+- refresh finance/report queries
+
+Use proper React Query invalidation.
+
+Do NOT use:
+
+window.location.reload()
+
+==================================================
+16. DASHBOARD / STATISTICS
+==================================================
+
+After permanent deletion, all relevant metrics must be recalculated from remaining data.
+
+No deleted record may continue contributing to:
+
+- Dashboard
+- Statistics
+- Reports
+- Exports
+
+==================================================
+17. SELECTION BEHAVIOR
+==================================================
+
+After successful delete:
+
+clear current selection.
+
+If delete fails:
+keep rows visible and show a clear error.
+
+No silent partial disappearance.
+
+==================================================
+18. ERROR HANDLING
+==================================================
+
+Arabic:
+
+تعذر حذف البيانات. لم يتم إجراء أي حذف.
+
+English:
+
+Unable to delete the selected records. No data was deleted.
+
+Never expose raw database errors.
+
+==================================================
+19. TENANT ISOLATION
+==================================================
+
+Backend must derive tenant from authenticated session.
+
+Never trust tenantId from frontend.
+
+Selected IDs from another tenant must cause rejection.
+
+==================================================
+20. PLATFORM SUPER ADMIN
+==================================================
+
+Do NOT automatically allow Platform Super Admin to hard-delete tenant clinical data unless current Ghars architecture explicitly allows it.
+
+Follow existing support/impersonation rules.
+
+Tenant clinical deletion should remain under tenant-authorized context.
+
+==================================================
+21. TEST CASES
+==================================================
+
+Test:
+
+A.
+Delete one case with one implant
+
+B.
+Delete case with multiple implants
+
+C.
+Delete case with:
+payments
+followups
+prosthetic events
+charges
+discounts
+historical finance
+
+D.
+Patient has two cases:
+delete one case
+patient + second case remain
+
+E.
+Bulk delete 3 cases
+
+F.
+One invalid/cross-tenant ID
+→ no partial delete
+
+G.
+Normal user attempts API call
+→ 403
+
+H.
+Archive still works independently
+
+I.
+Dashboard updates after delete
+
+J.
+Statistics update after delete
+
+K.
+Imported case deletion
+
+==================================================
+22. FULL PATIENT DELETE
+==================================================
+
+Implement/verify separate patient-level permanent deletion from Patient File.
+
+Before delete show:
+
+Patient
+Cases
+Implants
+Payments
+Follow-ups
+Communications
+Prosthetics
+Historical Finance
+Other related entities
+
+Then explicit confirmation.
+
+Delete everything transactionally.
+
+Do not expose this as the same action as table-row case deletion.
+
+==================================================
+23. FINAL REPORT
+==================================================
+
+Return:
+
+MAIN TABLE PERMANENT DELETE:
+PASS / FAIL
+
+BULK PERMANENT DELETE:
+PASS / FAIL
+
+ADMIN ONLY UI:
+PASS / FAIL
+
+ADMIN ONLY API:
+PASS / FAIL
+
+CASE DELETE SEMANTICS:
+PASS / FAIL
+
+PATIENT NOT AUTO-DELETED:
+PASS / FAIL
+
+SEPARATE FULL PATIENT DELETE:
+PASS / FAIL
+
+IMPACT PREVIEW:
+PASS / FAIL
+
+STYLED CONFIRMATION:
+PASS / FAIL
+
+NO BROWSER CONFIRM:
+PASS / FAIL
+
+TRANSACTION SAFETY:
+PASS / FAIL
+
+RELATED CASE DATA DELETED:
+PASS / FAIL
+
+OTHER PATIENT CASES PRESERVED:
+PASS / FAIL
+
+IMPORT BATCH SAFETY:
+PASS / FAIL
+
+AUDIT LOG:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+DASHBOARD REFRESH:
+PASS / FAIL
+
+STATISTICS REFRESH:
+PASS / FAIL
+
+TABLE REFRESH:
+PASS / FAIL
+
+ARCHIVE STILL WORKS:
+PASS / FAIL
+
+ARABIC:
+PASS / FAIL
+
+ENGLISH:
+PASS / FAIL
+
+WESTERN DIGITS:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.

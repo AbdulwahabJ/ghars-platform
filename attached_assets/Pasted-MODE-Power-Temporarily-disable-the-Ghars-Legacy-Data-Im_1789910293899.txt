@@ -1,0 +1,480 @@
+MODE: Power
+
+Temporarily disable the Ghars Legacy Data Import feature behind a PLATFORM-ADMIN controlled feature flag.
+
+IMPORTANT:
+Do NOT delete, rollback, or simplify any of the completed Legacy Import implementation.
+
+Preserve all existing importer code, tests, database structures, mappings, historical finance support, batch rollback, OCR, XLSX/PDF/image support, and review UI.
+
+The feature is simply NOT READY FOR CUSTOMER USE YET.
+
+GOAL:
+
+Platform Super Admin can enable or disable Legacy Data Import globally.
+
+For now the Production/default state must be:
+
+DISABLED
+
+When disabled:
+- customers can see that the feature exists
+- they cannot use it
+- show "Coming Soon"
+- direct URLs must be blocked
+- backend import APIs must also be blocked
+
+==================================================
+1. PLATFORM FEATURE FLAG
+==================================================
+
+Add/reuse a platform setting:
+
+legacy_import_enabled
+
+Default:
+
+false
+
+Prefer using the existing Platform Settings / application settings architecture.
+
+Do NOT create a second settings system.
+
+If the existing settings architecture can support this without a DB migration, reuse it.
+
+==================================================
+2. PLATFORM ADMIN CONTROL
+==================================================
+
+In:
+
+Platform Admin
+→ Platform Settings
+
+add a section such as:
+
+Arabic:
+الميزات التجريبية
+
+English:
+Feature Controls
+
+Add:
+
+Arabic:
+استيراد البيانات القديمة
+
+English:
+Legacy Data Import
+
+Toggle:
+
+مفعّل / غير مفعّل
+Enabled / Disabled
+
+Description Arabic:
+
+السماح للمنشآت باستخدام أداة استيراد البيانات القديمة من Excel وPDF والصور.
+
+English:
+
+Allow organizations to use the legacy data import tool for Excel, PDF, and image files.
+
+Only:
+
+platform_super_admin
+
+can change this setting.
+
+==================================================
+3. DEFAULT STATE
+==================================================
+
+For the current release:
+
+legacy_import_enabled = false
+
+Do NOT automatically enable it after deployment.
+
+==================================================
+4. CUSTOMER SETTINGS UI
+==================================================
+
+When the feature is disabled:
+
+Keep the Import section visible in Settings so customers know the feature is coming.
+
+But make it clearly unavailable.
+
+Suggested card:
+
+Arabic title:
+استيراد البيانات القديمة
+
+Badge:
+قريبًا
+
+Description:
+استيراد بيانات المرضى والحالات القديمة من Excel وPDF والصور بطريقة منظمة وآمنة.
+
+Disabled button:
+قريبًا
+
+Optional secondary text:
+نعمل حاليًا على تجهيز هذه الميزة لتقديم تجربة استيراد دقيقة وآمنة.
+
+English:
+
+Legacy Data Import
+
+Badge:
+Coming Soon
+
+Description:
+Import historical patient and treatment data from Excel, PDF, and images through a safe and structured workflow.
+
+Disabled button:
+Coming Soon
+
+Secondary:
+We’re currently preparing this feature for a safe and accurate import experience.
+
+==================================================
+5. DO NOT MAKE IT LOOK BROKEN
+==================================================
+
+Do not show:
+
+Permission denied
+Feature disabled
+403
+
+as the normal customer UI.
+
+The Settings card should intentionally look like an upcoming Ghars feature.
+
+Professional and clean.
+
+No excessive warning styling.
+
+==================================================
+6. BLOCK DIRECT ROUTE ACCESS
+==================================================
+
+If a customer manually enters the current Legacy Import URL while disabled:
+
+Do NOT render the importer.
+
+Show a clean Ghars page/card:
+
+Arabic:
+
+استيراد البيانات القديمة
+
+هذه الميزة قيد التجهيز وستتوفر قريبًا.
+
+English:
+
+Legacy Data Import
+
+This feature is currently being prepared and will be available soon.
+
+Provide:
+
+العودة إلى الإعدادات
+Back to Settings
+
+==================================================
+7. SERVER-SIDE ENFORCEMENT
+==================================================
+
+CRITICAL:
+
+This must NOT be UI-only.
+
+When:
+
+legacy_import_enabled = false
+
+all tenant-facing importer APIs must reject:
+
+- file upload
+- extraction
+- mapping
+- staging
+- analysis
+- preview
+- import commit
+- batch rollback initiated through customer importer UI
+- any other customer Legacy Import operation
+
+Use a consistent safe response such as:
+
+HTTP 403
+
+code:
+FEATURE_DISABLED
+
+Do not expose internal implementation details.
+
+==================================================
+8. PLATFORM ADMIN SAFETY
+==================================================
+
+Do not automatically allow Platform Super Admin to import tenant medical data simply because they can change the feature flag.
+
+The flag only controls availability.
+
+Existing tenant authorization rules remain unchanged.
+
+==================================================
+9. DEVELOPMENT / TESTING
+==================================================
+
+We still need to continue developing and testing this feature.
+
+Provide a safe way for Development/test environments to enable it through the same setting or controlled development configuration.
+
+Do NOT hardcode:
+
+if development = always enabled
+
+if that would bypass normal feature-flag testing.
+
+We must be able to test both:
+
+ENABLED
+DISABLED
+
+states.
+
+==================================================
+10. DO NOT DELETE IMPORT DATA OR CONFIG
+==================================================
+
+Disabling the feature must NOT delete:
+
+- staging data
+- tenant mappings
+- import batches
+- historical finance structures
+- importer configuration
+- existing test data
+- migration files
+
+It is an availability switch only.
+
+==================================================
+11. EXISTING IMPORTED RECORDS
+==================================================
+
+If any records were previously imported:
+
+disabling the importer must NOT affect those patients/cases.
+
+They remain normal Ghars records.
+
+==================================================
+12. NO EFFECT ON OTHER FEATURES
+==================================================
+
+Do not affect:
+
+- Patients
+- Implant Cases
+- Dashboard
+- Statistics
+- Finance
+- Exports
+- Settings managed lists
+- WhatsApp
+- Platform Admin
+- normal patient creation
+
+==================================================
+13. I18N
+==================================================
+
+Use existing i18next architecture.
+
+Arabic UI:
+fully Arabic.
+
+English UI:
+fully English.
+
+Do not hardcode duplicated locale logic.
+
+==================================================
+14. VISUAL DESIGN
+==================================================
+
+Reuse existing Ghars design.
+
+The Coming Soon state should feel premium and intentional.
+
+Use:
+- existing card design
+- muted icon
+- subtle badge
+- disabled CTA
+
+Do NOT redesign the Settings page.
+
+==================================================
+15. OPTIONAL ICON
+==================================================
+
+Use an existing suitable icon such as:
+
+FileUp
+Database
+FileSpreadsheet
+
+No new custom artwork required.
+
+==================================================
+16. FEATURE ENABLED BEHAVIOR
+==================================================
+
+When Platform Super Admin later turns:
+
+legacy_import_enabled = true
+
+the existing full Legacy Import experience should immediately become available again.
+
+No redeployment should be required if the existing Platform Settings architecture supports runtime settings.
+
+Customer Settings card:
+active
+
+Route:
+accessible
+
+APIs:
+accessible according to existing permissions
+
+All existing importer functionality remains unchanged.
+
+==================================================
+17. AUDIT
+==================================================
+
+Use existing platform audit logging.
+
+Log:
+
+LEGACY_IMPORT_FEATURE_ENABLED
+LEGACY_IMPORT_FEATURE_DISABLED
+
+Actor:
+platform_super_admin
+
+Timestamp
+
+Do not log medical/customer data.
+
+==================================================
+18. TESTS
+==================================================
+
+Test:
+
+A.
+Flag OFF:
+customer sees Coming Soon card
+
+B.
+Flag OFF:
+direct route is blocked
+
+C.
+Flag OFF:
+API upload is blocked
+
+D.
+Flag OFF:
+API import commit is blocked
+
+E.
+Flag ON:
+Tenant Admin with permissions can access importer
+
+F.
+Flag ON:
+normal authorization rules still apply
+
+G.
+Arabic UI
+
+H.
+English UI
+
+I.
+Turning flag OFF does not delete existing imported patient data
+
+J.
+Other Ghars modules unaffected
+
+==================================================
+19. FINAL REPORT
+==================================================
+
+Return:
+
+PLATFORM FEATURE FLAG:
+PASS / FAIL
+
+DEFAULT DISABLED:
+PASS / FAIL
+
+PLATFORM ADMIN TOGGLE:
+PASS / FAIL
+
+CUSTOMER COMING SOON CARD:
+PASS / FAIL
+
+DIRECT ROUTE BLOCKED:
+PASS / FAIL
+
+IMPORT APIs BLOCKED:
+PASS / FAIL
+
+SERVER-SIDE ENFORCEMENT:
+PASS / FAIL
+
+IMPORT CODE PRESERVED:
+PASS / FAIL
+
+EXISTING DATA PRESERVED:
+PASS / FAIL
+
+RUNTIME RE-ENABLE:
+PASS / FAIL
+
+ARABIC:
+PASS / FAIL
+
+ENGLISH:
+PASS / FAIL
+
+PLATFORM AUDIT:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
