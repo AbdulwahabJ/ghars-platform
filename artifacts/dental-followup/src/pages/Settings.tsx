@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Shell } from "@/components/layout/Shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,9 +15,10 @@ const TABS = ["users", "lookups", "audit", "export", "import"] as const;
 export default function Settings() {
   const { t } = useTranslation("admin");
   const { user, isLoading } = useAuth();
-  const [location, setLocation] = useLocation();
-  const searchParams = new URLSearchParams(window.location.search);
-  const activeTab = searchParams.get("tab") || "users";
+  const [, setLocation] = useLocation();
+  const search = useSearch();
+  const requestedTab = new URLSearchParams(search).get("tab");
+  const activeTab = TABS.find((tab) => tab === requestedTab) ?? "users";
 
   // Backend enforces ADMIN on every endpoint; this just avoids a dead page.
   useEffect(() => {
