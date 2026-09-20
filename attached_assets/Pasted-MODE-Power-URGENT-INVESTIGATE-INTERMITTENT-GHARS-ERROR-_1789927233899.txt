@@ -1,0 +1,349 @@
+MODE: Power
+
+URGENT: INVESTIGATE INTERMITTENT GHARS ERROR BOUNDARY / PAGE LOAD FAILURE.
+
+Observed production behavior:
+
+Randomly, while using different pages in Ghars, the application suddenly shows the global fallback:
+
+Arabic:
+"تعذر تحميل هذا الجزء من الصفحة."
+Button:
+"إعادة المحاولة"
+
+This happens across multiple pages, not one specific screen.
+
+IMPORTANT:
+Do NOT hide the issue with retries.
+Do NOT redesign the error screen.
+Do NOT publish.
+Find the exact runtime error first.
+
+==================================================
+1. REPRODUCE USING PRODUCTION BUILD
+==================================================
+
+Run and test the production build.
+
+Navigate repeatedly through:
+
+Dashboard
+Patients
+Patient File
+Statistics
+Settings
+
+Also test:
+
+- hard refresh
+- normal navigation
+- browser back/forward
+- leaving app idle then navigating
+- rapid navigation between routes
+
+Try to reproduce the exact Error Boundary.
+
+==================================================
+2. CAPTURE THE REAL ERROR
+==================================================
+
+When the fallback appears, capture:
+
+- browser console error
+- JavaScript stack trace
+- rejected promise
+- failing module/component
+- failing network request
+- HTTP status
+- requested asset URL
+
+Return the exact root error.
+
+Do NOT stop at:
+"ErrorBoundary rendered"
+
+We need the original exception.
+
+==================================================
+3. CHECK FOR CHUNK / DYNAMIC IMPORT FAILURE
+==================================================
+
+Specifically look for:
+
+ChunkLoadError
+Failed to fetch dynamically imported module
+Importing a module script failed
+Loading chunk failed
+404 on /assets/*.js
+stale hashed asset references
+
+Recent work introduced/modified lazy loading and code splitting.
+
+Determine whether the browser is requesting an old JS chunk that no longer exists after a new build/deployment.
+
+==================================================
+4. CACHE / DEPLOY VERSION MISMATCH
+==================================================
+
+Inspect caching behavior for:
+
+index.html
+/assets/*.js
+/assets/*.css
+
+Correct production behavior should normally be:
+
+index.html:
+must revalidate / short-lived
+
+hashed JS/CSS assets:
+long immutable caching is fine
+
+Make sure an old index or application shell cannot reference deleted chunks from another deployment.
+
+Check Replit deployment behavior specifically.
+
+==================================================
+5. LAZY COMPONENT SAFETY
+==================================================
+
+Audit all current:
+
+React.lazy()
+dynamic import()
+Suspense
+route-level lazy imports
+
+Especially recent modules:
+
+Legacy Import
+Settings
+Exports/PDF
+Charts
+Platform Admin
+
+Verify no lazy import path is invalid and no chunk is conditionally unavailable.
+
+==================================================
+6. SHARED COMPONENT / PROVIDER AUDIT
+==================================================
+
+Because the problem appears on multiple pages, inspect components shared across the application:
+
+App shell
+Auth provider
+Tenant provider
+Permissions provider
+Feature flags
+Header/navigation
+i18n
+React Query provider
+global layout
+
+Check whether any shared query or provider throws an exception when:
+
+- request times out
+- response is temporarily undefined
+- session refreshes
+- feature setting is missing
+- API returns non-200
+
+A temporary API failure must not crash the entire routed page.
+
+==================================================
+7. SESSION / AUTH
+==================================================
+
+Inspect whether session/auth refresh is involved.
+
+Check:
+
+- /api/session or equivalent
+- authorization refresh
+- 401/403 handling
+- tenant context
+- permissions queries
+
+A temporary auth request should have a controlled state.
+
+It must not throw into the generic page Error Boundary unnecessarily.
+
+==================================================
+8. NETWORK FAILURE HANDLING
+==================================================
+
+For normal API/network failures:
+
+Do not crash React render.
+
+Use controlled:
+
+loading
+empty
+error/retry
+
+states.
+
+Only unexpected application exceptions should reach the Error Boundary.
+
+==================================================
+9. ERROR BOUNDARY LOGGING
+==================================================
+
+Ensure the existing Error Boundary logs useful diagnostics to the existing system error logging mechanism.
+
+Include safe technical metadata:
+
+- route
+- error name
+- error message
+- component stack
+- application/build version if available
+- timestamp
+
+Do NOT log patient clinical data.
+
+==================================================
+10. BUILD VERSION
+==================================================
+
+Add or verify a lightweight build/version identifier so we can identify stale-client problems.
+
+Example:
+
+build hash / deployment id
+
+Do not expose secrets.
+
+If a client is running an old build and requests a missing lazy chunk, detect that scenario.
+
+==================================================
+11. SAFE CHUNK RECOVERY
+==================================================
+
+ONLY if the confirmed root cause is stale chunk loading after deployment:
+
+Implement safe one-time recovery.
+
+Example logic:
+
+- detect known dynamic-import/chunk-load failure
+- refresh the application ONCE to retrieve the current index/build
+- prevent refresh loops using sessionStorage/version guard
+
+Do NOT use unconditional window.location.reload().
+
+Do NOT refresh for ordinary application exceptions.
+
+==================================================
+12. NO INFINITE RETRY
+==================================================
+
+The existing "إعادة المحاولة" button must not cause:
+
+- infinite reload
+- repeated render crash
+- repeated API storm
+
+Fix underlying cause first.
+
+==================================================
+13. TEST DEPLOYMENT VERSION TRANSITION
+==================================================
+
+If possible, simulate:
+
+User opens build A
+→ build B becomes current
+→ user navigates to a lazy route
+
+Verify the app does not become permanently broken.
+
+==================================================
+14. TESTS
+==================================================
+
+Verify:
+
+A. Fresh production load
+B. Warm load
+C. navigation across all major routes
+D. lazy route load
+E. session refresh
+F. temporary API failure
+G. missing/stale chunk scenario
+H. retry button
+I. no reload loop
+J. Arabic and English
+
+==================================================
+15. FINAL REPORT
+==================================================
+
+Return:
+
+EXACT ROOT ERROR:
+<actual browser/runtime error>
+
+ROOT CAUSE:
+<exact cause>
+
+CHUNK LOAD ERROR:
+YES / NO
+
+STALE CLIENT / DEPLOY VERSION MISMATCH:
+YES / NO
+
+FAILING REQUEST:
+<URL/status or NONE>
+
+FAILING COMPONENT/MODULE:
+<name>
+
+AUTH/SESSION INVOLVED:
+YES / NO
+
+SHARED PROVIDER INVOLVED:
+YES / NO
+
+ERROR BOUNDARY LOGGING:
+PASS / FAIL
+
+SAFE CHUNK RECOVERY:
+IMPLEMENTED / NOT NEEDED
+
+RELOAD LOOP PROTECTION:
+PASS / FAIL
+
+DASHBOARD:
+PASS / FAIL
+
+PATIENTS:
+PASS / FAIL
+
+STATISTICS:
+PASS / FAIL
+
+SETTINGS:
+PASS / FAIL
+
+HARD REFRESH:
+PASS / FAIL
+
+NORMAL NAVIGATION:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
