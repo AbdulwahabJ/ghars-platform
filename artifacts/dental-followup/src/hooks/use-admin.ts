@@ -217,6 +217,15 @@ export function useUniversalImportGetBatch(id: string | null) {
   });
 }
 
+export function useUniversalImportCurrentBatch(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "universal-import", "current"],
+    queryFn: () => api.universalImportGetCurrentBatch(),
+    enabled,
+    retry: false,
+  });
+}
+
 export function useUniversalImportPatchMapping() {
   const queryClient = useQueryClient();
   return useMutation({

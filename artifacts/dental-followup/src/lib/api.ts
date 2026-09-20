@@ -750,6 +750,8 @@ export const api = {
     }),
   universalImportGetBatch: (id: string) =>
     request<UniversalImportBatch>(`/admin/import/universal/${id}`),
+  universalImportGetCurrentBatch: () =>
+    request<UniversalImportBatch>(`/admin/import/universal/current`),
   universalImportPatchMapping: (id: string, input: UniversalImportMappingPatch) =>
     request<UniversalImportBatch>(`/admin/import/universal/${id}/mapping`, {
       method: "PATCH",

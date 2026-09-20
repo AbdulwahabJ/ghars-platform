@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UniversalImportBatch } from "@workspace/shared";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ import {
 
 // Original legacy components preserved
 import { LegacyImport } from "./LegacyImport";
+import { useUniversalImportCurrentBatch } from "@/hooks/use-admin";
 
 export function ImportTab() {
   const { t } = useTranslation("admin");
@@ -21,6 +22,11 @@ export function ImportTab() {
   const [isMappingConfirmed, setIsMappingConfirmed] = useState(false);
   const [isReviewingPilot, setIsReviewingPilot] = useState(false);
   const [partialError, setPartialError] = useState<string>();
+  const currentBatch = useUniversalImportCurrentBatch(!batch);
+
+  useEffect(() => {
+    if (!batch && currentBatch.data) setBatch(currentBatch.data);
+  }, [batch, currentBatch.data]);
 
   const reset = () => {
     setBatch(null);

@@ -1511,6 +1511,18 @@ describe("universal legacy import staging", () => {
       ],
     });
     expect(patched.status).toBe(200);
+    expect(Object.fromEntries(
+      patched.body.mappings.map((mapping: { source: string; destination: string }) => [
+        mapping.source,
+        mapping.destination,
+      ]),
+    )).toMatchObject({
+      Q: "implant.q_value",
+      Former: "implant.former_value",
+      Graft: "implant.graft_value",
+      Pros: "case.pros_value",
+      NOTE: "clinical_note",
+    });
     const row = patched.body.rows[0];
     expect(row.proposed.implants).toEqual([
       expect.objectContaining({ site: "36", qValue: "80", formerValue: "Y", graftValue: "N" }),
@@ -1519,6 +1531,112 @@ describe("universal legacy import staging", () => {
     expect(row.proposed.legacyNotes.join("\n")).not.toMatch(/Q:|Former:|Graft:|Pros:|NOTE:/);
     expect(row.importPlan.implants).toEqual(row.proposed.implants);
     expect(row.importPlan.prosValue).toBe("3M");
+
+    const reanalyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "recognized-headers-after-learning.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,SYSTEM,Q,Former,Graft,Pros,NOTE",
+        "Recognized header patient two,UI-RECOGNIZED-HEADERS-2,2026-03-04,35,3.8x10,ROT,35,MST,N,2M,DIRECT",
+      ].join("\n"),
+    });
+    expect(reanalyzed.status).toBe(201);
+    expect(Object.fromEntries(
+      reanalyzed.body.mappings.map((mapping: { source: string; destination: string }) => [
+        mapping.source,
+        mapping.destination,
+      ]),
+    )).toMatchObject({
+      Q: "implant.q_value",
+      Former: "implant.former_value",
+      Graft: "implant.graft_value",
+      Pros: "case.pros_value",
+      NOTE: "clinical_note",
+    });
+    expect(reanalyzed.body.rows[0].proposed).toMatchObject({
+      case: { prosValue: "2M", clinicalNote: "DIRECT" },
+      implants: [{ site: "35", size: "3.8 × 10", qValue: "35", formerValue: "MST", graftValue: "N" }],
+      legacyNotes: [],
+    });
+  });
+
+  it("pairs six dedicated multiline implant fields by source line order", async () => {
+    const lines = {
+      site: ["45", "44", "43", "34", "35", "15"],
+      size: ["3.8x10", "3.8x10", "3.8x10", "3.8x10", "3.8x10", "3.8x12"],
+      q: ["35", "35", "35", "35", "35", "35"],
+      former: ["MST", "MST", "MST", "MST", "MST", "MST"],
+      graft: ["N", "N", "N", "N", "N", "N"],
+    };
+    const analyzed = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "six-line-aligned-implants.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,SYSTEM,Q,Former,Graft,Pros,NOTE",
+        [
+          "Six implant patient",
+          "UI-SIX-IMPLANTS-1",
+          "2026-03-05",
+          `"${lines.site.join("\n")}"`,
+          `"${lines.size.join("\n")}"`,
+          "ROT",
+          `"${lines.q.join("\n")}"`,
+          `"${lines.former.join("\n")}"`,
+          `"${lines.graft.join("\n")}"`,
+          "3M",
+          "IMMED",
+        ].join(","),
+      ].join("\n"),
+    });
+    expect(analyzed.status).toBe(201);
+    const implants = analyzed.body.rows[0].proposed.implants;
+    expect(implants).toHaveLength(6);
+    expect(implants).toEqual(lines.site.map((site, index) => ({
+      site,
+      size: lines.size[index].replace("x", " × "),
+      system: "ROT / Root",
+      qValue: lines.q[index],
+      formerValue: lines.former[index],
+      graftValue: lines.graft[index],
+    })));
+    expect(analyzed.body.rows[0].warnings.join(" ")).not.toMatch(/values must match implant site count/);
+  });
+
+  it("proposes explicit full-paid wording without treating installment sums as total", async () => {
+    const fullPaid = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "full-paid-review.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,COST",
+        'Full paid patient,UI-FULL-PAID-1,2026-03-06,36,4.8x10,"تم دفع كامل المبلغ 10000"',
+      ].join("\n"),
+    });
+    expect(fullPaid.status).toBe(201);
+    expect(fullPaid.body.rows[0].proposed.finance).toEqual({
+      historicalTotalAmount: 1_000_000,
+      historicalPaidAmount: 1_000_000,
+      openingRemainingBalance: 0,
+      historicalPaymentStatus: "PAID_IN_FULL",
+      isVerified: false,
+    });
+    expect(fullPaid.body.rows[0].proposed.financeCandidate).toBe("تم دفع كامل المبلغ 10000");
+
+    const installments = await admin.post("/api/admin/import/universal/analyze").send({
+      filename: "installments-review.csv",
+      mime: "text/csv",
+      content: [
+        "NAME,FILE,DATE,SITE,SIZE,COST",
+        'Installment patient,UI-INSTALLMENTS-1,2026-03-07,35,3.5x10,"دفعة أولى 1500 دفعة ثانية 1500"',
+      ].join("\n"),
+    });
+    expect(installments.status).toBe(201);
+    expect(installments.body.rows[0].proposed.finance).toMatchObject({
+      historicalTotalAmount: null,
+      historicalPaidAmount: 300_000,
+      openingRemainingBalance: null,
+      historicalPaymentStatus: "REVIEW_REQUIRED",
+      isVerified: false,
+    });
   });
 
   it("does not guess ambiguous dates, invalid FDI values, or exceed the five-patient pilot cap", async () => {

@@ -7,4 +7,4 @@ Recognized Q, Former, Graft, Pros, and NOTE headers remain authoritative canonic
 
 **Why:** A previously approved mapping can persist after extraction improves. Trusting that stale destination suppressed visible structured values and duplicated them into legacy notes.
 
-**How to apply:** Preserve flexible mapping for unknown headers, but apply deterministic structured-header semantics at normalization. Keep validation, per-implant count matching, and explicit ambiguity resolution unchanged.
+**How to apply:** Preserve flexible mapping for unknown headers, but enforce deterministic structured-header semantics when proposing mappings, accepting mapping edits, learning approvals, reopening editable staging, and normalizing rows. Keep count validation and explicit ambiguity resolution unchanged.

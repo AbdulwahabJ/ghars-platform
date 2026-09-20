@@ -90,6 +90,7 @@ const admin = {
         "legacy_note": "Legacy Note",
         "ignore": "Ignore",
       },
+      combinedNameMobile: "Patient Name + Mobile Number",
       financePreserveExpl: "Preserving financial data will only create a historical note on the case. It will NEVER create payment or charge records.",
       financeIgnoreExpl: "This financial column will be entirely ignored during import.",
     },

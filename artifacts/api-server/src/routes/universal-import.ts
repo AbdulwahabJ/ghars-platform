@@ -26,7 +26,7 @@ import {
   normalizeMobile,
   FDI_SITES,
 } from "@workspace/shared";
-import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { parseCsv } from "../lib/csv";
 import { writeAuditRequired } from "../lib/audit";
 import { extractVisualTable } from "../lib/visual-table-extractor";
@@ -153,6 +153,17 @@ export function parseHistoricalFinance(raw: string | null): HistoricalFinance {
     return Math.round(Number(normalized) * 100);
   };
   const noPayment = /لم\s*تدفع\s*شي[ئء]|لم\s*يدفع\s*شي[ئء]|no\s+payment/i.test(text);
+  const paidInFullMatch = text.match(/(?:تم\s+دفع\s+كامل\s+المبلغ|paid\s+in\s+full)[^\d]{0,20}([\d,]+(?:[.]\d{1,2})?)/i);
+  if (paidInFullMatch) {
+    const amount = parseAmount(paidInFullMatch[1]);
+    return {
+      historicalTotalAmount: amount,
+      historicalPaidAmount: amount,
+      openingRemainingBalance: 0,
+      historicalPaymentStatus: "PAID_IN_FULL",
+      isVerified: false,
+    };
+  }
   const totalMatch = text.match(/(?:total|الإجمالي|المجموع|تكلفة)[^\d]{0,20}([\d,]+(?:[.]\d{1,2})?)/i);
   const paidMatches = [...text.matchAll(/(?:paid|مدفوع|دفعة)[^\d]{0,20}([\d,]+(?:[.]\d{1,2})?)/gi)];
   const total = totalMatch ? parseAmount(totalMatch[1]) : null;
@@ -168,6 +179,19 @@ function aliasFor(header: string): UniversalImportDestination | null {
   const direct = ALIASES[header.trim()] ?? ALIASES[normalized];
   if (direct) return direct;
   return Object.entries(ALIASES).find(([key]) => normalizeHeader(key) === normalized)?.[1] ?? null;
+}
+
+const LOCKED_CANONICAL_DESTINATIONS = new Set<UniversalImportDestination>([
+  "implant.q_value",
+  "implant.former_value",
+  "implant.graft_value",
+  "case.pros_value",
+  "clinical_note",
+]);
+
+function lockedCanonicalDestination(header: string): UniversalImportDestination | null {
+  const destination = aliasFor(header);
+  return destination && LOCKED_CANONICAL_DESTINATIONS.has(destination) ? destination : null;
 }
 
 function splitValues(value: string): string[] {
@@ -455,10 +479,29 @@ async function learnedMappings(tenantId: string): Promise<{
   headers: Map<string, UniversalImportDestination>;
   values: Map<string, string>;
 }> {
-  const rows = await db.select().from(importMappingsTable).where(eq(importMappingsTable.tenantId, tenantId));
+  const rows = await db.select().from(importMappingsTable)
+    .where(eq(importMappingsTable.tenantId, tenantId))
+    .orderBy(desc(importMappingsTable.approvedAt));
+  const headers = new Map<string, UniversalImportDestination>();
+  const values = new Map<string, string>();
+  for (const row of rows) {
+    if (!row.approvedAt) continue;
+    if (row.sourceKind === "header") {
+      const key = normalizeHeader(row.sourceValue);
+      if (headers.has(key)) continue;
+      headers.set(
+        key,
+        lockedCanonicalDestination(row.sourceValue) ??
+          (row.destination as UniversalImportDestination),
+      );
+    } else if (row.sourceKind.startsWith("value:")) {
+      const key = `${row.sourceKind}:${row.sourceValue}`;
+      if (!values.has(key)) values.set(key, row.destination);
+    }
+  }
   return {
-    headers: new Map(rows.filter((row) => row.approvedAt && row.sourceKind === "header").map((row) => [`${row.sourceValue}`, row.destination as UniversalImportDestination])),
-    values: new Map(rows.filter((row) => row.approvedAt && row.sourceKind.startsWith("value:")).map((row) => [`${row.sourceKind}:${row.sourceValue}`, row.destination])),
+    headers,
+    values,
   };
 }
 
@@ -469,9 +512,19 @@ function makeMappings(
 ): UniversalImportMapping[] {
   const overrideMap = new Map((overrides ?? []).map((mapping) => [mapping.source, mapping]));
   return headers.map((source) => {
+    const canonicalDestination = lockedCanonicalDestination(source);
+    if (canonicalDestination) {
+      return {
+        source,
+        destination: canonicalDestination,
+        confidence: 1,
+        reason: "Canonical source field",
+        requiresReview: false,
+      };
+    }
     const override = overrideMap.get(source);
     if (override) return override;
-    const learnedDestination = learned.headers.get(source);
+    const learnedDestination = learned.headers.get(normalizeHeader(source));
     const destination = learnedDestination ?? aliasFor(source);
     const confidence = learnedDestination ? 1 : destination ? 0.92 : 0;
     return {
@@ -482,6 +535,39 @@ function makeMappings(
       requiresReview: !destination || confidence < MIN_CONFIDENCE || destination === "finance.candidate",
     };
   });
+}
+
+async function repairStagingMappings(
+  batch: typeof importBatchesTable.$inferSelect,
+  tenantId: string,
+) {
+  if (batch.status !== "ANALYZED") return batch;
+  const current = batch.mappings as UniversalImportMapping[];
+  let changed = false;
+  const mappings = current.map((mapping) => {
+    const canonical = lockedCanonicalDestination(mapping.source);
+    if (!canonical || canonical === mapping.destination) return mapping;
+    changed = true;
+    return {
+      ...mapping,
+      destination: canonical,
+      confidence: 1,
+      reason: "Canonical source field",
+      requiresReview: false,
+    };
+  });
+  if (!changed) return batch;
+  const [updated] = await db.update(importBatchesTable).set({
+    mappings,
+    version: batch.version + 1,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(importBatchesTable.id, batch.id),
+    eq(importBatchesTable.tenantId, tenantId),
+    eq(importBatchesTable.status, "ANALYZED"),
+    eq(importBatchesTable.version, batch.version),
+  )).returning();
+  return updated ?? batch;
 }
 
 function normalizeRows(
@@ -897,13 +983,15 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
   const mappings = current.map((mapping) => {
     const explicit = patch.get(mapping.source);
     if (!explicit) return mapping;
+    const canonical = lockedCanonicalDestination(mapping.source);
     // Only an explicitly submitted source is resolved. Omitted unknown
     // columns retain their server-computed review requirement.
     return {
       ...mapping,
-      destination: explicit,
+      destination: canonical ?? explicit,
       confidence: 1,
-      requiresReview: explicit === "finance.candidate",
+      reason: canonical ? "Canonical source field" : mapping.reason,
+      requiresReview: !canonical && explicit === "finance.candidate",
     };
   });
   const learned = await learnedMappings(req.currentTenant!.id);
@@ -1054,11 +1142,12 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
     return;
   }
   for (const mapping of parsed.data.mappings) {
+    const destination = lockedCanonicalDestination(mapping.source) ?? mapping.destination;
     await db.insert(importMappingsTable).values({
       tenantId: req.currentTenant!.id,
       sourceKind: "header",
       sourceValue: mapping.source,
-      destination: mapping.destination,
+      destination,
       confidence: "1",
       approvedBy: req.currentUser!.id,
       approvedAt: new Date(),
@@ -1078,6 +1167,19 @@ router.patch("/admin/import/universal/:id/mapping", async (req, res): Promise<vo
   res.json(publicBatch(updated));
 });
 
+router.get("/admin/import/universal/current", async (req, res): Promise<void> => {
+  const [batch] = await db.select().from(importBatchesTable).where(and(
+    eq(importBatchesTable.tenantId, req.currentTenant!.id),
+    eq(importBatchesTable.status, "ANALYZED"),
+  )).orderBy(desc(importBatchesTable.updatedAt)).limit(1);
+  if (!batch) {
+    res.status(404).json({ error: "No editable import staging batch was found." });
+    return;
+  }
+  const repaired = await repairStagingMappings(batch, req.currentTenant!.id);
+  res.json(publicBatch(repaired));
+});
+
 router.get("/admin/import/universal/:id", async (req, res): Promise<void> => {
   const [batch] = await db.select().from(importBatchesTable).where(and(
     eq(importBatchesTable.id, req.params.id),
@@ -1087,7 +1189,8 @@ router.get("/admin/import/universal/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Import staging batch not found." });
     return;
   }
-  res.json(publicBatch(batch));
+  const repaired = await repairStagingMappings(batch, req.currentTenant!.id);
+  res.json(publicBatch(repaired));
 });
 
 router.post("/admin/import/universal/:id/commit", async (req, res): Promise<void> => {

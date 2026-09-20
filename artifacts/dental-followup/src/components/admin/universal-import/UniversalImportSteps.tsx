@@ -182,6 +182,18 @@ export function MappingStep({
   const { t } = useTranslation("admin");
   const { toast } = useToast();
   const patch = useUniversalImportPatchMapping();
+  const normalizedSource = (source: string) => source.normalize("NFKC").toLowerCase().replace(/[\s_.:/\\()-]+/g, "");
+  const lockedDestination = (source: string): UniversalImportDestination | null => {
+    const value = normalizedSource(source);
+    if (value === "q" || value === "qvalue") return "implant.q_value";
+    if (value === "former" || value === "formervalue") return "implant.former_value";
+    if (value === "graft" || value === "graftvalue") return "implant.graft_value";
+    if (value === "pros" || value === "prosvalue") return "case.pros_value";
+    if (value === "note" || value === "notes" || value === "ملاحظة") return "clinical_note";
+    return null;
+  };
+  const isCombinedNameMobile = (source: string) =>
+    ["name+mobile", "اسم المريض والجوال"].includes(source.trim().toLowerCase());
 
   // Local state for editable mappings
   const [mappings, setMappings] = useState<Record<string, UniversalImportDestination>>(() => {
@@ -279,6 +291,7 @@ export function MappingStep({
                   <TableCell>
                     <Select
                       value={mappings[m.source]}
+                      disabled={Boolean(lockedDestination(m.source))}
                       onValueChange={(val) =>
                         setMappings((prev) => ({ ...prev, [m.source]: val as UniversalImportDestination }))
                       }
@@ -289,7 +302,9 @@ export function MappingStep({
                       <SelectContent>
                         {UNIVERSAL_IMPORT_DESTINATIONS.map((dest) => (
                           <SelectItem key={dest} value={dest}>
-                            {t(`import.universal.destinations.${dest}`, dest)}
+                            {dest === "patient.name" && isCombinedNameMobile(m.source)
+                              ? t("import.universal.combinedNameMobile", "Patient Name + Mobile Number")
+                              : t(`import.universal.destinations.${dest}`, dest)}
                           </SelectItem>
                         ))}
                       </SelectContent>
