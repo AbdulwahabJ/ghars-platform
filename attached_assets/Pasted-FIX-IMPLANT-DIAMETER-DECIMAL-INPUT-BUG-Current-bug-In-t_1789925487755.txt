@@ -1,0 +1,120 @@
+FIX IMPLANT DIAMETER DECIMAL INPUT BUG.
+
+Current bug:
+In the implant form, the Diameter field cannot accept decimal values normally.
+
+Example:
+User types:
+4
+then presses "."
+The decimal separator immediately disappears, so the user cannot enter:
+
+4.5
+
+ROOT CAUSE TO CHECK:
+The controlled input is likely converting/parsing the value to Number / parseFloat on every onChange.
+The temporary valid editing state "4." becomes numeric 4 and React rerenders the field as "4".
+
+REQUIRED FIX:
+
+1. While the user is typing, keep Diameter as a RAW STRING in the input state.
+
+Do NOT run:
+Number(value)
+parseFloat(value)
+parseInt(value)
+
+on every keystroke.
+
+2. Allow these decimal inputs:
+
+4.5
+3.8
+4,5
+4٫5
+
+Also support Arabic/Persian digits if entered.
+
+3. Normalize only when validating/saving:
+
+4,5 → 4.5
+4٫5 → 4.5
+٤٫٥ → 4.5
+
+Then convert to the canonical numeric value.
+
+4. Prefer an input configuration that reliably supports decimal entry:
+
+type="text"
+inputMode="decimal"
+
+with numeric validation.
+
+Do not rely on browser-localized type="number" behavior if it causes decimal separator problems.
+
+5. Valid examples:
+
+3
+3.5
+3.75
+4
+4.1
+4.5
+5.0
+
+Reject invalid values such as:
+
+4..5
+abc
+-4.5
+
+6. Do not erase the user's temporary editing states:
+
+""
+"4."
+"4,"
+"4٫"
+
+These must remain visible while typing.
+
+7. On blur/save:
+normalize and validate the final value.
+
+Example:
+typed "4." → normalize to "4" if user leaves the field
+typed "4.5" → save 4.5
+
+8. Apply the same safe decimal-input behavior to Implant Length too if Length supports decimals.
+
+9. Preserve:
+- Western digit display across Ghars
+- Arabic / English UI
+- existing validation
+- existing database types
+
+10. Test manually in Arabic UI using keyboard entry:
+
+4.5
+3.8
+4,5
+4٫5
+٤٫٥
+
+All should successfully result in the canonical value:
+
+4.5 / 3.8 etc.
+
+Return:
+
+DIAMETER 4.5 KEYBOARD ENTRY: PASS / FAIL
+COMMA DECIMAL NORMALIZATION: PASS / FAIL
+ARABIC DECIMAL NORMALIZATION: PASS / FAIL
+TEMPORARY "4." STATE PRESERVED: PASS / FAIL
+LENGTH DECIMAL INPUT: PASS / FAIL
+VALIDATION: PASS / FAIL
+TYPECHECK: PASS / FAIL
+BUILD: PASS / FAIL
+CHECKPOINT: <hash>
+
+Do not publish.
+Create checkpoint and STOP.
