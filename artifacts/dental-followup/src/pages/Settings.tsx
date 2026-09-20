@@ -7,7 +7,7 @@ import { UsersTab } from "@/components/admin/UsersTab";
 import { LookupsTab } from "@/components/admin/LookupsTab";
 import { AuditLogTab } from "@/components/admin/AuditLogTab";
 import { ExportTab } from "@/components/admin/ExportTab";
-import { ImportTab } from "@/components/admin/ImportTab";
+import { ImportTabGate } from "@/components/admin/ImportTabGate";
 import { useTranslation } from "react-i18next";
 
 const TABS = ["users", "lookups", "audit", "export", "import"] as const;
@@ -63,7 +63,7 @@ export default function Settings() {
               <ExportTab />
             </TabsContent>
             <TabsContent value="import" className="mt-6">
-              <ImportTab />
+              <ImportTabGate />
             </TabsContent>
           </Tabs>
         </div>

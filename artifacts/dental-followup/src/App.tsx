@@ -1,26 +1,26 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Redirect, Route, Switch, Router as WouterRouter } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 
-import Dashboard from '@/pages/Dashboard';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import VerifyEmail from '@/pages/VerifyEmail';
-import AccessStatus from '@/pages/AccessStatus';
-import PlatformAdmin from '@/pages/PlatformAdmin';
-import ChangePassword from '@/pages/ChangePassword';
-import Setup from '@/pages/Setup';
-import PatientsList from '@/pages/PatientsList';
-import PatientFile from '@/pages/PatientFile';
-import Statistics from '@/pages/Statistics';
-import Settings from '@/pages/Settings';
-import LandingPage from '@/pages/LandingPage';
-import Terms from '@/pages/legal/Terms';
-import Privacy from '@/pages/legal/Privacy';
-import NotFound from '@/pages/not-found';
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const AccessStatus = lazy(() => import('@/pages/AccessStatus'));
+const PlatformAdmin = lazy(() => import('@/pages/PlatformAdmin'));
+const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
+const Setup = lazy(() => import('@/pages/Setup'));
+const PatientsList = lazy(() => import('@/pages/PatientsList'));
+const PatientFile = lazy(() => import('@/pages/PatientFile'));
+const Statistics = lazy(() => import('@/pages/Statistics'));
+const Settings = lazy(() => import('@/pages/Settings'));
+const LandingPage = lazy(() => import('@/pages/LandingPage'));
+const Terms = lazy(() => import('@/pages/legal/Terms'));
+const Privacy = lazy(() => import('@/pages/legal/Privacy'));
+const NotFound = lazy(() => import('@/pages/not-found'));
 import { LocaleProvider } from '@/i18n/LocaleProvider';
 import { ImpersonationLifecycleHandler } from '@/components/ImpersonationLifecycleHandler';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
@@ -30,6 +30,14 @@ const queryClient = new QueryClient();
 
 function FinanceRedirect() {
   return <Redirect to="/statistics" replace />;
+}
+
+function RouteLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center" role="status">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
 }
 
 function ProtectedRoute({ component: Component, path }: { component: any; path: string }) {
@@ -173,7 +181,9 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
             <ImpersonationLifecycleHandler />
             <RouteErrorBoundary onRetry={() => queryClient.resetQueries()}>
-              <Router />
+              <Suspense fallback={<RouteLoading />}>
+                <Router />
+              </Suspense>
             </RouteErrorBoundary>
           </WouterRouter>
           <Toaster />
