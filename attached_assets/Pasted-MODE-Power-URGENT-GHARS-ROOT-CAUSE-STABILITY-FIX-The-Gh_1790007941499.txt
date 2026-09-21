@@ -1,0 +1,819 @@
+MODE: Power
+
+URGENT GHARS ROOT-CAUSE STABILITY FIX.
+
+The Ghars application is intermittently becoming unresponsive.
+
+REAL USER SYMPTOMS:
+
+1. Navigation between pages sometimes hangs.
+2. Sometimes I stay on the SAME page and buttons stop responding to clicks.
+3. Clicking appears to do nothing.
+4. Sometimes refresh is also slow.
+5. The issue is intermittent, not limited to one page.
+
+This is now a RELEASE-BLOCKING stability issue.
+
+STOP all feature development.
+
+DO NOT add new features.
+DO NOT redesign anything.
+DO NOT publish.
+DO NOT mask the issue with more spinners.
+DO NOT blindly rollback.
+
+Find and fix the actual root cause.
+
+==================================================
+1. REPRODUCE THE REAL ISSUE FIRST
+==================================================
+
+Use an authenticated production build.
+
+Test repeatedly:
+
+Dashboard
+→ Patients
+→ expand patient
+→ open attachment
+→ close attachment
+→ Settings
+→ switch tabs
+→ Patients
+→ open record
+→ edit implant
+→ save
+→ open/close dialogs
+→ navigate again
+
+Also test:
+
+- staying on one page for several minutes
+- rapid clicking
+- opening/closing Select dropdowns
+- opening/closing AlertDialogs
+- opening/closing Attachment Viewer
+- browser Back / Forward
+- hard refresh
+- warm refresh
+
+Do not stop after one successful run.
+
+Run enough interactions to reproduce the intermittent failure.
+
+==================================================
+2. WHEN CLICKS STOP WORKING — INSPECT THE DOM
+==================================================
+
+THIS IS CRITICAL.
+
+When the UI becomes non-clickable, DO NOT refresh immediately.
+
+Inspect the page in the broken state.
+
+At the exact coordinates of a button that does not respond, inspect:
+
+document.elementFromPoint(x, y)
+
+Determine which element is actually receiving the pointer.
+
+Check for invisible/full-screen elements such as:
+
+- fixed overlays
+- modal backdrops
+- Sheet overlays
+- Dialog overlays
+- Popover layers
+- loading screens
+- attachment viewer backdrops
+- stale dropdown layers
+- full-screen divs with opacity 0
+- z-index layers
+- pointer-events interception
+
+Return the exact blocking DOM element if found.
+
+==================================================
+3. CHECK BODY POINTER EVENTS
+==================================================
+
+When the bug occurs inspect:
+
+document.body.style.pointerEvents
+getComputedStyle(document.body).pointerEvents
+
+Also inspect:
+
+document.documentElement
+#root
+
+Look specifically for:
+
+pointer-events: none
+
+being left behind after:
+
+- Dialog
+- AlertDialog
+- DropdownMenu
+- Select
+- Popover
+- Sheet
+- Attachment Viewer
+- command palette
+- custom modal
+
+This is a known class of failure with modal/focus-layer interactions.
+
+If body remains:
+
+pointer-events: none
+
+after a modal closes, identify EXACTLY which component causes it.
+
+Do not simply force:
+
+body.style.pointerEvents = "auto"
+
+globally as a workaround.
+
+Fix the lifecycle/root component causing the stale state.
+
+==================================================
+4. AUDIT RADIX / SHADCN OVERLAYS
+==================================================
+
+Ghars uses shadcn/Radix-style components.
+
+Audit:
+
+Dialog
+AlertDialog
+Select
+DropdownMenu
+Popover
+Sheet
+Tooltip
+ContextMenu
+Attachment Viewer
+
+Look for:
+
+- nested modal components
+- Dialog opened from DropdownMenu
+- closing menu and opening dialog simultaneously
+- controlled `open` state mismatch
+- stale Portal
+- overlay not unmounting
+- body scroll lock not released
+- focus-lock not released
+- `modal={true}` conflicts
+- pointer-events lock remaining after close
+
+Pay special attention to workflows recently added:
+
+- Patient attachments
+- Attachment Viewer
+- Delete confirmation
+- Archive confirmation
+- Add Attachment
+- Finance dialogs
+- Settings tabs
+
+==================================================
+5. CHECK INVISIBLE OVERLAYS
+==================================================
+
+Search DOM for elements with combinations like:
+
+position: fixed
+inset: 0
+z-index high
+
+even if:
+
+opacity: 0
+background: transparent
+
+Verify hidden elements are actually:
+
+display:none
+or unmounted
+
+and are NOT intercepting mouse events.
+
+==================================================
+6. CHECK IF MAIN THREAD IS FREEZING
+==================================================
+
+If no overlay/pointer issue exists, profile the browser Main Thread.
+
+Use Chrome Performance profiling.
+
+Capture the moment when click responsiveness degrades.
+
+Look for:
+
+- Long Tasks > 50 ms
+- tasks > 500 ms
+- repeated React rendering
+- synchronous loops
+- huge JSON transformations
+- PDF/image processing
+- OCR
+- Excel processing
+- expensive table calculations
+- repeated date formatting
+- heavy array filtering/sorting
+- large React component rerenders
+
+Report the longest tasks with function/component names.
+
+==================================================
+7. CLICK LATENCY TEST
+==================================================
+
+Instrument click responsiveness temporarily in Development.
+
+Measure:
+
+pointerdown timestamp
+click handler start timestamp
+route/state update timestamp
+next paint
+
+Determine whether:
+
+A. pointer event never reaches the button
+
+or
+
+B. pointer reaches button but handler is delayed
+
+or
+
+C. handler runs but React/navigation does not update
+
+These represent different root causes.
+
+Report which one is happening.
+
+==================================================
+8. REACT RENDER LOOP AUDIT
+==================================================
+
+Audit for:
+
+- setState during render
+- useEffect loops
+- unstable dependency objects
+- URLSearchParams recreated every render
+- query invalidation loops
+- useSearch/useLocation synchronization loops
+- feature flag state loops
+- attachment state loops
+- viewer state loops
+
+Check React profiler for components rendering excessively.
+
+Report top rerender offenders.
+
+==================================================
+9. REACT QUERY REQUEST STORM
+==================================================
+
+Inspect Network when the issue occurs.
+
+Look for repeated requests such as:
+
+same endpoint firing continuously
+session repeated
+permissions repeated
+platform settings repeated
+attachments repeated
+patient list repeated
+dashboard repeated
+
+Check:
+
+refetchOnWindowFocus
+invalidations
+query keys
+enabled conditions
+staleTime
+retry loops
+
+There must NOT be a request storm that blocks/overloads the client/server.
+
+==================================================
+10. ATTACHMENT FEATURE AUDIT
+==================================================
+
+Recent attachment work introduced:
+
+- image previews
+- viewer
+- thumbnails
+- authenticated file requests
+- uploads
+- modals
+
+Verify attachments are not:
+
+- downloading full images repeatedly
+- fetching blobs continuously
+- recreating Object URLs on every render
+- leaking Object URLs
+- causing endless image retries
+- repeatedly refreshing signed URLs
+- retaining full-resolution images in React state unnecessarily
+
+Use thumbnails in lists.
+
+Load original only on click.
+
+==================================================
+11. OBJECT URL CLEANUP
+==================================================
+
+If Blob/Object URLs are used:
+
+createObjectURL()
+
+must be paired correctly with:
+
+URL.revokeObjectURL()
+
+BUT do not revoke before the image has finished using it.
+
+Audit lifecycle carefully.
+
+Premature revoke can cause broken images.
+Missing revoke can create memory leaks and eventual browser slowdown.
+
+==================================================
+12. MEMORY LEAK TEST
+==================================================
+
+Open/close:
+
+Attachment Viewer 30 times
+Patient rows 30 times
+Dialogs 30 times
+Settings tabs repeatedly
+
+Observe browser memory.
+
+Check:
+
+DOM node count
+event listeners
+JS heap size
+
+Memory should stabilize after GC.
+
+If it continually grows:
+find the leaking component.
+
+==================================================
+13. EVENT LISTENER LEAKS
+==================================================
+
+Check repeated global listeners:
+
+window.addEventListener
+document.addEventListener
+
+Especially:
+
+click
+keydown
+resize
+scroll
+popstate
+
+Every effect adding listeners must remove them correctly.
+
+No duplicate listeners after navigation.
+
+==================================================
+14. ROUTER PERFORMANCE
+==================================================
+
+Verify navigation behavior after the recent Wouter/useSearch fix.
+
+Check:
+
+useLocation
+useSearch
+navigate/setLocation
+URL query changes
+
+No competing state should repeatedly push routes or trigger unnecessary renders.
+
+The URL should remain the source of truth where intended.
+
+==================================================
+15. SUSPENSE / LAZY LOADING
+==================================================
+
+Audit React.lazy / Suspense.
+
+When navigating:
+
+the previous route must not remain interactively broken while a new chunk loads.
+
+Verify:
+
+- no unresolved Suspense forever
+- no rejected lazy promise
+- no loading overlay covering the entire app after route resolves
+- no stale overlay after chunk failure
+
+==================================================
+16. GLOBAL LOADING OVERLAY
+==================================================
+
+Search for any global loader implementation.
+
+If there is a full-screen loader:
+
+ensure it is only mounted while actually needed.
+
+It must ALWAYS unmount after:
+
+success
+failure
+cancel
+navigation
+component unmount
+
+No `isLoading` state may remain true forever.
+
+==================================================
+17. SESSION / AUTH REQUESTS
+==================================================
+
+Measure:
+
+session request
+tenant context
+permissions
+feature flags
+
+They should not serially block every navigation.
+
+Avoid:
+
+session
+→ permissions
+→ platform settings
+→ page query
+
+when independent requests can safely run in parallel.
+
+But do not weaken authorization.
+
+==================================================
+18. DATABASE / SERVER LATENCY
+==================================================
+
+For slow navigation, measure API server timing.
+
+Identify requests >500ms.
+
+For each slow request report:
+
+route
+DB time
+total time
+
+Check:
+
+N+1
+large result set
+missing index
+repeated query
+expensive count/join
+
+Do not add indexes without evidence.
+
+==================================================
+19. PRODUCTION BUILD SIZE
+==================================================
+
+Inspect current Vite production build.
+
+Report:
+
+initial JS size
+largest chunks
+top 10 chunks
+
+Verify heavy modules are NOT eagerly loaded:
+
+- importer/OCR
+- XLSX
+- PDF generation
+- attachment-specific heavy viewers
+- Platform Admin
+- charts when not needed
+
+Use route/component lazy loading where appropriate.
+
+==================================================
+20. VERY IMPORTANT — DISABLED IMPORTER
+==================================================
+
+Legacy Import is currently disabled/Coming Soon.
+
+Its heavy frontend libraries must NOT load during normal:
+
+Dashboard
+Patients
+Statistics
+Settings
+
+Verify this explicitly.
+
+==================================================
+21. ERROR BOUNDARY RELATION
+==================================================
+
+We previously observed intermittent:
+
+"تعذر تحميل هذا الجزء من الصفحة."
+
+Check whether the click freeze and Error Boundary failures share the same root cause.
+
+Correlate:
+
+timestamp
+route
+console error
+network failure
+memory usage
+chunk state
+overlay state
+
+Do not treat them as unrelated until verified.
+
+==================================================
+22. FIX STRATEGY
+==================================================
+
+Once root cause is proven:
+
+fix the underlying problem only.
+
+Examples:
+
+IF stale Radix/body pointer lock:
+fix Dialog/Menu lifecycle.
+
+IF invisible overlay:
+correct mount/unmount/pointer-events.
+
+IF React loop:
+fix dependencies/state architecture.
+
+IF request storm:
+fix query/invalidation logic.
+
+IF JS bundle/main-thread issue:
+lazy load expensive modules.
+
+IF memory leak:
+fix resource/listener/blob cleanup.
+
+IF backend latency:
+optimize measured query.
+
+DO NOT apply broad hacks.
+
+==================================================
+23. NO BAND-AIDS
+==================================================
+
+Do NOT solve using:
+
+window.location.reload()
+
+Do NOT add:
+
+setTimeout(() => unlock UI)
+
+Do NOT globally force:
+
+document.body.style.pointerEvents = "auto"
+
+unless used only as a narrowly justified emergency recovery AFTER the root lifecycle bug is fixed.
+
+Do NOT suppress exceptions.
+
+==================================================
+24. TEMPORARY DEVELOPMENT DIAGNOSTICS
+==================================================
+
+You may add temporary DEVELOPMENT-ONLY diagnostics that detect:
+
+- body pointer-events stuck none
+- full-screen overlay present unexpectedly
+- main-thread long task
+- excessive React Query calls
+
+Remove noisy debug UI/logging before checkpoint.
+
+Keep only useful production-safe error telemetry if appropriate.
+
+==================================================
+25. PERFORMANCE TARGET
+==================================================
+
+After fix, authenticated normal operation should feel immediate.
+
+Target where practical:
+
+button visual response:
+<100ms
+
+normal route transition:
+immediate UI response
+
+API-driven content:
+local loading state if needed
+
+No multi-second frozen UI.
+
+No dead clicks.
+
+==================================================
+26. REGRESSION TEST — 15 MINUTE SESSION
+==================================================
+
+Perform at least a sustained browser test equivalent to:
+
+- navigate repeatedly
+- expand/collapse patients
+- open/close attachments
+- edit implant
+- open selects
+- dialogs
+- archive/delete dialog without confirming
+- Settings tabs
+- Statistics
+- Dashboard
+- Back/Forward
+
+Continue for enough cycles to expose intermittent lifecycle bugs.
+
+The UI must remain clickable throughout.
+
+==================================================
+27. MOBILE + DESKTOP
+==================================================
+
+Verify desktop browser.
+
+Also do a basic responsive/mobile interaction test.
+
+No invisible layer should block touch events either.
+
+==================================================
+28. PRESERVE CURRENT FEATURES
+==================================================
+
+Do not regress:
+
+- Dashboard
+- Patients
+- Statistics
+- Settings
+- attachments
+- finance
+- implant cases
+- adjunct procedures
+- archive/delete
+- i18n
+- RTL
+- tenant isolation
+- current Settings URL sync
+
+==================================================
+29. FINAL REPORT — MUST INCLUDE EVIDENCE
+==================================================
+
+Return:
+
+PRIMARY ROOT CAUSE:
+<exact cause>
+
+SECONDARY ROOT CAUSE:
+<if any>
+
+WHEN CLICKS FAILED:
+<what intercepted/delayed them>
+
+document.elementFromPoint RESULT:
+<element/component or normal>
+
+BODY POINTER-EVENTS WHEN BROKEN:
+<value>
+
+STALE OVERLAY FOUND:
+YES / NO
+<component if yes>
+
+RADIX/SHADCN MODAL LIFECYCLE ISSUE:
+YES / NO
+<details>
+
+MAIN THREAD LONG TASK:
+YES / NO
+<longest measured task>
+
+REACT RENDER LOOP:
+YES / NO
+
+TOP RERENDER OFFENDER:
+<component or NONE>
+
+REQUEST STORM:
+YES / NO
+<endpoint if yes>
+
+MEMORY LEAK:
+YES / NO
+<before/after measurement>
+
+ATTACHMENT VIEWER INVOLVED:
+YES / NO
+
+ROUTER INVOLVED:
+YES / NO
+
+SESSION/AUTH INVOLVED:
+YES / NO
+
+DATABASE INVOLVED:
+YES / NO
+
+INITIAL JS SIZE:
+<size>
+
+LARGEST CHUNK:
+<size/name>
+
+DISABLED IMPORTER IN INITIAL BUNDLE:
+YES / NO
+
+CLICK RESPONSE AFTER FIX:
+<measured>
+
+NAVIGATION AFTER FIX:
+<measured>
+
+15-MINUTE STABILITY TEST:
+PASS / FAIL
+
+DEAD CLICKS AFTER FIX:
+0 / <count>
+
+ERROR BOUNDARY DURING TEST:
+0 / <count>
+
+DASHBOARD:
+PASS / FAIL
+
+PATIENTS:
+PASS / FAIL
+
+ATTACHMENTS:
+PASS / FAIL
+
+STATISTICS:
+PASS / FAIL
+
+SETTINGS:
+PASS / FAIL
+
+BACK/FORWARD:
+PASS / FAIL
+
+HARD REFRESH:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
