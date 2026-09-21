@@ -1,0 +1,717 @@
+MODE: Power
+
+FIX GHARS PATIENT ATTACHMENT IMAGE DISPLAY + MOVE ATTACHMENTS TO PROCEDURES TAB + MOVE EXPANDED-RECORD ATTACHMENTS TO LAST SECTION.
+
+IMPORTANT:
+
+Do NOT redesign the attachment system.
+Do NOT change the upload workflow.
+Do NOT change attachment categories, permissions, storage model, or metadata unless required to fix the broken preview.
+Do NOT change unrelated Patient File UI.
+Do NOT change Finance, Appointments, Implant Cases, Dashboard, Importer, or other modules.
+Do NOT publish.
+
+There are THREE requested changes only:
+
+1. Fix image attachments so they display correctly everywhere.
+2. In Patient File, move Attachments from:
+   بيانات المريض
+   to:
+   إجراءات المريض
+3. In the expanded patient record on the main operational table, move Attachments to be the LAST content section, immediately before the bottom action bar.
+
+Everything else should remain as-is.
+
+==================================================
+1. CURRENT IMAGE BUG
+==================================================
+
+Current behavior:
+
+- Attachment upload succeeds.
+- Attachment card / metadata appears.
+- Thumbnail may appear in some views.
+- But when clicking the attachment and opening the Attachment Viewer, the main image fails to render.
+- The viewer shows a broken image / alt text / empty gray area.
+
+This means the attachment exists, but the full preview delivery/rendering is broken.
+
+==================================================
+2. FIND THE EXACT ROOT CAUSE
+==================================================
+
+Do NOT guess.
+
+Use the current failing uploaded image attachment as the primary regression case.
+
+When opening it in the Attachment Viewer, inspect:
+
+- Browser Network request
+- Requested URL
+- HTTP status
+- Response Content-Type
+- Response body if error
+- Storage key
+- Attachment ID
+- Whether access uses authenticated endpoint or signed URL
+- Whether the URL expired
+- Whether the frontend uses the correct returned field
+- Browser Console errors
+
+Return the exact technical root cause.
+
+==================================================
+3. VERIFY ALL ATTACHMENT ACCESS LOCATIONS
+==================================================
+
+Audit attachment rendering in all existing locations:
+
+A. Expanded patient record in main table
+B. Patient File
+C. Attachment Viewer modal
+D. New Record / Add Patient attachment preview
+E. View All Attachments modal/panel if it exists
+
+The SAME attachment must work consistently in all locations.
+
+==================================================
+4. ONE SHARED FILE ACCESS METHOD
+==================================================
+
+Use one shared attachment access implementation.
+
+Example conceptually:
+
+getPatientAttachmentViewUrl(attachmentId)
+
+or an authenticated endpoint such as:
+
+GET /api/patient-attachments/:id/content
+
+Reuse the current architecture where possible.
+
+Do NOT create separate incompatible URL-generation logic for:
+
+- thumbnails
+- viewer
+- patient file
+- expanded record
+
+==================================================
+5. PRIVATE STORAGE MUST REMAIN PRIVATE
+==================================================
+
+Do NOT solve the problem by making patient files public.
+
+Patient attachments may contain medical information.
+
+Preserve:
+
+- private durable storage
+- authenticated access
+- tenant isolation
+- permission checks
+- no permanent public file URLs
+
+If signed URLs are used:
+generate them safely and temporarily.
+
+==================================================
+6. CHECK THESE COMMON ROOT CAUSES
+==================================================
+
+Specifically inspect for:
+
+- wrong storage key
+- incorrect object path
+- stale signed URL
+- expired signed URL
+- thumbnail URL reused as original URL incorrectly
+- original image URL missing
+- relative URL resolving against wrong frontend route
+- incorrect API route
+- incorrect attachment ID
+- URL encoding issue
+- incorrect Content-Type
+- endpoint returning JSON instead of binary
+- frontend expects `url` while API returns `viewUrl`
+- auth cookie/credentials missing
+- object URL revoked too early
+- Blob URL lifecycle bug
+- CSP restriction
+- image component blocking the URL
+- React Query caching an expired URL
+
+Do not apply a workaround before identifying the actual cause.
+
+==================================================
+7. FULL IMAGE VIEWER
+==================================================
+
+When user clicks an image attachment:
+
+Open the existing Attachment Viewer and render the real image correctly.
+
+Requirements:
+
+- image visible
+- preserve aspect ratio
+- fit within the viewer
+- responsive
+- no stretching
+- no broken-image icon
+- no raw alt filename replacing the image
+- no huge empty gray area
+- no full-page navigation
+
+Use contain-style behavior.
+
+==================================================
+8. THUMBNAIL VS ORIGINAL
+==================================================
+
+Keep thumbnail and full preview as separate concerns.
+
+Thumbnail:
+- lightweight
+- small preview
+
+Viewer:
+- original image or appropriate preview-quality image
+
+Do not use a tiny thumbnail as the full viewer image if original access exists.
+
+==================================================
+9. PDF MUST NOT REGRESS
+==================================================
+
+Verify the image fix does not break:
+
+- PDF preview
+- PDF download
+- other already-supported file types
+
+If PDF currently works:
+keep it unchanged.
+
+==================================================
+10. DOWNLOAD
+==================================================
+
+Verify Download works for the same failing attachment.
+
+Viewer and Download should use valid secure access.
+
+If they currently use different unsafe/inconsistent delivery paths:
+consolidate where appropriate.
+
+==================================================
+11. PATIENT FILE MUST REMAIN TWO TABS
+==================================================
+
+Patient File must remain EXACTLY:
+
+1. بيانات المريض
+2. إجراءات المريض
+
+Do NOT add a third Attachments tab.
+
+==================================================
+12. REMOVE ATTACHMENTS FROM PATIENT INFO TAB
+==================================================
+
+Currently Attachments appears inside:
+
+بيانات المريض
+
+Remove the entire Attachments section from this tab.
+
+Do NOT change:
+
+- basic patient information
+- edit patient
+- archive/delete actions
+- existing patient-info layout
+- other current sections
+
+Only remove Attachments from this tab.
+
+==================================================
+13. MOVE ATTACHMENTS TO PROCEDURES TAB
+==================================================
+
+Inside:
+
+إجراءات المريض
+
+add/reuse the existing Attachments section.
+
+The section must keep:
+
+المرفقات (N)
+
++ إضافة مرفق
+
+and existing:
+
+- thumbnails
+- file cards
+- title
+- category
+- date
+- preview
+- download
+- metadata edit
+- delete
+
+Do NOT rebuild a new attachment component if the shared component already exists.
+
+==================================================
+14. PROCEDURES TAB PLACEMENT
+==================================================
+
+Place Attachments in a logical clinical location inside:
+
+إجراءات المريض
+
+Keep the existing procedure/case workflow readable.
+
+Do not make the tab visually heavy.
+
+Suggested order:
+
+- Case / treatment information
+- Implant / surgical procedure content
+- Attachments
+
+Attachments should be visually separated but consistent with Ghars cards.
+
+==================================================
+15. MAIN TABLE EXPANDED RECORD
+==================================================
+
+KEEP Attachments visible in the expanded patient record from the main operational table.
+
+Do NOT remove this functionality.
+
+The desired workflow is:
+
+Main Table
+→ expand patient
+→ see clinical data
+→ see attachments near the bottom
+→ click attachment
+→ open viewer correctly
+→ add another attachment without leaving the page
+
+==================================================
+16. IMPORTANT — MOVE EXPANDED-RECORD ATTACHMENTS TO THE BOTTOM
+==================================================
+
+In the current expanded record, Attachments is positioned BEFORE Implant Cases.
+
+This is NOT the desired order.
+
+Move the ENTIRE Attachments section to the bottom of the expanded record content.
+
+Required final order:
+
+1. Patient Information / Appointments / Finance
+2. Implant Cases
+3. Adjunct Surgical Procedures
+4. Attachments
+5. Bottom Action Bar
+
+Attachments must be the LAST CONTENT SECTION.
+
+It must appear immediately ABOVE the bottom action bar.
+
+Do NOT place Attachments between:
+
+Finance
+and
+Implant Cases
+
+==================================================
+17. BOTTOM ACTION BAR
+==================================================
+
+Keep the existing bottom actions BELOW Attachments.
+
+Examples may include:
+
+- إضافة زرعة
+- تسجيل دفعة
+- إضافة دفعة
+- فتح الملف الكامل
+- حذف الملف
+
+Do not modify their logic or layout unnecessarily.
+
+Final structure:
+
+[clinical content]
+
+[implant cases]
+
+[adjunct procedures]
+
+[attachments]
+
+[bottom action buttons]
+
+==================================================
+18. EXPANDED RECORD ATTACHMENTS UI
+==================================================
+
+Keep:
+
+المرفقات (N)
+
++ إضافة مرفق
+
+Show compact:
+
+- image thumbnails
+- PDF/document cards
+
+Do not make the section huge.
+
+If many files exist:
+show a limited set first, then:
+
+عرض جميع المرفقات (N)
+
+if this behavior already exists or is easy to reuse.
+
+==================================================
+19. QUICK ADD FROM EXPANDED RECORD
+==================================================
+
+Keep:
+
++ إضافة مرفق
+
+inside the expanded record.
+
+Successful upload must appear immediately.
+
+Use appropriate React Query cache update/invalidation.
+
+No full page reload.
+
+==================================================
+20. NEW RECORD FORM
+==================================================
+
+KEEP attachment upload in:
+
+إضافة سجل جديد
+
+The user must still be able to upload attachments during patient/record creation.
+
+Do not remove it.
+
+==================================================
+21. SAME ATTACHMENT DATA EVERYWHERE
+==================================================
+
+There must be ONE attachment record/file shared across:
+
+- New Record workflow after save
+- Expanded main-table record
+- Patient File → إجراءات المريض
+
+No duplicate database rows.
+No duplicate file upload.
+No separate attachment system.
+
+==================================================
+22. ATTACHMENT VIEWER
+==================================================
+
+Use/reuse ONE shared Attachment Viewer component.
+
+Use it from:
+
+- expanded main table
+- Patient File → إجراءات المريض
+- View All Attachments
+- new-record preview where appropriate
+
+Viewer actions may include according to existing permissions:
+
+عرض
+تحميل
+تعديل البيانات
+حذف
+
+Do not clutter the main UI.
+
+==================================================
+23. CACHE / SIGNED URL SAFETY
+==================================================
+
+If signed URLs are used:
+
+Do NOT store signed URLs permanently in DB.
+
+Database should store stable:
+
+- attachment ID
+- storage key
+- metadata
+
+Generate fresh authorized/signed URLs when needed.
+
+Do not cache an expired URL indefinitely.
+
+==================================================
+24. PERFORMANCE
+==================================================
+
+Opening a patient record must NOT download full attachment binaries.
+
+Load only:
+
+- metadata
+- lightweight thumbnails
+
+Load original image/PDF only after click.
+
+Do not degrade:
+
+- main patient table
+- expanded row
+- Patient Procedures tab
+
+==================================================
+25. MIME TYPES
+==================================================
+
+Verify image preview for at least:
+
+JPG
+JPEG
+PNG
+WEBP
+
+If HEIC is currently supported:
+verify separately.
+
+Do not claim HEIC browser preview support if the current browser/storage pipeline cannot render it.
+
+==================================================
+26. SECURITY
+==================================================
+
+Preserve all current security.
+
+Test:
+
+Tenant A requests Tenant B attachment:
+→ blocked
+
+Unauthenticated request:
+→ blocked
+
+User without VIEW_PATIENT_ATTACHMENTS:
+→ blocked
+
+Do not expose object storage paths unnecessarily.
+
+==================================================
+27. ARABIC / ENGLISH
+==================================================
+
+Use existing i18next.
+
+Arabic:
+RTL
+
+English:
+LTR
+
+Western digits 0-9 everywhere.
+
+==================================================
+28. DO NOT CHANGE
+==================================================
+
+Do NOT change:
+
+- Finance
+- Appointments
+- Implant Cases behavior
+- Implant cards
+- Adjunct procedures
+- Main dashboard
+- Statistics
+- Importer
+- Patient tab count
+- Attachment categories
+- Payment logic
+- Patient financial logic
+- permissions architecture unless fixing the actual image-access bug
+- unrelated layout
+
+==================================================
+29. MANUAL VISUAL QA
+==================================================
+
+Do not rely only on automated tests.
+
+Actually open the app in the browser and visually verify the CURRENT failing attachment.
+
+Verify:
+
+A. Main table expanded record
+- thumbnail visible
+- Attachments is LAST section
+- viewer opens image correctly
+
+B. Patient File
+- بيانات المريض has NO attachments section
+- إجراءات المريض DOES contain Attachments
+- same image opens correctly
+
+C. New Record
+- attachment upload remains available
+
+D. Viewer
+- no broken image
+- no empty gray area
+- correct image displayed
+
+E. Download
+- correct file downloads/opens
+
+==================================================
+30. EXACT EXPANDED RECORD FINAL ORDER
+==================================================
+
+Visually verify this exact sequence:
+
+TOP:
+Patient Information
+Appointments
+Finance
+
+THEN:
+حالات الزراعة
+
+THEN:
+الإجراءات الجراحية المساندة
+
+THEN:
+المرفقات
+
+BOTTOM:
+Action bar / record actions
+
+Attachments must be immediately before the bottom action bar.
+
+==================================================
+31. FINAL REPORT
+==================================================
+
+Return:
+
+EXACT IMAGE PREVIEW ROOT CAUSE:
+<exact technical cause>
+
+FAILING REQUEST BEFORE:
+<URL pattern + HTTP status>
+
+IMAGE STORAGE RECORD VALID:
+PASS / FAIL
+
+PRIVATE STORAGE PRESERVED:
+PASS / FAIL
+
+AUTHENTICATED FILE ACCESS:
+PASS / FAIL
+
+THUMBNAIL:
+PASS / FAIL
+
+FULL IMAGE VIEWER:
+PASS / FAIL
+
+DOWNLOAD:
+PASS / FAIL
+
+PDF REGRESSION:
+PASS / FAIL
+
+NEW RECORD ATTACHMENTS:
+PASS / FAIL
+
+MAIN TABLE EXPANDED ATTACHMENTS:
+PASS / FAIL
+
+EXPANDED RECORD ORDER:
+PASS / FAIL
+
+ATTACHMENTS LAST SECTION IN EXPANDED RECORD:
+PASS / FAIL
+
+BOTTOM ACTION BAR BELOW ATTACHMENTS:
+PASS / FAIL
+
+ATTACHMENTS REMOVED FROM PATIENT INFO TAB:
+PASS / FAIL
+
+ATTACHMENTS MOVED TO PATIENT PROCEDURES TAB:
+PASS / FAIL
+
+PATIENT FILE STILL EXACTLY TWO TABS:
+PASS / FAIL
+
+SAME ATTACHMENT RECORD EVERYWHERE:
+PASS / FAIL
+
+NO DUPLICATE ATTACHMENT STORAGE:
+PASS / FAIL
+
+NO FULL FILE PRELOAD:
+PASS / FAIL
+
+REACT QUERY REFRESH:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+PERMISSION ENFORCEMENT:
+PASS / FAIL
+
+ARABIC RTL:
+PASS / FAIL
+
+ENGLISH:
+PASS / FAIL
+
+NO FULL PAGE RELOAD:
+PASS / FAIL
+
+NO OTHER LAYOUT CHANGES:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
