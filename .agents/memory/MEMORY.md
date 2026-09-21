@@ -38,3 +38,4 @@
 - [Legacy import availability](legacy-import-availability.md) — importer availability is a fail-closed global platform flag; tests must opt in explicitly while the release default stays disabled.
 - [Lazy chunk recovery](lazy-chunk-recovery.md) — route chunk failures get one build-and-route-scoped reload; successful render clears the guard, persistent failures keep the boundary.
 - [Unicode download headers](unicode-download-headers.md) — never place non-ASCII filenames directly in Content-Disposition filename; pair an ASCII fallback with filename* UTF-8.
+- [Radix trigger ownership](radix-trigger-ownership.md) — never compose multiple Radix Trigger asChild primitives onto one control; it can strand modal pointer locks and create dead clicks.

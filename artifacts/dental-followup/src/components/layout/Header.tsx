@@ -25,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNotifications } from "@/hooks/use-followups";
 import { useAppSettings } from "@/hooks/use-settings";
 import { formatSaudiDateTime, formatSaudiDate } from "@/lib/datetime";
@@ -143,19 +142,18 @@ export function Header({ user }: HeaderProps) {
 
           {/* Help Menu */}
           <DropdownMenu dir={direction}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary" id="tour-help-icon">
-                    <HelpCircle className="h-5 w-5" />
-                    <span className="sr-only">{t("help.menuLabel")}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t("help.menuLabel")}</p>
-              </TooltipContent>
-            </Tooltip>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-primary"
+                id="tour-help-icon"
+                title={t("help.menuLabel")}
+              >
+                <HelpCircle className="h-5 w-5" />
+                <span className="sr-only">{t("help.menuLabel")}</span>
+              </Button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>{t("help.title")}</DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -176,31 +174,26 @@ export function Header({ user }: HeaderProps) {
 
           {/* Notifications */}
           <DropdownMenu dir={direction}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-primary relative"
-                    data-testid="button-notifications"
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-primary relative"
+                data-testid="button-notifications"
+                title={t("common:notifications.title")}
+              >
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">{t("common:notifications.title")}</span>
+                {notificationCount > 0 ? (
+                  <span
+                    className="absolute -top-0.5 -start-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-[18px] text-center font-bold notranslate"
+                    data-testid="badge-notification-count"
                   >
-                    <Bell className="h-5 w-5" />
-                    {notificationCount > 0 ? (
-                      <span
-                        className="absolute -top-0.5 -start-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-[18px] text-center font-bold notranslate"
-                        data-testid="badge-notification-count"
-                      >
-                        {notificationCount > 99 ? "+99" : notificationCount}
-                      </span>
-                    ) : null}
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t("common:notifications.title")}</p>
-              </TooltipContent>
-            </Tooltip>
+                    {notificationCount > 99 ? "+99" : notificationCount}
+                  </span>
+                ) : null}
+              </Button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
               {notificationItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
