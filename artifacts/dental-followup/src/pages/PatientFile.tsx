@@ -277,9 +277,6 @@ export default function PatientFile() {
                 showArchived={showArchived}
                 onManage={() => selectTab("procedures")}
               />
-              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6 print:hidden">
-                <AttachmentsSection patientId={patient.id} canDelete={canArchive} disabled={isArchived} />
-              </section>
             </div>
           ) : (
             <div className="space-y-5 print:hidden">
@@ -328,6 +325,9 @@ export default function PatientFile() {
                   focusSection={deepLink.section === "followups"}
                   targetFollowupId={deepLink.followupId}
                 />
+              </section>
+              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+                <AttachmentsSection patientId={patient.id} canDelete={canArchive} disabled={isArchived} />
               </section>
             </div>
           )}

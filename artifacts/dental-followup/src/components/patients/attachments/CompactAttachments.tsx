@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { FileText, Image as ImageIcon, Paperclip, Plus, Eye, Loader2, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { PatientAttachment, api } from "@/lib/api";
+import { PatientAttachment, api, patientAttachmentThumbnailUrl } from "@/lib/api";
 import { AttachmentViewer } from "./AttachmentViewer";
 import { AttachmentEditDialog } from "./AttachmentEditDialog";
 import { AttachmentDeleteDialog } from "./AttachmentDeleteDialog";
@@ -161,7 +161,7 @@ export function CompactAttachments({ patientId, canDelete, disabled }: CompactAt
   const getAttachmentThumbnail = (att: PatientAttachment) => {
     const isImage = att.mimeType.startsWith("image/");
     if (isImage) {
-      return <img src={`${import.meta.env.BASE_URL}api/patients/${patientId}/attachments/${att.id}/thumbnail`} alt={att.title || ""} className="w-full h-full object-cover" />;
+      return <img src={patientAttachmentThumbnailUrl(patientId, att.id)} alt={att.title || ""} className="w-full h-full object-cover" />;
     }
     return <FileText className="h-6 w-6 text-muted-foreground opacity-70" />;
   };

@@ -48,6 +48,22 @@ function safeDownloadFilename(name: string): string {
   const cleaned = name.replace(/[\u0000-\u001f\u007f"\\]/g, "_").replace(/[\r\n]/g, "_").trim().slice(0, 180);
   return cleaned || "attachment";
 }
+function asciiDownloadFilename(name: string): string {
+  const safeName = safeDownloadFilename(name);
+  const extension = safeName.match(/\.([A-Za-z0-9]{1,10})$/)?.[0] ?? "";
+  const ascii = safeName.normalize("NFKD").replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_").trim();
+  const stem = extension ? ascii.slice(0, -extension.length) : ascii;
+  return /[A-Za-z0-9]/.test(stem) ? ascii : `attachment${extension}`;
+}
+function encodeRfc5987(value: string): string {
+  return encodeURIComponent(value).replace(/['()*]/g, (character) =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+function contentDisposition(disposition: "inline" | "attachment", name: string): string {
+  const safeName = safeDownloadFilename(name);
+  return `${disposition}; filename="${asciiDownloadFilename(safeName)}"; filename*=UTF-8''${encodeRfc5987(safeName)}`;
+}
 
 router.get("/patients/:patientId/attachments", requireRole(...clinicalRoles), async (req, res) => {
   if (!validUuid(req.params.patientId)) { res.status(404).json(genericNotFound); return; }
@@ -158,8 +174,8 @@ router.get("/patients/:patientId/attachments/:attachmentId/file", requireRole(..
   try {
     const object = await storage.streamPatientAttachment(row.storageKey);
     const downloading = req.query.download === "1";
-    const safeName = safeDownloadFilename(row.originalFilename);
-    res.setHeader("Content-Type", row.mimeType); res.setHeader("Content-Disposition", `${downloading ? "attachment" : "inline"}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+    res.setHeader("Content-Type", row.mimeType);
+    res.setHeader("Content-Disposition", contentDisposition(downloading ? "attachment" : "inline", row.originalFilename));
     res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'self'");
     if (object.size > 0) res.setHeader("Content-Length", String(object.size));
     await writeAudit({ tenantId: req.currentTenant!.id, userId: req.currentUser!.id, action: downloading ? "PATIENT_ATTACHMENT_DOWNLOADED" : "PATIENT_ATTACHMENT_VIEWED", entityType: "patient_attachment", entityId: row.id, details: { patientId: row.patientId } });

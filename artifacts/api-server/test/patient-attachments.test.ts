@@ -25,15 +25,20 @@ async function createPatient(agent: TestAgent, fileNumber: string) {
   return response.body.patient.id as string;
 }
 
-async function attachmentRow(patient: string, storageKey = `/objects/patient-attachments/${randomUUID()}`) {
+async function attachmentRow(
+  patient: string,
+  storageKey = `/objects/patient-attachments/${randomUUID()}`,
+  originalFilename = "scan.pdf",
+  mimeType = "application/pdf",
+) {
   const result = await pool.query(
     `INSERT INTO patient_attachments
       (tenant_id, patient_id, original_filename, mime_type, file_size, storage_key, uploaded_by)
-     SELECT tm.tenant_id, $1, 'scan.pdf', 'application/pdf', 35, $2, tm.user_id
+     SELECT tm.tenant_id, $1, $3, $4, 35, $2, tm.user_id
        FROM tenant_memberships tm JOIN users u ON u.id=tm.user_id
       WHERE u.username='admin' AND tm.is_active=true
       RETURNING id`,
-    [patient, storageKey],
+    [patient, storageKey, originalFilename, mimeType],
   );
   return result.rows[0].id as string;
 }
@@ -198,15 +203,34 @@ describe("patient attachment file lifecycle", () => {
     expect(response.body.length).toBeLessThan(1024);
   });
 
+  it.each([
+    ["scan.jpg", "image/jpeg"],
+    ["scan.jpeg", "image/jpeg"],
+    ["scan.png", "image/png"],
+    ["scan.webp", "image/webp"],
+  ])("streams full image previews for %s", async (filename, mimeType) => {
+    const id = await attachmentRow(patientId, `/objects/patient-attachments/${randomUUID()}`, filename, mimeType);
+    const imageBytes = Buffer.from("image-preview");
+    vi.spyOn(ObjectStorageService.prototype, "streamPatientAttachment").mockResolvedValueOnce({
+      stream: Readable.from(imageBytes), contentType: mimeType, size: imageBytes.length,
+    });
+    const response = await doctor.get(`/api/patients/${patientId}/attachments/${id}/file`);
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toContain(mimeType);
+    expect(response.body).toEqual(imageBytes);
+  });
+
   it("streams view/download with safe headers and audit, and only ADMIN can delete", async () => {
     const lifecycleKey = `/objects/patient-attachments/${randomUUID()}`;
-    const id = await attachmentRow(patientId, lifecycleKey);
+    const id = await attachmentRow(patientId, lifecycleKey, "صورة الزراعة.pdf");
     vi.spyOn(ObjectStorageService.prototype, "streamPatientAttachment").mockResolvedValue({
       stream: Readable.from(Buffer.from("pdf-data")), contentType: "application/pdf", size: 0,
     });
     const view = await doctor.get(`/api/patients/${patientId}/attachments/${id}/file`);
     expect(view.status).toBe(200);
     expect(view.headers["content-disposition"]).toContain("inline");
+    expect(view.headers["content-disposition"]).toContain('filename="attachment.pdf"');
+    expect(view.headers["content-disposition"]).toContain("filename*=UTF-8''");
     expect(view.headers["x-content-type-options"]).toBe("nosniff");
     const download = await doctor.get(`/api/patients/${patientId}/attachments/${id}/file?download=1`);
     expect(download.headers["content-disposition"]).toContain("attachment");

@@ -2150,8 +2150,6 @@ function PatientExpandedRow({
         followup={cancelFollowup}
       />
 
-      <CompactAttachments patientId={group.patientId} canDelete={canDeleteRows} disabled={group.status === "archived"} />
-
       {/* B — حالات الزراعة */}
       {activeCases.length > 0 && (
         <div className="space-y-3">
@@ -2543,6 +2541,8 @@ function PatientExpandedRow({
           </div>
         </div>
       )}
+
+      <CompactAttachments patientId={group.patientId} canDelete={canDeleteRows} disabled={group.status === "archived"} />
 
       {/* F — Quick actions toolbar */}
       <div className="pt-2 border-t border-border/60 space-y-3">

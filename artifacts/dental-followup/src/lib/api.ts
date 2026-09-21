@@ -151,6 +151,23 @@ import { normalizeNumericValues } from "@/lib/digits";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
 
+function patientAttachmentContentUrl(
+  patientId: string,
+  attachmentId: string,
+  resource: "file" | "thumbnail",
+): string {
+  return `${API_BASE}/patients/${encodeURIComponent(patientId)}/attachments/${encodeURIComponent(attachmentId)}/${resource}`;
+}
+
+export function patientAttachmentFileUrl(patientId: string, attachmentId: string, download = false): string {
+  const url = patientAttachmentContentUrl(patientId, attachmentId, "file");
+  return download ? `${url}?download=1` : url;
+}
+
+export function patientAttachmentThumbnailUrl(patientId: string, attachmentId: string): string {
+  return patientAttachmentContentUrl(patientId, attachmentId, "thumbnail");
+}
+
 export interface PatientAttachment {
   id: string;
   tenantId: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PatientAttachment } from "@/lib/api";
+import { PatientAttachment, patientAttachmentFileUrl } from "@/lib/api";
 import { ChevronLeft, ChevronRight, Download, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
@@ -40,7 +40,7 @@ export function AttachmentViewer({
 
   const attachment = attachments[currentIndex];
   const isImage = attachment.mimeType.startsWith("image/");
-  const fileUrl = `${import.meta.env.BASE_URL}api/patients/${patientId}/attachments/${attachment.id}/file`;
+  const fileUrl = patientAttachmentFileUrl(patientId, attachment.id);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev < attachments.length - 1 ? prev + 1 : 0));
@@ -52,7 +52,7 @@ export function AttachmentViewer({
 
   const handleDownload = () => {
     const a = document.createElement('a');
-    a.href = `${fileUrl}?download=1`;
+    a.href = patientAttachmentFileUrl(patientId, attachment.id, true);
     a.download = attachment.originalFilename;
     document.body.appendChild(a);
     a.click();

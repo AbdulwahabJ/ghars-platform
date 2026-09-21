@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { usePatientAttachments, useDeletePatientAttachment, useUpdatePatientAttachment } from "@/hooks/use-attachments";
-import { PatientAttachment, api } from "@/lib/api";
+import { PatientAttachment, api, patientAttachmentFileUrl, patientAttachmentThumbnailUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { FileDropzone, StagedFilesList } from "./StagedFilesList";
 import { patientAttachmentMimeForFile, StagedFile, uploadFileWithProgress } from "./upload-utils";
@@ -257,7 +257,6 @@ export function AttachmentsSection({ patientId, canDelete, disabled }: Attachmen
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
           {attachments.map((att) => {
             const isImage = att.mimeType.startsWith("image/");
-            const fileUrl = `${import.meta.env.BASE_URL}api/patients/${patientId}/attachments/${att.id}/file`;
             const fileSizeMb = (att.fileSize / 1024 / 1024).toFixed(1);
             const linkedCase = implantCases.find((item) => item.id === att.implantCaseId);
 
@@ -265,7 +264,7 @@ export function AttachmentsSection({ patientId, canDelete, disabled }: Attachmen
               <div key={att.id} className="group relative flex flex-col border border-border rounded-xl bg-card overflow-hidden hover:border-primary/30 transition-colors shadow-sm">
                 <div className="h-32 bg-muted/40 border-b border-border flex items-center justify-center overflow-hidden relative cursor-pointer" onClick={() => setPreviewAttachment(att)}>
                   {isImage ? (
-                    <img src={`${import.meta.env.BASE_URL}api/patients/${patientId}/attachments/${att.id}/thumbnail`} alt={att.title || ""} className="w-full h-full object-cover" />
+                    <img src={patientAttachmentThumbnailUrl(patientId, att.id)} alt={att.title || ""} className="w-full h-full object-cover" />
                   ) : (
                     <FileText className="h-10 w-10 text-muted-foreground opacity-70" />
                   )}
@@ -291,7 +290,7 @@ export function AttachmentsSection({ patientId, canDelete, disabled }: Attachmen
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           const a = document.createElement('a');
-                          a.href = `${fileUrl}?download=1`;
+                          a.href = patientAttachmentFileUrl(patientId, att.id, true);
                           a.download = att.originalFilename;
                           document.body.appendChild(a);
                           a.click();
