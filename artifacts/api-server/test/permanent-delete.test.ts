@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import bcrypt from "bcryptjs";
 import app from "../src/app";
+import { ObjectStorageService } from "../src/lib/objectStorage";
 import {
   agentFor,
   attachUserToInternalTenant,
@@ -15,6 +16,7 @@ let admin: TestAgent;
 let assistant: TestAgent;
 let tenantId: string;
 let adminId: string;
+let deleteObject: ReturnType<typeof vi.spyOn>;
 
 async function createPatient(fileNumber: string) {
   const response = await admin.post("/api/patients").send({
@@ -53,9 +55,11 @@ beforeAll(async () => {
   await attachUserToInternalTenant(pool, "delete-assistant", "ASSISTANT");
   assistant = agentFor(app);
   await login(assistant, "delete-assistant", "Delete0Pass12");
+  deleteObject = vi.spyOn(ObjectStorageService.prototype, "deleteObject").mockResolvedValue();
 });
 
 afterAll(async () => {
+  vi.restoreAllMocks();
   await pool.end();
 });
 
@@ -281,13 +285,21 @@ describe("admin permanent deletion", () => {
   it("permanently deletes a full patient graph only after preview and confirmation", async () => {
     const patientId = await createPatient("HD-1004");
     const caseId = await createCase(patientId);
+    const attachmentStorageKey = "/objects/patient-attachments/00000000-0000-4000-8000-000000000104";
     await admin.post(`/api/implant-cases/${caseId}/implants`).send({ site: "11" });
+    await pool.query(
+      `INSERT INTO patient_attachments
+         (tenant_id, patient_id, original_filename, mime_type, file_size, storage_key, uploaded_by)
+       VALUES ($1, $2, 'patient-scan.pdf', 'application/pdf', 35, $3, $4)`,
+      [tenantId, patientId, attachmentStorageKey, adminId],
+    );
+    deleteObject.mockClear();
 
     const preview = await admin
       .post(`/api/patients/${patientId}/permanent-delete`)
       .send({ preview: true });
     expect(preview.status).toBe(200);
-    expect(preview.body.impact).toMatchObject({ patients: 1, cases: 1, implants: 1 });
+    expect(preview.body.impact).toMatchObject({ patients: 1, cases: 1, implants: 1, attachments: 1 });
 
     const deleted = await admin
       .post(`/api/patients/${patientId}/permanent-delete`)
@@ -304,6 +316,7 @@ describe("admin permanent deletion", () => {
       [patientId, caseId],
     );
     expect(remaining.rows[0]).toEqual({ patient_exists: false, case_exists: false });
+    expect(deleteObject).toHaveBeenCalledWith(attachmentStorageKey);
     const audit = await pool.query(
       `SELECT 1 FROM audit_logs
        WHERE action='PERMANENT_PATIENT_DELETE' AND entity_id=$1`,

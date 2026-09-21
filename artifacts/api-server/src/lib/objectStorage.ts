@@ -194,6 +194,97 @@ async function signObjectUrl(
 }
 
 export class ObjectStorageService {
+  /** Staging objects are bearer-free after token expiry and are opportunistically
+   * reaped for 24h. This prefix is intentionally never shared with canonical. */
+  async cleanupPatientAttachmentStaging(maxAgeMs = 24 * 60 * 60 * 1000): Promise<number> {
+    const { bucketName, objectName: basePrefix } = parseBucketPath(privateDir());
+    const [files] = await objectStorageClient.bucket(bucketName).getFiles({ prefix: `${basePrefix}/patient-attachments-staging/` });
+    let removed = 0;
+    for (const file of files) {
+      const [metadata] = await file.getMetadata();
+      const created = Date.parse(String(metadata.timeCreated ?? ""));
+      if (Number.isFinite(created) && created < Date.now() - maxAgeMs) {
+        await file.delete({ ignoreNotFound: true });
+        removed++;
+      }
+    }
+    return removed;
+  }
+
+  private patientObjectPathName(path: string): "patient-attachments-staging" | "patient-attachments" {
+    if (/^\/objects\/patient-attachments-staging\/[0-9a-f-]{36}$/.test(path)) return "patient-attachments-staging";
+    if (/^\/objects\/patient-attachments\/[0-9a-f-]{36}$/.test(path)) return "patient-attachments";
+    throw new ObjectNotFoundError();
+  }
+
+  async createPatientAttachmentUploadUrl(): Promise<{ uploadUrl: string; objectPath: string }> {
+    const id = randomUUID();
+    const { bucketName, objectName } = parseBucketPath(`${privateDir()}/patient-attachments-staging/${id}`);
+    return { uploadUrl: await signObjectUrl(bucketName, objectName, "PUT"), objectPath: `/objects/patient-attachments-staging/${id}` };
+  }
+
+  async inspectPatientAttachment(objectPath: string): Promise<{ mimeType: string; sizeBytes: number; generation: string }> {
+    if (this.patientObjectPathName(objectPath) !== "patient-attachments-staging") throw new ObjectNotFoundError();
+    const file = await this.getPatientAttachmentFile(objectPath);
+    const [metadata] = await file.getMetadata();
+    const generation = String(metadata.generation ?? "");
+    const size = Number(metadata.size ?? 0);
+    if (!generation || !Number.isSafeInteger(size) || size <= 0 || size > 20 * 1024 * 1024) {
+      throw Object.assign(new Error("Invalid attachment size."), { code: "PATIENT_ATTACHMENT_INVALID" });
+    }
+    const pinned = await this.getPatientAttachmentFile(objectPath, generation);
+    const [pinnedMetadata] = await pinned.getMetadata();
+    if (String(pinnedMetadata.generation ?? "") !== generation) throw Object.assign(new Error("Attachment changed."), { code: "PATIENT_ATTACHMENT_CHANGED" });
+    const [contents] = await pinned.download({ validation: false });
+    if (contents.length !== size) throw Object.assign(new Error("Attachment changed."), { code: "PATIENT_ATTACHMENT_CHANGED" });
+    const mimeType = detectPatientAttachmentMime(contents);
+    if (!mimeType) throw Object.assign(new Error("Unsupported attachment content."), { code: "PATIENT_ATTACHMENT_INVALID" });
+    return { mimeType, sizeBytes: contents.length, generation };
+  }
+
+  async promotePatientAttachmentObject(
+    stagingPath: string, expectedMimeType: string, expectedSizeBytes: number, originalFilename: string,
+  ): Promise<{ objectPath: string; mimeType: string; sizeBytes: number }> {
+    const inspected = await this.inspectPatientAttachment(stagingPath);
+    const ext = originalFilename.toLowerCase().split(".").pop();
+    const allowedExt = inspected.mimeType === "application/pdf" ? ["pdf"] : inspected.mimeType === "image/jpeg" ? ["jpg", "jpeg"] : [inspected.mimeType.split("/")[1]!];
+    if (expectedMimeType !== inspected.mimeType || expectedSizeBytes !== inspected.sizeBytes || !ext || !allowedExt.includes(ext)) {
+      throw Object.assign(new Error("Declared file metadata does not match content."), { code: "PATIENT_ATTACHMENT_MISMATCH" });
+    }
+    const id = randomUUID();
+    const finalPath = `/objects/patient-attachments/${id}`;
+    const source = await this.getPatientAttachmentFile(stagingPath, inspected.generation);
+    const { bucketName, objectName } = parseBucketPath(`${privateDir()}/patient-attachments/${id}`);
+    const destination = objectStorageClient.bucket(bucketName).file(objectName);
+    let copied = false;
+    try {
+      await source.copy(destination, { preconditionOpts: { ifGenerationMatch: 0 }, contentType: inspected.mimeType, cacheControl: "no-store" });
+      copied = true;
+      await this.deleteObject(stagingPath);
+      return { objectPath: finalPath, mimeType: inspected.mimeType, sizeBytes: inspected.sizeBytes };
+    } catch (error) {
+      if (copied) await destination.delete({ ignoreNotFound: true }).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  private async getPatientAttachmentFile(path: string, generation?: string): Promise<File> {
+    const namespace = this.patientObjectPathName(path);
+    const id = path.split("/").pop()!;
+    const { bucketName, objectName } = parseBucketPath(`${privateDir()}/${namespace}/${id}`);
+    const file = objectStorageClient.bucket(bucketName).file(objectName, generation ? { generation } : undefined);
+    const [exists] = await file.exists();
+    if (!exists) throw new ObjectNotFoundError();
+    return file;
+  }
+
+  async streamPatientAttachment(path: string): Promise<{ stream: NodeJS.ReadableStream; contentType: string; size: number }> {
+    if (this.patientObjectPathName(path) !== "patient-attachments") throw new ObjectNotFoundError();
+    const file = await this.getPatientAttachmentFile(path);
+    const [metadata] = await file.getMetadata();
+    return { stream: file.createReadStream(), contentType: String(metadata.contentType ?? "application/octet-stream"), size: Number(metadata.size ?? 0) };
+  }
+
   async createLandingMediaUploadUrl(): Promise<{ uploadUrl: string; objectPath: string }> {
     const id = randomUUID();
     const { bucketName, objectName } = parseBucketPath(`${privateDir()}/landing-media-staging/${id}`);
@@ -338,6 +429,11 @@ export class ObjectStorageService {
   }
 
   async deleteObject(objectPath: string): Promise<void> {
+    if (/^\/objects\/patient-attachments(?:-staging)?\/[0-9a-f-]{36}$/.test(objectPath)) {
+      const file = await this.getPatientAttachmentFile(objectPath);
+      await file.delete({ ignoreNotFound: true });
+      return;
+    }
     const file = await this.getObjectEntityFile(objectPath);
     await file.delete();
   }
@@ -352,4 +448,14 @@ export class ObjectStorageService {
       size: Number(metadata.size ?? 0),
     };
   }
+}
+
+/** Validate an attachment from its complete binary structure, never its filename. */
+export function detectPatientAttachmentMime(data: Buffer): "image/jpeg" | "image/png" | "image/webp" | "application/pdf" | null {
+  if (
+    /^%PDF-1\.[0-7](?:\r?\n|\r)/.test(data.subarray(0, 16).toString("latin1")) &&
+    /\d+\s+\d+\s+obj\b[\s\S]*?\bendobj\b/.test(data.toString("latin1")) &&
+    /\bstartxref\s+\d+\s+%%EOF\s*$/.test(data.subarray(Math.max(0, data.length - 2048)).toString("latin1"))
+  ) return "application/pdf";
+  return detectLandingImageMime(data);
 }

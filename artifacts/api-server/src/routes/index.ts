@@ -24,6 +24,7 @@ import settingsRouter from "./settings";
 import landingMediaRouter from "./landing-media";
 import featuresRouter from "./features";
 import clientErrorsRouter from "./client-errors";
+import patientAttachmentsRouter from "./patient-attachments";
 import {
   requireAuth,
   requireOperationalTenant,
@@ -52,6 +53,7 @@ router.use(requireAuth, requireOperationalTenant);
 // universal importer. Keep the platform-admin settings API outside this gate.
 router.use("/admin/import", requireLegacyImportEnabled);
 router.use(patientsRouter);
+router.use(patientAttachmentsRouter);
 router.use(patientRecordExportRouter);
 router.use(implantCasesRouter);
 router.use(boneGraftProceduresRouter);

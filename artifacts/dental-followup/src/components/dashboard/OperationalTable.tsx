@@ -44,6 +44,7 @@ import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProst
 import { FinalTotalDialog } from "@/components/finance/FinalTotalDialog";
 import { OutcomeDialog } from "@/components/followups/OutcomeDialog";
 import { CancelFollowupDialog } from "@/components/followups/CancelFollowupDialog";
+import { CompactAttachments } from "@/components/patients/attachments/CompactAttachments";
 import {
   OperationalDatePicker,
   OperationalDateTimeFields,
@@ -2149,6 +2150,8 @@ function PatientExpandedRow({
         followup={cancelFollowup}
       />
 
+      <CompactAttachments patientId={group.patientId} canDelete={canDeleteRows} disabled={group.status === "archived"} />
+
       {/* B — حالات الزراعة */}
       {activeCases.length > 0 && (
         <div className="space-y-3">
@@ -2949,6 +2952,7 @@ export function OperationalTable({
   const { t } = useTranslation("guidance");
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const bulkAction = useBulkPatientAction();
   const isAdmin = user?.role === "ADMIN";
   const showFinance = Boolean(data?.financialsIncluded);
@@ -3213,7 +3217,12 @@ export function OperationalTable({
               <div className="border-b border-border">
                 <InlineNewRecord
                   onClose={() => setShowNewRecord(false)}
-                  onSuccess={() => { setShowNewRecord(false); setPage(1); setExpandedPatientId(null); }}
+                  onSuccess={() => {
+                    setShowNewRecord(false);
+                    setPage(1);
+                    setExpandedPatientId(null);
+                    void queryClient.refetchQueries({ queryKey: ["operational-report"], type: "active" });
+                  }}
                 />
               </div>
             )}

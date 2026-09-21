@@ -1,0 +1,758 @@
+MODE: Power
+
+ADD SECURE PATIENT FILE ATTACHMENTS TO GHARS.
+
+GOAL:
+
+Allow authorized clinic users to upload images and documents to a patient's medical file:
+
+1. During new patient creation.
+2. Later from the existing Patient File.
+
+This must be simple, professional, secure, tenant-isolated, and suitable for clinical use.
+
+IMPORTANT:
+Do NOT add a third Patient File tab.
+
+The Patient File must remain exactly:
+
+- بيانات المريض
+- إجراءات المريض
+
+Attachments must live inside:
+بيانات المريض / Patient Information
+
+Do NOT publish automatically.
+
+==================================================
+1. FEATURE NAME
+==================================================
+
+Arabic:
+المرفقات
+
+English:
+Attachments
+
+This is a patient-level document/media area.
+
+==================================================
+2. WHERE USERS CAN UPLOAD
+==================================================
+
+A. During patient creation
+
+Add a section near the end of the New Patient form:
+
+المرفقات
+اختياري
+
+Allow user to attach files before saving the patient.
+
+B. Existing Patient File
+
+Inside:
+
+بيانات المريض
+
+add a clean card:
+
+المرفقات
+
+with:
+
++ إضافة مرفق
+
+==================================================
+3. SUPPORTED FILE TYPES
+==================================================
+
+For V1 support:
+
+Images:
+- JPG
+- JPEG
+- PNG
+- WEBP
+- HEIC if existing infrastructure safely supports it
+
+Documents:
+- PDF
+
+Optionally support:
+- DOC
+- DOCX
+
+only if current storage/security architecture already safely supports them.
+
+Do NOT add executables or arbitrary dangerous file types.
+
+Do NOT implement DICOM viewing in this task.
+
+==================================================
+4. FILE SIZE
+==================================================
+
+Use a sensible configurable maximum.
+
+Recommended default:
+
+20 MB per file
+
+If current Ghars infrastructure already has a standard upload limit, reuse it.
+
+Show clear validation:
+
+Arabic:
+حجم الملف يتجاوز الحد المسموح.
+
+English:
+File size exceeds the allowed limit.
+
+==================================================
+5. MULTIPLE FILES
+==================================================
+
+Allow multiple attachments.
+
+Example:
+
+- صورة أشعة
+- تقرير طبي
+- موافقة
+- صورة قبل العلاج
+
+User can upload several files at once.
+
+==================================================
+6. DRAG AND DROP
+==================================================
+
+Support:
+
+- drag & drop
+- اختيار ملف
+
+Show upload progress per file.
+
+Example:
+
+CBCT-report.pdf
+Uploading 65%
+
+After completion:
+تم الرفع
+
+==================================================
+7. ATTACHMENT METADATA
+==================================================
+
+Each attachment should support:
+
+- title
+- category
+- optional note
+- file date optional
+- original filename
+- uploaded by
+- uploaded at
+
+Do NOT force unnecessary fields.
+
+Only file itself is required.
+
+==================================================
+8. CATEGORIES
+==================================================
+
+Provide simple optional categories:
+
+Arabic:
+
+أشعة
+تقرير طبي
+موافقة
+تحويل
+صورة سريرية
+تحاليل
+مستند خارجي
+أخرى
+
+English:
+
+Radiology
+Medical Report
+Consent
+Referral
+Clinical Image
+Lab Result
+External Document
+Other
+
+Do not overcomplicate category management for V1.
+
+==================================================
+9. PATIENT CREATION UX
+==================================================
+
+In New Patient:
+
+المرفقات (اختياري)
+
+Drop files here
+or
+اختيار ملفات
+
+Show uploaded/staged files before patient is saved.
+
+User can:
+
+- preview
+- rename title
+- remove
+
+before final Save Patient.
+
+==================================================
+10. SAFE PATIENT CREATION FLOW
+==================================================
+
+Because the Patient may not yet exist while files are selected:
+
+implement safe temporary upload/staging.
+
+Preferred flow:
+
+temporary upload
+→ patient successfully created
+→ attachments linked transactionally to patient
+
+If patient creation fails:
+do NOT leave permanent orphan attachment records.
+
+If user cancels:
+temporary uploads should be safely cleaned up according to current storage policy.
+
+Do not create broken attachments.
+
+==================================================
+11. PATIENT FILE DISPLAY
+==================================================
+
+Inside:
+
+بيانات المريض
+
+show:
+
+المرفقات
+
+Header:
+
+المرفقات                    + إضافة مرفق
+
+Display compact cards/list:
+
+[PDF icon]
+تقرير الأشعة
+Radiology
+16 Sep 2026
+رفعه: أحمد
+[عرض] [⋯]
+
+For image:
+
+show small thumbnail.
+
+Do not make the Patient File visually heavy.
+
+==================================================
+12. PREVIEW
+==================================================
+
+Images:
+
+open in an in-app preview/lightbox.
+
+PDF:
+
+open in a safe embedded/new preview using existing browser capability.
+
+Do NOT force download just to view.
+
+Other supported documents:
+
+show file information and download/open action.
+
+==================================================
+13. FILE ACTIONS
+==================================================
+
+Authorized users can:
+
+- View
+- Download
+- Edit title/category/note
+- Delete attachment
+
+Do NOT allow editing the actual binary file.
+
+Replacement should be:
+delete + upload new file
+unless existing storage architecture safely supports versioning.
+
+==================================================
+14. DELETE CONFIRMATION
+==================================================
+
+Use Ghars styled AlertDialog.
+
+Arabic:
+
+حذف المرفق؟
+
+سيتم حذف هذا الملف من ملف المريض.
+
+Buttons:
+إلغاء
+حذف
+
+No browser confirm().
+
+==================================================
+15. PERMISSIONS
+==================================================
+
+Follow existing Ghars permission architecture.
+
+At minimum:
+
+VIEW_PATIENT_ATTACHMENTS
+UPLOAD_PATIENT_ATTACHMENTS
+DELETE_PATIENT_ATTACHMENTS
+
+If equivalent permissions already exist:
+reuse them.
+
+Tenant Admin / authorized clinical users can upload.
+
+Normal unauthorized users:
+must not access attachments through direct API calls.
+
+==================================================
+16. TENANT ISOLATION
+==================================================
+
+CRITICAL.
+
+Every attachment belongs to:
+
+tenant_id
+patient_id
+
+Backend derives tenant from authenticated session.
+
+Never trust frontend tenantId.
+
+A user in Tenant A must NEVER:
+
+- list
+- preview
+- download
+- edit
+- delete
+
+attachments belonging to Tenant B.
+
+==================================================
+17. PRIVATE STORAGE
+==================================================
+
+CRITICAL:
+
+Do NOT store patient medical files in:
+
+- public static folders
+- frontend assets
+- local ephemeral filesystem
+- publicly accessible URLs
+
+Use the existing durable private object/file storage architecture.
+
+If Ghars currently has no suitable durable private storage:
+STOP and report this as a blocker instead of implementing unsafe local storage.
+
+Database should store metadata/storage key, NOT large file blobs unless existing architecture explicitly uses that pattern.
+
+==================================================
+18. SECURE FILE DELIVERY
+==================================================
+
+Attachments must not have permanent public URLs.
+
+Use authenticated access / short-lived signed URLs or equivalent secure mechanism.
+
+Patient files contain medical information.
+
+==================================================
+19. MIME / EXTENSION VALIDATION
+==================================================
+
+Validate server-side:
+
+- actual allowed MIME types
+- extension
+- size
+
+Do not trust frontend validation only.
+
+Reject unsupported content safely.
+
+==================================================
+20. SAFE FILE NAMES
+==================================================
+
+Never use raw user filename as filesystem/object-storage key.
+
+Generate safe unique storage keys.
+
+Preserve:
+
+original_filename
+
+only as metadata for display.
+
+==================================================
+21. AUDIT LOG
+==================================================
+
+Log:
+
+PATIENT_ATTACHMENT_UPLOADED
+PATIENT_ATTACHMENT_VIEWED if existing audit strategy tracks sensitive reads
+PATIENT_ATTACHMENT_DELETED
+PATIENT_ATTACHMENT_METADATA_UPDATED
+
+Include:
+
+actor
+tenant
+patient ID
+attachment ID
+timestamp
+
+Do NOT put medical file contents in audit logs.
+
+==================================================
+22. OPTIONAL CASE ASSOCIATION
+==================================================
+
+Patient remains the required parent.
+
+Optionally allow:
+
+مرتبط بحالة
+Linked Case
+
+Dropdown of this patient's cases.
+
+This is optional.
+
+If unset:
+attachment remains patient-level.
+
+Do NOT require a case.
+
+==================================================
+23. DATABASE MODEL
+==================================================
+
+Inspect existing schema first.
+
+Reuse existing attachment/media table if there is already a safe generic implementation.
+
+Otherwise add an additive table similar to:
+
+patient_attachments
+
+- id
+- tenant_id
+- patient_id
+- implant_case_id nullable
+- title nullable
+- category nullable
+- note nullable
+- original_filename
+- mime_type
+- file_size
+- storage_key
+- file_date nullable
+- uploaded_by
+- created_at
+- updated_at
+
+Use existing Ghars ID/date conventions.
+
+No destructive migration.
+
+==================================================
+24. NEW PATIENT SAVE
+==================================================
+
+When creating a patient with attachments:
+
+Patient creation success:
+→ files become attached to the newly created patient.
+
+Patient creation failure:
+→ no permanent attachment relationship.
+
+Never create an attachment pointing to a nonexistent patient.
+
+==================================================
+25. LOADING / PERFORMANCE
+==================================================
+
+Do NOT load attachment binaries when opening Patient File.
+
+Load metadata/thumbnails only.
+
+Actual file loads only when user previews/downloads it.
+
+Do not degrade Patient File load performance.
+
+==================================================
+26. IMAGE THUMBNAILS
+==================================================
+
+For images:
+
+show a lightweight thumbnail where safely possible.
+
+Do NOT download the original full-size image just to render the list.
+
+==================================================
+27. EMPTY STATE
+==================================================
+
+Arabic:
+
+لا توجد مرفقات حتى الآن
+
+يمكنك إضافة صور أو مستندات مرتبطة بملف المريض.
+
+Button:
+
+إضافة مرفق
+
+English equivalent.
+
+==================================================
+28. MOBILE / TABLET
+==================================================
+
+Upload UI must remain usable on:
+
+desktop
+tablet
+mobile
+
+Especially:
+camera/gallery file selection on mobile where browser supports it.
+
+==================================================
+29. ARABIC / ENGLISH
+==================================================
+
+Use existing i18next.
+
+Arabic:
+RTL.
+
+English:
+LTR.
+
+All numbers:
+Western digits 0-9.
+
+==================================================
+30. DO NOT BREAK EXISTING PATIENT FILE STRUCTURE
+==================================================
+
+Patient File remains EXACTLY two tabs:
+
+بيانات المريض
+إجراءات المريض
+
+Attachments appear inside:
+
+بيانات المريض
+
+Do NOT create:
+
+Tab 3 = Attachments
+
+==================================================
+31. SECURITY TESTS
+==================================================
+
+Test:
+
+A.
+Upload image during patient creation
+
+B.
+Upload PDF during patient creation
+
+C.
+Cancel creation
+→ no broken attachment
+
+D.
+Patient creation failure
+→ no broken attachment
+
+E.
+Upload from existing Patient File
+
+F.
+Preview image
+
+G.
+Preview PDF
+
+H.
+Download
+
+I.
+Rename metadata
+
+J.
+Delete
+
+K.
+Unauthorized user access
+
+L.
+Cross-tenant attachment ID access
+→ blocked
+
+M.
+Oversized file
+→ rejected
+
+N.
+Unsupported executable
+→ rejected
+
+O.
+Direct unauthenticated file URL
+→ inaccessible
+
+==================================================
+32. PERFORMANCE TEST
+==================================================
+
+Patient with:
+
+0 attachments
+10 attachments
+50 attachments
+
+Opening the Patient File must remain responsive.
+
+Do not download all files eagerly.
+
+==================================================
+33. FINAL REPORT
+==================================================
+
+Return:
+
+UPLOAD DURING PATIENT CREATION:
+PASS / FAIL
+
+UPLOAD FROM PATIENT FILE:
+PASS / FAIL
+
+MULTIPLE FILES:
+PASS / FAIL
+
+IMAGE SUPPORT:
+PASS / FAIL
+
+PDF SUPPORT:
+PASS / FAIL
+
+DRAG AND DROP:
+PASS / FAIL
+
+UPLOAD PROGRESS:
+PASS / FAIL
+
+IMAGE PREVIEW:
+PASS / FAIL
+
+PDF PREVIEW:
+PASS / FAIL
+
+ATTACHMENT METADATA:
+PASS / FAIL
+
+OPTIONAL CASE LINK:
+PASS / FAIL
+
+DELETE:
+PASS / FAIL
+
+TEMPORARY UPLOAD CLEANUP:
+PASS / FAIL
+
+PRIVATE DURABLE STORAGE:
+PASS / FAIL
+<describe exact storage used>
+
+PUBLIC FILE EXPOSURE:
+YES / NO
+
+SIGNED/AUTHENTICATED FILE ACCESS:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+SERVER MIME VALIDATION:
+PASS / FAIL
+
+SERVER SIZE VALIDATION:
+PASS / FAIL
+
+AUDIT LOG:
+PASS / FAIL
+
+PATIENT FILE STILL TWO TABS:
+PASS / FAIL
+
+PERFORMANCE:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+MIGRATION DESTRUCTIVE:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.

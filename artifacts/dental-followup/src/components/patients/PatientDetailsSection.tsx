@@ -107,7 +107,7 @@ export function PatientDetailsSection({
                  {t("patient.archive")}
               </Button>
               {onPermanentDelete && (
-                <Button variant="destructive" size="sm" onClick={onPermanentDelete}>
+                <Button className="h-auto max-w-full whitespace-normal" variant="destructive" size="sm" onClick={onPermanentDelete}>
                   {t("operations:dashboard.deletePatientPermanently", { defaultValue: "Delete Patient Permanently" })}
                 </Button>
               )}

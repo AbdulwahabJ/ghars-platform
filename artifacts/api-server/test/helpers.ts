@@ -15,7 +15,7 @@ export function makePool(): pg.Pool {
 /** Wipe all mutable tables in the test database (FK-safe). */
 export async function truncateAll(pool: pg.Pool): Promise<void> {
   await pool.query(
-    'TRUNCATE TABLE "system_errors", "platform_settings", "audit_logs", "sessions", "user_preferences", "patients", "users" CASCADE',
+    'TRUNCATE TABLE "system_errors", "platform_settings", "audit_logs", "sessions", "user_preferences", "patient_attachments", "patients", "users" CASCADE',
   );
   // Tenant defaults intentionally reference tenants without ON DELETE CASCADE:
   // remove disposable test-tenant rows before removing those tenants.

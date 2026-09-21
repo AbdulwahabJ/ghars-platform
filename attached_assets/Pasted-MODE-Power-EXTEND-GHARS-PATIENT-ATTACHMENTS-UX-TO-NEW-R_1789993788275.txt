@@ -1,0 +1,652 @@
+MODE: Power
+
+EXTEND GHARS PATIENT ATTACHMENTS UX TO NEW RECORD FORM + EXPANDED MAIN TABLE RECORD.
+
+IMPORTANT:
+Patient attachments already exist / are being implemented.
+
+Do NOT create a separate attachment system.
+Do NOT create a third Patient File tab.
+Reuse the same patient attachment backend, permissions, storage, metadata, and security architecture.
+
+Goal:
+Attachments must be visible and usable in ALL practical patient workflows:
+
+1. During Add New Record / New Patient creation.
+2. Inside Patient File.
+3. When expanding/opening a patient record directly from the main operational table.
+
+Do NOT publish automatically.
+
+==================================================
+1. NEW RECORD FORM — ADD ATTACHMENTS SECTION
+==================================================
+
+In the current "إضافة سجل جديد" form shown in the attached screenshot:
+
+Add a clear section near the bottom of the form, after the clinical/case information and before final Save.
+
+Section title:
+
+Arabic:
+المرفقات
+
+Subtitle:
+اختياري
+
+English:
+Attachments
+Optional
+
+Design it like the existing collapsible Ghars sections.
+
+Example:
+
+4. المرفقات (اختياري)
+
+Inside:
+
+[ + إضافة مرفق ]
+
+or drag/drop area:
+
+اسحب الملفات هنا أو اختر من الجهاز
+
+==================================================
+2. FILES DURING RECORD CREATION
+==================================================
+
+Allow user to attach:
+
+- Images
+- PDF
+- supported documents according to existing attachment rules
+
+Before saving the patient/record show selected files clearly:
+
+Example:
+
+📄 CBCT.pdf
+أشعة
+2.4 MB
+[عرض] [حذف]
+
+🖼️ before-treatment.jpg
+صورة سريرية
+1.2 MB
+[عرض] [حذف]
+
+The user must be able to:
+
+- preview
+- change title
+- choose category
+- remove file
+
+before saving.
+
+==================================================
+3. SAVE BEHAVIOR
+==================================================
+
+When the user saves the new record:
+
+Create:
+- patient
+- case if applicable
+- attachments
+
+using the existing safe attachment workflow.
+
+If patient creation fails:
+do not leave orphan attachments.
+
+If attachment upload fails:
+show clear status and do not silently lose the file.
+
+==================================================
+4. MAIN TABLE EXPANDED RECORD
+==================================================
+
+The attached screenshot shows the record expanded directly inside the main table.
+
+This expanded view currently contains:
+
+- Patient Information
+- Appointments
+- Finance
+- Implant Cases
+
+Add a NEW visual section in this expanded view:
+
+المرفقات
+
+Do NOT create another application tab.
+
+This is only an additional section/card inside the expanded patient record.
+
+==================================================
+5. RECOMMENDED PLACEMENT
+==================================================
+
+In the expanded record layout:
+
+Top row currently contains cards such as:
+
+Patient Information
+Appointments
+Finance
+
+Add:
+
+المرفقات
+
+Either:
+- as a fourth compact card in the top grid if space remains clean,
+
+OR preferably:
+- as a full-width section below the top cards and before "حالات الزراعة"
+
+Choose whichever fits the current responsive layout better.
+
+Priority:
+clean, readable, not cramped.
+
+==================================================
+6. ATTACHMENTS SECTION HEADER
+==================================================
+
+Header:
+
+المرفقات
+
+Right/left action according to RTL:
+
++ إضافة مرفق
+
+Also show attachment count:
+
+المرفقات (3)
+
+==================================================
+7. DISPLAY STYLE
+==================================================
+
+Use a clean compact grid/list.
+
+For IMAGE:
+
+[thumbnail]
+
+صورة الأشعة قبل العلاج
+أشعة
+15 Sep 2026
+
+For PDF:
+
+[PDF icon]
+
+تقرير CBCT
+تقرير طبي
+14 Sep 2026
+
+Do not show huge file previews inside the main record.
+
+==================================================
+8. IMAGE THUMBNAILS
+==================================================
+
+For image attachments:
+
+Show small clean thumbnails.
+
+Example:
+
+┌──────────────┐
+│  thumbnail   │
+├──────────────┤
+│ صورة سريرية │
+│ 15 Sep 2026 │
+└──────────────┘
+
+Clicking the thumbnail opens full preview.
+
+==================================================
+9. PDF / DOCUMENT CARDS
+==================================================
+
+For PDFs:
+
+Show a compact document card.
+
+Example:
+
+[PDF icon]
+تقرير الأشعة
+PDF • 2.1 MB
+
+[عرض]
+
+==================================================
+10. CLICK TO VIEW
+==================================================
+
+Clicking an attachment should open a professional viewer.
+
+For images:
+- lightbox/modal
+- large preview
+- next/previous if multiple images
+- filename/title
+- category
+- date
+- close button
+
+For PDF:
+- in-app PDF preview where supported
+or
+- safe authenticated preview
+
+Do not force download just to see the document.
+
+==================================================
+11. ATTACHMENT VIEWER
+==================================================
+
+Create/reuse ONE shared Attachment Viewer component.
+
+Use the same viewer from:
+
+- Patient File
+- Expanded main-table record
+- New patient creation preview where applicable
+
+Do not duplicate preview implementations.
+
+==================================================
+12. VIEWER ACTIONS
+==================================================
+
+Inside viewer allow authorized users:
+
+عرض
+تحميل
+تعديل البيانات
+حذف
+
+Do not clutter normal viewer.
+
+Use overflow menu for secondary actions if appropriate.
+
+==================================================
+13. QUICK ADD FROM EXPANDED RECORD
+==================================================
+
+In the expanded table record:
+
++ إضافة مرفق
+
+must allow immediate upload without navigating to Patient File.
+
+After successful upload:
+
+attachment appears instantly in the section.
+
+Use React Query invalidation / cache update.
+
+No full page reload.
+
+==================================================
+14. ATTACHMENT METADATA
+==================================================
+
+Keep optional metadata:
+
+العنوان
+التصنيف
+التاريخ
+ملاحظة
+
+Categories reuse existing attachment categories.
+
+Do not create duplicate category architecture.
+
+==================================================
+15. EMPTY STATE
+==================================================
+
+If patient has no attachments:
+
+Show:
+
+لا توجد مرفقات حتى الآن
+
+يمكنك إضافة صور أو تقارير أو ملفات مرتبطة بالمريض.
+
+Button:
+
++ إضافة مرفق
+
+Keep it compact.
+
+==================================================
+16. MANY ATTACHMENTS
+==================================================
+
+If patient has many attachments:
+
+Initially show first 4 or 6.
+
+Then:
+
+عرض جميع المرفقات (12)
+
+Click opens a dedicated modal/panel showing all attachments.
+
+Do NOT make the expanded patient row extremely tall.
+
+==================================================
+17. FILTER / CATEGORIES
+==================================================
+
+Inside "عرض جميع المرفقات" allow simple filtering:
+
+الكل
+أشعة
+صور سريرية
+تقارير
+موافقات
+تحاليل
+أخرى
+
+Only if categories already exist.
+
+Keep main patient view simple.
+
+==================================================
+18. EXPANDED RECORD PERFORMANCE
+==================================================
+
+Critical:
+
+Opening a patient row in the main table must NOT download every attachment.
+
+Load only:
+
+- metadata
+- lightweight thumbnails
+
+Actual file should load only when clicked.
+
+No full-size image preload.
+No PDF preload.
+
+==================================================
+19. SECURITY
+==================================================
+
+Reuse existing attachment security:
+
+- authenticated access
+- private storage
+- tenant isolation
+- no public file URLs
+- signed/authenticated access
+- server-side permission checks
+
+Opening an attachment from the main table must NOT bypass permissions.
+
+==================================================
+20. PERMISSIONS
+==================================================
+
+Respect existing permissions:
+
+VIEW_PATIENT_ATTACHMENTS
+UPLOAD_PATIENT_ATTACHMENTS
+DELETE_PATIENT_ATTACHMENTS
+
+or existing equivalent permissions.
+
+If user can view but not upload:
+show files
+hide Add Attachment.
+
+If user cannot view:
+do not load attachment metadata.
+
+==================================================
+21. LINK TO PATIENT, OPTIONAL CASE
+==================================================
+
+Attachments uploaded from the expanded patient record are patient-level by default.
+
+Optional:
+allow linking to one of the patient's implant cases.
+
+Do NOT require case selection.
+
+==================================================
+22. DO NOT DUPLICATE DATA
+==================================================
+
+The attachments shown in:
+
+Patient File
+Main table expanded patient record
+
+must be the SAME records.
+
+Uploading from one location must immediately appear in the other.
+
+No duplicate storage.
+No duplicate attachment tables.
+
+==================================================
+23. NEW RECORD FORM UI CONSISTENCY
+==================================================
+
+Match the exact visual style shown in the attached "إضافة سجل جديد" form:
+
+- same section headers
+- same borders
+- same spacing
+- same navy/teal Ghars styling
+- same RTL alignment
+
+Do not create a visually separate upload product.
+
+==================================================
+24. EXPANDED RECORD UI CONSISTENCY
+==================================================
+
+Match the exact expanded record style shown in the attached screenshot.
+
+The attachments section should visually belong to the existing layout.
+
+No oversized icons.
+No AI-style gradients.
+No excessive shadows.
+
+==================================================
+25. MOBILE / TABLET
+==================================================
+
+On smaller screens:
+
+attachment cards wrap cleanly.
+
+Viewer must remain usable.
+
+Upload from phone gallery/camera should work where browser allows.
+
+==================================================
+26. ARABIC / ENGLISH
+==================================================
+
+Use existing i18next.
+
+Arabic:
+RTL
+
+English:
+LTR
+
+Western digits everywhere.
+
+==================================================
+27. REGRESSION TEST
+==================================================
+
+Test:
+
+A.
+Create new patient + one image attachment
+
+B.
+Create new patient + PDF
+
+C.
+Create new patient + multiple attachments
+
+D.
+Open same patient from main table expanded row
+→ attachments visible
+
+E.
+Click image
+→ preview opens
+
+F.
+Click PDF
+→ preview opens
+
+G.
+Upload new attachment from expanded row
+→ immediately appears
+
+H.
+Open Patient File
+→ same attachment appears
+
+I.
+Delete attachment from Patient File
+→ disappears from expanded row
+
+J.
+Unauthorized user
+→ cannot load files
+
+K.
+Cross-tenant attachment
+→ blocked
+
+L.
+Patient with 20 attachments
+→ expanded row remains fast
+
+==================================================
+28. FINAL ACCEPTANCE UX
+==================================================
+
+The user experience should feel like:
+
+Create Patient
+→ optionally attach files
+→ Save
+
+Later:
+
+Main Table
+→ expand patient
+→ immediately see attachments
+→ click to view
+→ add another attachment without leaving the page
+
+And:
+
+Patient File
+→ same attachments available
+
+One shared attachment system everywhere.
+
+==================================================
+29. FINAL REPORT
+==================================================
+
+Return:
+
+ATTACHMENTS IN NEW RECORD FORM:
+PASS / FAIL
+
+ATTACHMENTS IN EXPANDED MAIN TABLE RECORD:
+PASS / FAIL
+
+PATIENT FILE ATTACHMENTS:
+PASS / FAIL
+
+SAME ATTACHMENTS SHARED ACROSS ALL LOCATIONS:
+PASS / FAIL
+
+IMAGE THUMBNAILS:
+PASS / FAIL
+
+IMAGE VIEWER:
+PASS / FAIL
+
+PDF VIEWER:
+PASS / FAIL
+
+ADD FROM EXPANDED RECORD:
+PASS / FAIL
+
+MULTIPLE FILES:
+PASS / FAIL
+
+MANY ATTACHMENTS UX:
+PASS / FAIL
+
+NO FULL FILE PRELOAD:
+PASS / FAIL
+
+PERMISSIONS:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+PRIVATE FILE ACCESS:
+PASS / FAIL
+
+NEW RECORD SAVE SAFETY:
+PASS / FAIL
+
+MOBILE:
+PASS / FAIL
+
+ARABIC:
+PASS / FAIL
+
+ENGLISH:
+PASS / FAIL
+
+PERFORMANCE:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.

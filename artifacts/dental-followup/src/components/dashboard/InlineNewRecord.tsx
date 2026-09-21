@@ -49,7 +49,12 @@ import {
   OperationalDateTimeFields,
 } from "./OperationalDatePicker";
 import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProstheticDateField";
+import { FileDropzone, StagedFilesList } from "@/components/patients/attachments/StagedFilesList";
+import { patientAttachmentMimeForFile, StagedFile, uploadFileWithProgress } from "@/components/patients/attachments/upload-utils";
+import { PatientAttachmentCategory } from "@workspace/shared";
+import { api } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { useEnumTranslation } from "@/i18n/use-enum-translation";
 
 /* ------------------------------------------------------------------ */
@@ -223,6 +228,7 @@ export function InlineNewRecord({
   onSuccess: () => void;
 }) {
   const { t, i18n } = useTranslation("quickEntry");
+  const { t: clinicalT } = useClinicalTranslation();
   const { enumLabel } = useEnumTranslation();
   const optionLabel = (value: string) => t(`options.${value}`, { defaultValue: value });
   const { user } = useAuth();
@@ -240,6 +246,7 @@ export function InlineNewRecord({
   const [caseOpen, setCaseOpen] = useState(true);
   const [financeOpen, setFinanceOpen] = useState(false);
   const [followupOpen, setFollowupOpen] = useState(false);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
 
   const defaultDoctor =
     appSettings?.defaultTreatingDoctor ?? DEFAULT_TREATING_DOCTOR;
@@ -323,6 +330,112 @@ export function InlineNewRecord({
   const [validationErrors, setValidationErrors] = useState<FormErrorDetail[]>([]);
   const [duplicateInfo, setDuplicateInfo] = useState<{ patientId?: string; code: string } | null>(null);
   const errorBannerRef = useRef<HTMLDivElement>(null);
+
+  const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const stagedFilesRef = useRef<StagedFile[]>([]);
+  useEffect(() => { stagedFilesRef.current = stagedFiles; }, [stagedFiles]);
+  useEffect(() => {
+    return () => {
+      stagedFilesRef.current.forEach(f => {
+        if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+      });
+    };
+  }, []);
+  const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
+  const [createdPatientId, setCreatedPatientId] = useState<string | null>(null);
+  const [createdCaseId, setCreatedCaseId] = useState<string | null>(null);
+
+  const handleAddFiles = (files: File[]) => {
+    const newStaged = files.map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      contentType: patientAttachmentMimeForFile(file)!,
+      title: file.name,
+      category: "OTHER" as PatientAttachmentCategory,
+      note: "",
+      fileDate: "",
+      implantCaseId: null, // We'll link it after creation if case is created
+      status: "idle" as const,
+      progress: 0,
+      previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+    }));
+    setStagedFiles((prev) => [...prev, ...newStaged]);
+  };
+
+  const removeStagedFile = (id: string) => {
+    setStagedFiles((prev) => {
+      const file = prev.find(f => f.id === id);
+      if (file?.previewUrl) URL.revokeObjectURL(file.previewUrl);
+      return prev.filter(f => f.id !== id);
+    });
+  };
+
+  const uploadAttachments = async (patientId: string, caseId: string | null) => {
+    setIsUploadingAttachments(true);
+    const uploadResults = await Promise.all(
+      stagedFiles.map(async (stagedFile) => {
+        if (stagedFile.status === "success") return true;
+
+        setStagedFiles((prev) => prev.map((f) => (f.id === stagedFile.id ? { ...f, status: "uploading", progress: 0, errorMessage: undefined } : f)));
+
+        let objectPath = stagedFile.objectPath;
+        let uploadToken = stagedFile.uploadToken;
+        let uploadURL = "";
+
+        // Link to case if it was created and user hasn't explicitly set it
+        const linkedCaseId = stagedFile.implantCaseId || caseId;
+
+        try {
+          const reqRes = await api.requestAttachmentUploadUrl(patientId, {
+            name: stagedFile.file.name,
+            size: stagedFile.file.size,
+            contentType: stagedFile.contentType,
+            title: stagedFile.title,
+            category: stagedFile.category,
+            note: stagedFile.note,
+            fileDate: stagedFile.fileDate ? stagedFile.fileDate : undefined,
+            implantCaseId: linkedCaseId,
+          });
+
+          objectPath = reqRes.objectPath;
+          uploadToken = reqRes.uploadToken;
+          uploadURL = reqRes.uploadURL;
+
+          await uploadFileWithProgress(uploadURL, stagedFile.file, stagedFile.contentType, (prog) => {
+            setStagedFiles((prev) => prev.map((f) => (f.id === stagedFile.id ? { ...f, progress: prog } : f)));
+          });
+
+          await api.finalizeAttachmentUpload(patientId, {
+            objectPath,
+            uploadToken,
+            name: stagedFile.file.name,
+            size: stagedFile.file.size,
+            contentType: stagedFile.contentType,
+            title: stagedFile.title,
+            category: stagedFile.category,
+            note: stagedFile.note,
+            fileDate: stagedFile.fileDate ? stagedFile.fileDate : undefined,
+            implantCaseId: linkedCaseId,
+          });
+
+          if (stagedFile.previewUrl) URL.revokeObjectURL(stagedFile.previewUrl);
+          setStagedFiles((prev) => prev.map((f) => (f.id === stagedFile.id ? { ...f, status: "success", progress: 100, previewUrl: undefined } : f)));
+          return true;
+        } catch (err: any) {
+          if (objectPath && uploadToken) {
+            api.cancelAttachmentUpload(patientId, { objectPath, uploadToken }).catch(() => {});
+          }
+          setStagedFiles((prev) =>
+            prev.map((f) => (f.id === stagedFile.id ? { ...f, status: "error", errorMessage: err.message || clinicalT("attachments.uploadFailed"), uploadToken: undefined, objectPath: undefined } : f))
+          );
+          return false;
+        }
+      })
+    );
+
+    setIsUploadingAttachments(false);
+    return uploadResults.every(Boolean);
+  };
 
   // Auto-scroll to error banner whenever a server error appears
   useEffect(() => {
@@ -558,9 +671,25 @@ export function InlineNewRecord({
     };
 
     quickEntry.mutate(input, {
-      onSuccess: () => {
-        toast({ title: t("toast.saved") });
-        onSuccess();
+      onSuccess: async (data) => {
+        if (stagedFiles.length > 0) {
+          const patientId = data.patient.id;
+          const caseId = data.case?.id || null;
+          setCreatedPatientId(patientId);
+          setCreatedCaseId(caseId);
+
+          const success = await uploadAttachments(patientId, caseId);
+          if (success) {
+            toast({ title: t("toast.saved") });
+            onSuccess();
+          } else {
+            toast({ variant: "destructive", title: clinicalT("attachments.partialSuccess") });
+            // Stay open to allow retry
+          }
+        } else {
+          toast({ title: t("toast.saved") });
+          onSuccess();
+        }
       },
       onError: (err) => {
         const apiErr = err instanceof ApiError ? err : undefined;
@@ -648,6 +777,40 @@ export function InlineNewRecord({
         </div>
       )}
 
+      {createdPatientId ? (
+        <div className="space-y-6">
+          <div className="p-4 bg-muted/20 border border-border rounded-lg text-center space-y-2">
+            <h3 className="font-semibold text-foreground">{clinicalT("patient.registered")}</h3>
+            <p className="text-sm text-muted-foreground">{clinicalT("attachments.uploading")}</p>
+          </div>
+
+          <StagedFilesList
+            files={stagedFiles}
+            disabled={isUploadingAttachments}
+            onRemove={removeStagedFile}
+            onUpdateTitle={(id, title) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, title } : f))}
+            onUpdateCategory={(id, category) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, category } : f))}
+            onUpdateNote={(id, note) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, note } : f))}
+            onUpdateFileDate={(id, fileDate) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, fileDate } : f))}
+            onUpdateImplantCaseId={(id, implantCaseId) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, implantCaseId } : f))}
+          />
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Button variant="outline" onClick={onSuccess} disabled={isUploadingAttachments}>
+              {clinicalT("attachments.continue")}
+            </Button>
+            {stagedFiles.some(f => f.status === "error") && (
+              <Button onClick={async () => {
+                const success = await uploadAttachments(createdPatientId, createdCaseId);
+                if (success) onSuccess();
+              }} disabled={isUploadingAttachments}>
+                {isUploadingAttachments ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
+                {clinicalT("attachments.retry")}
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
       <form id="qe-form" onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-4">
 
         <div className="space-y-3">
@@ -1271,12 +1434,40 @@ export function InlineNewRecord({
           </div>
         )}
 
+        {/* Attachments Section */}
+        <div className="space-y-3">
+          <SectionHeader
+            title={clinicalT("attachments.title")}
+            open={attachmentsOpen}
+            onToggle={() => setAttachmentsOpen((open) => !open)}
+            optional
+            optionalLabel={t("optional")}
+          />
+          {attachmentsOpen ? (
+            <div className="px-1 space-y-3">
+              <FileDropzone onFilesAdded={handleAddFiles} disabled={quickEntry.isPending || isUploadingAttachments} />
+              {stagedFiles.length > 0 && (
+                <StagedFilesList
+                  files={stagedFiles}
+                  disabled={quickEntry.isPending || isUploadingAttachments}
+                  onRemove={removeStagedFile}
+                  onUpdateTitle={(id, title) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, title } : f))}
+                  onUpdateCategory={(id, category) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, category } : f))}
+                  onUpdateNote={(id, note) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, note } : f))}
+                  onUpdateFileDate={(id, fileDate) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, fileDate } : f))}
+                  onUpdateImplantCaseId={(id, implantCaseId) => setStagedFiles(prev => prev.map(f => f.id === id ? { ...f, implantCaseId } : f))}
+                />
+              )}
+            </div>
+          ) : null}
+        </div>
+
         {/* Footer actions */}
         <div className="flex items-center gap-3 pt-2 border-t border-border/60">
           <Button
             type="submit"
             className="btn-primary"
-            disabled={quickEntry.isPending}
+            disabled={quickEntry.isPending || isUploadingAttachments}
             data-testid="qe-submit"
           >
             {quickEntry.isPending ? (
@@ -1293,6 +1484,7 @@ export function InlineNewRecord({
           </Button>
         </div>
       </form>
+      )}
     </div>
   );
 }

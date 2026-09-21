@@ -139,12 +139,35 @@ import type {
   ReplaceLandingMediaInput,
   LandingMediaStatusInput,
   ReorderLandingMediaInput,
+  PatientAttachmentCategory,
+  PatientAttachmentCancel,
+  PatientAttachmentFinalize,
+  PatientAttachmentUploadRequest,
+  PatientAttachmentUpdate,
 } from "@workspace/shared";
 import i18n from "@/i18n";
 import { localizeApiErrorMessage } from "@/lib/localize-error";
 import { normalizeNumericValues } from "@/lib/digits";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
+
+export interface PatientAttachment {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  implantCaseId: string | null;
+  title: string | null;
+  category: PatientAttachmentCategory | null;
+  note: string | null;
+  fileDate: string | null;
+  originalFilename: string;
+  mimeType: string;
+  fileSize: number;
+  uploadedBy: string;
+  uploadedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -494,6 +517,20 @@ export const api = {
       method: "POST",
       json: input,
     }),
+
+  // Patient Attachments
+  getPatientAttachments: (patientId: string) =>
+    request<{ attachments: PatientAttachment[] }>(`/patients/${patientId}/attachments`),
+  requestAttachmentUploadUrl: (patientId: string, input: PatientAttachmentUploadRequest) =>
+    request<{ uploadURL: string, objectPath: string, uploadToken: string, metadata: PatientAttachmentUploadRequest }>(`/patients/${patientId}/attachments/upload-url`, { method: "POST", json: input }),
+  finalizeAttachmentUpload: (patientId: string, input: PatientAttachmentFinalize) =>
+    request<{ attachment: PatientAttachment }>(`/patients/${patientId}/attachments`, { method: "POST", json: input }),
+  cancelAttachmentUpload: (patientId: string, input: PatientAttachmentCancel) =>
+    request<void>(`/patients/${patientId}/attachments/cancel`, { method: "POST", json: input }),
+  updatePatientAttachment: (patientId: string, attachmentId: string, input: PatientAttachmentUpdate) =>
+    request<{ attachment: PatientAttachment }>(`/patients/${patientId}/attachments/${attachmentId}`, { method: "PATCH", json: input }),
+  deletePatientAttachment: (patientId: string, attachmentId: string) =>
+    request<void>(`/patients/${patientId}/attachments/${attachmentId}`, { method: "DELETE" }),
 
   // Phase 2 — implant cases & implants
   getImplantOptions: () =>

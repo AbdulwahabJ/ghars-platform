@@ -24,3 +24,4 @@ export * from "./platform-admin";
 export * from "./landing-media";
 export * from "./import-batches";
 export * from "./case-historical-finance";
+export * from "./patient-attachments";

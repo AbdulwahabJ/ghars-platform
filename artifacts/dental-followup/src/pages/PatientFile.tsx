@@ -34,6 +34,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePatient, useArchivePatient, useRestorePatient, usePermanentDeletePatient } from "@/hooks/use-patients";
 import { useToast } from "@/hooks/use-toast";
 import { PatientDetailsSection } from "@/components/patients/PatientDetailsSection";
+import { AttachmentsSection } from "@/components/patients/attachments/AttachmentsSection";
 import { ImplantsTab } from "@/components/implants/ImplantsTab";
 import { PaymentsTab } from "@/components/finance/PaymentsTab";
 import { FollowupsTab } from "@/components/followups/FollowupsTab";
@@ -62,7 +63,13 @@ export default function PatientFile() {
   const permanentDeletePatient = usePermanentDeletePatient();
   const [showArchived, setShowArchived] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-  const [deleteState, setDeleteState] = useState<{ open: boolean; impact?: any; importBatchContext?: string[]; confirmed: boolean }>({ open: false, confirmed: false });
+  const [deleteState, setDeleteState] = useState<{
+    open: boolean;
+    impact?: any;
+    importBatchContext?: string[];
+    previewToken?: string;
+    confirmed: boolean;
+  }>({ open: false, confirmed: false });
   const deepLink = parsePatientDeepLink(search);
   const [activeTab, setActiveTab] = useState<PatientFileTab>(deepLink.tab);
 
@@ -106,7 +113,12 @@ export default function PatientFile() {
       { id, input: { preview: true } },
       {
         onSuccess: (res: any) => {
-          setDeleteState((prev) => ({ ...prev, impact: res.impact, importBatchContext: res.importBatchContext }));
+          setDeleteState((prev) => ({
+            ...prev,
+            impact: res.impact,
+            importBatchContext: res.importBatchContext,
+            previewToken: res.previewToken,
+          }));
         },
         onError: (error: Error) => {
           toast({ variant: "destructive", title: commonT("errors.actionFailed", { defaultValue: "Error" }), description: localizeErrorMessage(error) });
@@ -119,7 +131,14 @@ export default function PatientFile() {
   const handlePermanentDeleteConfirm = () => {
     if (!id) return;
     permanentDeletePatient.mutate(
-      { id, input: { preview: false, confirmed: true } },
+      {
+        id,
+        input: {
+          preview: false,
+          confirmed: true,
+          previewToken: deleteState.previewToken,
+        },
+      },
       {
         onSuccess: () => {
           toast({ title: t("operations:dashboard.deleteSuccess", { defaultValue: "Deleted successfully" }) });
@@ -252,11 +271,16 @@ export default function PatientFile() {
 
         <div className="pt-5">
           {activeTab === "summary" ? (
-            <SummaryTab
-              patient={patient}
-              showArchived={showArchived}
-              onManage={() => selectTab("procedures")}
-            />
+            <div className="space-y-5">
+              <SummaryTab
+                patient={patient}
+                showArchived={showArchived}
+                onManage={() => selectTab("procedures")}
+              />
+              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6 print:hidden">
+                <AttachmentsSection patientId={patient.id} canDelete={canArchive} disabled={isArchived} />
+              </section>
+            </div>
           ) : (
             <div className="space-y-5 print:hidden">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/25 p-4 print:hidden">
@@ -377,16 +401,17 @@ export default function PatientFile() {
             )}
           </div>
 
-          <AlertDialogFooter className="mt-5 flex-row gap-3 sm:justify-start">
+          <AlertDialogFooter className="mt-5 gap-3 sm:flex-row sm:justify-start">
             <Button
               onClick={handlePermanentDeleteConfirm}
               disabled={!deleteState.impact || !deleteState.confirmed || permanentDeletePatient.isPending}
               variant="destructive"
+              className="h-auto w-full whitespace-normal sm:w-auto"
             >
               {permanentDeletePatient.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("operations:dashboard.deletePatientPermanently", { defaultValue: "Delete Patient Permanently" })}
             </Button>
             <AlertDialogCancel asChild>
-              <Button variant="outline" onClick={() => setDeleteState(prev => ({ ...prev, open: false }))}>
+              <Button className="w-full sm:w-auto" variant="outline" onClick={() => setDeleteState(prev => ({ ...prev, open: false }))}>
                 {t("patient.cancel")}
               </Button>
             </AlertDialogCancel>

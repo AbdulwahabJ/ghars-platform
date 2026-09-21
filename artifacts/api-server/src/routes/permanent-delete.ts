@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { sql } from "drizzle-orm";
-import { db } from "@workspace/db";
+import { db, patientAttachmentsTable } from "@workspace/db";
 import {
   permanentCaseDeleteRequestSchema,
   permanentPatientDeleteRequestSchema,
@@ -10,8 +10,11 @@ import { parseOrRespond } from "../lib/validation";
 import { requireAuth, requireOperationalTenant, requireRole } from "../middlewares/auth";
 import { z } from "zod";
 import { createHash } from "node:crypto";
+import { ObjectStorageService } from "../lib/objectStorage";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
+const attachmentStorage = new ObjectStorageService();
 const SAFE = { error: "تعذر تنفيذ الحذف الدائم.", code: "PERMANENT_DELETE_FAILED" };
 const STALE = { error: "انتهت صلاحية المعاينة. أعد المعاينة قبل التأكيد.", code: "PERMANENT_DELETE_PREVIEW_STALE" };
 
@@ -20,7 +23,7 @@ const zeroImpact = (cases = 0, patients = 0): Impact => ({
   patients, cases, implants: 0, boneGraftProcedures: 0, prostheticEvents: 0,
   followups: 0, communications: 0, payments: 0, charges: 0, discounts: 0,
   installmentPlans: 0, installments: 0, historicalFinance: 0, importBatches: 0,
-  importMappings: 0, importedCases: 0,
+  importMappings: 0, importedCases: 0, attachments: 0,
 });
 function num(v: unknown): number { return Number(v ?? 0); }
 
@@ -167,6 +170,7 @@ router.post("/patients/:id/permanent-delete", requireRole("ADMIN"), async (req, 
     if (!patient.rows.length) { res.status(422).json(SAFE); return; }
     const cases = await db.execute(sql`SELECT id FROM implant_cases WHERE tenant_id=${tenantId} AND patient_id=${patientId}`);
     const ids = cases.rows.map((r) => String((r as { id: string }).id));
+    const attachmentRows = await db.select({ storageKey: patientAttachmentsTable.storageKey }).from(patientAttachmentsTable).where(sql`${patientAttachmentsTable.tenantId}=${tenantId} AND ${patientAttachmentsTable.patientId}=${patientId}`);
     const resolved = await resolvedCaseIds(db, ids.length ? ids : [patientId], tenantId, patientId);
     const impact = await caseImpact(ids.length ? ids : [patientId], tenantId, [patientId]);
     const importBatchContext = await importContext(resolved, tenantId);
@@ -175,9 +179,11 @@ router.post("/patients/:id/permanent-delete", requireRole("ADMIN"), async (req, 
       (SELECT count(*) FROM communications WHERE tenant_id=${tenantId} AND patient_id=${patientId})::int communications,
       (SELECT count(*) FROM followups WHERE tenant_id=${tenantId} AND patient_id=${patientId})::int followups`);
     Object.assign(impact, Object.fromEntries(Object.entries(direct.rows[0] as Record<string, unknown>).map(([k,v])=>[k,num(v)])));
+    impact.attachments = attachmentRows.length;
     const token = previewToken(tenantId, patientId, impact, importBatchContext, resolved);
     if (input.preview) { res.json({ preview: true, previewToken: token, caseIds: resolved, impact, importBatchContext }); return; }
     if (input.confirmed !== true) { res.status(400).json(SAFE); return; }
+    let attachmentStorageKeys: string[] = [];
     await db.transaction(async (tx) => {
       const patientLock = await tx.execute(sql`SELECT id FROM patients WHERE tenant_id=${tenantId} AND id=${patientId} FOR UPDATE`);
       if (patientLock.rows.length !== 1) throw Object.assign(new Error("stale"), { stale: true });
@@ -190,7 +196,10 @@ router.post("/patients/:id/permanent-delete", requireRole("ADMIN"), async (req, 
         (SELECT count(*) FROM followups WHERE tenant_id=${tenantId} AND patient_id=${patientId})::int followups`);
       Object.assign(currentImpact, Object.fromEntries(Object.entries(directCurrent.rows[0] as Record<string, unknown>).map(([k,v])=>[k,num(v)])));
       currentImpact.patients = 1;
+      const currentAttachments = await tx.select({ storageKey: patientAttachmentsTable.storageKey }).from(patientAttachmentsTable).where(sql`${patientAttachmentsTable.tenantId}=${tenantId} AND ${patientAttachmentsTable.patientId}=${patientId}`);
+      currentImpact.attachments = currentAttachments.length;
       if (previewToken(tenantId, patientId, currentImpact, currentBatches, currentIds) !== input.previewToken) throw Object.assign(new Error("stale"), { stale: true });
+      attachmentStorageKeys = currentAttachments.map((attachment: { storageKey: string }) => attachment.storageKey);
       await writeAuditRequired({ tenantId, userId: req.currentUser!.id, action: "PERMANENT_PATIENT_DELETE", entityType: "patient", entityId: patientId, summary: "Permanent patient deletion", details: { patientId, counts: currentImpact, importBatchIds: currentBatches.map((b: { id: unknown }) => b.id) } }, tx);
       await tx.execute(sql`DELETE FROM communications WHERE tenant_id=${tenantId} AND patient_id=${patientId}`);
       await tx.execute(sql`DELETE FROM followups WHERE tenant_id=${tenantId} AND patient_id=${patientId}`);
@@ -199,7 +208,10 @@ router.post("/patients/:id/permanent-delete", requireRole("ADMIN"), async (req, 
       const deleted = await tx.execute(sql`SELECT count(*)::int AS count FROM patients WHERE tenant_id=${tenantId} AND id=${patientId}`);
       if (Number((deleted.rows[0] as { count: unknown }).count) !== 0) throw new Error("delete incomplete");
     });
+     for (const storageKey of attachmentStorageKeys) {
+       await attachmentStorage.deleteObject(storageKey).catch((error) => logger.error({ error, storageKey, patientId }, "permanent patient attachment cleanup failed"));
+     }
     res.json({ preview: false, deleted: impact, importBatchContext });
-  } catch (err) { if ((err as { stale?: boolean }).stale) { res.status(409).json(STALE); return; } res.status(500).json(SAFE); }
+  } catch (err) { logger.error({ err, patientId }, "permanent patient deletion failed"); if ((err as { stale?: boolean }).stale) { res.status(409).json(STALE); return; } res.status(500).json(SAFE); }
 });
 export default router;
