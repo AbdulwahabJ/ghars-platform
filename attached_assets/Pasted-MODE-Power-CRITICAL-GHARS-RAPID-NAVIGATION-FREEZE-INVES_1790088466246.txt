@@ -1,0 +1,601 @@
+MODE: Power
+
+CRITICAL GHARS RAPID-NAVIGATION FREEZE INVESTIGATION AND ROOT FIX.
+
+REAL REPRODUCTION:
+
+The app works normally during slow/normal usage.
+
+BUT if the user rapidly:
+
+- clicks between Dashboard / Patients / Statistics / Settings
+- switches Settings tabs quickly
+- clicks multiple navigation items repeatedly
+- rapidly expands/collapses records
+- performs many clicks one after another
+
+the ENTIRE application eventually freezes and becomes unresponsive.
+
+This is highly reproducible under rapid interaction.
+
+This is now a RELEASE-BLOCKING stability issue.
+
+DO NOT add features.
+DO NOT redesign.
+DO NOT publish.
+DO NOT solve only by adding debounce/throttle.
+Find and fix the actual concurrency/render/request problem.
+
+==================================================
+1. REPRODUCE WITH A RAPID CLICK STRESS TEST
+==================================================
+
+Use authenticated production build.
+
+Perform this repeatedly and quickly:
+
+Dashboard
+→ Patients
+→ Statistics
+→ Settings
+→ Patients
+→ Dashboard
+→ Settings
+
+Do not wait for previous page/API requests to finish.
+
+Also rapidly switch:
+
+Settings tabs
+
+and:
+
+expand/collapse patient records
+
+Run 50–100 interactions.
+
+Reproduce the complete freeze.
+
+Do NOT refresh when it freezes.
+
+==================================================
+2. DETERMINE WHAT "FREEZE" ACTUALLY IS
+==================================================
+
+At the broken moment determine:
+
+A.
+Browser main thread is blocked
+
+B.
+React is stuck in repeated renders
+
+C.
+React Query/API request storm
+
+D.
+Router/navigation race
+
+E.
+Suspense/lazy-load race
+
+F.
+Invisible overlay/pointer lock
+
+G.
+Combination of the above
+
+Provide evidence.
+
+==================================================
+3. CHROME PERFORMANCE TRACE
+==================================================
+
+Record a Performance trace during rapid navigation until freeze.
+
+Report:
+
+- longest Main Thread task
+- total scripting time
+- rendering time
+- layout time
+- repeated functions
+- component/function causing biggest work
+- any task >50ms
+- any task >500ms
+- any multi-second task
+
+Identify exact offending function/component.
+
+==================================================
+4. REACT RENDER PROFILING
+==================================================
+
+Use React profiling.
+
+During 20 rapid route changes report:
+
+- top rerendering components
+- number of renders
+- unnecessary global rerenders
+- providers rerendering whole app
+
+Pay special attention to:
+
+App
+Router
+Layout
+AuthProvider
+TenantProvider
+PermissionsProvider
+FeatureFlags
+Header
+Settings
+Patients
+Attachment components
+
+No shared provider should cause the entire app to rerender unnecessarily on every click.
+
+==================================================
+5. ROUTER RACE AUDIT
+==================================================
+
+Audit Wouter navigation.
+
+Inspect:
+
+useLocation()
+useSearch()
+setLocation()
+navigate()
+URLSearchParams
+query-only navigation
+Back/Forward handling
+
+Look for:
+
+- navigation handlers firing multiple times
+- state + URL competing as sources of truth
+- effects pushing another route after navigation
+- repeated URL updates
+- navigation loops
+- stale route transitions completing after newer transitions
+
+A newer navigation must win over an older one.
+
+Old navigation work must not overwrite current route state.
+
+==================================================
+6. RAPID DOUBLE/MULTI CLICK HANDLERS
+==================================================
+
+Inspect navigation buttons.
+
+One physical click should cause ONE navigation.
+
+Check that event bubbling is not causing:
+
+parent click
++
+child click
++
+Link navigation
+
+for a single interaction.
+
+Also verify buttons are not registering duplicate handlers after rerenders.
+
+==================================================
+7. REACT QUERY REQUEST STORM
+==================================================
+
+During rapid navigation inspect Network.
+
+Count requests per endpoint.
+
+Look for endpoints being called repeatedly such as:
+
+session
+permissions
+tenant
+feature flags
+dashboard
+patients
+statistics
+settings
+attachments
+
+Report:
+
+Endpoint
+Request count during 20 route switches
+
+Example:
+
+/api/session → 1 expected, not 20+
+/api/permissions → should not refetch every navigation without reason
+
+Find duplicated or cascading refetches.
+
+==================================================
+8. QUERY CANCELLATION
+==================================================
+
+When navigating away from a screen:
+
+stale expensive requests should not trigger expensive UI work after the route is gone.
+
+Where supported:
+
+use AbortSignal/query cancellation correctly.
+
+Do NOT let obsolete page requests continue causing unnecessary work.
+
+Do not cancel requests required for safe mutations.
+
+==================================================
+9. QUERY INVALIDATION AUDIT
+==================================================
+
+Inspect all:
+
+invalidateQueries()
+
+Recent features may invalidate broad keys.
+
+Look for dangerous patterns such as:
+
+invalidateQueries()
+
+with no specific key
+
+or invalidating:
+
+all patients
+dashboard
+statistics
+settings
+attachments
+
+after unrelated small actions.
+
+Use precise query invalidation.
+
+==================================================
+10. GLOBAL PROVIDER QUERY AUDIT
+==================================================
+
+Auth / permissions / feature settings should not refetch on every route click.
+
+Review:
+
+staleTime
+refetchOnMount
+refetchOnWindowFocus
+retry
+enabled
+query keys
+
+Stable global settings should have reasonable caching.
+
+Do not weaken security.
+
+==================================================
+11. STATE UPDATE AFTER UNMOUNT
+==================================================
+
+Look for asynchronous operations from old pages that complete after navigation and update:
+
+global state
+shared state
+URL
+providers
+
+Old page effects should clean up correctly.
+
+==================================================
+12. SUSPENSE / LAZY ROUTE RACE
+==================================================
+
+Audit:
+
+React.lazy()
+dynamic import()
+Suspense
+
+Rapidly switching routes must not create unresolved or conflicting lazy loads.
+
+If user goes:
+
+A → B → C
+
+and A finishes loading last,
+
+A must NOT replace or interfere with C.
+
+==================================================
+13. IMPORTER MUST NOT PARTICIPATE
+==================================================
+
+Legacy Import is disabled / Coming Soon.
+
+Verify OCR/PDF/XLSX/import libraries do NOT load during normal rapid navigation.
+
+Report:
+
+DISABLED IMPORTER LOADED:
+YES / NO
+
+Expected:
+NO.
+
+==================================================
+14. ATTACHMENTS
+==================================================
+
+Check attachment queries/components.
+
+Rapidly opening/closing records must not:
+
+- continuously fetch thumbnails
+- generate new Blob URLs repeatedly
+- refresh signed URLs repeatedly
+- fetch full images automatically
+- leak event listeners
+
+==================================================
+15. MEMORY DURING RAPID NAVIGATION
+==================================================
+
+Measure JS heap:
+
+before stress test
+after 50 route changes
+after GC
+
+Also report:
+
+DOM node count
+event listener growth
+
+Memory should stabilize.
+
+If it continuously grows:
+find the leak.
+
+==================================================
+16. EVENT LISTENERS
+==================================================
+
+Audit:
+
+window.addEventListener
+document.addEventListener
+
+including:
+
+click
+keydown
+popstate
+resize
+scroll
+
+Every effect must clean them up.
+
+Navigation must not create duplicate global listeners.
+
+==================================================
+17. OVERLAY CHECK
+==================================================
+
+Even though rapid navigation strongly suggests a render/request race, also verify:
+
+document.body pointer-events
+
+and:
+
+document.elementFromPoint()
+
+when frozen.
+
+Confirm whether a stale overlay contributes to the freeze.
+
+==================================================
+18. SERVER LOAD DURING STRESS
+==================================================
+
+During 50 rapid navigation actions measure server:
+
+request count
+CPU if available
+slow endpoints
+DB connections
+query time
+
+Determine whether frontend request storm is also overloading backend.
+
+==================================================
+19. DO NOT MASK THE ROOT CAUSE
+==================================================
+
+Do NOT solve only using:
+
+debounce navigation
+disable all buttons for 1 second
+setTimeout
+window.location.reload()
+global pointer-events reset
+
+These may be added only as secondary defensive UX AFTER the real root cause is fixed.
+
+==================================================
+20. DEFENSIVE NAVIGATION AFTER ROOT FIX
+==================================================
+
+After fixing the actual issue, add safe idempotency where appropriate:
+
+If user repeatedly clicks the CURRENT active route:
+do nothing.
+
+Do not issue another route transition or refetch simply because the active navigation item was clicked repeatedly.
+
+If the same action is already processing:
+prevent duplicate identical action execution.
+
+This is defensive protection, not the primary fix.
+
+==================================================
+21. USER FEEDBACK
+==================================================
+
+Route clicks must visually respond immediately.
+
+Do not allow users to create multiple identical route transitions by repeatedly clicking an already active item.
+
+Normal navigation should remain fast.
+
+==================================================
+22. STABILITY ACCEPTANCE TEST
+==================================================
+
+After fix perform:
+
+100 rapid main-navigation clicks
+
+AND:
+
+50 rapid Settings tab switches
+
+AND:
+
+30 rapid patient expand/collapse cycles
+
+AND:
+
+20 attachment viewer open/close cycles
+
+No freeze.
+No dead clicks.
+No Error Boundary.
+No navigation mismatch.
+
+==================================================
+23. PERFORMANCE TARGET
+==================================================
+
+During stress test:
+
+No sustained Main Thread blocking.
+
+No request storm.
+
+No accumulating render loop.
+
+No continuously increasing memory.
+
+UI should remain responsive even if API responses are still pending.
+
+==================================================
+24. FINAL REPORT
+==================================================
+
+Return:
+
+FREEZE REPRODUCED BEFORE FIX:
+PASS / FAIL
+
+PRIMARY ROOT CAUSE:
+<exact cause>
+
+SECONDARY CAUSE:
+<if any>
+
+ROUTER RACE:
+YES / NO
+
+RENDER STORM:
+YES / NO
+
+REQUEST STORM:
+YES / NO
+
+OVERLAY / POINTER LOCK:
+YES / NO
+
+LONGEST MAIN THREAD TASK BEFORE:
+<ms + function/component>
+
+LONGEST MAIN THREAD TASK AFTER:
+<ms + function/component>
+
+TOP RERENDERING COMPONENT BEFORE:
+<component + count>
+
+TOP RERENDERING COMPONENT AFTER:
+<component + count>
+
+REQUEST COUNTS BEFORE:
+<important endpoints/counts>
+
+REQUEST COUNTS AFTER:
+<important endpoints/counts>
+
+DUPLICATE NAVIGATION HANDLERS:
+YES / NO
+
+STALE REQUEST CANCELLATION:
+PASS / FAIL
+
+PRECISE QUERY INVALIDATION:
+PASS / FAIL
+
+GLOBAL QUERY CACHE:
+PASS / FAIL
+
+MEMORY BEFORE:
+<value>
+
+MEMORY AFTER STRESS + GC:
+<value>
+
+EVENT LISTENER LEAK:
+YES / NO
+
+DISABLED IMPORTER LOADED:
+YES / NO
+
+100 RAPID NAV CLICKS:
+PASS / FAIL
+
+50 RAPID SETTINGS CLICKS:
+PASS / FAIL
+
+30 PATIENT EXPAND/COLLAPSE:
+PASS / FAIL
+
+DEAD CLICKS:
+0 / <count>
+
+ERROR BOUNDARY:
+0 / <count>
+
+HARD REFRESH:
+PASS / FAIL
+
+NORMAL NAVIGATION:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
