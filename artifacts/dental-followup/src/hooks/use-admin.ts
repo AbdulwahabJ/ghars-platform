@@ -21,6 +21,7 @@ import { APP_SETTINGS_QUERY_KEY } from "./use-settings";
 export const ADMIN_USERS_KEY = ["admin", "users"];
 export const ADMIN_LOOKUPS_KEY = ["admin", "lookups"];
 export const ADMIN_TEMPLATES_KEY = ["admin", "templates"];
+const SETTINGS_DATA_STALE_TIME = 30_000;
 
 /* ------------------------------------------------------------------ */
 /* Users                                                               */
@@ -29,7 +30,8 @@ export const ADMIN_TEMPLATES_KEY = ["admin", "templates"];
 export function useAdminUsers() {
   return useQuery({
     queryKey: ADMIN_USERS_KEY,
-    queryFn: () => api.adminListUsers(),
+    queryFn: ({ signal }) => api.adminListUsers(signal),
+    staleTime: SETTINGS_DATA_STALE_TIME,
   });
 }
 
@@ -81,7 +83,8 @@ export function useUpdateAppSettings() {
 export function useAdminLookups() {
   return useQuery({
     queryKey: ADMIN_LOOKUPS_KEY,
-    queryFn: () => api.adminListLookups(),
+    queryFn: ({ signal }) => api.adminListLookups(signal),
+    staleTime: SETTINGS_DATA_STALE_TIME,
   });
 }
 
@@ -147,7 +150,8 @@ export function useAdminLookupMutations() {
 export function useAdminTemplates() {
   return useQuery({
     queryKey: ADMIN_TEMPLATES_KEY,
-    queryFn: () => api.adminListTemplates(),
+    queryFn: ({ signal }) => api.adminListTemplates(signal),
+    staleTime: SETTINGS_DATA_STALE_TIME,
   });
 }
 
@@ -177,8 +181,9 @@ export function useAdminTemplateMutations() {
 export function useAuditLogs(filters: Partial<AuditFilters>) {
   return useQuery({
     queryKey: ["admin", "audit-logs", filters],
-    queryFn: () => api.adminListAuditLogs(filters),
+    queryFn: ({ signal }) => api.adminListAuditLogs(filters, signal),
     placeholderData: (prev) => prev,
+    staleTime: SETTINGS_DATA_STALE_TIME,
   });
 }
 

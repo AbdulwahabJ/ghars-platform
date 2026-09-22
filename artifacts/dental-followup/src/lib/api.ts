@@ -446,7 +446,8 @@ export const api = {
     }),
 
   // Features
-  getFeatures: () => request<{ legacyImportEnabled: boolean }>("/features"),
+  getFeatures: (signal?: AbortSignal) =>
+    request<{ legacyImportEnabled: boolean }>("/features", { signal }),
 
   // Public landing page media
   getLandingMedia: () =>
@@ -727,7 +728,8 @@ export const api = {
     }),
 
   // Admin: users
-  adminListUsers: () => request<AdminUsersResponse>(`/admin/users`),
+  adminListUsers: (signal?: AbortSignal) =>
+    request<AdminUsersResponse>(`/admin/users`, { signal }),
   adminCreateUser: (input: CreateUserInput) =>
     request<{ user: AdminUser }>(`/admin/users`, {
       method: "POST",
@@ -753,7 +755,8 @@ export const api = {
     }),
 
   // Admin: lookups
-  adminListLookups: () => request<AdminLookupsResponse>(`/admin/lookups`),
+  adminListLookups: (signal?: AbortSignal) =>
+    request<AdminLookupsResponse>(`/admin/lookups`, { signal }),
   adminCreateLookup: (input: CreateLookupOptionInput) =>
     request<{ option: AdminLookupOption }>(`/admin/lookups`, {
       method: "POST",
@@ -783,8 +786,8 @@ export const api = {
     request<void>(`/admin/lookups/reorder`, { method: "POST", json: input }),
 
   // Admin: WhatsApp templates
-  adminListTemplates: () =>
-    request<AdminTemplatesResponse>(`/admin/whatsapp-templates`),
+  adminListTemplates: (signal?: AbortSignal) =>
+    request<AdminTemplatesResponse>(`/admin/whatsapp-templates`, { signal }),
   adminUpdateTemplate: (id: string, input: UpdateTemplateInput) =>
     request<{ template: AdminTemplate }>(`/admin/whatsapp-templates/${id}`, {
       method: "PATCH",
@@ -797,8 +800,8 @@ export const api = {
     ),
 
   // Admin: audit logs
-  adminListAuditLogs: (filters: Partial<AuditFilters>) =>
-    request<AuditLogResponse>(`/admin/audit-logs?${auditQs(filters)}`),
+  adminListAuditLogs: (filters: Partial<AuditFilters>, signal?: AbortSignal) =>
+    request<AuditLogResponse>(`/admin/audit-logs?${auditQs(filters)}`, { signal }),
 
   // Quick-entry (atomic one-shot patient + case + implants + payment + followup)
   quickEntry: (input: QuickEntryInput) =>

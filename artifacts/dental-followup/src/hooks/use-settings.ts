@@ -31,7 +31,8 @@ export function useFeatures() {
   const { user } = useAuth();
   return useQuery({
     queryKey: FEATURES_QUERY_KEY,
-    queryFn: () => api.getFeatures(),
+    queryFn: ({ signal }) => api.getFeatures(signal),
     enabled: !!user,
+    staleTime: 60_000,
   });
 }
