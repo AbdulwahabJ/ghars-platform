@@ -123,6 +123,7 @@ export function Header({ user }: HeaderProps) {
               <Link
                 key={item.path}
                 href={item.path}
+                onClick={isActive ? (event) => event.preventDefault() : undefined}
                 className={`px-4 h-full flex items-center border-b-2 font-medium transition-colors hover:text-primary ${
                   isActive
                     ? "border-primary text-primary"

@@ -15,22 +15,25 @@ export const getFollowupsQueryKey = (patientId: string) =>
 export const getCommunicationsQueryKey = (patientId: string) =>
   ["patient", patientId, "communications"] as const;
 export const NOTIFICATIONS_QUERY_KEY = ["notifications"] as const;
+const ROUTE_DATA_STALE_TIME = 30_000;
 
 export function useFollowups(patientId: string) {
   return useQuery({
     queryKey: getFollowupsQueryKey(patientId),
-    queryFn: () => api.getFollowups(patientId),
+    queryFn: ({ signal }) => api.getFollowups(patientId, signal),
     select: (data) => data.followups,
     enabled: Boolean(patientId),
+    staleTime: ROUTE_DATA_STALE_TIME,
   });
 }
 
 export function useCommunications(patientId: string) {
   return useQuery({
     queryKey: getCommunicationsQueryKey(patientId),
-    queryFn: () => api.getCommunications(patientId),
+    queryFn: ({ signal }) => api.getCommunications(patientId, signal),
     select: (data) => data.communications,
     enabled: Boolean(patientId),
+    staleTime: ROUTE_DATA_STALE_TIME,
   });
 }
 
@@ -55,8 +58,9 @@ export function useAssignableUsers() {
 export function useNotifications() {
   return useQuery({
     queryKey: NOTIFICATIONS_QUERY_KEY,
-    queryFn: () => api.getNotifications(),
+    queryFn: ({ signal }) => api.getNotifications(signal),
     refetchInterval: 60_000,
+    staleTime: 60_000,
   });
 }
 

@@ -18,8 +18,9 @@ export const getCaseFinanceQueryKey = (caseId: string) =>
 export function useCaseFinance(caseId: string, enabled = true) {
   return useQuery({
     queryKey: getCaseFinanceQueryKey(caseId),
-    queryFn: () => api.getCaseFinance(caseId),
+    queryFn: ({ signal }) => api.getCaseFinance(caseId, signal),
     enabled: Boolean(caseId) && enabled,
+    staleTime: 30_000,
   });
 }
 

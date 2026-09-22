@@ -7,8 +7,9 @@ export const getPatientAttachmentsQueryKey = (patientId: string) => ["patient-at
 export function usePatientAttachments(patientId: string) {
   return useQuery({
     queryKey: getPatientAttachmentsQueryKey(patientId),
-    queryFn: () => api.getPatientAttachments(patientId),
+    queryFn: ({ signal }) => api.getPatientAttachments(patientId, signal),
     enabled: !!patientId,
+    staleTime: 30_000,
   });
 }
 

@@ -206,15 +206,17 @@ export const IMPERSONATION_ORIGINAL_ADMIN_INVALID_CODE = "IMPERSONATION_ORIGINAL
 interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   json?: unknown;
+  signal?: AbortSignal;
 }
 
 async function request<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = "GET", json } = options;
+  const { method = "GET", json, signal } = options;
   const response = await fetch(`${API_BASE}${path}`, {
     method,
+    signal,
     credentials: "same-origin",
     headers: json !== undefined ? { "Content-Type": "application/json" } : {},
     body: json !== undefined ? JSON.stringify(normalizeNumericValues(json)) : undefined,
@@ -495,14 +497,14 @@ export const api = {
     }),
 
   // Patients
-  listPatients: (query: PatientListQuery = {}) => {
+  listPatients: (query: PatientListQuery = {}, signal?: AbortSignal) => {
     const params = new URLSearchParams();
     if (query.query) params.set("query", query.query);
     if (query.status) params.set("status", query.status);
     if (query.page) params.set("page", String(query.page));
     if (query.pageSize) params.set("pageSize", String(query.pageSize));
     const qs = params.toString();
-    return request<PatientListResponse>(`/patients${qs ? `?${qs}` : ""}`);
+    return request<PatientListResponse>(`/patients${qs ? `?${qs}` : ""}`, { signal });
   },
   checkFileNumber: (fileNumber: string) =>
     request<FileNumberCheckResponse>(
@@ -510,7 +512,8 @@ export const api = {
     ),
   createPatient: (input: PatientInput) =>
     request<{ patient: Patient }>("/patients", { method: "POST", json: input }),
-  getPatient: (id: string) => request<{ patient: Patient }>(`/patients/${id}`),
+  getPatient: (id: string, signal?: AbortSignal) =>
+    request<{ patient: Patient }>(`/patients/${id}`, { signal }),
   updatePatient: (id: string, input: PatientUpdate) =>
     request<{ patient: Patient }>(`/patients/${id}`, {
       method: "PATCH",
@@ -536,8 +539,8 @@ export const api = {
     }),
 
   // Patient Attachments
-  getPatientAttachments: (patientId: string) =>
-    request<{ attachments: PatientAttachment[] }>(`/patients/${patientId}/attachments`),
+  getPatientAttachments: (patientId: string, signal?: AbortSignal) =>
+    request<{ attachments: PatientAttachment[] }>(`/patients/${patientId}/attachments`, { signal }),
   requestAttachmentUploadUrl: (patientId: string, input: PatientAttachmentUploadRequest) =>
     request<{ uploadURL: string, objectPath: string, uploadToken: string, metadata: PatientAttachmentUploadRequest }>(`/patients/${patientId}/attachments/upload-url`, { method: "POST", json: input }),
   finalizeAttachmentUpload: (patientId: string, input: PatientAttachmentFinalize) =>
@@ -550,10 +553,10 @@ export const api = {
     request<void>(`/patients/${patientId}/attachments/${attachmentId}`, { method: "DELETE" }),
 
   // Phase 2 — implant cases & implants
-  getImplantOptions: () =>
-    request<ImplantOptionsResponse>("/implant-options"),
-  listImplantCases: (patientId: string) =>
-    request<CaseListResponse>(`/patients/${patientId}/implant-cases`),
+  getImplantOptions: (signal?: AbortSignal) =>
+    request<ImplantOptionsResponse>("/implant-options", { signal }),
+  listImplantCases: (patientId: string, signal?: AbortSignal) =>
+    request<CaseListResponse>(`/patients/${patientId}/implant-cases`, { signal }),
   createImplantCase: (patientId: string, input: ImplantCaseInput) =>
     request<{ case: ImplantCase }>(`/patients/${patientId}/implant-cases`, {
       method: "POST",
@@ -617,8 +620,8 @@ export const api = {
     }),
 
   // Phase 3 — financial tracking
-  getCaseFinance: (caseId: string) =>
-    request<CaseFinanceResponse>(`/implant-cases/${caseId}/finance`),
+  getCaseFinance: (caseId: string, signal?: AbortSignal) =>
+    request<CaseFinanceResponse>(`/implant-cases/${caseId}/finance`, { signal }),
   saveInstallmentPlan: (caseId: string, input: InstallmentPlanInput) =>
     request<{ installmentPlan: InstallmentPlan }>(
       `/implant-cases/${caseId}/installment-plan`,
@@ -660,8 +663,8 @@ export const api = {
     }),
   getFinanceOverview: (filters: FinanceFilters) =>
     request<FinanceOverview>(`/finance/overview?${financeQs(filters)}`),
-  getFollowups: (patientId: string) =>
-    request<{ followups: Followup[] }>(`/patients/${patientId}/followups`),
+  getFollowups: (patientId: string, signal?: AbortSignal) =>
+    request<{ followups: Followup[] }>(`/patients/${patientId}/followups`, { signal }),
   createFollowup: (caseId: string, input: FollowupInput) =>
     request<{ followup: Followup }>(`/implant-cases/${caseId}/followups`, {
       method: "POST",
@@ -682,9 +685,10 @@ export const api = {
       `/followups/${id}/postpone`,
       { method: "POST", json: input },
     ),
-  getCommunications: (patientId: string) =>
+  getCommunications: (patientId: string, signal?: AbortSignal) =>
     request<{ communications: Communication[] }>(
       `/patients/${patientId}/communications`,
+      { signal },
     ),
   createCommunication: (patientId: string, input: CommunicationInput) =>
     request<{ communication: Communication }>(
@@ -702,13 +706,16 @@ export const api = {
     request<{ users: Array<{ id: string; fullName: string; role: string }> }>(
       `/users/assignable`,
     ),
-  getNotifications: () => request<NotificationsResponse>(`/notifications`),
-  getDashboard: () => request<DashboardResponse>(`/dashboard`),
-  getStatistics: (filters: ReportFilters) =>
-    request<StatisticsResponse>(`/statistics?${reportQs(filters)}`),
-  getOperationalReport: (filters: ReportFilters) =>
+  getNotifications: (signal?: AbortSignal) =>
+    request<NotificationsResponse>(`/notifications`, { signal }),
+  getDashboard: (signal?: AbortSignal) =>
+    request<DashboardResponse>(`/dashboard`, { signal }),
+  getStatistics: (filters: ReportFilters, signal?: AbortSignal) =>
+    request<StatisticsResponse>(`/statistics?${reportQs(filters)}`, { signal }),
+  getOperationalReport: (filters: ReportFilters, signal?: AbortSignal) =>
     request<OperationalReportResponse>(
       `/reports/operational?${reportQs(filters)}`,
+      { signal },
     ),
 
   // Application settings (all authenticated users)

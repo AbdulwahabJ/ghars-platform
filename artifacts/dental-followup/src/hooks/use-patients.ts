@@ -8,19 +8,22 @@ import {
 
 export const getPatientsQueryKey = (query: PatientListQuery) => ["patients", query];
 export const getPatientQueryKey = (id: string) => ["patient", id];
+const ROUTE_DATA_STALE_TIME = 30_000;
 
 export function usePatients(query: PatientListQuery = {}) {
   return useQuery({
     queryKey: getPatientsQueryKey(query),
-    queryFn: () => api.listPatients(query),
+    queryFn: ({ signal }) => api.listPatients(query, signal),
+    staleTime: ROUTE_DATA_STALE_TIME,
   });
 }
 
 export function usePatient(id: string) {
   return useQuery({
     queryKey: getPatientQueryKey(id),
-    queryFn: () => api.getPatient(id),
+    queryFn: ({ signal }) => api.getPatient(id, signal),
     enabled: !!id,
+    staleTime: ROUTE_DATA_STALE_TIME,
   });
 }
 

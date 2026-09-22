@@ -17,7 +17,7 @@ export const getImplantCasesQueryKey = (patientId: string) =>
 export function useImplantOptions() {
   return useQuery({
     queryKey: ["implant-options"],
-    queryFn: () => api.getImplantOptions(),
+    queryFn: ({ signal }) => api.getImplantOptions(signal),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -25,8 +25,9 @@ export function useImplantOptions() {
 export function useImplantCases(patientId: string) {
   return useQuery({
     queryKey: getImplantCasesQueryKey(patientId),
-    queryFn: () => api.listImplantCases(patientId),
+    queryFn: ({ signal }) => api.listImplantCases(patientId, signal),
     enabled: Boolean(patientId),
+    staleTime: 30_000,
   });
 }
 
