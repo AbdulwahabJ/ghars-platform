@@ -1,0 +1,585 @@
+MODE: Power
+
+GHARS FINAL PRE-PUBLISH RELEASE AUDIT.
+
+We are preparing the current Ghars checkpoint chain for Production publication.
+
+IMPORTANT:
+This is an AUDIT ONLY unless a critical release-blocking defect is found.
+
+DO NOT add features.
+DO NOT redesign.
+DO NOT modify business logic unnecessarily.
+DO NOT import production data.
+DO NOT publish automatically.
+
+The goal is to determine whether the CURRENT codebase is safe to publish.
+
+==================================================
+1. CURRENT RELEASE STATE
+==================================================
+
+Audit the latest code including recent work:
+
+- rapid-navigation/request-storm performance fix
+- Settings URL/search synchronization
+- patient attachments
+- attachment viewer
+- attachments in New Record
+- attachments in expanded operational record
+- attachments under Patient Procedures
+- Legacy Import feature disabled / Coming Soon
+- archive / permanent-delete related changes if present
+- existing dashboard, finance, patients, statistics
+- historical finance schema/features already implemented
+
+Latest important performance checkpoint:
+
+f03c803f4f8db7eba40d4bc38c41b27ec762a19f
+
+Do not assume a prior PASS means Production safety.
+Verify the current final state.
+
+==================================================
+2. GIT / CHECKPOINT HEALTH
+==================================================
+
+Confirm:
+
+- working tree state
+- no unresolved merge conflicts
+- no accidental temporary/debug files
+- no unfinished experimental changes
+- no production debug logging with sensitive data
+
+Report current HEAD/checkpoint.
+
+==================================================
+3. DATABASE MIGRATION AUDIT
+==================================================
+
+List ALL migrations currently pending for Production.
+
+For every pending migration report:
+
+- filename
+- purpose
+- CREATE
+- ALTER
+- DROP
+- DELETE
+- TRUNCATE
+- UPDATE existing production rows
+- default/backfill behavior
+- lock/risk level
+
+Specifically check historical finance migration:
+
+0028_case_historical_finance.sql
+
+if still pending.
+
+No destructive schema change is allowed without explicit approval.
+
+==================================================
+4. PRODUCTION SCHEMA COMPATIBILITY
+==================================================
+
+Read-only compare:
+
+Current Production schema
+vs
+current application-required schema
+
+Report:
+
+MISSING TABLES
+MISSING COLUMNS
+TYPE MISMATCHES
+MISSING INDEXES
+EXTRA LEGACY OBJECTS
+DESTRUCTIVE DIFF
+
+Do NOT alter Production during this audit.
+
+==================================================
+5. PRODUCTION DATA SAFETY
+==================================================
+
+Verify startup/deploy path contains NO:
+
+DROP
+TRUNCATE
+DELETE ALL
+reset database
+seed overwrite
+copy Dev → Prod
+test cleanup against Production
+automatic destructive migration
+
+Search startup scripts and deployment commands.
+
+==================================================
+6. BACKUP / PITR
+==================================================
+
+Determine whether Production backup / Point-in-Time Recovery can be VERIFIED from available deployment/database information.
+
+Return only:
+
+CONFIRMED
+NOT CONFIRMED
+
+Do not assume.
+
+If NOT CONFIRMED:
+mark it as an operational release warning.
+
+Do not invent confirmation.
+
+==================================================
+7. PATIENT ATTACHMENT STORAGE
+==================================================
+
+This is important because attachments may contain medical information.
+
+Verify current attachment implementation uses:
+
+- durable storage
+- private access
+- tenant isolation
+- no public permanent URL
+- authenticated/signed access
+- files survive redeployment
+- database stores metadata/storage reference correctly
+
+Report exact storage mechanism.
+
+If attachments depend on ephemeral local filesystem:
+RELEASE BLOCKER.
+
+==================================================
+8. LEGACY IMPORT FEATURE FLAG
+==================================================
+
+Verify Production/default state:
+
+Legacy Import = DISABLED / Coming Soon
+
+Customer must not be able to bypass through:
+
+- direct route
+- API
+- upload endpoint
+- commit endpoint
+
+Importer/OCR/XLSX/PDF heavy modules should NOT load during normal app use.
+
+==================================================
+9. RAPID NAVIGATION PERFORMANCE REGRESSION
+==================================================
+
+Verify checkpoint f03c803... behavior remains intact.
+
+Perform:
+
+100 rapid main navigation clicks
+50 rapid Settings tab changes
+30 patient open/close cycles
+20 attachment viewer cycles
+
+Required:
+
+- no freeze
+- no dead clicks
+- no Error Boundary
+- no request storm
+- no stale overlay
+- no pointer lock
+
+==================================================
+10. AUTHENTICATION / TENANT ISOLATION
+==================================================
+
+Verify:
+
+- unauthenticated access blocked
+- tenant A cannot access tenant B patients
+- tenant A cannot access tenant B attachments
+- backend derives tenant from session
+- no frontend tenantId trust
+- admin-only actions remain server-enforced
+
+==================================================
+11. PATIENT CORE FLOW
+==================================================
+
+Smoke test:
+
+Create patient
+Open patient
+Edit patient
+Create implant case
+Add implant
+Use decimal implant diameter such as 4.5
+Add adjunct procedure
+Add follow-up if supported
+Add prosthetic event
+Add payment
+Open finance
+View patient from operational table
+
+No Production writes.
+Use isolated test environment / production build with test data only.
+
+==================================================
+12. ATTACHMENT FLOW
+==================================================
+
+Smoke test:
+
+Upload image while creating record
+Upload PDF
+Open expanded operational record
+View thumbnail
+Open full image viewer
+Open PDF
+Download
+Open Patient File → Procedures
+Verify same attachment
+Delete test attachment
+
+Confirm:
+
+Patient Information tab has no attachment section.
+Patient Procedures tab does.
+Expanded record shows Attachments as LAST content section before action bar.
+
+==================================================
+13. DASHBOARD
+==================================================
+
+Verify current dashboard KPI semantics remain correct:
+
+- Patients Implanted
+- Number of Implants
+- Systems Used
+- Prosthetic Patients
+- Completed Prosthetics
+
+No createdAt fallback for clinical KPIs.
+
+No archived/deleted records counted improperly.
+
+Riyadh clinical date semantics preserved.
+
+==================================================
+14. FINANCE
+==================================================
+
+Verify:
+
+- base + charges - discounts
+- paid from non-voided payments
+- remaining balance
+- historical/opening finance does not create fake payment records
+- unknown != zero
+- future payments correctly reduce opening balance where applicable
+
+No regression from recent changes.
+
+==================================================
+15. ARCHIVE / DELETE
+==================================================
+
+If permanent delete feature exists in current code:
+
+verify:
+
+- Tenant Admin/Owner only
+- API protected
+- archive remains reversible
+- permanent delete is explicit
+- no automatic patient delete when deleting only a case
+- related data handled transactionally
+- dashboard/statistics refresh correctly
+
+If feature was NOT implemented:
+report NOT PRESENT.
+Do not implement it in this audit.
+
+==================================================
+16. SETTINGS
+==================================================
+
+Verify:
+
+/settings?tab=users
+/settings?tab=lookups
+/settings?tab=audit
+/settings?tab=export
+/settings?tab=import
+
+URL and visible content always match.
+
+Back/Forward works.
+
+No stale content.
+
+==================================================
+17. ERROR BOUNDARY
+==================================================
+
+Navigate through the full smoke test.
+
+Required:
+
+Error Boundary occurrences = 0
+
+Also inspect Console for uncaught runtime errors.
+
+==================================================
+18. NETWORK HEALTH
+==================================================
+
+During normal navigation report:
+
+- failed requests
+- requests >1s
+- duplicate requests
+- notification request count
+- auth/me request count
+- any polling storm
+
+No major request amplification.
+
+==================================================
+19. PRODUCTION BUILD
+==================================================
+
+Run:
+
+tests
+typecheck
+production build
+
+Report warnings separately.
+
+Warnings are not automatically blockers unless they affect correctness/security/performance.
+
+==================================================
+20. ENVIRONMENT VARIABLES
+==================================================
+
+Audit required Production environment variables.
+
+Report names only, NEVER values/secrets.
+
+Identify:
+
+- missing required env
+- development-only fallback
+- unsafe default
+- storage configuration issue
+- session configuration issue
+
+Never expose secret values.
+
+==================================================
+21. SESSION / COOKIE SAFETY
+==================================================
+
+Verify production session settings:
+
+- secure cookie where required
+- httpOnly
+- appropriate sameSite
+- production session store is durable/shared if required by architecture
+
+Do not expose session secrets.
+
+==================================================
+22. PRODUCTION URL / DOMAIN
+==================================================
+
+Verify application behavior is compatible with:
+
+https://ghars.digitaltclinic.com
+
+and current Replit deployment domain.
+
+Do not change DNS.
+
+Do not touch:
+
+lab.digitaltclinic.com
+MX
+DMARC
+nameservers
+other domains.
+
+==================================================
+23. DATA RETENTION THROUGH REPUBLISH
+==================================================
+
+Using safe test/deployment validation where possible verify:
+
+- database data survives republish
+- attachment metadata survives republish
+- attachment binary survives republish
+
+Do NOT perform destructive Production testing.
+
+==================================================
+24. NO DEV/TEST ARTIFACTS
+==================================================
+
+Search for:
+
+test tenant
+demo patient
+temporary credentials
+hardcoded admin password
+debug endpoint
+development bypass
+feature flag bypass
+console logging patient data
+
+Remove nothing unless clearly safe and necessary.
+Report findings.
+
+==================================================
+25. RELEASE BLOCKER RULE
+==================================================
+
+Classify every issue as:
+
+BLOCKER
+WARNING
+NON-BLOCKING
+
+BLOCKER examples:
+
+- destructive pending migration
+- Production data-loss risk
+- broken authentication
+- cross-tenant access
+- ephemeral patient attachment storage
+- app freeze
+- failed build
+- missing required Production env
+- importer accessible while intentionally disabled
+
+==================================================
+26. FINAL VERDICT
+==================================================
+
+Return EXACTLY:
+
+CURRENT HEAD:
+<hash>
+
+PENDING MIGRATIONS:
+<list>
+
+DESTRUCTIVE MIGRATION:
+YES / NO
+
+PRODUCTION SCHEMA:
+PASS / FAIL
+
+PRODUCTION DATA SAFETY:
+PASS / FAIL
+
+PITR / BACKUP:
+CONFIRMED / NOT CONFIRMED
+
+ATTACHMENT DURABLE STORAGE:
+PASS / FAIL
+<exact mechanism>
+
+ATTACHMENT PRIVATE ACCESS:
+PASS / FAIL
+
+LEGACY IMPORT DEFAULT DISABLED:
+PASS / FAIL
+
+LEGACY IMPORT API BLOCKED:
+PASS / FAIL
+
+RAPID NAVIGATION STABILITY:
+PASS / FAIL
+
+100 RAPID NAV CLICKS:
+PASS / FAIL
+
+DEAD CLICKS:
+<count>
+
+ERROR BOUNDARY:
+<count>
+
+AUTH:
+PASS / FAIL
+
+TENANT ISOLATION:
+PASS / FAIL
+
+PATIENT FLOW:
+PASS / FAIL
+
+IMPLANT DECIMAL INPUT:
+PASS / FAIL
+
+ATTACHMENTS:
+PASS / FAIL
+
+DASHBOARD:
+PASS / FAIL
+
+FINANCE:
+PASS / FAIL
+
+SETTINGS:
+PASS / FAIL
+
+ARCHIVE:
+PASS / FAIL / NOT PRESENT
+
+PERMANENT DELETE:
+PASS / FAIL / NOT PRESENT
+
+SESSION STORE:
+PASS / FAIL
+
+PRODUCTION ENV:
+PASS / FAIL
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+BLOCKERS:
+<list or NONE>
+
+WARNINGS:
+<list or NONE>
+
+SAFE TO PUBLISH:
+YES / NO
+
+If NO:
+state exactly what must be fixed first.
+
+If YES:
+do NOT publish.
+
+Create a checkpoint only if code had to be changed for a genuine release-blocking bug.
+Otherwise do not modify code.
+
+STOP.
