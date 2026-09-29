@@ -1,0 +1,213 @@
+FIX MISSING IMMEDIATE FIELD IN THE ACTUAL GHARS IMPLANT FORM.
+
+The previous implementation report claimed:
+
+IMMEDIATE FIELD: PASS
+
+But visual QA of the actual Arabic implant form proves the field is NOT visible.
+
+Current visible implant fields include:
+
+- Implant System
+- Implant Site
+- Diameter
+- Length
+- Q
+- Former
+- Graft
+
+But there is NO:
+
+زرع فوري / Immediate
+
+IMPORTANT:
+Do NOT recreate the field if it already exists in schema/backend.
+First trace the existing Immediate implementation and connect it to the ACTUAL implant create/edit form used in Production UI.
+
+==================================================
+1. FIND EXISTING IMPLEMENTATION
+==================================================
+
+Trace:
+
+- database column
+- API contract
+- Zod/schema
+- implant create payload
+- implant update payload
+- frontend form state
+- implant display component
+
+Confirm whether Immediate already exists technically.
+
+Do not create duplicate fields.
+
+==================================================
+2. ADD TO ACTUAL FORM
+==================================================
+
+In the same implant form shown in the attached screenshot, add:
+
+Arabic:
+زرع فوري
+
+English:
+Immediate
+
+Place it directly after:
+
+Graft
+
+or in the same clinical-properties row.
+
+Use a simple compact select/toggle:
+
+غير محدد
+نعم
+لا
+
+English:
+Unspecified
+Yes
+No
+
+==================================================
+3. SEMANTICS
+==================================================
+
+Immediate here means:
+
+Immediate Implant Placement / زرع فوري
+
+It must remain separate from:
+
+Immediate Loading
+
+Do not merge the two concepts.
+
+==================================================
+4. EXISTING IMPLANTS
+==================================================
+
+Existing implants with no value must show:
+
+غير محدد
+
+Do not auto-infer the value from notes or procedure date.
+
+==================================================
+5. CREATE + EDIT
+==================================================
+
+Verify the field works in BOTH:
+
+- Add Implant
+- Edit Implant
+
+Save:
+YES / NO / UNSPECIFIED
+
+Reload the patient and verify the saved value remains.
+
+==================================================
+6. DISPLAY
+==================================================
+
+When viewing implant details, also show:
+
+زرع فوري: نعم
+
+or:
+
+زرع فوري: لا
+
+or:
+
+زرع فوري: غير محدد
+
+Do not make it visible only during editing.
+
+==================================================
+7. DO NOT CHANGE
+==================================================
+
+Do NOT change:
+
+- Diameter
+- Length
+- Q
+- Former
+- Graft
+- Implant Site dropdown
+- finance
+- patient flow
+
+This task is only to expose the already-designed Immediate field correctly.
+
+==================================================
+8. MANUAL VISUAL QA
+==================================================
+
+Actually open the Arabic implant form shown in the screenshot.
+
+Required visible sequence:
+
+System
+Site
+Diameter
+Length
+Q
+Former
+Graft
+Immediate
+
+Do not rely only on unit tests.
+
+==================================================
+9. FINAL REPORT
+==================================================
+
+Return:
+
+EXISTING IMMEDIATE BACKEND FIELD FOUND:
+YES / NO
+
+DUPLICATE FIELD CREATED:
+YES / NO
+Expected: NO
+
+IMMEDIATE VISIBLE IN ADD FORM:
+PASS / FAIL
+
+IMMEDIATE VISIBLE IN EDIT FORM:
+PASS / FAIL
+
+IMMEDIATE SAVES:
+PASS / FAIL
+
+IMMEDIATE PERSISTS AFTER RELOAD:
+PASS / FAIL
+
+IMMEDIATE DISPLAYED IN IMPLANT DETAILS:
+PASS / FAIL
+
+IMMEDIATE != IMMEDIATE LOADING:
+PASS / FAIL
+
+EXISTING IMPLANTS SHOW UNSPECIFIED:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.

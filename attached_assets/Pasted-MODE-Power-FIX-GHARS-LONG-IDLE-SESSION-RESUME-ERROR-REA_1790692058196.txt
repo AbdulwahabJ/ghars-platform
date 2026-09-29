@@ -1,0 +1,449 @@
+MODE: Power
+
+FIX GHARS LONG-IDLE / SESSION-RESUME ERROR.
+
+REAL PRODUCTION ISSUE:
+
+If Ghars remains open in a browser tab for several hours, sometimes around half a day, the application eventually shows the global error fallback and the user must manually refresh the browser.
+
+This occurs while the application was previously working normally.
+
+IMPORTANT CONTEXT:
+
+Current production session configuration was previously verified as:
+
+- PostgreSQL connect-pg-simple
+- rolling session
+- approximately 12-hour session lifetime
+- secure/httpOnly cookie in Production
+
+The reported failure timing is suspiciously close to the session lifetime.
+
+DO NOT simply increase the session to an unlimited duration.
+DO NOT hide the problem with window.location.reload().
+DO NOT redesign the application.
+DO NOT publish.
+
+Find and fix the actual idle/resume lifecycle.
+
+==================================================
+1. REPRODUCE SESSION EXPIRY / IDLE RESUME
+==================================================
+
+Reproduce with shortened session expiration in a controlled environment.
+
+Scenario:
+
+1. Login successfully
+2. Leave application open
+3. Allow session to expire
+4. Let background queries/polling continue or resume
+5. Interact with the application again
+
+Observe:
+
+- /api/auth/me
+- notifications
+- feature flags
+- permissions
+- page queries
+- React Query errors
+- Error Boundary
+- console
+- network
+
+Determine the exact request/error that causes the fallback.
+
+==================================================
+2. RETURN EXACT ROOT CAUSE
+==================================================
+
+Capture:
+
+- exact endpoint
+- HTTP status
+- thrown error
+- component/query that throws
+- why it reaches Error Boundary
+- whether expired session is confirmed
+
+Do not report only:
+"session expired"
+
+Explain the exact frontend propagation path.
+
+==================================================
+3. 401 MUST NOT CRASH THE APP
+==================================================
+
+Authentication expiration is an expected application state.
+
+A normal:
+
+401 UNAUTHENTICATED / SESSION_EXPIRED
+
+must NEVER crash a page into the generic Error Boundary.
+
+Implement one centralized auth-expiry handling path.
+
+When session is no longer valid:
+
+- stop protected page queries
+- clear sensitive authenticated React Query cache
+- clear current authenticated user state
+- do not repeatedly retry protected requests
+- show a controlled session-expired UX
+
+==================================================
+4. SESSION EXPIRED UX
+==================================================
+
+Preferred Arabic UX:
+
+انتهت جلسة الدخول
+
+لحماية بيانات المرضى تم إنهاء الجلسة بعد فترة من عدم الاستخدام
+
+Button:
+
+تسجيل الدخول من جديد
+
+English:
+
+Session expired
+
+For the security of patient data, your session ended after a period of inactivity.
+
+Button:
+
+Sign in again
+
+Do NOT show:
+
+تعذر تحميل هذا الجزء من الصفحة
+
+for normal session expiration.
+
+==================================================
+5. NO MANUAL REFRESH REQUIRED
+==================================================
+
+The user must not need to press browser Refresh.
+
+When returning to an expired tab:
+
+Ghars should detect the expired session automatically and show the controlled sign-in state.
+
+The Login button should navigate normally to /login.
+
+No full browser reload required.
+
+==================================================
+6. VISIBILITY / RESUME CHECK
+==================================================
+
+Add/reuse a lightweight session validity check when:
+
+document.visibilityState changes back to "visible"
+
+or the tab regains focus after being inactive for a meaningful period.
+
+Do NOT hammer the API on every focus event.
+
+Use reasonable deduplication/staleness.
+
+Conceptually:
+
+tab inactive for long time
+→ user returns
+→ verify session once
+→ valid = continue normally
+→ expired = controlled session-expired state
+
+==================================================
+7. BACKGROUND QUERY SAFETY
+==================================================
+
+Inspect polling/background reads such as:
+
+notifications
+auth/me
+feature flags
+permissions
+
+If session expires:
+
+they must NOT:
+
+- retry endlessly
+- create request storms
+- throw into global Error Boundary
+- keep querying protected endpoints after auth is known invalid
+
+==================================================
+8. REACT QUERY AUTH ERROR POLICY
+==================================================
+
+Centralize expected auth-error behavior.
+
+For 401/session-expired:
+
+- no generic retry loop
+- no page-level throw
+- auth state handles it once
+
+For genuine unexpected 500/runtime failures:
+normal controlled error behavior remains.
+
+Do not suppress real errors globally.
+
+==================================================
+9. DO NOT MAKE SESSION INSECURE
+==================================================
+
+Do NOT solve by:
+
+- removing session expiration
+- creating permanent authentication
+- putting tokens in insecure localStorage
+- disabling secure/httpOnly cookie
+- extending the session indefinitely
+
+Patient data requires sensible session security.
+
+Keep current secure cookie architecture.
+
+==================================================
+10. ACTIVE USER VS ABANDONED TAB
+==================================================
+
+Rolling-session behavior should remain logical.
+
+If the user is actively using Ghars:
+normal authenticated requests may continue rolling the session according to current server policy.
+
+If the tab is abandoned for the full expiry period:
+session may expire.
+
+The UX problem is the crash, not the existence of an expiry policy.
+
+==================================================
+11. CHECK SECOND POSSIBLE IDLE FAILURE: OLD BUILD
+==================================================
+
+Also verify a second long-open-tab scenario:
+
+User opens Build A
+→ later Production becomes Build B
+→ old tab stays open
+→ user returns hours later
+→ lazy route/module loads
+
+Check for:
+
+Failed to fetch dynamically imported module
+ChunkLoadError
+404 /assets/*.js
+
+If this exists, distinguish it from session expiration.
+
+==================================================
+12. SAFE OLD-BUILD RECOVERY
+==================================================
+
+ONLY if stale-build chunk failure is reproduced:
+
+detect known dynamic-import/chunk-load version mismatch.
+
+Use safe ONE-TIME recovery or controlled:
+
+"يتوفر تحديث جديد للنظام"
+
+with:
+
+"تحديث الآن"
+
+Do not create a reload loop.
+
+Do not reload for ordinary API errors.
+
+==================================================
+13. BUILD VERSION AWARENESS
+==================================================
+
+If not already present, maintain a lightweight production build/version identifier.
+
+When a long-open client becomes stale:
+allow safe detection.
+
+Do not expose secrets.
+
+==================================================
+14. RESUME WITH VALID SESSION
+==================================================
+
+Test:
+
+leave tab idle
+but session is still valid
+
+Return to tab.
+
+Expected:
+
+- no Error Boundary
+- no unnecessary login
+- data refreshes normally
+- UI remains clickable
+- no request storm
+
+==================================================
+15. EXPIRED SESSION TEST
+==================================================
+
+Test:
+
+session actually expired
+
+Expected:
+
+- Error Boundary = 0
+- dead clicks = 0
+- repeated protected requests = 0
+- clear Session Expired screen/dialog
+- Sign In Again works
+- no manual browser refresh
+
+==================================================
+16. MULTIPLE TABS
+==================================================
+
+Test two Ghars tabs.
+
+If logout/session expiry occurs:
+
+both tabs should eventually resolve to safe unauthenticated/session-expired state.
+
+No tab should remain showing sensitive data indefinitely with broken API calls.
+
+==================================================
+17. SECURITY CACHE CLEANUP
+==================================================
+
+On confirmed session expiration:
+
+clear sensitive authenticated query data from memory where appropriate.
+
+Do NOT leave previously fetched patient data available through stale navigable screens after auth expiration.
+
+==================================================
+18. DO NOT REGRESS RAPID NAVIGATION FIX
+==================================================
+
+Preserve checkpoint behavior from the previous performance fix:
+
+- finite staleTime
+- AbortSignal request cancellation
+- no request storm
+- active-route click idempotency
+- rapid navigation stability
+
+Do not revert those improvements.
+
+==================================================
+19. MANUAL PRODUCTION-BUILD QA
+==================================================
+
+Actually test the hashed production build.
+
+Required scenarios:
+
+A. Valid session + idle/resume
+B. Expired session + idle/resume
+C. Background notification request after expiry
+D. Browser sleep/wake where possible
+E. Old deployment/build scenario
+F. Two tabs
+G. login again after expiration
+
+==================================================
+20. FINAL REPORT
+==================================================
+
+Return:
+
+EXACT IDLE ERROR:
+<error>
+
+SESSION EXPIRATION CONFIRMED:
+YES / NO
+
+EXPIRY TIME INVOLVED:
+<details>
+
+FAILING ENDPOINT:
+<endpoint/status>
+
+WHY ERROR BOUNDARY APPEARED:
+<exact propagation>
+
+401 HANDLING:
+PASS / FAIL
+
+SESSION EXPIRED UX:
+PASS / FAIL
+
+MANUAL REFRESH REQUIRED AFTER FIX:
+YES / NO
+Expected: NO
+
+VISIBILITY RESUME CHECK:
+PASS / FAIL
+
+BACKGROUND REQUEST STORM AFTER EXPIRY:
+YES / NO
+
+SENSITIVE QUERY CACHE CLEARED:
+PASS / FAIL
+
+ACTIVE SESSION RESUME:
+PASS / FAIL
+
+EXPIRED SESSION RESUME:
+PASS / FAIL
+
+MULTIPLE TABS:
+PASS / FAIL
+
+STALE BUILD / CHUNK ISSUE ALSO FOUND:
+YES / NO
+
+OLD BUILD RECOVERY:
+PASS / FAIL / NOT NEEDED
+
+RAPID NAVIGATION REGRESSION:
+PASS / FAIL
+
+ERROR BOUNDARY DURING TESTS:
+<count>
+
+DEAD CLICKS:
+<count>
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
