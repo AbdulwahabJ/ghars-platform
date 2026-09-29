@@ -1,0 +1,542 @@
+MODE: Power
+
+IMPROVE GHARS IMPLANT FORM — ADD IMMEDIATE FIELD + PRESERVE FORMER + FIX MANUAL DECIMAL INPUTS + FIX Q DROPDOWN UX.
+
+IMPORTANT:
+Do NOT redesign the implant workflow.
+Do NOT change unrelated patient/case/finance logic.
+Do NOT publish automatically.
+
+There are FOUR requested changes:
+
+1. Add an Immediate implant field.
+2. Preserve and clearly expose the existing Former field.
+3. Make implant Diameter and Length true manual decimal inputs.
+4. Fix the Q/value dropdown so it is practical, viewport-safe, and internally scrollable.
+
+==================================================
+1. ADD IMMEDIATE FIELD
+==================================================
+
+Add an optional implant-level field:
+
+Canonical concept:
+Immediate Implant Placement
+
+Arabic label:
+زرع فوري
+
+English label:
+Immediate
+
+Use a simple selectable value:
+
+نعم
+لا
+غير محدد
+
+English:
+Yes
+No
+Unspecified
+
+Store a stable machine value such as:
+
+YES
+NO
+UNSPECIFIED
+
+or reuse the existing Ghars convention if equivalent.
+
+Do NOT store translated Arabic/English text as the canonical value.
+
+==================================================
+2. MEDICAL SEMANTIC SAFETY
+==================================================
+
+This field represents whether the implant was placed immediately according to the clinician's documentation.
+
+Do NOT automatically infer it from:
+
+- procedure date
+- extraction
+- notes
+- implant status
+- prosthetic timing
+
+The user selects it explicitly.
+
+Do NOT confuse this with:
+
+Immediate Loading
+
+If Ghars already has a separate Immediate Loading concept, keep them separate.
+
+==================================================
+3. FORMER FIELD
+==================================================
+
+Keep the existing implant-level:
+
+Former
+
+This is already part of the Ghars/legacy clinical data model.
+
+Do NOT rename it to something medically invented unless the existing schema already defines a clearer meaning.
+
+Arabic UI may display:
+
+Former
+
+until a clinically verified Arabic terminology is explicitly approved.
+
+The value must remain editable and visible in the implant form.
+
+Preserve existing values such as:
+
+Y
+N
+MST
+
+and any existing managed-list behavior.
+
+Do NOT collapse Former into Notes.
+
+==================================================
+4. IMPLANT FORM FIELD ORDER
+==================================================
+
+Keep the form clean.
+
+Suggested implant detail order:
+
+Implant System
+Site / Tooth
+Diameter
+Length
+Q
+Former
+Graft
+Immediate
+
+Use the current Ghars layout and spacing.
+
+Do not make the card taller than necessary.
+
+==================================================
+5. DIAMETER — MANUAL INPUT ONLY
+==================================================
+
+Current problem:
+
+The Diameter input behaves like a numeric spinner and decimal entry is unreliable.
+
+Change it to a true manual text/decimal input.
+
+Recommended:
+
+type="text"
+inputMode="decimal"
+
+Do NOT use browser number-spinner UX.
+
+No up/down arrows.
+
+User must be able to type naturally:
+
+4
+4.5
+3.8
+3.75
+
+==================================================
+6. LENGTH — MANUAL INPUT ONLY
+==================================================
+
+Apply the SAME behavior to implant Length.
+
+Manual text/decimal input.
+
+No spinner.
+
+Support:
+
+8
+10
+11.5
+12
+13
+
+if the clinical workflow allows those values.
+
+==================================================
+7. DECIMAL ENTRY
+==================================================
+
+While typing, preserve raw input state.
+
+Do NOT immediately parse every keystroke.
+
+These temporary states must remain valid while editing:
+
+""
+"4."
+"4,"
+"4٫"
+
+User must be able to type:
+
+4
+then .
+then 5
+
+and see:
+
+4.5
+
+without the decimal disappearing.
+
+==================================================
+8. DECIMAL NORMALIZATION
+==================================================
+
+Accept:
+
+4.5
+4,5
+4٫5
+٤٫٥
+
+Normalize on blur/save to:
+
+4.5
+
+Also normalize Arabic/Persian digits to Western digits.
+
+Ghars display rule remains:
+
+0-9
+
+==================================================
+9. VALIDATION
+==================================================
+
+Reject invalid input safely:
+
+4..5
+abc
+-4.5
+
+Do not erase the field unexpectedly.
+
+Show a small inline validation message.
+
+Do not use browser-native validation popup.
+
+==================================================
+10. DATABASE / API
+==================================================
+
+Preserve current numeric database/API semantics.
+
+Frontend editing state may be string.
+
+Normalize and validate before sending the canonical numeric value.
+
+Do NOT change database numeric types unless absolutely required.
+
+==================================================
+11. Q / VALUE DROPDOWN CURRENT UX PROBLEM
+==================================================
+
+Current problem from the attached screenshot:
+
+The Q/value list can open upward and extend outside the practical visible area.
+
+The user has to scroll the entire PAGE to reach/select values.
+
+This is not acceptable.
+
+The dropdown itself must manage its own scrolling.
+
+==================================================
+12. Q DROPDOWN REQUIRED UX
+==================================================
+
+When opening Q:
+
+- keep the dropdown inside the viewport
+- give the dropdown a controlled maximum height
+- use internal vertical scrolling
+- do NOT expand the page
+- do NOT require page scrolling to reach an option
+- selected/current value should be easy to see
+
+Recommended max height:
+
+240–320px
+
+or dynamically based on available viewport space.
+
+Use:
+
+overflow-y: auto
+
+inside the dropdown content.
+
+==================================================
+13. DROPDOWN POSITIONING
+==================================================
+
+Use the existing shadcn/Radix popover/select architecture correctly.
+
+Requirements:
+
+- portal correctly
+- collision detection enabled
+- viewport collision padding
+- reasonable sideOffset
+- align with the field
+- never render large portions inaccessible outside viewport
+
+Do NOT blindly force a giant upward menu.
+
+If there is more space below:
+prefer below.
+
+If collision handling moves it above:
+the list must still stay fully constrained and internally scrollable.
+
+==================================================
+14. PAGE SCROLL MUST NOT BE USED AS DROPDOWN SCROLL
+==================================================
+
+Critical acceptance:
+
+Opening Q while the implant card is near the bottom of the page:
+
+The user should be able to move through all Q options by scrolling INSIDE the dropdown.
+
+The surrounding patient page should stay in place.
+
+==================================================
+15. SELECTED VALUE
+==================================================
+
+When Q dropdown opens:
+
+Ensure the selected value is visible where practical.
+
+Do not force the user to scroll from the beginning of a long list every time.
+
+==================================================
+16. LONG LIST PERFORMANCE
+==================================================
+
+If Q contains many values:
+
+Do not render an unbounded giant menu.
+
+Use a sensible scroll container.
+
+If the existing component supports search and Q list is long:
+keep/reuse search.
+
+Do not create unnecessary complexity if the list is small.
+
+==================================================
+17. APPLY DROPDOWN FIX TO SIMILAR IMPLANT LISTS
+==================================================
+
+Inspect other implant-managed-list dropdowns such as:
+
+Former
+Graft
+Implant System
+
+If they use the same broken component/behavior:
+apply the shared viewport-safe scroll fix.
+
+Do NOT independently rewrite every dropdown.
+
+Use one reusable implementation.
+
+==================================================
+18. RESPONSIVE UX
+==================================================
+
+Verify on:
+
+desktop
+tablet
+mobile
+
+Dropdown must remain usable without escaping the screen.
+
+Manual Diameter/Length fields must show decimal keyboard on supported mobile browsers through:
+
+inputMode="decimal"
+
+==================================================
+19. ARABIC / ENGLISH
+==================================================
+
+Use existing i18next.
+
+Arabic:
+RTL
+
+English:
+LTR
+
+Clinical numeric values remain visually LTR where necessary.
+
+Example:
+
+4.5
+3.8
+10
+
+must not reorder in RTL.
+
+==================================================
+20. EXISTING DATA
+==================================================
+
+Do not modify existing implant values.
+
+Do not backfill Immediate automatically.
+
+Existing implants should show:
+
+Immediate = Unspecified
+
+until explicitly updated.
+
+==================================================
+21. IMPORT COMPATIBILITY
+==================================================
+
+Do not break Legacy Import mappings.
+
+Former remains Former.
+
+If future legacy source contains a clearly mapped Immediate field:
+the importer may support it later.
+
+Do NOT automatically reinterpret existing NOTE values such as IMMED during this task.
+
+The Legacy Import feature is currently disabled / Coming Soon anyway.
+
+==================================================
+22. MANUAL VISUAL QA
+==================================================
+
+Actually test the implant form in Arabic UI.
+
+Test:
+
+Diameter:
+4.5
+3.8
+4,5
+4٫5
+٤٫٥
+
+Length:
+10
+11.5
+12,5
+
+Verify no spinner.
+
+Verify decimal stays visible while typing.
+
+Open Q near the bottom of the page.
+
+Verify:
+- menu remains usable
+- menu does not escape viewport
+- internal scroll works
+- no need to scroll whole page
+- all values can be reached
+
+Test Former and Graft similarly if they share the dropdown.
+
+==================================================
+23. FINAL REPORT
+==================================================
+
+Return:
+
+IMMEDIATE FIELD:
+PASS / FAIL
+
+IMMEDIATE != IMMEDIATE LOADING:
+PASS / FAIL
+
+FORMER PRESERVED:
+PASS / FAIL
+
+FORMER VISIBLE/EDITABLE:
+PASS / FAIL
+
+DIAMETER MANUAL INPUT:
+PASS / FAIL
+
+DIAMETER 4.5:
+PASS / FAIL
+
+DIAMETER ARABIC DECIMAL NORMALIZATION:
+PASS / FAIL
+
+LENGTH MANUAL INPUT:
+PASS / FAIL
+
+LENGTH DECIMAL:
+PASS / FAIL
+
+NO NUMBER SPINNERS:
+PASS / FAIL
+
+Q DROPDOWN VIEWPORT SAFE:
+PASS / FAIL
+
+Q INTERNAL SCROLL:
+PASS / FAIL
+
+NO PAGE SCROLL REQUIRED TO SELECT Q:
+PASS / FAIL
+
+SELECTED Q VISIBLE:
+PASS / FAIL
+
+FORMER/GRAFT SHARED DROPDOWN FIX:
+PASS / FAIL
+
+ARABIC RTL:
+PASS / FAIL
+
+WESTERN DIGITS:
+PASS / FAIL
+
+EXISTING DATA PRESERVED:
+PASS / FAIL
+
+DATABASE MIGRATION REQUIRED:
+YES / NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
