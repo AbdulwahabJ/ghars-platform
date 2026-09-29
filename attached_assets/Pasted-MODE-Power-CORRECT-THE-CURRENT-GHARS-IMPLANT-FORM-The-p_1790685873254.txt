@@ -1,0 +1,467 @@
+MODE: Power
+
+CORRECT THE CURRENT GHARS IMPLANT FORM.
+
+The previous report claimed these items PASS, but visual QA proves the UI still does NOT match the requested behavior.
+
+Current checkpoint:
+51e04f82748ac9c2854ac3e5e31dfcb6e7a0dfa7
+
+DO NOT rely on existing automated tests alone.
+
+Use the attached screenshots as the actual acceptance reference.
+
+There are TWO unresolved UX bugs:
+
+1. Implant Diameter and Implant Length are STILL dropdown/select fields.
+2. Q / Implant Value dropdown is STILL too tall.
+
+Do not change Immediate, Former, Graft, finance, patient flow, or unrelated implant behavior.
+
+Do not publish.
+
+==================================================
+1. DIAMETER MUST NOT BE A DROPDOWN
+==================================================
+
+Current screenshot shows:
+
+قطر الزرعة
+3.8
+with a dropdown arrow.
+
+THIS IS WRONG.
+
+Remove the Select / Combobox completely.
+
+Replace it with a plain editable input.
+
+Arabic label:
+قطر الزرعة
+
+English:
+Implant Diameter
+
+Required element behavior:
+
+type="text"
+inputMode="decimal"
+
+No dropdown arrow.
+No predefined choices.
+No spinner buttons.
+No managed-list popup.
+
+The clinician must type ANY valid decimal value manually.
+
+Examples:
+
+3.5
+3.8
+4
+4.1
+4.5
+4.8
+5
+5.5
+
+Do NOT restrict the user to predefined implant diameters.
+
+==================================================
+2. LENGTH MUST NOT BE A DROPDOWN
+==================================================
+
+Current screenshot also shows:
+
+طول الزرعة
+10
+with a dropdown arrow.
+
+THIS IS WRONG.
+
+Replace it with the same manual decimal input architecture.
+
+Arabic:
+طول الزرعة
+
+English:
+Implant Length
+
+Allow manual values such as:
+
+6
+8
+8.5
+10
+11
+11.5
+12
+13
+15
+
+No predefined dropdown.
+
+==================================================
+3. DECIMAL TYPING MUST WORK CHARACTER BY CHARACTER
+==================================================
+
+Critical real-world test:
+
+Click Diameter.
+
+Type:
+
+4
+
+Then:
+
+.
+
+The field MUST visually remain:
+
+4.
+
+Then type:
+
+5
+
+Final visible value:
+
+4.5
+
+The dot MUST NOT disappear.
+
+Repeat for Length:
+
+11
+.
+5
+
+→
+
+11.5
+
+==================================================
+4. PRESERVE RAW EDITING STRING
+==================================================
+
+Do NOT convert the value to Number on each keystroke.
+
+Input state while editing must remain STRING.
+
+These must be allowed temporary states:
+
+""
+"4"
+"4."
+"4,"
+"4٫"
+"4.5"
+
+Only normalize/parse on blur or save.
+
+==================================================
+5. ACCEPT DIFFERENT DECIMAL SEPARATORS
+==================================================
+
+Accept user input:
+
+4.5
+4,5
+4٫5
+٤٫٥
+
+All normalize to canonical:
+
+4.5
+
+Likewise:
+
+11,5
+11٫5
+١١٫٥
+
+→
+
+11.5
+
+Ghars display remains Western digits:
+
+0-9
+
+==================================================
+6. INVALID INPUT
+==================================================
+
+Reject clearly invalid final values:
+
+4..5
+abc
+-4
+
+But do NOT clear the user's text while they are still typing.
+
+Show inline validation.
+
+==================================================
+7. REMOVE OLD SELECT IMPLEMENTATION
+==================================================
+
+Do not visually disguise a Select as an Input.
+
+Actually remove the Diameter/Length Select behavior.
+
+Verify there is:
+
+- no chevron
+- no popup
+- no options list
+- no spinner
+- no managed lookup
+
+Diameter and Length must be actual manual fields.
+
+==================================================
+8. Q / IMPLANT VALUE DROPDOWN
+==================================================
+
+The attached screenshot shows the Q / Implant Value list taking too much vertical space.
+
+Make it SHORT.
+
+The dropdown itself should show approximately:
+
+4–5 options at a time
+
+Then scroll internally.
+
+Recommended:
+
+max-height: 180px
+
+or approximately 160–200px depending on current row height.
+
+NOT 300+ px.
+
+==================================================
+9. INTERNAL SCROLL ONLY
+==================================================
+
+Required behavior:
+
+Open Q / Implant Value list.
+
+Example:
+
+┌─────────────┐
+│ 35          │
+│ 40          │
+│ 45          │
+│ 50          │
+│ 55          │
+│ ↕ scroll    │
+└─────────────┘
+
+The remaining values are reachable by scrolling INSIDE this box.
+
+The full patient page must NOT need to move to reach an option.
+
+==================================================
+10. VIEWPORT POSITIONING
+==================================================
+
+The dropdown must remain inside the visible browser viewport.
+
+If there is room below:
+open downward.
+
+If there is not enough room:
+Radix collision handling may reposition it.
+
+BUT even when opened upward:
+
+the menu must remain SHORT and internally scrollable.
+
+Never render the huge list shown in the attached screenshot.
+
+==================================================
+11. DO NOT EXPAND BASED ON CONTENT
+==================================================
+
+The dropdown height must NOT grow based on the number of Q values.
+
+Whether there are:
+
+5 values
+20 values
+100 values
+
+the visible dropdown height remains bounded.
+
+Use internal:
+
+overflow-y: auto
+
+==================================================
+12. APPLY TO THE ACTUAL FIELD IN SCREENSHOT
+==================================================
+
+Do not fix an unused/shared component and claim PASS.
+
+Open the actual Arabic implant form shown in the screenshots.
+
+Verify visually:
+
+قطر الزرعة:
+plain manual text field
+
+طول الزرعة:
+plain manual text field
+
+Q / قيمة الزرعة:
+short dropdown with internal scrollbar
+
+==================================================
+13. DO NOT CHANGE OTHER DROPDOWNS UNNECESSARILY
+==================================================
+
+Former
+Graft
+Immediate
+Implant System
+Site
+
+can remain their intended field types.
+
+Only reuse the short-scroll dropdown behavior if they also contain long managed lists.
+
+Do NOT turn those fields into manual text fields unless already designed that way.
+
+==================================================
+14. NO NEW DATABASE MIGRATION
+==================================================
+
+This correction is UI/input behavior only.
+
+Do NOT create another database migration for Diameter, Length, or Q dropdown sizing.
+
+The existing Immediate migration from the previous work may remain if already required.
+
+==================================================
+15. MANUAL BROWSER QA — REQUIRED
+==================================================
+
+Do not finish based only on unit tests.
+
+In Arabic UI manually:
+
+TEST A:
+Click Diameter
+type 4.5
+
+Expected:
+4.5 remains visible.
+
+TEST B:
+Clear Diameter
+type 4,5
+
+Expected:
+accepted and normalized safely.
+
+TEST C:
+Length
+type 11.5
+
+Expected:
+11.5
+
+TEST D:
+Verify Diameter has NO dropdown arrow.
+
+TEST E:
+Verify Length has NO dropdown arrow.
+
+TEST F:
+Open Q / Implant Value.
+
+Expected:
+short list approximately 4–5 rows tall.
+
+TEST G:
+Scroll inside Q list to the final value.
+
+Expected:
+list scrolls, page does not need to move.
+
+Take/inspect the actual browser result.
+
+==================================================
+16. FINAL REPORT
+==================================================
+
+Return:
+
+DIAMETER IS TRUE TEXT INPUT:
+PASS / FAIL
+
+DIAMETER DROPDOWN REMOVED:
+PASS / FAIL
+
+DIAMETER 4.5 TYPED MANUALLY:
+PASS / FAIL
+
+TEMPORARY "4." REMAINS VISIBLE:
+PASS / FAIL
+
+LENGTH IS TRUE TEXT INPUT:
+PASS / FAIL
+
+LENGTH DROPDOWN REMOVED:
+PASS / FAIL
+
+LENGTH 11.5 TYPED MANUALLY:
+PASS / FAIL
+
+COMMA DECIMAL:
+PASS / FAIL
+
+ARABIC DECIMAL:
+PASS / FAIL
+
+Q DROPDOWN MAX HEIGHT:
+<actual px>
+
+VISIBLE Q OPTIONS:
+<number>
+
+Q INTERNAL SCROLL:
+PASS / FAIL
+
+PAGE SCROLL NOT REQUIRED:
+PASS / FAIL
+
+Q VIEWPORT SAFE:
+PASS / FAIL
+
+VISUAL QA ON ACTUAL ARABIC FORM:
+PASS / FAIL
+
+NEW DATABASE MIGRATION CREATED:
+YES / NO
+Expected: NO
+
+TESTS:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.
