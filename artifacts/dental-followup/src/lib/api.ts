@@ -148,6 +148,12 @@ import type {
 import i18n from "@/i18n";
 import { localizeApiErrorMessage } from "@/lib/localize-error";
 import { normalizeNumericValues } from "@/lib/digits";
+import {
+  currentSessionGeneration,
+  isSessionExpired,
+  markSessionAuthenticated,
+  notifySessionExpired,
+} from "@/lib/session-expiry";
 
 const API_BASE = `${import.meta.env.BASE_URL}api`;
 
@@ -214,6 +220,11 @@ async function request<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { method = "GET", json, signal } = options;
+  const requestGeneration = currentSessionGeneration();
+  // An invalidated tab must not continue reading protected patient data.
+  if (isSessionExpired()) {
+    throw new ApiError(401, i18n.t("errors.unauthorized"), "UNAUTHENTICATED");
+  }
   const response = await fetch(`${API_BASE}${path}`, {
     method,
     signal,
@@ -254,12 +265,22 @@ async function request<T>(
     } catch {
       // Non-JSON error body — keep the localized generic message.
     }
+    if (
+      response.status === 401 &&
+      path !== "/auth/login" &&
+      code !== IMPERSONATION_TERMINATED_CODE &&
+      code !== IMPERSONATION_ORIGINAL_ADMIN_INVALID_CODE &&
+      requestGeneration === currentSessionGeneration()
+    ) {
+      notifySessionExpired();
+    }
     throw new ApiError(response.status, message, code, data, field);
   }
 
   if (response.status === 204) {
     return undefined as T;
   }
+  if (path === "/auth/me") markSessionAuthenticated();
   return (await response.json()) as T;
 }
 
@@ -297,7 +318,7 @@ export const api = {
       json: input,
     }),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
-  me: () => request<MeResponse>("/auth/me"),
+  me: (signal?: AbortSignal) => request<MeResponse>("/auth/me", { signal }),
   register: (input: PublicRegistrationInput) =>
     request<PublicRegistrationResponse>("/auth/register", {
       method: "POST",

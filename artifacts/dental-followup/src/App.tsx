@@ -1,4 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiError } from '@/lib/api';
+import { SessionLifecycle } from '@/components/auth/SessionLifecycle';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -27,7 +29,15 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import { clearChunkRecoveryAttempt } from '@/lib/runtime-errors';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failures, error) => !(error instanceof ApiError && error.status === 401) && failures < 3,
+      // Revalidate the session first on resume; then refresh active page data.
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function FinanceRedirect() {
   return <Redirect to="/statistics" replace />;
@@ -190,13 +200,15 @@ function App() {
       <LocaleProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-            <ImpersonationLifecycleHandler />
-            <RouteErrorBoundary onRetry={() => queryClient.resetQueries()}>
-              <Suspense fallback={<RouteLoading />}>
-                <Router />
-                <RouteRecoveryMarker />
-              </Suspense>
-            </RouteErrorBoundary>
+            <SessionLifecycle>
+              <ImpersonationLifecycleHandler />
+              <RouteErrorBoundary onRetry={() => queryClient.resetQueries()}>
+                <Suspense fallback={<RouteLoading />}>
+                  <Router />
+                  <RouteRecoveryMarker />
+                </Suspense>
+              </RouteErrorBoundary>
+            </SessionLifecycle>
           </WouterRouter>
           <Toaster />
         </TooltipProvider>

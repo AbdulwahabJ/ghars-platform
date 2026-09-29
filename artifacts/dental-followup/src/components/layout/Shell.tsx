@@ -14,7 +14,7 @@ interface ShellProps {
 }
 
 export function Shell({ children, decorated = false }: ShellProps) {
-  const { user, preferences, isLoading, isError, setupStatus } = useAuth();
+  const { user, preferences, isLoading, setupStatus } = useAuth();
   const { direction } = useLocale();
   const [, setLocation] = useLocation();
 
@@ -22,11 +22,11 @@ export function Shell({ children, decorated = false }: ShellProps) {
     if (!isLoading) {
       if (setupStatus?.setupRequired) {
         setLocation("/setup");
-      } else if (isError || !user) {
+      } else if (!user) {
         setLocation("/login");
       }
     }
-  }, [isLoading, isError, user, setupStatus, setLocation]);
+  }, [isLoading, user, setupStatus, setLocation]);
 
   if (isLoading) {
     return (

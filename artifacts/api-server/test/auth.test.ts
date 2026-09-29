@@ -80,6 +80,26 @@ describe("authentication and sessions", () => {
     expect(me.status).toBe(401);
   });
 
+  it("rejects a PostgreSQL-expired session on both identity and background reads", async () => {
+    const agent = agentFor(app);
+    const login = await agent
+      .post("/api/auth/login")
+      .send({ username: "admin", password: ADMIN_PASSWORD });
+    expect(login.status).toBe(200);
+    expect((await agent.get("/api/auth/me")).status).toBe(200);
+
+    // Only the disposable test database is used by this suite.
+    await pool.query(
+      "UPDATE sessions SET expire = NOW() - INTERVAL '1 minute' WHERE sess->>'userId' IS NOT NULL",
+    );
+    const me = await agent.get("/api/auth/me");
+    expect(me.status).toBe(401);
+    expect(me.body.code).toBe("UNAUTHENTICATED");
+    const notifications = await agent.get("/api/notifications");
+    expect(notifications.status).toBe(401);
+    expect(notifications.body.code).toBe("UNAUTHENTICATED");
+  });
+
   it("rejects a deactivated user", async () => {
     await pool.query("UPDATE users SET is_active = false WHERE username = 'admin'");
     const res = await agentFor(app)

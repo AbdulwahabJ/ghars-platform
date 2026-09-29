@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { LoginInput, SetupInput, SwitchTenantInput } from "@workspace/shared";
+import {
+  advanceSessionGeneration,
+  broadcastSessionEnded,
+  markSessionAuthenticated,
+  resetSessionExpiry,
+} from "@/lib/session-expiry";
 
 export const ME_QUERY_KEY = ["me"];
 export const SETUP_STATUS_QUERY_KEY = ["setup-status"];
@@ -24,12 +30,12 @@ export function useAuth() {
 
   const meQuery = useQuery({
     queryKey: ME_QUERY_KEY,
-    queryFn: () => api.me(),
+    queryFn: ({ signal }) => api.me(signal),
     retry: false,
     staleTime: 10_000,
     refetchInterval: 30_000,
     refetchOnMount: true,
-    refetchOnWindowFocus: "always",
+    refetchOnWindowFocus: false,
   });
 
   const setupStatusQuery = useQuery({
@@ -42,6 +48,8 @@ export function useAuth() {
   const loginMutation = useMutation({
     mutationFn: (input: LoginInput) => api.login(input),
     onSuccess: (data) => {
+      resetSessionExpiry();
+      markSessionAuthenticated();
       queryClient.setQueryData(ME_QUERY_KEY, data);
     },
   });
@@ -49,6 +57,7 @@ export function useAuth() {
   const logoutMutation = useMutation({
     mutationFn: () => api.logout(),
     onSuccess: () => {
+      broadcastSessionEnded();
       queryClient.setQueryData(ME_QUERY_KEY, null);
       queryClient.clear();
     },
@@ -64,6 +73,7 @@ export function useAuth() {
   const switchTenantMutation = useMutation({
     mutationFn: (input: SwitchTenantInput) => api.switchTenant(input),
     onSuccess: (data) => {
+      advanceSessionGeneration();
       // Clear all tenant-scoped data, but retain ME_QUERY_KEY and SETUP_STATUS_QUERY_KEY
       queryClient.removeQueries({
         predicate: (query) =>
@@ -79,6 +89,7 @@ export function useAuth() {
     mutationFn: ({ tenantId, userId, reason }: { tenantId: string; userId: string; reason: string }) =>
       api.platformImpersonateUser(tenantId, userId, reason),
     onSuccess: async () => {
+      advanceSessionGeneration();
       clearTenantScopedQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ME_QUERY_KEY, type: "active" });
     },
@@ -87,6 +98,7 @@ export function useAuth() {
   const exitImpersonationMutation = useMutation({
     mutationFn: () => api.exitImpersonation(),
     onSuccess: async () => {
+      advanceSessionGeneration();
       clearTenantScopedQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ME_QUERY_KEY, type: "active" });
     },

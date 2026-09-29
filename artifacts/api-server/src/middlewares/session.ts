@@ -10,6 +10,10 @@ if (!sessionSecret) {
 }
 
 const isProduction = process.env.NODE_ENV === "production";
+const testMaxAge = process.env.NODE_ENV === "test" ? process.env.TEST_SESSION_MAX_AGE_MS : undefined;
+if (testMaxAge !== undefined && (!Number.isSafeInteger(Number(testMaxAge)) || Number(testMaxAge) <= 0)) {
+  throw new Error("TEST_SESSION_MAX_AGE_MS must be a positive integer.");
+}
 
 /**
  * Server-side sessions stored in PostgreSQL (Drizzle-managed `sessions`
@@ -31,7 +35,7 @@ export const sessionMiddleware = session({
     httpOnly: true,
     sameSite: "lax",
     secure: isProduction,
-    maxAge: 12 * 60 * 60 * 1000,
+    maxAge: testMaxAge === undefined ? 12 * 60 * 60 * 1000 : Number(testMaxAge),
     path: "/",
   },
 });

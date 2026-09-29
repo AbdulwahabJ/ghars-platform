@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { ExportFormat } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { notifySessionExpired } from "@/lib/session-expiry";
 
 type ExportMenuProps = {
   getUrl: (format: ExportFormat) => string;
@@ -54,6 +55,7 @@ export function ExportMenu({
         credentials: "same-origin",
         headers: { Accept: "application/octet-stream" },
       });
+      if (response.status === 401) notifySessionExpired();
       if (!response.ok) {
         throw new Error(`Export failed (${response.status})`);
       }

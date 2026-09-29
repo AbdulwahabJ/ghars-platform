@@ -41,3 +41,4 @@
 - [Radix trigger ownership](radix-trigger-ownership.md) — never compose multiple Radix Trigger asChild primitives onto one control; it can strand modal pointer locks and create dead clicks.
 - [Route remount query pressure](route-remount-query-pressure.md) — Shell remounts make zero-stale queries refetch on every navigation; use finite freshness, AbortSignal, and active-route idempotency.
 - [Implant entry surfaces](implant-entry-surfaces.md) — verify the exact Arabic implant entry point shown by the user; patient-file, quick-entry, and dashboard forms are distinct.
+- [Idle error forensics](idle-error-forensics.md) — dashboard React #185 happened after both auth 401s and valid 304s; investigate each path separately.
