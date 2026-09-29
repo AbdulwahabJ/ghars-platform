@@ -41,6 +41,7 @@ import { InlineNewRecord } from "./InlineNewRecord";
 import { ProstheticEventDialog } from "@/components/implants/ProstheticEventDialog";
 import { BoneGraftProcedureDialog } from "@/components/implants/BoneGraftProcedureDialog";
 import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProstheticDateField";
+import { ImmediatePlacementField } from "@/components/implants/ImmediatePlacementField";
 import { FinalTotalDialog } from "@/components/finance/FinalTotalDialog";
 import { OutcomeDialog } from "@/components/followups/OutcomeDialog";
 import { CancelFollowupDialog } from "@/components/followups/CancelFollowupDialog";
@@ -610,6 +611,7 @@ function InlineImplantEdit({
   const [qValue, setQValue] = useState(imp.qValue ?? "");
   const [formerValue, setFormerValue] = useState(imp.formerValue ?? "");
   const [graftValue, setGraftValue] = useState(imp.graftValue ?? "");
+  const [immediatePlacement, setImmediatePlacement] = useState<Implant["immediatePlacement"]>(imp.immediatePlacement ?? "UNSPECIFIED");
   const [implantStatus, setImplantStatus] = useState(imp.implantStatus);
 
   const handleStatusChange = (nextStatus: ImplantStatus) => {
@@ -642,6 +644,7 @@ function InlineImplantEdit({
           qValue: qValue || null,
           formerValue: formerValue || null,
           graftValue: graftValue || null,
+          immediatePlacement,
           implantStatus: implantStatus as typeof IMPLANT_STATUSES[number],
         },
       },
@@ -725,6 +728,12 @@ function InlineImplantEdit({
             </SelectContent>
           </Select>
         </div>
+        <ImmediatePlacementField
+          id={`operational-edit-immediate-${imp.id}`}
+          value={immediatePlacement}
+          onChange={setImmediatePlacement}
+          compact
+        />
         <div className="space-y-1">
           <Label className="text-xs">{dashboardText("status")}</Label>
           <Select value={implantStatus} onValueChange={(v) => handleStatusChange(v as ImplantStatus)}>
@@ -806,6 +815,7 @@ function InlineAddImplant({
   const [qValue, setQValue] = useState("");
   const [formerValue, setFormerValue] = useState("");
   const [graftValue, setGraftValue] = useState("");
+  const [immediatePlacement, setImmediatePlacement] = useState<Implant["immediatePlacement"]>("UNSPECIFIED");
   const [graftProcedureType, setGraftProcedureType] = useState("");
   const [graftNote, setGraftNote] = useState("");
   const [implantStatus, setImplantStatus] = useState<ImplantStatus>("مزروعة");
@@ -829,7 +839,7 @@ function InlineAddImplant({
           length: parsedLength,
           qValue: qValue || null,
           formerValue: formerValue || null,
-          immediatePlacement: "UNSPECIFIED",
+          immediatePlacement,
           graftValue: graftValue || null,
           graftProcedureType: graftProcedureType || null,
           graftNote: graftNote || null,
@@ -927,6 +937,11 @@ function InlineAddImplant({
             </SelectContent>
           </Select>
         </div>
+        <ImmediatePlacementField
+          id={`operational-add-immediate-${patientId}`}
+          value={immediatePlacement}
+          onChange={setImmediatePlacement}
+        />
         {/* Implant Status */}
         <div className="space-y-1">
           <Label className="text-xs">{dashboardText("implantStatus")}</Label>
@@ -2317,6 +2332,12 @@ function PatientExpandedRow({
                                     <p className="text-[10px] text-muted-foreground">{clinicalText("Graft")}</p>
                                     <p className="font-medium">{imp.graftValue || "—"}</p>
                                   </div>
+                                   <div>
+                                     <p className="text-[10px] text-muted-foreground">{i18n.t("clinical:implant.immediate")}</p>
+                                     <p className="font-medium">
+                                       {i18n.t(`clinical:implant.immediate${imp.immediatePlacement === "YES" ? "Yes" : imp.immediatePlacement === "NO" ? "No" : "Unspecified"}`)}
+                                     </p>
+                                   </div>
                                   <div>
                                     <p className="text-[10px] text-muted-foreground">{t("dashboard.implantStatus")}</p>
                                      {user?.role === "ADMIN" ? (

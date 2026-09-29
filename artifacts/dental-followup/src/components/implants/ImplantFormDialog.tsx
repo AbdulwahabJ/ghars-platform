@@ -105,7 +105,7 @@ function ImplantForm({
     fromImplant ? implant.graftValue : null,
   );
   const [immediatePlacement, setImmediatePlacement] = useState<ImplantInput["immediatePlacement"]>(() =>
-    fromImplant ? implant.immediatePlacement : "UNSPECIFIED",
+    fromImplant ? (implant.immediatePlacement ?? "UNSPECIFIED") : "UNSPECIFIED",
   );
   const [sizeErrors, setSizeErrors] = useState({ diameter: false, length: false });
   const [graftProcedureType, setGraftProcedureType] = useState(() =>

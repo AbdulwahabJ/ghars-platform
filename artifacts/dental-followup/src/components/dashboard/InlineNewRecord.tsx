@@ -49,6 +49,7 @@ import {
   OperationalDateTimeFields,
 } from "./OperationalDatePicker";
 import { ExpectedProstheticDateField } from "@/components/implants/ExpectedProstheticDateField";
+import { ImmediatePlacementField } from "@/components/implants/ImmediatePlacementField";
 import { FileDropzone, StagedFilesList } from "@/components/patients/attachments/StagedFilesList";
 import { patientAttachmentMimeForFile, StagedFile, uploadFileWithProgress } from "@/components/patients/attachments/upload-utils";
 import { PatientAttachmentCategory } from "@workspace/shared";
@@ -87,6 +88,7 @@ const createFormSchema = (t: (key: string) => string) => z.object({
     qValue: z.string().optional(),
     formerValue: z.string().optional(),
     graftValue: z.string().optional(),
+    immediatePlacement: z.enum(["YES", "NO", "UNSPECIFIED"]),
     implantStatus: z.string(),
     implantNote: z.string().optional(),
   })),
@@ -547,7 +549,7 @@ export function InlineNewRecord({
             length: parseImplantDimension(i.length ?? ""),
             qValue: i.qValue || null,
             formerValue: i.formerValue || null,
-            immediatePlacement: "UNSPECIFIED",
+            immediatePlacement: i.immediatePlacement,
             graftValue: i.graftValue || null,
             graftProcedureType: null,
             graftNote: null,
@@ -740,6 +742,7 @@ export function InlineNewRecord({
       qValue: "",
       formerValue: "",
       graftValue: "",
+      immediatePlacement: "UNSPECIFIED",
       implantStatus: "مزروعة",
       implantNote: "",
     });
@@ -1109,6 +1112,11 @@ export function InlineNewRecord({
                           </SelectContent>
                         </Select>
                       </div>
+                      <ImmediatePlacementField
+                        id={`quick-entry-immediate-${field.id}`}
+                        value={form.watch(`implants.${index}.immediatePlacement`)}
+                        onChange={(value) => form.setValue(`implants.${index}.immediatePlacement`, value, { shouldDirty: true })}
+                      />
                       <div className="space-y-1">
                         <Label className="text-xs">{t("fields.implantStatus")}</Label>
                         <Select
