@@ -56,6 +56,7 @@ import { api } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { useClinicalTranslation } from "@/i18n/use-clinical-translation";
 import { useEnumTranslation } from "@/i18n/use-enum-translation";
+import { finalizeDecimalInput, parseImplantDimension } from "@/lib/digits";
 
 /* ------------------------------------------------------------------ */
 /* Internal form schema (more permissive than API schema — API validates)
@@ -81,8 +82,8 @@ const createFormSchema = (t: (key: string) => string) => z.object({
   implants: z.array(z.object({
     site: z.string().min(1, t("validation.siteRequired")),
     system: z.string().optional(),
-    diameter: z.string().optional(),
-    length: z.string().optional(),
+    diameter: z.string().optional().refine((value) => !value || !Number.isNaN(parseImplantDimension(value)), t("validation.implantDimension")),
+    length: z.string().optional().refine((value) => !value || !Number.isNaN(parseImplantDimension(value)), t("validation.implantDimension")),
     qValue: z.string().optional(),
     formerValue: z.string().optional(),
     graftValue: z.string().optional(),
@@ -542,8 +543,8 @@ export function InlineNewRecord({
           .map((i) => ({
             site: i.site as typeof FDI_SITES[number],
             system: i.system || null,
-            diameter: i.diameter ? parseFloat(i.diameter) : null,
-            length: i.length ? parseFloat(i.length) : null,
+            diameter: parseImplantDimension(i.diameter ?? ""),
+            length: parseImplantDimension(i.length ?? ""),
             qValue: i.qValue || null,
             formerValue: i.formerValue || null,
             immediatePlacement: "UNSPECIFIED",
@@ -1024,21 +1025,31 @@ export function InlineNewRecord({
                         <Label className="text-xs">{t("fields.diameter")}</Label>
                         <Input
                           className="h-8 text-sm"
-                          type="number"
-                          step="0.1"
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          aria-label={t("fields.diameter")}
+                          aria-invalid={!!form.formState.errors.implants?.[index]?.diameter}
                           placeholder="3.5"
                           {...form.register(`implants.${index}.diameter`)}
+                          onBlur={(event) => form.setValue(`implants.${index}.diameter`, finalizeDecimalInput(event.target.value), { shouldTouch: true, shouldValidate: true })}
                         />
+                        {form.formState.errors.implants?.[index]?.diameter && <p role="alert" className="text-xs text-destructive">{form.formState.errors.implants[index]?.diameter?.message}</p>}
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">{t("fields.length")}</Label>
                         <Input
                           className="h-8 text-sm"
-                          type="number"
-                          step="0.1"
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          aria-label={t("fields.length")}
+                          aria-invalid={!!form.formState.errors.implants?.[index]?.length}
                           placeholder="10"
                           {...form.register(`implants.${index}.length`)}
+                          onBlur={(event) => form.setValue(`implants.${index}.length`, finalizeDecimalInput(event.target.value), { shouldTouch: true, shouldValidate: true })}
                         />
+                        {form.formState.errors.implants?.[index]?.length && <p role="alert" className="text-xs text-destructive">{form.formState.errors.implants[index]?.length?.message}</p>}
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Q</Label>
@@ -1050,7 +1061,7 @@ export function InlineNewRecord({
                           <SelectTrigger className="h-8 text-sm">
                             <SelectValue placeholder="—" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-[180px]" collisionPadding={12}>
                             <SelectItem value="__none__">—</SelectItem>
                             {(implantOptions?.qValues ?? []).map((v) => (
                               <SelectItem key={v} value={v}>{v}</SelectItem>

@@ -25,6 +25,8 @@ interface SearchableComboboxProps {
   placeholder: string;
   /** Allow saving a value that is not in the suggestions list. */
   allowCustom?: boolean;
+  /** Keep long Q lists to about four visible rows; other managed lists retain their existing size. */
+  compact?: boolean;
   disabled?: boolean;
 }
 
@@ -40,6 +42,7 @@ export function SearchableCombobox({
   options,
   placeholder,
   allowCustom = true,
+  compact = false,
   disabled,
 }: SearchableComboboxProps) {
   const { t } = useClinicalTranslation();
@@ -103,7 +106,7 @@ export function SearchableCombobox({
           requestAnimationFrame(() => currentOptionRef.current?.scrollIntoView({ block: "nearest" }));
         }}
         className="p-0 w-[--radix-popover-trigger-width] min-w-[min(200px,calc(100vw-24px))] max-w-[calc(100vw-24px)] overflow-hidden"
-        style={{ maxHeight: "min(320px, var(--radix-popover-content-available-height, 320px))" }}
+        style={{ maxHeight: compact ? "min(180px, var(--radix-popover-content-available-height, 180px))" : "min(320px, var(--radix-popover-content-available-height, 320px))" }}
       >
         <Command shouldFilter>
           <CommandInput
@@ -111,7 +114,10 @@ export function SearchableCombobox({
             value={search}
             onValueChange={setSearch}
           />
-          <CommandList className="max-h-[min(270px,calc(var(--radix-popover-content-available-height,320px)-48px))] overscroll-contain overflow-y-auto">
+          <CommandList
+            className="overscroll-contain overflow-y-auto"
+            style={{ maxHeight: compact ? "min(132px, calc(var(--radix-popover-content-available-height, 180px) - 48px))" : "min(270px, calc(var(--radix-popover-content-available-height, 320px) - 48px))" }}
+          >
             <CommandEmpty>
               {allowCustom ? t("implant.noResultsCustom") : t("implant.noResults")}
             </CommandEmpty>

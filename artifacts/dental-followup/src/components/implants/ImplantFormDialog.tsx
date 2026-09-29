@@ -314,6 +314,7 @@ function ImplantForm({
           <FieldLabel htmlFor="implant-q" label="Q" helpKey="Q" />
           <SearchableCombobox
             id="implant-q"
+            compact
             value={qValue}
             onChange={setQValue}
             options={options?.qValues ?? []}

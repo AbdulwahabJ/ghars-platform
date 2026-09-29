@@ -57,6 +57,7 @@ import { useTranslation } from "react-i18next";
 import { useEnumTranslation } from "@/i18n/use-enum-translation";
 import i18n from "@/i18n";
 import { localizeErrorMessage } from "@/lib/localize-error";
+import { finalizeDecimalInput, parseImplantDimension } from "@/lib/digits";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -601,6 +602,7 @@ function InlineImplantEdit({
   const [system, setSystem] = useState(imp.system ?? "");
   const [diameter, setDiameter] = useState(imp.diameter != null ? String(imp.diameter) : "");
   const [length, setLength] = useState(imp.length != null ? String(imp.length) : "");
+  const [sizeErrors, setSizeErrors] = useState({ diameter: false, length: false });
   const [qValue, setQValue] = useState(imp.qValue ?? "");
   const [formerValue, setFormerValue] = useState(imp.formerValue ?? "");
   const [graftValue, setGraftValue] = useState(imp.graftValue ?? "");
@@ -619,6 +621,11 @@ function InlineImplantEdit({
   };
 
   const save = () => {
+    const parsedDiameter = parseImplantDimension(diameter);
+    const parsedLength = parseImplantDimension(length);
+    const errors = { diameter: Number.isNaN(parsedDiameter), length: Number.isNaN(parsedLength) };
+    setSizeErrors(errors);
+    if (errors.diameter || errors.length) return;
     update.mutate(
       {
         id: imp.id,
@@ -626,8 +633,8 @@ function InlineImplantEdit({
         data: {
           site: site as typeof FDI_SITES[number],
           system: system || null,
-          diameter: diameter ? parseFloat(diameter) : null,
-          length: length ? parseFloat(length) : null,
+          diameter: parsedDiameter,
+          length: parsedLength,
           qValue: qValue || null,
           formerValue: formerValue || null,
           graftValue: graftValue || null,
@@ -672,17 +679,19 @@ function InlineImplantEdit({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">{dashboardText("diameter")}</Label>
-          <Input className="h-7 text-xs" type="number" step="0.1" value={diameter} onChange={(e) => setDiameter(e.target.value)} />
+          <Input className="h-7 text-xs" type="text" inputMode="decimal" dir="ltr" aria-label={dashboardText("diameter")} aria-invalid={sizeErrors.diameter} value={diameter} onChange={(e) => { setDiameter(e.target.value); setSizeErrors((previous) => ({ ...previous, diameter: false })); }} onBlur={() => setDiameter((value) => finalizeDecimalInput(value))} />
+          {sizeErrors.diameter && <p role="alert" className="text-xs text-destructive">{i18n.t("clinical:implant.sizeErrorDescription")}</p>}
         </div>
         <div className="space-y-1">
           <Label className="text-xs">{dashboardText("length")}</Label>
-          <Input className="h-7 text-xs" type="number" step="0.1" value={length} onChange={(e) => setLength(e.target.value)} />
+          <Input className="h-7 text-xs" type="text" inputMode="decimal" dir="ltr" aria-label={dashboardText("length")} aria-invalid={sizeErrors.length} value={length} onChange={(e) => { setLength(e.target.value); setSizeErrors((previous) => ({ ...previous, length: false })); }} onBlur={() => setLength((value) => finalizeDecimalInput(value))} />
+          {sizeErrors.length && <p role="alert" className="text-xs text-destructive">{i18n.t("clinical:implant.sizeErrorDescription")}</p>}
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Q</Label>
           <Select value={qValue || "__none__"} onValueChange={(v) => setQValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[180px]" collisionPadding={12}>
               <SelectItem value="__none__">—</SelectItem>
               {(implantOptions?.qValues ?? []).map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
             </SelectContent>
@@ -785,6 +794,7 @@ function InlineAddImplant({
   const [system, setSystem] = useState("");
   const [diameter, setDiameter] = useState("");
   const [length, setLength] = useState("");
+  const [sizeErrors, setSizeErrors] = useState({ diameter: false, length: false });
   const [qValue, setQValue] = useState("");
   const [formerValue, setFormerValue] = useState("");
   const [graftValue, setGraftValue] = useState("");
@@ -795,6 +805,11 @@ function InlineAddImplant({
 
   const save = () => {
     if (!site || !caseId) return;
+    const parsedDiameter = parseImplantDimension(diameter);
+    const parsedLength = parseImplantDimension(length);
+    const errors = { diameter: Number.isNaN(parsedDiameter), length: Number.isNaN(parsedLength) };
+    setSizeErrors(errors);
+    if (errors.diameter || errors.length) return;
     create.mutate(
       {
         caseId,
@@ -802,8 +817,8 @@ function InlineAddImplant({
         data: {
           site: site as typeof FDI_SITES[number],
           system: system || null,
-          diameter: diameter ? parseFloat(diameter) : null,
-          length: length ? parseFloat(length) : null,
+          diameter: parsedDiameter,
+          length: parsedLength,
           qValue: qValue || null,
           formerValue: formerValue || null,
           immediatePlacement: "UNSPECIFIED",
@@ -858,19 +873,21 @@ function InlineAddImplant({
         {/* Diameter */}
         <div className="space-y-1">
           <Label className="text-xs">{dashboardText("diameter")}</Label>
-          <Input className="h-8 text-sm" type="number" step="0.1" min={0} value={diameter} onChange={(e) => setDiameter(e.target.value)} />
+          <Input className="h-8 text-sm" type="text" inputMode="decimal" dir="ltr" aria-label={dashboardText("diameter")} aria-invalid={sizeErrors.diameter} value={diameter} onChange={(e) => { setDiameter(e.target.value); setSizeErrors((previous) => ({ ...previous, diameter: false })); }} onBlur={() => setDiameter((value) => finalizeDecimalInput(value))} />
+          {sizeErrors.diameter && <p role="alert" className="text-xs text-destructive">{i18n.t("clinical:implant.sizeErrorDescription")}</p>}
         </div>
         {/* Length */}
         <div className="space-y-1">
           <Label className="text-xs">{dashboardText("length")}</Label>
-          <Input className="h-8 text-sm" type="number" step="0.1" min={0} value={length} onChange={(e) => setLength(e.target.value)} />
+          <Input className="h-8 text-sm" type="text" inputMode="decimal" dir="ltr" aria-label={dashboardText("length")} aria-invalid={sizeErrors.length} value={length} onChange={(e) => { setLength(e.target.value); setSizeErrors((previous) => ({ ...previous, length: false })); }} onBlur={() => setLength((value) => finalizeDecimalInput(value))} />
+          {sizeErrors.length && <p role="alert" className="text-xs text-destructive">{i18n.t("clinical:implant.sizeErrorDescription")}</p>}
         </div>
         {/* Q */}
         <div className="space-y-1">
           <Label className="text-xs">Q</Label>
           <Select value={qValue || "__none__"} onValueChange={(v) => setQValue(v === "__none__" ? "" : v)}>
             <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[180px]" collisionPadding={12}>
               <SelectItem value="__none__">—</SelectItem>
               {(implantOptions?.qValues ?? []).map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
             </SelectContent>

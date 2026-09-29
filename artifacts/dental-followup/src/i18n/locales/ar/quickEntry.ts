@@ -46,6 +46,7 @@ const quickEntry = {
   },
   validation: {
     fileNumberRequired: "رقم الملف مطلوب", fullNameRequired: "اسم المريض مطلوب", siteRequired: "الموقع مطلوب",
+    implantDimension: "أدخل رقمًا موجبًا بخانتين عشريتين كحد أقصى.",
     followupRequired: "موعد المتابعة مطلوب", procedureSideRequired: "جهة الإجراء مطلوبة لهذه الفئة.",
     sideRequired: "الجهة مطلوبة.", installmentAmountRequired: "مبلغ التقسيط مطلوب عند تفعيل التقسيط.",
     installmentCountRange: "عدد الدفعات يجب أن يكون بين 1 و60.", installmentExceedsTreatment: "مبلغ التقسيط لا يمكن أن يتجاوز مبلغ العلاج الأساسي.",

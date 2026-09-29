@@ -46,6 +46,7 @@ const quickEntry = {
   },
   validation: {
     fileNumberRequired: "File number is required", fullNameRequired: "Patient name is required", siteRequired: "Site is required",
+    implantDimension: "Enter a positive number with at most two decimal places.",
     followupRequired: "A follow-up appointment is required", procedureSideRequired: "Procedure side is required for this category.",
     sideRequired: "Side is required.", installmentAmountRequired: "An installment amount is required when installments are enabled.",
     installmentCountRange: "The number of installments must be between 1 and 60.", installmentExceedsTreatment: "The installment amount cannot exceed the base treatment amount.",
