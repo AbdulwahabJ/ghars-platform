@@ -38,6 +38,7 @@ export const implantsTable = pgTable(
     length: numeric("length", { precision: 5, scale: 2 }),
     qValue: text("q_value"),
     formerValue: text("former_value"),
+    immediatePlacement: text("immediate_placement").notNull().default("UNSPECIFIED"),
     graftValue: text("graft_value"),
     graftProcedureType: text("graft_procedure_type"),
     graftNote: text("graft_note"),

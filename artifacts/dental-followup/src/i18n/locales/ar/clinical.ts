@@ -53,7 +53,7 @@ const clinical = {
     implantSaved: "تم حفظ تعديلات الزرعة بنجاح", implantCreated: "تمت إضافة الزرعة بنجاح", implantSaveFailed: "تعذر حفظ الزرعة.",
     copyDescription: "تم نسخ بيانات الزرعة. اختر رقم السن الجديد ثم احفظ — الزرعة الأصلية تبقى دون تغيير.",
     implantDescription: "القيم تُحفظ كما تُدخل. جميع الحقول اختيارية ما عدا رقم السن.", chooseSiteFirst: "يرجى اختيار رقم السن.",
-    site: "رقم السن", system: "نظام الزرعة", graft: "ترقيع العظم", q: "Q", former: "القيمة السابقة", implantStatus: "حالة الزرعة",
+    site: "رقم السن", system: "نظام الزرعة", graft: "ترقيع العظم", q: "Q", former: "Former", immediate: "زرع فوري", immediateYes: "نعم", immediateNo: "لا", immediateUnspecified: "غير محدد", implantStatus: "حالة الزرعة",
     graftProcedureType: "نوع إجراء الترقيع", graftNote: "ملاحظة الترقيع", procedureTags: "وسوم الإجراء", customTag: "وسم مخصص", addCustomTag: "أضف وسمًا مخصصًا",
     prostheticTitle: "توثيق تركيب", prostheticDescription: "سجّل تاريخ التركيب الفعلي. يظهر هذا السجل في ملخص العمل ولا يعتمد على حالة الحالة أو تاريخ تعديلها.",
     prostheticType: "نوع التركيب", actualProstheticDate: "تاريخ التركيب الفعلي", relatedImplant: "الزرعة المرتبطة (اختياري)", caseLevelProsthetic: "تركيب للحالة كاملة",

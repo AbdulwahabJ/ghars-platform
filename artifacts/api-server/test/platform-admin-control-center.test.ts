@@ -220,7 +220,7 @@ describe("platform admin control center", () => {
     expect(health.body.components.schema).toMatchObject({
       status: "healthy",
       messageCode: "schemaCurrentJournalReadable",
-      value: 31,
+      value: 32,
     });
     for (const component of Object.values(health.body.components) as Array<Record<string, unknown>>) {
       expect(component.messageCode).toEqual(expect.any(String));

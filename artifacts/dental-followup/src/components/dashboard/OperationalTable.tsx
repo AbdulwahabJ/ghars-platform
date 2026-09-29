@@ -806,6 +806,7 @@ function InlineAddImplant({
           length: length ? parseFloat(length) : null,
           qValue: qValue || null,
           formerValue: formerValue || null,
+          immediatePlacement: "UNSPECIFIED",
           graftValue: graftValue || null,
           graftProcedureType: graftProcedureType || null,
           graftNote: graftNote || null,

@@ -218,6 +218,13 @@
       "when": 1789990531761,
       "tag": "0030_patient_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790683938841,
+      "tag": "0031_implant_immediate_placement",
+      "breakpoints": true
     }
   ]
 }

@@ -546,6 +546,7 @@ export function InlineNewRecord({
             length: i.length ? parseFloat(i.length) : null,
             qValue: i.qValue || null,
             formerValue: i.formerValue || null,
+            immediatePlacement: "UNSPECIFIED",
             graftValue: i.graftValue || null,
             graftProcedureType: null,
             graftNote: null,

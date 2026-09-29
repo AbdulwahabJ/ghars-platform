@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +45,7 @@ export function SearchableCombobox({
   const { t } = useClinicalTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const currentOptionRef = useRef<HTMLDivElement>(null);
 
   const trimmed = search.trim();
   const showCustom =
@@ -59,7 +60,10 @@ export function SearchableCombobox({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(next) => {
+      setOpen(next);
+      if (next) setSearch("");
+    }}>
       <PopoverTrigger asChild>
         <Button
           id={id}
@@ -90,7 +94,16 @@ export function SearchableCombobox({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="p-0 w-[--radix-popover-trigger-width] min-w-[200px]"
+        side="bottom"
+        sideOffset={6}
+        collisionPadding={12}
+        avoidCollisions
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          requestAnimationFrame(() => currentOptionRef.current?.scrollIntoView({ block: "nearest" }));
+        }}
+        className="p-0 w-[--radix-popover-trigger-width] min-w-[min(200px,calc(100vw-24px))] max-w-[calc(100vw-24px)] overflow-hidden"
+        style={{ maxHeight: "min(320px, var(--radix-popover-content-available-height, 320px))" }}
       >
         <Command shouldFilter>
           <CommandInput
@@ -98,7 +111,7 @@ export function SearchableCombobox({
             value={search}
             onValueChange={setSearch}
           />
-          <CommandList>
+          <CommandList className="max-h-[min(270px,calc(var(--radix-popover-content-available-height,320px)-48px))] overscroll-contain overflow-y-auto">
             <CommandEmpty>
               {allowCustom ? t("implant.noResultsCustom") : t("implant.noResults")}
             </CommandEmpty>
@@ -116,6 +129,7 @@ export function SearchableCombobox({
                 <CommandItem
                   key={option}
                   value={option}
+                  ref={value === option ? currentOptionRef : undefined}
                   onSelect={() => select(option)}
                 >
                   <Check

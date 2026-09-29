@@ -104,6 +104,10 @@ function ImplantForm({
   const [graftValue, setGraftValue] = useState<string | null>(() =>
     fromImplant ? implant.graftValue : null,
   );
+  const [immediatePlacement, setImmediatePlacement] = useState<ImplantInput["immediatePlacement"]>(() =>
+    fromImplant ? implant.immediatePlacement : "UNSPECIFIED",
+  );
+  const [sizeErrors, setSizeErrors] = useState({ diameter: false, length: false });
   const [graftProcedureType, setGraftProcedureType] = useState(() =>
     fromImplant ? (implant.graftProcedureType ?? "") : "",
   );
@@ -165,12 +169,12 @@ function ImplantForm({
     }
     const d = parseImplantDimension(diameter);
     const l = parseImplantDimension(length);
-    if ((d !== null && Number.isNaN(d)) || (l !== null && Number.isNaN(l))) {
-      toast({
-        variant: "destructive",
-         title: t("implant.sizeError"),
-         description: t("implant.sizeErrorDescription"),
-      });
+    const errors = {
+      diameter: d !== null && Number.isNaN(d),
+      length: l !== null && Number.isNaN(l),
+    };
+    setSizeErrors(errors);
+    if (errors.diameter || errors.length) {
       return;
     }
 
@@ -181,6 +185,7 @@ function ImplantForm({
       length: l,
       qValue: qValue?.trim() || null,
       formerValue: formerValue?.trim() || null,
+      immediatePlacement,
       graftValue: graftValue?.trim() || null,
       graftProcedureType: graftIsPositive
         ? graftProcedureType.trim() || null
@@ -269,27 +274,37 @@ function ImplantForm({
           <div className="flex items-center gap-3" dir="ltr">
             <Input
                aria-label={t("implant.diameter")}
+               aria-invalid={sizeErrors.diameter}
               type="text"
               inputMode="decimal"
               placeholder="3.5"
               value={diameter}
-              onChange={(e) => setDiameter(e.target.value)}
+               onChange={(e) => {
+                 setDiameter(e.target.value);
+                 setSizeErrors((previous) => ({ ...previous, diameter: false }));
+               }}
               onBlur={() => setDiameter((value) => finalizeDecimalInput(value))}
               className="max-w-[120px] text-center"
             />
             <span className="text-muted-foreground font-semibold">×</span>
             <Input
                aria-label={t("implant.length")}
+               aria-invalid={sizeErrors.length}
               type="text"
               inputMode="decimal"
               placeholder="10"
               value={length}
-              onChange={(e) => setLength(e.target.value)}
+               onChange={(e) => {
+                 setLength(e.target.value);
+                 setSizeErrors((previous) => ({ ...previous, length: false }));
+               }}
               onBlur={() => setLength((value) => finalizeDecimalInput(value))}
               className="max-w-[120px] text-center"
             />
             <span className="text-muted-foreground text-sm">mm</span>
           </div>
+          {sizeErrors.diameter && <p role="alert" className="text-xs text-destructive">{t("implant.diameter")}: {t("implant.sizeErrorDescription")}</p>}
+          {sizeErrors.length && <p role="alert" className="text-xs text-destructive">{t("implant.length")}: {t("implant.sizeErrorDescription")}</p>}
           <p className="text-xs text-muted-foreground">
              {t("implant.sizeHint")}
           </p>
@@ -324,6 +339,19 @@ function ImplantForm({
             options={options?.graftValues ?? []}
              placeholder={t("implant.chooseOrEnter")}
           />
+        </div>
+        <div className="space-y-2">
+          <FieldLabel htmlFor="implant-immediate" label={t("implant.immediate")} />
+          <Select value={immediatePlacement} onValueChange={(value: ImplantInput["immediatePlacement"]) => setImmediatePlacement(value)}>
+            <SelectTrigger id="implant-immediate" className="h-[46px] rounded-[10px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="UNSPECIFIED">{t("implant.immediateUnspecified")}</SelectItem>
+              <SelectItem value="YES">{t("implant.immediateYes")}</SelectItem>
+              <SelectItem value="NO">{t("implant.immediateNo")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
            <FieldLabel htmlFor="implant-status" label={t("implant.implantStatus")} />

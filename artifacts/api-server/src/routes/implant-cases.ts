@@ -132,6 +132,7 @@ function toImplantDto(row: ImplantRow): Implant {
     length: row.length == null ? null : Number(row.length),
     qValue: row.qValue,
     formerValue: row.formerValue,
+    immediatePlacement: row.immediatePlacement as Implant["immediatePlacement"],
     graftValue: row.graftValue,
     graftProcedureType: row.graftProcedureType,
     graftNote: row.graftNote,
@@ -818,6 +819,7 @@ router.post("/implant-cases/:id/implants", async (req, res) => {
         length: input.length == null ? null : String(input.length),
         qValue: input.qValue,
         formerValue: input.formerValue,
+        immediatePlacement: input.immediatePlacement,
         graftValue: input.graftValue,
         graftProcedureType: input.graftProcedureType,
         graftNote: input.graftNote,
@@ -916,6 +918,9 @@ router.patch("/implants/:id", async (req, res) => {
         ...(updates.qValue !== undefined && { qValue: updates.qValue }),
         ...(updates.formerValue !== undefined && {
           formerValue: updates.formerValue,
+        }),
+        ...(updates.immediatePlacement !== undefined && {
+          immediatePlacement: updates.immediatePlacement,
         }),
         ...(updates.graftValue !== undefined && {
           graftValue: updates.graftValue,

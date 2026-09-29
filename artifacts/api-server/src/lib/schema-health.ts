@@ -15,18 +15,18 @@ export type SchemaQueryExecutor = (query: SQL) => Promise<QueryResult>;
 const EXPECTED_SCHEMA = {
   tableCount: 34,
   tablesSignature: "0cda5a28de0dacc4e033d512ec8d319e",
-  columnCount: 384,
-  columnsSignature: "0d637730acfaf8a8794ea9d4f64af081",
-  constraintCount: 147,
-  constraintsSignature: "a217958368a1778da01fb8ca5b0f17c5",
+  columnCount: 385,
+  columnsSignature: "7e0b14d927c5a3c9c5c73795df54ba87",
+  constraintCount: 148,
+  constraintsSignature: "a0c05496caad0a380877be56f70ecce2",
   indexCount: 120,
   indexesSignature: "e4cf8b57152c345f67ee4fbf0a62ec15",
 } as const;
 
-const EXPECTED_MIGRATION_COUNT = 31;
+const EXPECTED_MIGRATION_COUNT = 32;
 const EXPECTED_LATEST_MIGRATION = {
-  hash: "8f4410d4fc6335fc969e4806f08132894e16bb895270932bb1a940d58ce4bbba",
-  createdAt: "1789990531761",
+  hash: "5384a228d9c2bf5fff829571aed6e12a843f9b1847ae5985745c16dfb6a16852",
+  createdAt: "1790683938841",
 } as const;
 
 export const schemaFingerprintQuery = sql`

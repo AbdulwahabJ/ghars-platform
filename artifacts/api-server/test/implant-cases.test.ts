@@ -225,6 +225,8 @@ describe("implants", () => {
     expect(res.body.implant.diameter).toBe(3.5);
     expect(res.body.implant.length).toBe(10);
     expect(res.body.implant.implantStatus).toBe("مزروعة");
+    expect(res.body.implant.immediatePlacement).toBe("UNSPECIFIED");
+    expect(res.body.implant.formerValue).toBe("M17");
     expect(res.body.implant.procedureTags).toEqual([
       "DIRECT",
       "IMMED",
@@ -244,6 +246,38 @@ describe("implants", () => {
     expect(res.status).toBe(201);
     expect(res.body.implant.system).toBe("نظام مخصص جديد");
     expect(res.body.implant.graftValue).toBe("قيمة ترقيع مخصصة");
+  });
+
+  it("keeps Immediate independent of Former, tags, and unrelated edits", async () => {
+    const created = await admin.post(`/api/implant-cases/${caseId}/implants`).send({
+      site: "22",
+      formerValue: "MST",
+      procedureTags: ["IMMED"],
+      immediatePlacement: "YES",
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.implant.immediatePlacement).toBe("YES");
+    expect(created.body.implant.formerValue).toBe("MST");
+
+    const changed = await admin.patch(`/api/implants/${created.body.implant.id}`).send({
+      formerValue: "N",
+      immediatePlacement: "NO",
+    });
+    expect(changed.status).toBe(200);
+    expect(changed.body.implant.immediatePlacement).toBe("NO");
+    expect(changed.body.implant.formerValue).toBe("N");
+    const unrelated = await admin.patch(`/api/implants/${created.body.implant.id}`).send({
+      implantNote: "reviewed",
+    });
+    expect(unrelated.body.implant.immediatePlacement).toBe("NO");
+    const listed = await admin.get(`/api/patients/${patientId}/implant-cases`);
+    expect(listed.body.items.find((c: { id: string }) => c.id === caseId)
+      .implants.find((i: { id: string }) => i.id === created.body.implant.id)
+      .immediatePlacement).toBe("NO");
+    const invalid = await admin.patch(`/api/implants/${created.body.implant.id}`).send({
+      immediatePlacement: "IMMED",
+    });
+    expect(invalid.status).toBe(400);
   });
 
   it("rejects a non-FDI site", async () => {

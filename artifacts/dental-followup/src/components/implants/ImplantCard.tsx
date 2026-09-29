@@ -89,6 +89,7 @@ export function ImplantCard({
     [t("implant.q"), implant.qValue],
     [t("implant.former"), implant.formerValue],
     [t("implant.graft"), implant.graftValue],
+    [t("implant.immediate"), t(`implant.immediate${implant.immediatePlacement === "YES" ? "Yes" : implant.immediatePlacement === "NO" ? "No" : "Unspecified"}`)],
   ];
   const graftIsPositive =
     Boolean(implant.graftValue) &&
