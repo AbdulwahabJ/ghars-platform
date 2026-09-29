@@ -994,15 +994,15 @@ export function InlineNewRecord({
                           <SelectContent
                             className="overscroll-contain"
                             collisionPadding={12}
-                            style={{ maxHeight: "min(180px, var(--radix-select-content-available-height, 180px))" }}
+                            style={{ maxHeight: "min(200px, var(--radix-select-content-available-height, 200px))" }}
                           >
-                            <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{t("jaws.upper")}</div>
+                            <div className="px-2 text-xs text-muted-foreground font-medium">{t("jaws.upper")}</div>
                             {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => (
-                              <SelectItem key={s} value={s}>{optionLabel(s)}</SelectItem>
+                              <SelectItem key={s} value={s} className="h-[26px] py-0">{optionLabel(s)}</SelectItem>
                             ))}
-                            <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{t("jaws.lower")}</div>
+                            <div className="px-2 text-xs text-muted-foreground font-medium">{t("jaws.lower")}</div>
                             {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => (
-                              <SelectItem key={s} value={s}>{optionLabel(s)}</SelectItem>
+                              <SelectItem key={s} value={s} className="h-[26px] py-0">{optionLabel(s)}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

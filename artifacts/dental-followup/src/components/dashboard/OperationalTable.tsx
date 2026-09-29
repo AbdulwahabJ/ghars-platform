@@ -662,15 +662,15 @@ function InlineImplantEdit({
             <SelectContent
               className="overscroll-contain"
               collisionPadding={12}
-              style={{ maxHeight: "min(180px, var(--radix-select-content-available-height, 180px))" }}
+              style={{ maxHeight: "min(200px, var(--radix-select-content-available-height, 200px))" }}
             >
-              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("upperJaw")}</div>
+              <div className="px-2 text-xs text-muted-foreground font-medium">{dashboardText("upperJaw")}</div>
               {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
+                <SelectItem key={s} value={s} className="h-[26px] py-0">{s}</SelectItem>
               ))}
-              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("lowerJaw")}</div>
+              <div className="px-2 text-xs text-muted-foreground font-medium">{dashboardText("lowerJaw")}</div>
               {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
+                <SelectItem key={s} value={s} className="h-[26px] py-0">{s}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -859,11 +859,15 @@ function InlineAddImplant({
           <Label className="text-xs">{dashboardText("siteFdiRequired")}</Label>
           <Select dir="ltr" value={site} onValueChange={(value) => setSite(value as typeof FDI_SITES[number])}>
             <SelectTrigger className="h-8 text-sm text-start"><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
-              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("upperJaw")}</div>
-              {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("lowerJaw")}</div>
-              {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            <SelectContent
+              className="overscroll-contain"
+              collisionPadding={12}
+              style={{ maxHeight: "min(200px, var(--radix-select-content-available-height, 200px))" }}
+            >
+              <div className="px-2 text-xs text-muted-foreground font-medium">{dashboardText("upperJaw")}</div>
+              {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => <SelectItem key={s} value={s} className="h-[26px] py-0">{s}</SelectItem>)}
+              <div className="px-2 text-xs text-muted-foreground font-medium">{dashboardText("lowerJaw")}</div>
+              {["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].map((s) => <SelectItem key={s} value={s} className="h-[26px] py-0">{s}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

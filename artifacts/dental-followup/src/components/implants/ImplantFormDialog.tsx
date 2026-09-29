@@ -251,10 +251,10 @@ function ImplantForm({
             <SelectContent
               className="overscroll-contain"
               collisionPadding={12}
-              style={{ maxHeight: "min(180px, var(--radix-select-content-available-height, 180px))" }}
+              style={{ maxHeight: "min(200px, var(--radix-select-content-available-height, 200px))" }}
             >
               {FDI_SITES.map((s) => (
-                <SelectItem key={s} value={s} disabled={occupiedSites.has(s)}>
+                <SelectItem key={s} value={s} disabled={occupiedSites.has(s)} className="h-[26px] py-0">
                   {s}
                    {occupiedSites.has(s) ? ` — ${t("implant.activeImplantExists")}` : ""}
                 </SelectItem>
