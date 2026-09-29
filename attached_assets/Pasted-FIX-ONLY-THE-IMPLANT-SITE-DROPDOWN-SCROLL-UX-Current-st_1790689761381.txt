@@ -1,0 +1,238 @@
+FIX ONLY THE IMPLANT SITE DROPDOWN SCROLL UX.
+
+Current status:
+- Implant Diameter manual input is fixed.
+- Implant Length manual input is fixed.
+- Other implant fields are working.
+
+Remaining issue:
+The "موقع الزرعة" / Implant Site dropdown is still too long and is NOT practically scrollable.
+
+The attached screenshot shows the actual field.
+
+DO NOT change Diameter.
+DO NOT change Length.
+DO NOT change Q.
+DO NOT redesign the implant form.
+DO NOT publish.
+
+==================================================
+1. TARGET FIELD
+==================================================
+
+Arabic:
+موقع الزرعة
+
+English:
+Implant Site / Tooth Site
+
+This dropdown contains tooth/site values such as:
+
+11
+12
+13
+14
+15
+16
+17
+18
+21
+22
+...
+
+and therefore the list can be long.
+
+==================================================
+2. SHORT FIXED DROPDOWN
+==================================================
+
+The dropdown must NOT expand to show the full tooth list.
+
+Make it compact.
+
+Recommended visible height:
+
+approximately 180px
+
+Acceptable range:
+
+160px–200px
+
+It should show roughly:
+
+5–7 rows at a time
+
+and then scroll internally.
+
+==================================================
+3. INTERNAL SCROLL
+==================================================
+
+Required:
+
+overflow-y: auto
+
+inside the dropdown content.
+
+The user must scroll INSIDE the Implant Site dropdown to reach additional tooth numbers.
+
+The surrounding page must NOT need to scroll just to choose a tooth.
+
+==================================================
+4. VIEWPORT SAFE
+==================================================
+
+The dropdown must remain inside the visible viewport.
+
+Use the existing Radix/shadcn positioning correctly:
+
+- collision detection
+- collision padding
+- side offset
+- bounded max height
+
+If there is room below:
+open downward.
+
+If not:
+it may open upward.
+
+But in both cases the dropdown must remain short and internally scrollable.
+
+==================================================
+5. SELECTED SITE
+==================================================
+
+When the dropdown opens:
+
+the current selected tooth/site should be visible where possible.
+
+Example:
+
+selected = 46
+
+Open list near 46 rather than forcing user to start from the top every time.
+
+==================================================
+6. SCROLLBAR
+==================================================
+
+Make the internal scrollbar usable.
+
+Do not hide scrolling completely.
+
+Use the current Ghars/shadcn visual style.
+
+Scrollbar may be subtle but must work with:
+
+mouse wheel
+trackpad
+touch
+
+==================================================
+7. NO PAGE EXPANSION
+==================================================
+
+Opening Implant Site must NOT:
+
+- make the page taller
+- push content
+- require scrolling the entire page
+- render a huge popover outside viewport
+
+The dropdown is an overlay with its own scroll container.
+
+==================================================
+8. MOBILE / TABLET
+==================================================
+
+Verify the same behavior on:
+
+desktop
+tablet
+mobile
+
+On touch devices:
+the user must be able to swipe inside the list.
+
+==================================================
+9. RTL
+==================================================
+
+Arabic RTL layout must remain correct.
+
+Tooth numbers remain Western digits:
+
+0-9
+
+No reordering issues.
+
+==================================================
+10. MANUAL VISUAL QA
+==================================================
+
+Actually open the Arabic implant form.
+
+Click:
+
+موقع الزرعة
+
+Verify:
+
+- list is short
+- only about 5–7 rows visible
+- internal scroll exists
+- can reach the last tooth
+- page itself does not need to move
+- selected tooth remains visible
+- no clipping outside viewport
+
+Do not rely only on tests.
+
+==================================================
+11. FINAL REPORT
+==================================================
+
+Return:
+
+IMPLANT SITE DROPDOWN MAX HEIGHT:
+<actual px>
+
+VISIBLE SITE ROWS:
+<number>
+
+INTERNAL SCROLL:
+PASS / FAIL
+
+MOUSE WHEEL:
+PASS / FAIL
+
+TOUCH SCROLL:
+PASS / FAIL
+
+PAGE SCROLL NOT REQUIRED:
+PASS / FAIL
+
+VIEWPORT SAFE:
+PASS / FAIL
+
+SELECTED SITE VISIBLE:
+PASS / FAIL
+
+ARABIC RTL:
+PASS / FAIL
+
+NO REGRESSION TO DIAMETER/LENGTH:
+PASS / FAIL
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+CHECKPOINT:
+<hash>
+
+Do not publish.
+Create checkpoint and STOP.

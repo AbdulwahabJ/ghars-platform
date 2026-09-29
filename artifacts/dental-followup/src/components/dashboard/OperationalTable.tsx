@@ -540,7 +540,11 @@ function InlineCaseEdit({
           <Label className="text-xs">{dashboardText("caseStatus")}</Label>
           <Select value={caseStatus} onValueChange={setCaseStatus}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              className="overscroll-contain"
+              collisionPadding={12}
+              style={{ maxHeight: "min(180px, var(--radix-select-content-available-height, 180px))" }}
+            >
               {CASE_STATUSES.map((s) => <SelectItem key={s} value={s}>{enumLabel("caseStatus", s)}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -655,7 +659,11 @@ function InlineImplantEdit({
           <Label className="text-xs">{dashboardText("siteFdi")}</Label>
           <Select dir="ltr" value={site} onValueChange={(value) => setSite(value as typeof FDI_SITES[number])}>
             <SelectTrigger className="h-7 text-xs text-start"><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              className="overscroll-contain"
+              collisionPadding={12}
+              style={{ maxHeight: "min(180px, var(--radix-select-content-available-height, 180px))" }}
+            >
               <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{dashboardText("upperJaw")}</div>
               {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>

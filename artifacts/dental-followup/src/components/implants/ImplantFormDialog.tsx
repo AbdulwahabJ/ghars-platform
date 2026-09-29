@@ -248,7 +248,11 @@ function ImplantForm({
             <SelectTrigger id="implant-site" className="h-[46px] rounded-[10px]">
                <SelectValue placeholder={t("implant.chooseTooth")} />
             </SelectTrigger>
-            <SelectContent className="max-h-64">
+            <SelectContent
+              className="overscroll-contain"
+              collisionPadding={12}
+              style={{ maxHeight: "min(180px, var(--radix-select-content-available-height, 180px))" }}
+            >
               {FDI_SITES.map((s) => (
                 <SelectItem key={s} value={s} disabled={occupiedSites.has(s)}>
                   {s}

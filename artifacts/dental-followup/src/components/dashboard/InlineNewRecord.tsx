@@ -991,7 +991,11 @@ export function InlineNewRecord({
                           >
                             <SelectValue placeholder={t("actions.choose")} />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent
+                            className="overscroll-contain"
+                            collisionPadding={12}
+                            style={{ maxHeight: "min(180px, var(--radix-select-content-available-height, 180px))" }}
+                          >
                             <div className="px-2 py-1 text-xs text-muted-foreground font-medium">{t("jaws.upper")}</div>
                             {["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"].map((s) => (
                               <SelectItem key={s} value={s}>{optionLabel(s)}</SelectItem>
